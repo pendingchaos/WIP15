@@ -1,0 +1,382 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# TODO: Function loading with dlsym and glXGetProcAddress (very important)
+# TODO: Nontrivial functions (very important)
+# TODO: Return values (very important)
+# TODO: Function pointers (very important)
+# TODO: Integer arrays
+import glxml
+
+gl = glxml.GL(False)
+
+output = open("../src/replay_gl.c", "w")
+
+output.write("""#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <stdlib.h>
+#include "replay.h"
+#include "libtrace.h"
+#include "libinspect.h"
+
+""")
+
+output.write(gl.typedecls)
+
+output.write("""
+static GLuint* gl_param_GLuint_array(trace_value_t* val) {
+    return NULL; //TODO
+}
+
+static const char** gl_param_string_array(trace_value_t* val) {
+    return (const char**)val->str;
+}
+
+static const char* gl_param_string(trace_value_t* val) {
+    return *val->str;
+}
+
+static uint64_t gl_param_pointer(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_value_t* val) {
+    return NULL; //TODO
+}
+
+static GLsizei gl_param_GLsizei(trace_value_t* val) {
+    return *val->i64;
+}
+
+static GLint64EXT gl_param_GLint64EXT(trace_value_t* val) {
+    return *val->i64;
+}
+
+static GLshort gl_param_GLshort(trace_value_t* val) {
+    return *val->i64;
+}
+
+static int64_t gl_param_int64_t(trace_value_t* val) {
+    return *val->i64;
+}
+
+static GLubyte gl_param_GLubyte(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_value_t* val) {
+    return NULL; //TODO
+}
+
+static GLboolean gl_param_GLboolean(trace_value_t* val) {
+    return *val->bl;
+}
+
+static Bool gl_param_Bool(trace_value_t* val) {
+    return *val->bl;
+}
+
+static GLbitfield gl_param_GLbitfield(trace_value_t* val) {
+    return *val->bitfield;
+}
+
+static uint64_t gl_param_GLsync(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLuint gl_param_GLuint(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLint64 gl_param_GLint64(trace_value_t* val) {
+    return *val->i64;
+}
+
+static int gl_param_int(trace_value_t* val) {
+    return *val->i64;
+}
+
+static uint64_t gl_param_GLeglImageOES(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLfixed gl_param_GLfixed(trace_value_t* val) {
+    return (*val->dbl) * 65546.0f;
+}
+
+static GLclampf gl_param_GLclampf(trace_value_t* val) {
+    return *val->dbl;
+}
+
+static float gl_param_float(trace_value_t* val) {
+    return *val->dbl;
+}
+
+static GLhalfNV gl_param_GLhalfNV(trace_value_t* val) { //TODO
+    return *val->u64;
+}
+
+static uint64_t gl_param_GLintptr(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLushort gl_param_GLushort(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLenum gl_param_GLenum(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLuint gl_param_unsigned_int(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLfloat gl_param_GLfloat(trace_value_t* val) {
+    return *val->dbl;
+}
+
+static GLuint64 gl_param_GLuint64(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLdouble gl_param_GLdouble(trace_value_t* val) {
+    return *val->dbl;
+}
+
+static GLhandleARB gl_param_GLhandleARB(trace_value_t* val) {
+    return *val->u64;
+}
+
+static uint64_t gl_param_GLintptrARB(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static uint64_t gl_param_GLsizeiptr(trace_value_t* val)
+{
+    return *val->ptr;
+}
+
+static GLint gl_param_GLint(trace_value_t* val)
+{
+    return *val->i64;
+}
+
+static GLclampx gl_param_GLclampx(trace_value_t* val) {
+    return *val->i64;
+}
+
+static GLsizeiptrARB gl_param_GLsizeiptrARB(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLuint64EXT gl_param_GLuint64EXT(trace_value_t* val) {
+    return *val->u64;
+}
+
+static uint64_t gl_param_GLvdpauSurfaceNV(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLbyte gl_param_GLbyte(trace_value_t* val) {
+    return *val->i64;
+}
+
+static GLclampd gl_param_GLclampd(trace_value_t* val) {
+    return *val->dbl;
+}
+
+static GLDEBUGPROCKHR gl_param_GLDEBUGPROCKHR(trace_value_t* val) {
+    return NULL; //TODO
+}
+
+static GLDEBUGPROCAMD gl_param_GLDEBUGPROCAMD(trace_value_t* val) {
+    return NULL; //TODO
+}
+
+static GLXPixmap gl_param_GLXPixmap(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXWindow gl_param_GLXWindow(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXPbuffer gl_param_GLXPbuffer(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXDrawable gl_param_GLXDrawable(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXVideoDeviceNV gl_param_GLXVideoDeviceNV(trace_value_t* val) {
+    return *val->u64;
+}
+
+static Pixmap gl_param_Pixmap(trace_value_t* val) {
+    return *val->u64;
+}
+
+static Window gl_param_Window(trace_value_t* val) {
+    return *val->u64;
+}
+
+static Font gl_param_Font(trace_value_t* val) {
+    return *val->u64;
+}
+
+static Colormap gl_param_Colormap(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXContextID gl_param_GLXContextID(trace_value_t* val) {
+    return *val->u64;
+}
+
+static uint64_t gl_param_GLXFBConfig(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLXVideoCaptureDeviceNV gl_param_GLXVideoCaptureDeviceNV(trace_value_t* val) {
+    return *val->u64;
+}
+
+static uint64_t gl_param_GLXFBConfigSGIX(trace_value_t* val) {
+    return *val->ptr;
+}
+
+static GLXPbufferSGIX gl_param_GLXPbufferSGIX(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_value_t* val) {
+    return *val->u64;
+}
+
+static GLXContext gl_param_GLXContext(trace_value_t* val) {
+    return (GLXContext)*val->ptr;
+}
+
+typedef void (*_func)();
+
+static void reset_gl_funcs(replay_context_t* ctx);
+static void reload_gl_funcs(replay_context_t* ctx);
+
+extern _func glXGetProcAddress(const GLubyte* procName);
+""")
+
+output.write("\n")
+
+for name in gl.functions:
+    function = gl.functions[name]
+    params = []
+    for param in function.params:
+        params.append("%s" % (param.type_))
+    
+    output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
+
+output.write("typedef struct {\n")
+for name in gl.functions:
+    output.write("    %s_t real_%s;\n" % (name, name))
+output.write("} replay_gl_funcs_t;\n\n")
+
+nontrivial_str = open("nontrivial_func_impls.txt").read()
+nontrivial = {}
+
+current_name = ""
+current = ""
+for line in nontrivial_str.split("\n"):
+    if line.endswith(":"):
+        if len(current_name) != 0:
+            nontrivial[current_name] = current
+        
+        current_name = line[:-1]
+        current = ""
+    else:
+        current += line + "\n"
+if len(current_name) != 0:
+    nontrivial[current_name] = current
+
+for name in gl.functions:
+    output.write("void replay_%s(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {\n" % (name))
+    
+    if name == "glXGetProcAddress":
+        output.write("    %s_t real = &%s;" % (name, name))
+    else:
+        output.write("    %s_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_%s;\n" % (name, name))
+    
+    if name in nontrivial:
+        output.write(nontrivial[name])
+        output.write("}\n\n")
+        continue
+    
+    function = gl.functions[name]
+    
+    params = []
+    
+    i = 0
+    for param in function.params:
+        arg = "command->args%s->val" % ("->next"*i)
+        
+        if param.type_[-1] == "]":
+            params.append("gl_param_%s_array(&%s)" % (param.type_.split("[")[0], arg))
+        elif param.type_.replace(" ", "") == "constGLchar*const*":
+            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "constGLchar**":
+            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "constGLcharARB**":
+            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "unsignedint":
+            params.append("(%s)gl_param_unsigned_int(&%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "unsignedlong":
+            params.append("(%s)gl_param_unsigned_int(&%s)" % (param.type_, arg))
+        elif "*" in param.type_:
+            if "GLchar" in param.type_:
+                params.append("(%s)gl_param_string(&%s)" % (param.type_, arg))
+            else:
+                params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+        else:
+            params.append("(%s)gl_param_%s(&%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
+        
+        i += 1
+    
+    output.write("    real(%s);\n" % (", ".join(params)))
+    
+    output.write("}\n\n")
+
+output.write("""void init_replay_gl(replay_context_t* ctx) {
+    replay_gl_funcs_t* funcs = malloc(sizeof(replay_gl_funcs_t));
+    ctx->_replay_gl = funcs;
+""")
+
+for name in gl.functions:
+    if not name == "glXGetProcAddress" and name.startswith("glX"):
+        output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
+
+output.write("""    ctx->_replay_gl = funcs;
+}
+
+static void reset_gl_funcs(replay_context_t* ctx) {
+    replay_gl_funcs_t* funcs = ctx->_replay_gl;
+""")
+
+for name in gl.functions:
+    if not name.startswith("glX"):
+        output.write("    funcs->real_%s = NULL;\n" % (name))
+
+output.write("""}
+
+static void reload_gl_funcs(replay_context_t* ctx) {
+    replay_gl_funcs_t* funcs = ctx->_replay_gl;
+""")
+
+for name in gl.functions:
+    if not name.startswith("glX"):
+        output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
+
+output.write("}\n\n")
+
+output.write("""void deinit_replay_gl(replay_context_t* ctx) {
+    free(ctx->_replay_gl);
+}
+""")

@@ -1,0 +1,32 @@
+Debugging:
+    Validation:
+        Bindless handles
+        Implementation defined/undefined behaviour
+        Errors
+        Functions not allowed in current OpenGL profile/version
+        Using extensions without explicitly enabling them
+        Texture formats not natively supported on some GPUs
+        Uninitialized uniforms
+        Uninitialized textures
+        Uninitialized buffers
+        Unused uniforms
+    View textures
+    View meshes
+    View state
+    Shader debugger
+        Can use SSBOs
+        Possible without by rendering the values to the framebuffer
+            Use this because it works on more hardware
+    Backtraces with line numbers for function calls
+
+Performance:
+    CPU-GPU sync points
+    Redundant and expensive state changes
+        Not needed because the driver optimizes them out
+    Statistics per function call and per frame
+        Only get GPU time for calls with a context
+    Slow paths
+    Shader profiler
+        Can use recent extensions (timers and SSBOs)
+        Possible without but may not be reliable
+
