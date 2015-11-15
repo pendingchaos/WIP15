@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <X11/Xlib.h>
 
 void init_replay_gl(replay_context_t* ctx);
 void deinit_replay_gl(replay_context_t* ctx);
@@ -32,6 +33,7 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     init_replay_gl(ctx);
     
     //TODO: GLX stuff
+    ctx->_display = XOpenDisplay(NULL);
     
     const trace_t* trace = inspection->trace;
     
@@ -51,6 +53,7 @@ void destroy_replay_context(replay_context_t* context) {
     free(context->funcs);
     
     //TODO: GLX stuff
+    XCloseDisplay(context->_display);
     
     deinit_replay_gl(context);
     

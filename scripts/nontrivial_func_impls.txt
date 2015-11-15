@@ -1,0 +1,58 @@
+glXMakeCurrent:
+    GLXContext glctx = gl_param_GLXContext(&command->args->val);
+    if (glctx) {
+        glctx = replay_get_real_object(ctx, ReplayObjType_GLXContext, glctx);
+        /*if (!glctx) { //TODO: Is this correct
+            inspect_add_error(inspect_command, "Invalid GLX context.");
+            return;
+        }*/
+    }
+    
+    real(ctx->_display, ctx->_drawable, glctx);
+    
+    if (glctx)
+        reload_gl_funcs(ctx);
+    else
+        reset_gl_funcs(ctx);
+
+glXGetProcAddressARB:
+    void (*result)() = real(gl_param_string(&command->args->val));
+    if ((result == NULL) != (*command->ret.ptr == 0))
+        inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
+
+glXGetProcAddress:
+    void (*result)() = real(gl_param_string(&command->args->val));
+    if ((result == NULL) != (*command->ret.ptr == 0))
+        inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
+
+glXQueryExtension:
+    Bool result = real(ctx->_display, NULL, NULL);
+    if (result != *command->ret.bl)
+        inspect_add_warning(inspect_command, "glXQueryExtension returned something different during replay.");
+
+glXChooseVisual:
+
+glXCreateContext:
+
+glXQueryExtensionsString:
+    //Nothing to have here
+
+glXDestroyContext:
+    GLXContext glctx = gl_param_GLXContext(&command->args->next->val);
+    glctx = replay_get_real_object(ctx, ReplayObjType_GLXContext, glctx);
+    /*if (!glctx) { //TODO: Is this correct
+        inspect_add_error(inspect_command, "Invalid GLX context.");
+        return;
+    }*/
+    
+    real(ctx->_display, glctx);
+
+glXSwapBuffers:
+    GLXDrawable drawable = gl_param_GLXDrawable(&command->args->next->val);
+    drawable = (GLXDrawable)replay_get_real_object(ctx, ReplayObjType_XID, (void *)drawable);
+    /*if (!drawable) { //TODO: Is this correct
+        inspect_add_error(inspect_command, "Invalid GLX drawable.");
+        return;
+    }*/
+    
+    real(ctx->_display, drawable);
