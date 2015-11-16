@@ -22,6 +22,14 @@ glXMakeCurrent:
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;
     }
+    
+    if (F(glXSwapIntervalEXT))
+        F(glXSwapIntervalEXT)(ctx->_display, ctx->_glx_drawable, 0);
+    //TODO
+    //else if (F(glXSwapIntervalMESA))
+    //    F(glXSwapIntervalMESA)(0);
+    else if (F(glXSwapIntervalSGI))
+        F(glXSwapIntervalSGI)(0);
 
 glXGetProcAddressARB:
     void (*result)() = real(gl_param_string(&command->args->val));
