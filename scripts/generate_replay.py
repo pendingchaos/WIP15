@@ -368,9 +368,11 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
         F(glEnable)(GL_DEBUG_OUTPUT);
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallback)(debug_callback, cmd);
+        F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
     } else if (F(glDebugMessageCallbackARB)) {
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallbackARB)(debug_callback, cmd);
+        //TODO: glDebugMessageControlARB
     }
     
     begin_time = get_time();
