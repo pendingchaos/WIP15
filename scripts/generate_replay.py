@@ -13,11 +13,14 @@ output = open("../src/replay_gl.c", "w")
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <stdlib.h>
+#include <time.h>
 #include "replay.h"
 #include "libtrace.h"
 #include "libinspect.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
+
+typedef void (*_func)();
 
 """)
 
@@ -258,12 +261,11 @@ static GLXContext gl_param_GLXContext(trace_value_t* val) {
     return (GLXContext)*val->ptr;
 }
 
-typedef void (*_func)();
-
 static void reset_gl_funcs(replay_context_t* ctx);
 static void reload_gl_funcs(replay_context_t* ctx);
 
 extern _func glXGetProcAddress(const GLubyte* procName);
+
 """)
 
 output.write("\n")
@@ -280,6 +282,34 @@ output.write("typedef struct {\n")
 for name in gl.functions:
     output.write("    %s_t real_%s;\n" % (name, name))
 output.write("} replay_gl_funcs_t;\n\n")
+
+output.write("""static uint64_t begin_time;
+
+static uint64_t get_time() {
+    struct timespec spec;
+    clock_gettime(CLOCK_MONOTONIC, &spec);
+    return spec.tv_sec*1000000000 + spec.tv_nsec;
+}
+
+static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
+    begin_time = get_time();
+}
+
+static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
+    if (ctx->_current_context) F(glFlush)();
+    
+    uint64_t end_time = get_time();
+    
+    cmd->cpu_duration = end_time - begin_time;
+    
+    begin_time = get_time();
+    if (ctx->_current_context) F(glFinish)();
+    end_time = get_time();
+    
+    cmd->gpu_duration = end_time - begin_time;
+}
+
+""")
 
 for k, v in gl.enumValues.iteritems():
     output.write("#define %s %s\n" % (k, v))
@@ -311,6 +341,8 @@ for name in gl.functions:
     }
     """)
     
+    output.write("replay_begin_cmd(ctx, \"%s\", inspect_command);\n" % (name))
+    
     if name == "glXGetProcAddress":
         output.write("    %s_t real = &%s;" % (name, name))
     else:
@@ -318,6 +350,7 @@ for name in gl.functions:
     
     if name in nontrivial:
         output.write(nontrivial[name])
+        output.write("replay_end_cmd(ctx, \"%s\", inspect_command);\n" % (name))
         output.write("}\n\n")
         continue
     
@@ -352,6 +385,8 @@ for name in gl.functions:
         i += 1
     
     output.write("    real(%s);\n" % (", ".join(params)))
+    
+    output.write("replay_end_cmd(ctx, \"%s\", inspect_command);\n" % (name))
     
     output.write("}\n\n")
 

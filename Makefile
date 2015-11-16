@@ -34,4 +34,3 @@ all:
 	make libinspect
 	make trace
 	make inspect
-

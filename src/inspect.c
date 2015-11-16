@@ -146,6 +146,13 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         FILE *command_file = fopen(command_filename, "w");
         fprintf(command_file, "<h1>");
         write_command(command_file, command);
+        fprintf(command_file, "</h1>");
+        
+        fprintf(command_file,
+                "<h3>CPU: %f ms<br/>GPU: %f ms</h3>",
+                command->cpu_duration/1000000.0,
+                command->gpu_duration/1000000.0);
+        
         fprintf(command_file, "</h1><ul>");
         
         attachment = command->attachments;

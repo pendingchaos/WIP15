@@ -45,12 +45,13 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
                             GLX_DOUBLEBUFFER, True,
                             None};
     int numConfigs;
-    ctx->_fbconfig = glXChooseFBConfig(ctx->_display, DefaultScreen(ctx->_display), attribs, &numConfigs);
+    GLXFBConfig* configs = glXChooseFBConfig(ctx->_display, DefaultScreen(ctx->_display), attribs, &numConfigs);
     if (numConfigs < 1) {
         fprintf(stderr, "Unable to choose a framebuffer configuation.");
         fflush(stderr);
     }
-    ctx->_fbconfig = ((GLXFBConfig*)ctx->_fbconfig)[0];
+    ctx->_fbconfig = configs[0];
+    XFree(configs);
     
     XVisualInfo *vis_info = glXGetVisualFromFBConfig(ctx->_display, ctx->_fbconfig);
     ctx->_visual = vis_info;
@@ -96,6 +97,7 @@ void destroy_replay_context(replay_context_t* context) {
     XDestroyWindow(context->_display, context->_drawable);
     XFreeColormap(context->_display, context->_colormap);
     XFree(context->_visual);
+    
     XCloseDisplay(context->_display);
     
     deinit_replay_gl(context);
