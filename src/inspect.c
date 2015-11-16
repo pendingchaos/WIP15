@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <GL/gl.h>
 
 static const glapi_group_t* find_group(const char *name) {
     for (size_t i = 0; i < glapi.group_count; i++) {

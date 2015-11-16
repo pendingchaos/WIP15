@@ -283,6 +283,9 @@ for name in gl.functions:
     output.write("    %s_t real_%s;\n" % (name, name))
 output.write("} replay_gl_funcs_t;\n\n")
 
+for k, v in gl.enumValues.iteritems():
+    output.write("#define %s %s\n" % (k, v))
+
 output.write("""static uint64_t begin_time;
 
 static uint64_t get_time() {
@@ -293,10 +296,16 @@ static uint64_t get_time() {
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     begin_time = get_time();
+    if (ctx->_current_context) F(glGetError)();
 }
 
 static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
-    if (ctx->_current_context) F(glFlush)();
+    GLenum error = GL_NO_ERROR;
+    
+    if (ctx->_current_context) {
+        error = F(glGetError)();
+        F(glFlush)();
+    }
     
     uint64_t end_time = get_time();
     
@@ -307,12 +316,52 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
     end_time = get_time();
     
     cmd->gpu_duration = end_time - begin_time;
+    
+    const char *gl_error = "Unknown";
+    switch (error) {
+    case GL_NO_ERROR: {
+        break;
+    }
+    case GL_INVALID_ENUM: {
+        inspect_add_error(cmd, "Invalid enum");
+        break;
+    }
+    case GL_INVALID_VALUE: {
+        inspect_add_error(cmd, "Invalid value");
+        break;
+    }
+    case GL_INVALID_OPERATION: {
+        inspect_add_error(cmd, "Invalid operation");
+        break;
+    }
+    case GL_STACK_OVERFLOW: {
+        inspect_add_error(cmd, "Stack overflow");
+        break;
+    }
+    case GL_STACK_UNDERFLOW: {
+        inspect_add_error(cmd, "Stack underflow");
+        break;
+    }
+    case GL_OUT_OF_MEMORY: {
+        inspect_add_error(cmd, "Out of memory");
+        break;
+    }
+    case GL_INVALID_FRAMEBUFFER_OPERATION: {
+        inspect_add_error(cmd, "Invalid framebuffer operation");
+        break;
+    }
+    case GL_CONTEXT_LOST: {
+        inspect_add_error(cmd, "Context lost");
+        break;
+    }
+    case GL_TABLE_TOO_LARGE: {
+        inspect_add_error(cmd, "Table too large");
+        break;
+    }
+    }
 }
 
 """)
-
-for k, v in gl.enumValues.iteritems():
-    output.write("#define %s %s\n" % (k, v))
 
 nontrivial_str = open("nontrivial_func_impls.txt").read()
 nontrivial = {}

@@ -24,9 +24,10 @@ Performance:
     Redundant and expensive state changes
         Not needed because the driver optimizes them out
     Statistics per function call and per frame
-        Only get GPU time for calls with a context
+        Improve using timer queries
     Slow paths
     Shader profiler
         Can use recent extensions (timers and SSBOs)
         Possible without but may not be reliable
 
+Various TODOs in the source code.
