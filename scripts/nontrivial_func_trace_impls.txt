@@ -1,0 +1,8 @@
+glXChooseVisual:
+    gl_param_pointer(dpy);
+    gl_param_int(screen, NULL);
+    int *attribs = attribList;
+    while (*attribs != None) ++attribs;
+    gl_param_GLuint_array(attribs-attribList+1, attribList);
+    XVisualInfo* result = real(dpy, screen, attribList);
+    gl_result_pointer(result);

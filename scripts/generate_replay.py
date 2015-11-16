@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# TODO: Function loading with dlsym and glXGetProcAddress (very important)
 # TODO: Nontrivial functions (very important)
 # TODO: Return values (very important)
 # TODO: Function pointers (very important)
@@ -17,6 +16,8 @@ output.write("""#include <X11/Xlib.h>
 #include "replay.h"
 #include "libtrace.h"
 #include "libinspect.h"
+
+#define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
 
 """)
 
@@ -280,6 +281,9 @@ for name in gl.functions:
     output.write("    %s_t real_%s;\n" % (name, name))
 output.write("} replay_gl_funcs_t;\n\n")
 
+for k, v in gl.enumValues.iteritems():
+    output.write("#define %s %s\n" % (k, v))
+
 nontrivial_str = open("nontrivial_func_impls.txt").read()
 nontrivial = {}
 
@@ -299,6 +303,13 @@ if len(current_name) != 0:
 
 for name in gl.functions:
     output.write("void replay_%s(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {\n" % (name))
+    
+    if not name.startswith("glX"):
+        output.write("""    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    """)
     
     if name == "glXGetProcAddress":
         output.write("    %s_t real = &%s;" % (name, name))

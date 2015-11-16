@@ -815,6 +815,23 @@ for name in gl.functions:
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
     output.write("%s_t gl_f%d;\n" % (name, nameToID[name]))
 
+nontrivial_str = open("nontrivial_func_trace_impls.txt").read()
+nontrivial = {}
+
+current_name = ""
+current = ""
+for line in nontrivial_str.split("\n"):
+    if line.endswith(":"):
+        if len(current_name) != 0:
+            nontrivial[current_name] = current
+        
+        current_name = line[:-1]
+        current = ""
+    else:
+        current += line + "\n"
+if len(current_name) != 0:
+    nontrivial[current_name] = current
+
 for name in gl.functions:
     if name in ["glXGetProcAddress", "glXGetProcAddressARB"]:
         continue
@@ -834,58 +851,62 @@ for name in gl.functions:
     
     output.write("gl_start(%d);" % (nameToID[name]))
     
-    for param in function.params:
-        if param.type_[-1] == "]":
-            output.write("gl_param_%s_array(%s, %s);" % (param.type_.split("[")[0], eval(param.type_.split("[")[1][:-1]), param.name))
-        elif param.type_.replace(" ", "") == "constGLchar*const*":
-            output.write("gl_param_pointer((void *)%s);" % (param.name))
-        elif param.type_.replace(" ", "") == "constGLchar**":
-            output.write("gl_param_pointer((void *)%s);" % (param.name))
-        elif param.type_.replace(" ", "") == "constGLcharARB**":
-            output.write("gl_param_pointer((void *)%s);" % (param.name))
-        elif param.type_.replace(" ", "") == "unsignedint":
-            if param.group != None:
-                group = "\"%s\"" % (param.group)
-            else:
-                group = "NULL";
-            
-            output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
-        elif param.type_.replace(" ", "") == "unsignedlong":
-            if param.group != None:
-                group = "\"%s\"" % (param.group)
-            else:
-                group = "NULL";
-            
-            output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
-        elif "*" in param.type_:
-            if "GLchar" in param.type_:
-                output.write("gl_param_string(%s);" % (param.name))
-            else:
-                output.write("gl_param_pointer((void*)%s);" % (param.name))
-        else:
-            if param.group != None:
-                group = "\"%s\"" % (param.group)
-            else:
-                group = "NULL";
-            
-            output.write("gl_param_%s(%s,%s);" % (param.type_.replace("const", "").lstrip().rstrip(), param.name, group))
-    
-    if not name.startswith("glX"):
-        output.write("if(gl_f%d==NULL){gl_f%d=(%s_t)gl_f%s((const GLubyte*)\"%s\");}" %\
-                     (nameToID[name], nameToID[name], name, nameToID["glXGetProcAddress"], name))
-    
-    if function.returnType != "void":
-        output.write("%s result=gl_f%d(%s);" % (function.returnType, nameToID[name], ",".join([param.name for param in function.params])))
+    if name in nontrivial:
+        output.write("%s_t real = gl_f%d;\n" % (name, nameToID[name]))
+        output.write(nontrivial[name])
     else:
-        output.write("gl_f%d(%s);" % (nameToID[name], ", ".join([param.name for param in function.params])))
-    
-    if function.returnType != "void":
-        if "*" in function.returnType:
-            output.write("gl_result_pointer((void *)result);")
-        elif function.returnType.replace(" ", "") == "unsignedint":
-            output.write("gl_result_unsigned_int(result);")
+        for param in function.params:
+            if param.type_[-1] == "]":
+                output.write("gl_param_%s_array(%s, %s);" % (param.type_.split("[")[0], eval(param.type_.split("[")[1][:-1]), param.name))
+            elif param.type_.replace(" ", "") == "constGLchar*const*":
+                output.write("gl_param_pointer((void *)%s);" % (param.name))
+            elif param.type_.replace(" ", "") == "constGLchar**":
+                output.write("gl_param_pointer((void *)%s);" % (param.name))
+            elif param.type_.replace(" ", "") == "constGLcharARB**":
+                output.write("gl_param_pointer((void *)%s);" % (param.name))
+            elif param.type_.replace(" ", "") == "unsignedint":
+                if param.group != None:
+                    group = "\"%s\"" % (param.group)
+                else:
+                    group = "NULL";
+                
+                output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
+            elif param.type_.replace(" ", "") == "unsignedlong":
+                if param.group != None:
+                    group = "\"%s\"" % (param.group)
+                else:
+                    group = "NULL";
+                
+                output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
+            elif "*" in param.type_:
+                if "GLchar" in param.type_:
+                    output.write("gl_param_string(%s);" % (param.name))
+                else:
+                    output.write("gl_param_pointer((void*)%s);" % (param.name))
+            else:
+                if param.group != None:
+                    group = "\"%s\"" % (param.group)
+                else:
+                    group = "NULL";
+                
+                output.write("gl_param_%s(%s,%s);" % (param.type_.replace("const", "").lstrip().rstrip(), param.name, group))
+        
+        if not name.startswith("glX"):
+            output.write("if(gl_f%d==NULL){gl_f%d=(%s_t)gl_f%s((const GLubyte*)\"%s\");}" %\
+                         (nameToID[name], nameToID[name], name, nameToID["glXGetProcAddress"], name))
+        
+        if function.returnType != "void":
+            output.write("%s result=gl_f%d(%s);" % (function.returnType, nameToID[name], ",".join([param.name for param in function.params])))
         else:
-            output.write("gl_result_%s(result);" % (function.returnType))
+            output.write("gl_f%d(%s);" % (nameToID[name], ", ".join([param.name for param in function.params])))
+        
+        if function.returnType != "void":
+            if "*" in function.returnType:
+                output.write("gl_result_pointer((void *)result);")
+            elif function.returnType.replace(" ", "") == "unsignedint":
+                output.write("gl_result_unsigned_int(result);")
+            else:
+                output.write("gl_result_%s(result);" % (function.returnType))
     
     output.write("gl_end();")
     

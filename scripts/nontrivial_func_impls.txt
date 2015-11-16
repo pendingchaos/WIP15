@@ -1,19 +1,27 @@
 glXMakeCurrent:
-    GLXContext glctx = gl_param_GLXContext(&command->args->val);
-    if (glctx) {
-        glctx = replay_get_real_object(ctx, ReplayObjType_GLXContext, glctx);
-        /*if (!glctx) { //TODO: Is this correct
+    GLXContext glctx = NULL;
+    uint64_t fake_ctx = *command->args->next->next->val.ptr;
+    if (fake_ctx) {
+        glctx = (GLXContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
+        if (!glctx) {
             inspect_add_error(inspect_command, "Invalid GLX context.");
             return;
-        }*/
+        }
     }
     
-    real(ctx->_display, ctx->_drawable, glctx);
+    if (!real(ctx->_display, glctx ? ctx->_glx_drawable : None, glctx)) {
+        inspect_add_error(inspect_command, "Unable to make a context current.");
+        return;
+    }
     
-    if (glctx)
+    if (glctx) {
         reload_gl_funcs(ctx);
-    else
+        ctx->_current_context = glctx;
+    }
+    else {
         reset_gl_funcs(ctx);
+        ctx->_current_context = NULL;
+    }
 
 glXGetProcAddressARB:
     void (*result)() = real(gl_param_string(&command->args->val));
@@ -31,28 +39,52 @@ glXQueryExtension:
         inspect_add_warning(inspect_command, "glXQueryExtension returned something different during replay.");
 
 glXChooseVisual:
+    trace_value_t attribs = command->args->next->next->val;
+    int int_attribs[attribs.count];
+    for (size_t i = 0; i < attribs.count; ++i) {
+        union {unsigned int u; int i;} u;
+        u.u = attribs.u64[i];
+        int_attribs[i] = u.i;
+    }
+    XVisualInfo* vis = real(ctx->_display, gl_param_int(&command->args->next->val), int_attribs);
+    if (!vis) {
+        inspect_add_error(inspect_command, "Unable to create visual.");
+        return;
+    }
+    XFree(vis);
 
 glXCreateContext:
+    GLXContext shareList = NULL;
+    if (*command->args->next->next->val.ptr) {
+        shareList = (GLXContext)replay_get_real_object(ctx,
+                                                       ReplayObjType_GLXContext,
+                                                       *command->args->next->next->val.ptr);
+        if (!shareList) {
+            inspect_add_error(inspect_command, "Invalid share list.");
+            return;
+        }
+    }
+    GLXContext res = F(glXCreateNewContext)(ctx->_display, ctx->_fbconfig, GLX_RGBA_TYPE, shareList, gl_param_Bool(&command->args->next->next->next->val));
+    replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *command->ret.ptr);
 
 glXQueryExtensionsString:
     //Nothing to have here
 
 glXDestroyContext:
-    GLXContext glctx = gl_param_GLXContext(&command->args->next->val);
-    glctx = replay_get_real_object(ctx, ReplayObjType_GLXContext, glctx);
-    /*if (!glctx) { //TODO: Is this correct
+    GLXContext glctx = (GLXContext)replay_get_real_object(ctx,
+                                                          ReplayObjType_GLXContext,
+                                                          *command->args->next->val.ptr);
+    if (!glctx) {
         inspect_add_error(inspect_command, "Invalid GLX context.");
         return;
-    }*/
+    }
     
     real(ctx->_display, glctx);
+    replay_destroy_object(ctx, ReplayObjType_GLXContext, *command->args->next->val.ptr);
 
 glXSwapBuffers:
-    GLXDrawable drawable = gl_param_GLXDrawable(&command->args->next->val);
-    drawable = (GLXDrawable)replay_get_real_object(ctx, ReplayObjType_XID, (void *)drawable);
-    /*if (!drawable) { //TODO: Is this correct
-        inspect_add_error(inspect_command, "Invalid GLX drawable.");
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
         return;
-    }*/
-    
-    real(ctx->_display, drawable);
+    }
+    real(ctx->_display, ctx->_glx_drawable);

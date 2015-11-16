@@ -35,17 +35,22 @@ struct replay_context_t {
     void* _replay_gl;
     void* _internal;
     void* _display; //Pointer to X display
+    void* _fbconfig; //GLXFBConfig
     uint32_t _drawable; //Drawable -> XID -> CARD32 which is a uint32_t
+    uint32_t _glx_drawable; //GLXDrawable -> XID -> CARD32 which is a uint32_t
+    uint32_t _colormap; //Colormap -> XID -> CARD32 which is a uint32_t
+    void* _visual; //Pointer to XVisualInfo
     replay_func_t* funcs;
     inspection_t* inspection;
+    void* _current_context;
 };
 
 replay_context_t* create_replay_context(inspection_t* inspection);
 void destroy_replay_context(replay_context_t* context);
 
-void* replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, void* fake);
-void* replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, void* real);
-void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, void* real, void *fake);
-void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, void* fake);
+uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
+uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real);
+void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real, uint64_t fake);
+void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
 void replay(replay_context_t* context);
 #endif
