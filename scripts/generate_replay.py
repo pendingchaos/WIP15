@@ -294,7 +294,85 @@ static uint64_t get_time() {
     return spec.tv_sec*1000000000 + spec.tv_nsec;
 }
 
+static void debug_callback(GLenum source,
+                           GLenum type,
+                           GLuint id,
+                           GLenum severity,
+                           GLsizei length,
+                           const GLchar* message,
+                           const void* user_param) {
+    const char* source_str = "unknown";
+    const char* type_str = "unknown";
+    
+    switch (source) {
+    case GL_DEBUG_SOURCE_API: {
+        source_str = "API";
+        break;
+    }
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: {
+        source_str = "system";
+        break;
+    }
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: {
+        source_str = "shader compiler";
+        break;
+    }
+    case GL_DEBUG_SOURCE_THIRD_PARTY: {
+        source_str = "third party";
+        break;
+    }
+    case GL_DEBUG_SOURCE_APPLICATION: {
+        source_str = "application";
+        break;
+    }
+    case GL_DEBUG_SOURCE_OTHER: {
+        source_str = "other";
+        break;
+    }
+    }
+    
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR: {
+        inspect_add_error((inspect_command_t*)user_param, "Error: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: {
+        inspect_add_warning((inspect_command_t*)user_param, "Deprecated behavior warning: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: {
+        inspect_add_warning((inspect_command_t*)user_param, "Undefined behavior warning: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_PORTABILITY: {
+        inspect_add_warning((inspect_command_t*)user_param, "Portibility warning: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_PERFORMANCE: {
+        inspect_add_warning((inspect_command_t*)user_param, "Performance warning: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_OTHER: {
+        inspect_add_warning((inspect_command_t*)user_param, "Other: '%s' from %s", message, source_str);
+        break;
+    }
+    case GL_DEBUG_TYPE_MARKER: {
+        inspect_add_info((inspect_command_t*)user_param, "Marker: '%s' from %s", message, source_str);
+        break;
+    }
+    }
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
+    if (F(glDebugMessageCallback)) {
+        F(glEnable)(GL_DEBUG_OUTPUT);
+        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        F(glDebugMessageCallback)(debug_callback, cmd);
+    } else if (F(glDebugMessageCallbackARB)) {
+        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        F(glDebugMessageCallbackARB)(debug_callback, cmd);
+    }
+    
     begin_time = get_time();
     if (ctx->_current_context) F(glGetError)();
 }
