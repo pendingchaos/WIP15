@@ -96,3 +96,11 @@ glXSwapBuffers:
         return;
     }
     real(ctx->_display, ctx->_glx_drawable);
+
+glBegin:
+    real(gl_param_GLenum(&command->args->val));
+    ctx->_in_begin_end = true;
+
+glEnd:
+    real();
+    ctx->_in_begin_end = false;

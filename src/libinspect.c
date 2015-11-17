@@ -45,6 +45,11 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->gl_context = context;
             new_command->next = NULL;
             
+            for (size_t i = 0; i < StateEnableEntry_Max; ++i) {
+                new_command->state.enable[i] = false;
+            }
+            new_command->state.enable[StateEnableEntry_Dither] = true;
+            
             if (!new_frame->commands) {
                 new_frame->commands = new_command;
             } else

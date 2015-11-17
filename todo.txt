@@ -31,3 +31,9 @@ Performance:
         Possible without but may not be reliable
 
 Various TODOs in the source code.
+
+glIsEnabled state from OpenGL 3+.
+
+Dramatically reduce memory usage and size of trace files.
+    Use group IDs instead of group names
+

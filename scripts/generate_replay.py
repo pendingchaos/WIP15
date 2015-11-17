@@ -364,27 +364,111 @@ static void debug_callback(GLenum source,
 }
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
-    if (F(glDebugMessageCallback)) {
-        F(glEnable)(GL_DEBUG_OUTPUT);
-        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        F(glDebugMessageCallback)(debug_callback, cmd);
-        F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-    } else if (F(glDebugMessageCallbackARB)) {
-        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        F(glDebugMessageCallbackARB)(debug_callback, cmd);
-        //TODO: glDebugMessageControlARB
+    if (!ctx->_in_begin_end) {
+        if (F(glDebugMessageCallback)) {
+            F(glEnable)(GL_DEBUG_OUTPUT);
+            F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            F(glDebugMessageCallback)(debug_callback, cmd);
+            F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+        } else if (F(glDebugMessageCallbackARB)) {
+            F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            F(glDebugMessageCallbackARB)(debug_callback, cmd);
+            //TODO: glDebugMessageControlARB
+        }
+        
+        if (F(glGetError)) {
+            F(glGetError)();
+""")
+
+enable_entries = {"StateEnableEntry_AlphaTest": "GL_ALPHA_TEST",
+                  "StateEnableEntry_AutoNormal": "GL_AUTO_NORMAL",
+                  "StateEnableEntry_Blend": "GL_BLEND",
+                  "StateEnableEntry_ColorArray": "GL_COLOR_ARRAY",
+                  "StateEnableEntry_ColorLogicOp": "GL_COLOR_LOGIC_OP",
+                  "StateEnableEntry_ColorMaterial": "GL_COLOR_MATERIAL",
+                  "StateEnableEntry_ColorSum": "GL_COLOR_SUM",
+                  "StateEnableEntry_ColorTable": "GL_COLOR_TABLE",
+                  "StateEnableEntry_Convolution1D": "GL_CONVOLUTION_1D",
+                  "StateEnableEntry_Convolution2D": "GL_CONVOLUTION_2D",
+                  "StateEnableEntry_CullFace": "GL_CULL_FACE",
+                  "StateEnableEntry_DepthTest": "GL_DEPTH_TEST",
+                  "StateEnableEntry_Dither": "GL_DITHER",
+                  "StateEnableEntry_EdgeFlagArray": "GL_EDGE_FLAG_ARRAY",
+                  "StateEnableEntry_Fog": "GL_FOG",
+                  "StateEnableEntry_FogCoordArray": "GL_FOG_COORD_ARRAY",
+                  "StateEnableEntry_Histogram": "GL_HISTOGRAM",
+                  "StateEnableEntry_IndexArray": "GL_INDEX_ARRAY",
+                  "StateEnableEntry_IndexLogicOp": "GL_INDEX_LOGIC_OP",
+                  "StateEnableEntry_Lighting": "GL_LIGHTING",
+                  "StateEnableEntry_LineSmooth": "GL_LINE_SMOOTH",
+                  "StateEnableEntry_LineStipple": "GL_LINE_STIPPLE",
+                  "StateEnableEntry_Map1Color4": "GL_MAP1_COLOR_4",
+                  "StateEnableEntry_Map1Index": "GL_MAP1_INDEX",
+                  "StateEnableEntry_Map1Normal": "GL_MAP1_NORMAL",
+                  "StateEnableEntry_Map1TexCoord1": "GL_MAP1_TEXTURE_COORD_1",
+                  "StateEnableEntry_Map1TexCoord2": "GL_MAP1_TEXTURE_COORD_2",
+                  "StateEnableEntry_Map1TexCoord3": "GL_MAP1_TEXTURE_COORD_3",
+                  "StateEnableEntry_Map1TexCoord4": "GL_MAP1_TEXTURE_COORD_4",
+                  "StateEnableEntry_Map2Color4": "GL_MAP2_COLOR_4",
+                  "StateEnableEntry_Map2Index": "GL_MAP2_INDEX",
+                  "StateEnableEntry_Map2Normal": "GL_MAP2_NORMAL",
+                  "StateEnableEntry_Map2TexCoord1": "GL_MAP2_TEXTURE_COORD_1",
+                  "StateEnableEntry_Map2TexCoord2": "GL_MAP2_TEXTURE_COORD_2",
+                  "StateEnableEntry_Map2TexCoord3": "GL_MAP2_TEXTURE_COORD_3",
+                  "StateEnableEntry_Map2TexCoord4": "GL_MAP2_TEXTURE_COORD_4",
+                  "StateEnableEntry_Map2Vertex3": "GL_MAP2_VERTEX_3",
+                  "StateEnableEntry_Map2Vertex4": "GL_MAP2_VERTEX_4",
+                  "StateEnableEntry_MinMax": "GL_MINMAX",
+                  "StateEnableEntry_Multisample": "GL_MULTISAMPLE",
+                  "StateEnableEntry_NormalArray": "GL_NORMAL_ARRAY",
+                  "StateEnableEntry_Normalize": "GL_NORMALIZE",
+                  "StateEnableEntry_PointSmooth": "GL_POINT_SMOOTH",
+                  "StateEnableEntry_PointSprite": "GL_POINT_SPRITE",
+                  "StateEnableEntry_PolygonSmooth": "GL_POLYGON_SMOOTH",
+                  "StateEnableEntry_PolygonOffsetFill": "GL_POLYGON_OFFSET_FILL",
+                  "StateEnableEntry_PolygonOffsetLine": "GL_POLYGON_OFFSET_LINE",
+                  "StateEnableEntry_PolygonOffsetPoint": "GL_POLYGON_OFFSET_POINT",
+                  "StateEnableEntry_PolygonStipple": "GL_POLYGON_STIPPLE",
+                  "StateEnableEntry_PostColorMatrixColorTable": "GL_POST_COLOR_MATRIX_COLOR_TABLE",
+                  "StateEnableEntry_PostConvolutionColorTable": "GL_POST_CONVOLUTION_COLOR_TABLE",
+                  "StateEnableEntry_RescaleNormal": "GL_RESCALE_NORMAL",
+                  "StateEnableEntry_SampleAlphaToCoverage": "GL_SAMPLE_ALPHA_TO_COVERAGE",
+                  "StateEnableEntry_SampleAlphaToOne": "GL_SAMPLE_ALPHA_TO_ONE",
+                  "StateEnableEntry_SampleCoverage": "GL_SAMPLE_COVERAGE",
+                  "StateEnableEntry_ScissorTest": "GL_SCISSOR_TEST",
+                  "StateEnableEntry_SecondaryColorArray": "GL_SECONDARY_COLOR_ARRAY",
+                  "StateEnableEntry_Separable2D": "GL_SEPARABLE_2D",
+                  "StateEnableEntry_StencilTest": "GL_STENCIL_TEST",
+                  "StateEnableEntry_Texture1D": "GL_TEXTURE_1D",
+                  "StateEnableEntry_Texture2D": "GL_TEXTURE_2D",
+                  "StateEnableEntry_Texture3D": "GL_TEXTURE_3D",
+                  "StateEnableEntry_TextureCoordArray": "GL_TEXTURE_COORD_ARRAY",
+                  "StateEnableEntry_TextureCubeMap": "GL_TEXTURE_CUBE_MAP",
+                  "StateEnableEntry_TextureGenQ": "GL_TEXTURE_GEN_Q",
+                  "StateEnableEntry_TextureGenR": "GL_TEXTURE_GEN_R",
+                  "StateEnableEntry_TextureGenS": "GL_TEXTURE_GEN_S",
+                  "StateEnableEntry_TextureGenT": "GL_TEXTURE_GEN_T",
+                  "StateEnableEntry_VertexArray": "GL_VERTEX_ARRAY",
+                  "StateEnableEntry_VertexProgramPointSize": "GL_VERTEX_PROGRAM_POINT_SIZE",
+                  "StateEnableEntry_VertexProgramTwoSide": "GL_VERTEX_PROGRAM_TWO_SIDE"}
+
+for k, v in enable_entries.iteritems():
+    output.write("            cmd->state.enable[%s] = F(glIsEnabled)(%s);\n" % (k, v))
+
+output.write("""        }
     }
     
     begin_time = get_time();
-    if (ctx->_current_context) F(glGetError)();
 }
 
 static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
     
     if (ctx->_current_context) {
-        error = F(glGetError)();
-        F(glFlush)();
+        if (F(glGetError) && !ctx->_in_begin_end) {
+            error = F(glGetError)();
+            F(glFlush)();
+        }
     }
     
     uint64_t end_time = get_time();
@@ -392,7 +476,7 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
     cmd->cpu_duration = end_time - begin_time;
     
     begin_time = get_time();
-    if (ctx->_current_context) F(glFinish)();
+    if (ctx->_current_context) if (F(glFinish) && !ctx->_in_begin_end) F(glFinish)();
     end_time = get_time();
     
     cmd->gpu_duration = end_time - begin_time;
@@ -440,7 +524,6 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
     }
     }
 }
-
 """)
 
 nontrivial_str = open("nontrivial_func_impls.txt").read()
@@ -519,9 +602,12 @@ for name in gl.functions:
     
     output.write("}\n\n")
 
-output.write("""void init_replay_gl(replay_context_t* ctx) {
+output.write("""static void reset_gl_funcs(replay_context_t* ctx);
+
+void init_replay_gl(replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = malloc(sizeof(replay_gl_funcs_t));
     ctx->_replay_gl = funcs;
+    reset_gl_funcs(ctx);
 """)
 
 for name in gl.functions:

@@ -43,6 +43,7 @@ struct replay_context_t {
     replay_func_t* funcs;
     inspection_t* inspection;
     void* _current_context;
+    bool _in_begin_end;
 };
 
 replay_context_t* create_replay_context(inspection_t* inspection);

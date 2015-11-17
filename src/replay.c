@@ -190,6 +190,8 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
 }
 
 void replay(replay_context_t* ctx) {
+    ctx->_in_begin_end = false;
+    
     inspect_frame_t* frame = ctx->inspection->frames;
     while (frame) {
         inspect_command_t* command = frame->commands;
