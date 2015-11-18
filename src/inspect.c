@@ -90,14 +90,14 @@ static void write_command(FILE* file, inspect_command_t* command) {
     
     fprintf(file, "%s(", command->name);
     
-    trace_arg_t* arg = trace_cmd->args;
-    while (arg) {
+    size_t count = get_vec_size(command->trace_cmd->args) / sizeof(trace_arg_t);
+    for (size_t i = 0; i < count; ++i) {
+        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(command->trace_cmd->args)) + i;
+        
         write_value(file, arg->val);
-        if (arg->next) {
+        if (i != count-1) {
             fprintf(file, ", ");
         }
-        
-        arg = arg->next;
     }
     
     fprintf(file, ")");

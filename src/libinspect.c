@@ -56,8 +56,6 @@ inspection_t* create_inspection(const trace_t* trace) {
                 while (current->next) current = current->next;
                 current->next = new_command;
             }
-            
-            command = command->next;
         }
         
         if (!result->frames) {
@@ -132,8 +130,10 @@ static const glapi_group_t* find_group(const char *name) {
 
 static void validate_command(inspect_command_t* command) {
     //Validate enum argument values
-    trace_arg_t* arg = command->trace_cmd->args;
-    while (arg) {
+    vec_t args = command->trace_cmd->args;
+    for (size_t i = 0; i < get_vec_size(args)/sizeof(trace_arg_t); ++i) {
+        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(args)) + i;
+        
         if (arg->val.group == NULL ? false : (arg->val.group[0] != 0)) {
             const glapi_group_t* group = find_group(arg->val.group);
             
@@ -158,8 +158,6 @@ static void validate_command(inspect_command_t* command) {
                 }
             }
         }
-        
-        arg = arg->next;
     }
 }
 

@@ -46,7 +46,6 @@ static void free_command(trace_command_t* command) {
     free_vec(args);
     
     free_value(command->ret);
-    free(command);
 }
 
 static void free_frame(trace_frame_t* frame) {
@@ -54,6 +53,7 @@ static void free_frame(trace_frame_t* frame) {
     for (size_t i = 0; i < count; ++i) {
         free_command(trace_get_cmd(frame, i));
     }
+    free_vec(frame->commands);
     
     free(frame);
 }
@@ -422,8 +422,7 @@ trace_t *load_trace(const char* filename) {
     }
     
     trace_frame_t* frame = malloc(sizeof(trace_frame_t));
-    frame->commands = NULL;
-    frame->next = NULL;
+    frame->commands = alloc_vec(0);
     trace->frames = frame;
     
     while (true) {
@@ -439,7 +438,7 @@ trace_t *load_trace(const char* filename) {
         command.ret.type = Type_Void;
         command.ret.group = malloc(1);
         command.ret.group[0] = 0;
-        command.next = NULL;
+        command.args = alloc_vec(0);
         
         if (!readf(&command.func_index, 4, 1, file)) {
             trace_error = TraceError_Invalid;
@@ -466,7 +465,6 @@ trace_t *load_trace(const char* filename) {
             } else if (res == 1) {
                 trace_arg_t arg;
                 arg.val = val;
-                arg.next = NULL;
                 append_vec(command.args, sizeof(trace_arg_t), &arg);
             } else if (res == 2) {
                 free_value(command.ret);
@@ -480,7 +478,7 @@ trace_t *load_trace(const char* filename) {
             trace_frame_t *old_frame = frame;
             
             frame = malloc(sizeof(trace_frame_t));
-            frame->commands = NULL;
+            frame->commands = alloc_vec(0);
             frame->next = NULL;
             old_frame->next = frame;
         }
@@ -506,6 +504,14 @@ void free_trace(trace_t* trace) {
     }
     
     free(trace);
+}
+
+trace_arg_t* trace_get_arg(trace_command_t* command, size_t i) {
+    return ((trace_arg_t*)get_vec_data(command->args)) + i;
+}
+
+trace_command_t* trace_get_cmd(trace_frame_t* frame, size_t i) {
+    return ((trace_command_t*)get_vec_data(frame->commands)) + i;
 }
 
 trace_error_t get_trace_error() {
