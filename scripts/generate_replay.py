@@ -5,6 +5,7 @@
 # TODO: Function pointers (very important)
 # TODO: Integer arrays
 import glxml
+from gl_state import *
 
 gl = glxml.GL(False)
 
@@ -13,10 +14,12 @@ output = open("../src/replay_gl.c", "w")
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "replay.h"
 #include "libtrace.h"
 #include "libinspect.h"
+#include "glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
 
@@ -294,6 +297,106 @@ static uint64_t get_time() {
     return spec.tv_sec*1000000000 + spec.tv_nsec;
 }
 
+static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t* v) {
+    inspect_gl_state_entry_t* entry = malloc(sizeof(inspect_gl_state_entry_t));
+    
+    entry->name = malloc(strlen(name)+1);
+    strcpy(entry->name, name);
+    entry->val = *v;
+    entry->val.group = NULL;
+    entry->next = NULL;
+    
+    if (state->entries) {
+        inspect_gl_state_entry_t* entries = state->entries;
+        while (entries->next) entries = entries->next;
+        entries->next = entry;
+    } else {
+        state->entries = entry;
+    }
+}
+
+static void set_state_bool(inspect_gl_state_t* state, const char* name, size_t count, GLboolean* v) {
+    trace_value_t val;
+    val.type = Type_Boolean;
+    val.count = count;
+    val.bl = malloc(sizeof(bool)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.bl[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_int(inspect_gl_state_t* state, const char* name, size_t count, GLint* v) {
+    trace_value_t val;
+    val.type = Type_Int;
+    val.count = count;
+    val.bl = malloc(sizeof(int64_t)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.i64[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_int64(inspect_gl_state_t* state, const char* name, size_t count, GLint64* v) {
+    trace_value_t val;
+    val.type = Type_Int;
+    val.count = count;
+    val.bl = malloc(sizeof(int64_t)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.i64[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_uint(inspect_gl_state_t* state, const char* name, size_t count, GLuint* v) {
+    trace_value_t val;
+    val.type = Type_Int;
+    val.count = count;
+    val.bl = malloc(sizeof(uint64_t)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.u64[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_float(inspect_gl_state_t* state, const char* name, size_t count, GLfloat* v) {
+    trace_value_t val;
+    val.type = Type_Double;
+    val.count = count;
+    val.bl = malloc(sizeof(double)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.dbl[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_double(inspect_gl_state_t* state, const char* name, size_t count, GLdouble* v) {
+    trace_value_t val;
+    val.type = Type_Double;
+    val.count = count;
+    val.bl = malloc(sizeof(double)*count);
+    for (size_t i = 0; i < count; ++i) {
+        val.dbl[i] = v[i];
+    }
+    set_state(state, name, &val);
+}
+
+static void set_state_str(inspect_gl_state_t* state, const char* name, const char* s) {
+    trace_value_t val;
+    val.type = Type_Str;
+    val.count = 1;
+    
+    if (s) {
+        val.str = malloc(sizeof(const char*));
+        val.str[0] = malloc(strlen(s)+1);
+        strcpy(val.str[0], s);
+    } else {
+        val.str = calloc(1, sizeof(char));
+    }
+    
+    set_state(state, name, &val);
+}
+
 static void debug_callback(GLenum source,
                            GLenum type,
                            GLuint id,
@@ -380,84 +483,69 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
             F(glGetError)();
 """)
 
-enable_entries = {"StateEnableEntry_AlphaTest": "GL_ALPHA_TEST",
-                  "StateEnableEntry_AutoNormal": "GL_AUTO_NORMAL",
-                  "StateEnableEntry_Blend": "GL_BLEND",
-                  "StateEnableEntry_ColorArray": "GL_COLOR_ARRAY",
-                  "StateEnableEntry_ColorLogicOp": "GL_COLOR_LOGIC_OP",
-                  "StateEnableEntry_ColorMaterial": "GL_COLOR_MATERIAL",
-                  "StateEnableEntry_ColorSum": "GL_COLOR_SUM",
-                  "StateEnableEntry_ColorTable": "GL_COLOR_TABLE",
-                  "StateEnableEntry_Convolution1D": "GL_CONVOLUTION_1D",
-                  "StateEnableEntry_Convolution2D": "GL_CONVOLUTION_2D",
-                  "StateEnableEntry_CullFace": "GL_CULL_FACE",
-                  "StateEnableEntry_DepthTest": "GL_DEPTH_TEST",
-                  "StateEnableEntry_Dither": "GL_DITHER",
-                  "StateEnableEntry_EdgeFlagArray": "GL_EDGE_FLAG_ARRAY",
-                  "StateEnableEntry_Fog": "GL_FOG",
-                  "StateEnableEntry_FogCoordArray": "GL_FOG_COORD_ARRAY",
-                  "StateEnableEntry_Histogram": "GL_HISTOGRAM",
-                  "StateEnableEntry_IndexArray": "GL_INDEX_ARRAY",
-                  "StateEnableEntry_IndexLogicOp": "GL_INDEX_LOGIC_OP",
-                  "StateEnableEntry_Lighting": "GL_LIGHTING",
-                  "StateEnableEntry_LineSmooth": "GL_LINE_SMOOTH",
-                  "StateEnableEntry_LineStipple": "GL_LINE_STIPPLE",
-                  "StateEnableEntry_Map1Color4": "GL_MAP1_COLOR_4",
-                  "StateEnableEntry_Map1Index": "GL_MAP1_INDEX",
-                  "StateEnableEntry_Map1Normal": "GL_MAP1_NORMAL",
-                  "StateEnableEntry_Map1TexCoord1": "GL_MAP1_TEXTURE_COORD_1",
-                  "StateEnableEntry_Map1TexCoord2": "GL_MAP1_TEXTURE_COORD_2",
-                  "StateEnableEntry_Map1TexCoord3": "GL_MAP1_TEXTURE_COORD_3",
-                  "StateEnableEntry_Map1TexCoord4": "GL_MAP1_TEXTURE_COORD_4",
-                  "StateEnableEntry_Map2Color4": "GL_MAP2_COLOR_4",
-                  "StateEnableEntry_Map2Index": "GL_MAP2_INDEX",
-                  "StateEnableEntry_Map2Normal": "GL_MAP2_NORMAL",
-                  "StateEnableEntry_Map2TexCoord1": "GL_MAP2_TEXTURE_COORD_1",
-                  "StateEnableEntry_Map2TexCoord2": "GL_MAP2_TEXTURE_COORD_2",
-                  "StateEnableEntry_Map2TexCoord3": "GL_MAP2_TEXTURE_COORD_3",
-                  "StateEnableEntry_Map2TexCoord4": "GL_MAP2_TEXTURE_COORD_4",
-                  "StateEnableEntry_Map2Vertex3": "GL_MAP2_VERTEX_3",
-                  "StateEnableEntry_Map2Vertex4": "GL_MAP2_VERTEX_4",
-                  "StateEnableEntry_MinMax": "GL_MINMAX",
-                  "StateEnableEntry_Multisample": "GL_MULTISAMPLE",
-                  "StateEnableEntry_NormalArray": "GL_NORMAL_ARRAY",
-                  "StateEnableEntry_Normalize": "GL_NORMALIZE",
-                  "StateEnableEntry_PointSmooth": "GL_POINT_SMOOTH",
-                  "StateEnableEntry_PointSprite": "GL_POINT_SPRITE",
-                  "StateEnableEntry_PolygonSmooth": "GL_POLYGON_SMOOTH",
-                  "StateEnableEntry_PolygonOffsetFill": "GL_POLYGON_OFFSET_FILL",
-                  "StateEnableEntry_PolygonOffsetLine": "GL_POLYGON_OFFSET_LINE",
-                  "StateEnableEntry_PolygonOffsetPoint": "GL_POLYGON_OFFSET_POINT",
-                  "StateEnableEntry_PolygonStipple": "GL_POLYGON_STIPPLE",
-                  "StateEnableEntry_PostColorMatrixColorTable": "GL_POST_COLOR_MATRIX_COLOR_TABLE",
-                  "StateEnableEntry_PostConvolutionColorTable": "GL_POST_CONVOLUTION_COLOR_TABLE",
-                  "StateEnableEntry_RescaleNormal": "GL_RESCALE_NORMAL",
-                  "StateEnableEntry_SampleAlphaToCoverage": "GL_SAMPLE_ALPHA_TO_COVERAGE",
-                  "StateEnableEntry_SampleAlphaToOne": "GL_SAMPLE_ALPHA_TO_ONE",
-                  "StateEnableEntry_SampleCoverage": "GL_SAMPLE_COVERAGE",
-                  "StateEnableEntry_ScissorTest": "GL_SCISSOR_TEST",
-                  "StateEnableEntry_SecondaryColorArray": "GL_SECONDARY_COLOR_ARRAY",
-                  "StateEnableEntry_Separable2D": "GL_SEPARABLE_2D",
-                  "StateEnableEntry_StencilTest": "GL_STENCIL_TEST",
-                  "StateEnableEntry_Texture1D": "GL_TEXTURE_1D",
-                  "StateEnableEntry_Texture2D": "GL_TEXTURE_2D",
-                  "StateEnableEntry_Texture3D": "GL_TEXTURE_3D",
-                  "StateEnableEntry_TextureCoordArray": "GL_TEXTURE_COORD_ARRAY",
-                  "StateEnableEntry_TextureCubeMap": "GL_TEXTURE_CUBE_MAP",
-                  "StateEnableEntry_TextureGenQ": "GL_TEXTURE_GEN_Q",
-                  "StateEnableEntry_TextureGenR": "GL_TEXTURE_GEN_R",
-                  "StateEnableEntry_TextureGenS": "GL_TEXTURE_GEN_S",
-                  "StateEnableEntry_TextureGenT": "GL_TEXTURE_GEN_T",
-                  "StateEnableEntry_VertexArray": "GL_VERTEX_ARRAY",
-                  "StateEnableEntry_VertexProgramPointSize": "GL_VERTEX_PROGRAM_POINT_SIZE",
-                  "StateEnableEntry_VertexProgramTwoSide": "GL_VERTEX_PROGRAM_TWO_SIDE"}
+ver_to_mask = {(1, 0):"gl1_0",
+               (1, 1):"gl1_1",
+               (1, 2):"gl1_2",
+               (1, 3):"gl1_3",
+               (1, 4):"gl1_4",
+               (1, 5):"gl1_5",
+               (2, 0):"gl2_0",
+               (2, 1):"gl2_1",
+               (3, 0):"gl3_0",
+               (3, 1):"gl3_1",
+               (3, 2):"gl3_2",
+               (3, 3):"gl3_3",
+               (4, 0):"gl4_0",
+               (4, 1):"gl4_1",
+               (4, 2):"gl4_2",
+               (4, 3):"gl4_3",
+               (4, 4):"gl4_4",
+               (4, 5):"gl4_5"}
 
-for k, v in enable_entries.iteritems():
-    output.write("            cmd->state.enable[%s] = F(glIsEnabled)(%s);\n" % (k, v))
-
-output.write("""        }
-    }
+for get in gl_gets:
+    if get[1] == "P":
+        continue
     
+    ver_mask = "|".join([ver_to_mask[ver] for ver in get[3]])
+    if len(ver_mask) == 0:
+        ver_mask = "glnone"
+    
+    if get[1] == "S":
+        output.write("""
+            if (((%s) & gl2_1) && F(glGetString))
+                set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
+    else:
+        type = {"B": "GLboolean",
+                "I": "GLint",
+                "I64": "GLint64",
+                "E": "GLenum",
+                "F": "GLfloat",
+                "D": "GLdouble"}[get[1]]
+        
+        type_str = {"B": "Boolean",
+                    "I": "Integer",
+                    "I64": "GLint64",
+                    "E": "Integer",
+                    "F": "Float",
+                    "D": "Double"}[get[1]]
+        
+        type_str2 = {"B": "bool",
+                     "I": "int",
+                     "I64": "int64",
+                     "E": "uint",
+                     "F": "float",
+                     "D": "double"}[get[1]]
+        
+        output.write("""
+            if (((%s) & gl2_1) && F(glGet%sv)) {
+                %s v[%d];
+                F(glGet%sv)(%s, v);
+                set_state_%s(&cmd->state, \"%s\", %d, v);
+            }
+            """ % (ver_mask, type_str, type, get[2], type_str, get[0], type_str2, get[0], get[2]))
+
+output.write("""}
+    }
     begin_time = get_time();
 }
 

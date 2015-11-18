@@ -9,92 +9,20 @@ typedef enum {
     AttachType_Error
 } attachment_type_t;
 
-typedef enum {
-    StateEnableEntry_AlphaTest,
-    StateEnableEntry_AutoNormal,
-    StateEnableEntry_Blend,
-    //TODO: Clip plane,
-    StateEnableEntry_ColorArray,
-    StateEnableEntry_ColorLogicOp,
-    StateEnableEntry_ColorMaterial,
-    StateEnableEntry_ColorSum,
-    StateEnableEntry_ColorTable,
-    StateEnableEntry_Convolution1D,
-    StateEnableEntry_Convolution2D,
-    StateEnableEntry_CullFace,
-    StateEnableEntry_DepthTest,
-    StateEnableEntry_Dither,
-    StateEnableEntry_EdgeFlagArray,
-    StateEnableEntry_Fog,
-    StateEnableEntry_FogCoordArray,
-    StateEnableEntry_Histogram,
-    StateEnableEntry_IndexArray,
-    StateEnableEntry_IndexLogicOp,
-    //TODO: Lights
-    StateEnableEntry_Lighting,
-    StateEnableEntry_LineSmooth,
-    StateEnableEntry_LineStipple,
-    StateEnableEntry_Map1Color4,
-    StateEnableEntry_Map1Index,
-    StateEnableEntry_Map1Normal,
-    StateEnableEntry_Map1TexCoord1,
-    StateEnableEntry_Map1TexCoord2,
-    StateEnableEntry_Map1TexCoord3,
-    StateEnableEntry_Map1TexCoord4,
-    StateEnableEntry_Map2Color4,
-    StateEnableEntry_Map2Index,
-    StateEnableEntry_Map2Normal,
-    StateEnableEntry_Map2TexCoord1,
-    StateEnableEntry_Map2TexCoord2,
-    StateEnableEntry_Map2TexCoord3,
-    StateEnableEntry_Map2TexCoord4,
-    StateEnableEntry_Map2Vertex3,
-    StateEnableEntry_Map2Vertex4,
-    StateEnableEntry_MinMax,
-    StateEnableEntry_Multisample,
-    StateEnableEntry_NormalArray,
-    StateEnableEntry_Normalize,
-    StateEnableEntry_PointSmooth,
-    StateEnableEntry_PointSprite,
-    StateEnableEntry_PolygonSmooth,
-    StateEnableEntry_PolygonOffsetFill,
-    StateEnableEntry_PolygonOffsetLine,
-    StateEnableEntry_PolygonOffsetPoint,
-    StateEnableEntry_PolygonStipple,
-    StateEnableEntry_PostColorMatrixColorTable,
-    StateEnableEntry_PostConvolutionColorTable,
-    StateEnableEntry_RescaleNormal,
-    StateEnableEntry_SampleAlphaToCoverage,
-    StateEnableEntry_SampleAlphaToOne,
-    StateEnableEntry_SampleCoverage,
-    StateEnableEntry_ScissorTest,
-    StateEnableEntry_SecondaryColorArray,
-    StateEnableEntry_Separable2D,
-    StateEnableEntry_StencilTest,
-    StateEnableEntry_Texture1D,
-    StateEnableEntry_Texture2D,
-    StateEnableEntry_Texture3D,
-    StateEnableEntry_TextureCoordArray,
-    StateEnableEntry_TextureCubeMap,
-    StateEnableEntry_TextureGenQ,
-    StateEnableEntry_TextureGenR,
-    StateEnableEntry_TextureGenS,
-    StateEnableEntry_TextureGenT,
-    StateEnableEntry_VertexArray,
-    StateEnableEntry_VertexProgramPointSize,
-    StateEnableEntry_VertexProgramTwoSide,
-    
-    StateEnableEntry_Max
-} state_enable_entry_t;
-
 typedef struct inspect_attachment_t {
     attachment_type_t type;
     char* message;
     struct inspect_attachment_t* next;
 } inspect_attachment_t;
 
+typedef struct inspect_gl_state_entry_t {
+    char* name;
+    trace_value_t val; //group is always NULL
+    struct inspect_gl_state_entry_t* next;
+} inspect_gl_state_entry_t;
+
 typedef struct {
-    bool enable[StateEnableEntry_Max];
+    inspect_gl_state_entry_t* entries;
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {

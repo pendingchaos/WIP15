@@ -44,11 +44,7 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->name = trace->func_names[command->func_index];
             new_command->gl_context = context;
             new_command->next = NULL;
-            
-            for (size_t i = 0; i < StateEnableEntry_Max; ++i) {
-                new_command->state.enable[i] = false;
-            }
-            new_command->state.enable[StateEnableEntry_Dither] = true;
+            new_command->state.entries = NULL;
             
             if (!new_frame->commands) {
                 new_frame->commands = new_command;
@@ -90,6 +86,24 @@ void free_inspection(inspection_t* inspection) {
                 free(attach->message);
                 free(attach);
                 attach = next_attach;
+            }
+            
+            inspect_gl_state_entry_t* entry = command->state.entries;
+            while (entry) {
+                inspect_gl_state_entry_t* next_entry = entry->next;
+                
+                if (entry->val.type == Type_Str) {
+                    for (size_t i = 0; i < entry->val.count; ++i)
+                        free(entry->val.str[i]);
+                    free(entry->val.ptr);
+                } else {
+                    free(entry->val.ptr);
+                }
+                
+                free(entry->name);
+                free(entry);
+                
+                entry = next_entry;
             }
             
             free(command);

@@ -147,6 +147,7 @@ for k, v in gl.functions.iteritems():
 
 for k, v in gl.groups.iteritems():
     groups[k] = Group(v, gl)
+groups["Unnamed"] = Group(glxml.Group(), glxml)
 
 for ver_num in versions:
     ver = gl.versions[ver_num]
@@ -158,10 +159,18 @@ for ver_num in versions:
     
     for enum in ver.new_enums:
         for other_ver in vers:
+            found = False
+            
             for group in groups.values():
                 for entry in group.entries:
                     if entry.name == enum:
                         entry.versions.append(other_ver)
+                        found = True
+            
+            if not found:
+                entry = GroupEntry(enum, gl.enumValues[enum])
+                entry.versions.append(ver_num)
+                groups["Unnamed"].entries.append(entry)
     
     for func in ver.removed_functions:
         for other_ver in vers:
@@ -180,10 +189,17 @@ for k, v in gl.extensions.iteritems():
             functions[func].extension = k
     
     for enum in v.enums:
+        found = False
+        
         for group in groups.values():
             for entry in group.entries:
                 if entry.name == enum:
-                    entry.extension = k
+                    entry.extensions.append(k)
+        
+        if not found:
+            entry = GroupEntry(enum, gl.enumValues[enum])
+            entry.extensions.append(k)
+            groups["Unnamed"].entries.append(entry)
 
 output = open("../src/glapi.c", "w")
 

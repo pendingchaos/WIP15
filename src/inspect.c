@@ -110,77 +110,15 @@ static void write_command(FILE* file, inspect_command_t* command) {
 
 static void write_state(FILE* file, const inspect_gl_state_t* state) {
     fprintf(file, "<ul>");
-    fprintf(file, "<li>GL_TEXTURE_GEN_S = %s</li>", state->enable[StateEnableEntry_TextureGenS] ? "true" : "false");
-    fprintf(file, "<li>GL_POLYGON_OFFSET_FILL = %s</li>", state->enable[StateEnableEntry_PolygonOffsetFill] ? "true" : "false");
-    fprintf(file, "<li>GL_COLOR_ARRAY = %s</li>", state->enable[StateEnableEntry_ColorArray] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_GEN_R = %s</li>", state->enable[StateEnableEntry_TextureGenR] ? "true" : "false");
-    fprintf(file, "<li>GL_VERTEX_ARRAY = %s</li>", state->enable[StateEnableEntry_VertexArray] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_CUBE_MAP = %s</li>", state->enable[StateEnableEntry_TextureCubeMap] ? "true" : "false");
-    fprintf(file, "<li>GL_SAMPLE_COVERAGE = %s</li>", state->enable[StateEnableEntry_SampleCoverage] ? "true" : "false");
-    fprintf(file, "<li>GL_FOG = %s</li>", state->enable[StateEnableEntry_Fog] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_TEXTURE_COORD_3 = %s</li>", state->enable[StateEnableEntry_Map2TexCoord3] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_TEXTURE_COORD_2 = %s</li>", state->enable[StateEnableEntry_Map2TexCoord2] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_TEXTURE_COORD_1 = %s</li>", state->enable[StateEnableEntry_Map2TexCoord1] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_GEN_T = %s</li>", state->enable[StateEnableEntry_TextureGenT] ? "true" : "false");
-    fprintf(file, "<li>GL_POINT_SPRITE = %s</li>", state->enable[StateEnableEntry_PointSprite] ? "true" : "false");
-    fprintf(file, "<li>GL_POLYGON_STIPPLE = %s</li>", state->enable[StateEnableEntry_PolygonStipple] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_NORMAL = %s</li>", state->enable[StateEnableEntry_Map1Normal] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_COLOR_4 = %s</li>", state->enable[StateEnableEntry_Map2Color4] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_2D = %s</li>", state->enable[StateEnableEntry_Texture2D] ? "true" : "false");
-    fprintf(file, "<li>GL_STENCIL_TEST = %s</li>", state->enable[StateEnableEntry_StencilTest] ? "true" : "false");
-    fprintf(file, "<li>GL_NORMALIZE = %s</li>", state->enable[StateEnableEntry_Normalize] ? "true" : "false");
-    fprintf(file, "<li>GL_POLYGON_OFFSET_POINT = %s</li>", state->enable[StateEnableEntry_PolygonOffsetPoint] ? "true" : "false");
-    fprintf(file, "<li>GL_CONVOLUTION_1D = %s</li>", state->enable[StateEnableEntry_Convolution1D] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_COLOR_4 = %s</li>", state->enable[StateEnableEntry_Map1Color4] ? "true" : "false");
-    fprintf(file, "<li>GL_COLOR_TABLE = %s</li>", state->enable[StateEnableEntry_ColorTable] ? "true" : "false");
-    fprintf(file, "<li>GL_INDEX_ARRAY = %s</li>", state->enable[StateEnableEntry_IndexArray] ? "true" : "false");
-    fprintf(file, "<li>GL_COLOR_LOGIC_OP = %s</li>", state->enable[StateEnableEntry_ColorLogicOp] ? "true" : "false");
-    fprintf(file, "<li>GL_DITHER = %s</li>", state->enable[StateEnableEntry_Dither] ? "true" : "false");
-    fprintf(file, "<li>GL_SEPARABLE_2D = %s</li>", state->enable[StateEnableEntry_Separable2D] ? "true" : "false");
-    fprintf(file, "<li>GL_COLOR_SUM = %s</li>", state->enable[StateEnableEntry_ColorSum] ? "true" : "false");
-    fprintf(file, "<li>GL_SAMPLE_ALPHA_TO_ONE = %s</li>", state->enable[StateEnableEntry_SampleAlphaToOne] ? "true" : "false");
-    fprintf(file, "<li>GL_LINE_STIPPLE = %s</li>", state->enable[StateEnableEntry_LineStipple] ? "true" : "false");
-    fprintf(file, "<li>GL_HISTOGRAM = %s</li>", state->enable[StateEnableEntry_Histogram] ? "true" : "false");
-    fprintf(file, "<li>GL_MULTISAMPLE = %s</li>", state->enable[StateEnableEntry_Multisample] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_NORMAL = %s</li>", state->enable[StateEnableEntry_Map2Normal] ? "true" : "false");
-    fprintf(file, "<li>GL_SECONDARY_COLOR_ARRAY = %s</li>", state->enable[StateEnableEntry_SecondaryColorArray] ? "true" : "false");
-    fprintf(file, "<li>GL_MINMAX = %s</li>", state->enable[StateEnableEntry_MinMax] ? "true" : "false");
-    fprintf(file, "<li>GL_DEPTH_TEST = %s</li>", state->enable[StateEnableEntry_DepthTest] ? "true" : "false");
-    fprintf(file, "<li>GL_VERTEX_PROGRAM_POINT_SIZE = %s</li>", state->enable[StateEnableEntry_VertexProgramPointSize] ? "true" : "false");
-    fprintf(file, "<li>GL_NORMAL_ARRAY = %s</li>", state->enable[StateEnableEntry_NormalArray] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_VERTEX_3 = %s</li>", state->enable[StateEnableEntry_Map2Vertex3] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_TEXTURE_COORD_4 = %s</li>", state->enable[StateEnableEntry_Map2TexCoord4] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_GEN_Q = %s</li>", state->enable[StateEnableEntry_TextureGenQ] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_VERTEX_4 = %s</li>", state->enable[StateEnableEntry_Map2Vertex4] ? "true" : "false");
-    fprintf(file, "<li>GL_SAMPLE_ALPHA_TO_COVERAGE = %s</li>", state->enable[StateEnableEntry_SampleAlphaToCoverage] ? "true" : "false");
-    fprintf(file, "<li>GL_POINT_SMOOTH = %s</li>", state->enable[StateEnableEntry_PointSmooth] ? "true" : "false");
-    fprintf(file, "<li>GL_AUTO_NORMAL = %s</li>", state->enable[StateEnableEntry_AutoNormal] ? "true" : "false");
-    fprintf(file, "<li>GL_COLOR_MATERIAL = %s</li>", state->enable[StateEnableEntry_ColorMaterial] ? "true" : "false");
-    fprintf(file, "<li>GL_RESCALE_NORMAL = %s</li>", state->enable[StateEnableEntry_RescaleNormal] ? "true" : "false");
-    fprintf(file, "<li>GL_LIGHTING = %s</li>", state->enable[StateEnableEntry_Lighting] ? "true" : "false");
-    fprintf(file, "<li>GL_VERTEX_PROGRAM_TWO_SIDE = %s</li>", state->enable[StateEnableEntry_VertexProgramTwoSide] ? "true" : "false");
-    fprintf(file, "<li>GL_CULL_FACE = %s</li>", state->enable[StateEnableEntry_CullFace] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_3D = %s</li>", state->enable[StateEnableEntry_Texture3D] ? "true" : "false");
-    fprintf(file, "<li>GL_POST_CONVOLUTION_COLOR_TABLE = %s</li>", state->enable[StateEnableEntry_PostConvolutionColorTable] ? "true" : "false");
-    fprintf(file, "<li>GL_SCISSOR_TEST = %s</li>", state->enable[StateEnableEntry_ScissorTest] ? "true" : "false");
-    fprintf(file, "<li>GL_BLEND = %s</li>", state->enable[StateEnableEntry_Blend] ? "true" : "false");
-    fprintf(file, "<li>GL_CONVOLUTION_2D = %s</li>", state->enable[StateEnableEntry_Convolution2D] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_1D = %s</li>", state->enable[StateEnableEntry_Texture1D] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_INDEX = %s</li>", state->enable[StateEnableEntry_Map1Index] ? "true" : "false");
-    fprintf(file, "<li>GL_POST_COLOR_MATRIX_COLOR_TABLE = %s</li>", state->enable[StateEnableEntry_PostColorMatrixColorTable] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP2_INDEX = %s</li>", state->enable[StateEnableEntry_Map2Index] ? "true" : "false");
-    fprintf(file, "<li>GL_INDEX_LOGIC_OP = %s</li>", state->enable[StateEnableEntry_IndexLogicOp] ? "true" : "false");
-    fprintf(file, "<li>GL_POLYGON_OFFSET_LINE = %s</li>", state->enable[StateEnableEntry_PolygonOffsetLine] ? "true" : "false");
-    fprintf(file, "<li>GL_ALPHA_TEST = %s</li>", state->enable[StateEnableEntry_AlphaTest] ? "true" : "false");
-    fprintf(file, "<li>GL_POLYGON_SMOOTH = %s</li>", state->enable[StateEnableEntry_PolygonSmooth] ? "true" : "false");
-    fprintf(file, "<li>GL_LINE_SMOOTH = %s</li>", state->enable[StateEnableEntry_LineSmooth] ? "true" : "false");
-    fprintf(file, "<li>GL_TEXTURE_COORD_ARRAY = %s</li>", state->enable[StateEnableEntry_TextureCoordArray] ? "true" : "false");
-    fprintf(file, "<li>GL_EDGE_FLAG_ARRAY = %s</li>", state->enable[StateEnableEntry_EdgeFlagArray] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_TEXTURE_COORD_4 = %s</li>", state->enable[StateEnableEntry_Map1TexCoord4] ? "true" : "false");
-    fprintf(file, "<li>GL_FOG_COORD_ARRAY = %s</li>", state->enable[StateEnableEntry_FogCoordArray] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_TEXTURE_COORD_2 = %s</li>", state->enable[StateEnableEntry_Map1TexCoord2] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_TEXTURE_COORD_3 = %s</li>", state->enable[StateEnableEntry_Map1TexCoord3] ? "true" : "false");
-    fprintf(file, "<li>GL_MAP1_TEXTURE_COORD_1 = %s</li>", state->enable[StateEnableEntry_Map1TexCoord1] ? "true" : "false");
+    
+    inspect_gl_state_entry_t* entry = state->entries;
+    while (entry) {
+        fprintf(file, "<li>%s = ", entry->name);
+        write_value(file, entry->val);
+        fprintf(file, "</li>");
+        entry = entry->next;
+    }
+    
     fprintf(file, "</ul>");
 }
 

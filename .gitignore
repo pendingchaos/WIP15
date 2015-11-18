@@ -3,3 +3,4 @@
 /src/glapi.h
 /src/replay_gl.c
 /potentially_nontrivial_funcs.txt
+*.pyc
