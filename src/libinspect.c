@@ -100,7 +100,6 @@ void free_inspection(inspection_t* inspection) {
                     free(entry->val.ptr);
                 }
                 
-                free(entry->name);
                 free(entry);
                 
                 entry = next_entry;

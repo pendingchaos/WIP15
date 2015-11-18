@@ -16,7 +16,7 @@ typedef struct inspect_attachment_t {
 } inspect_attachment_t;
 
 typedef struct inspect_gl_state_entry_t {
-    char* name;
+    const char* name; //this must not be freed.
     trace_value_t val; //group is always NULL
     struct inspect_gl_state_entry_t* next;
 } inspect_gl_state_entry_t;
