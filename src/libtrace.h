@@ -53,7 +53,7 @@ typedef struct trace_command_t {
 } trace_command_t;
 
 typedef struct trace_frame_t {
-    trace_command_t* commands;
+    vec_t commands; //trace_command_t
     struct trace_frame_t* next;
 } trace_frame_t;
 
@@ -71,5 +71,9 @@ const char *get_trace_error_desc();
 
 inline trace_arg_t* trace_get_arg(trace_command_t* command, size_t i) {
     return ((trace_arg_t*)get_vec_data(command->args)) + i;
+}
+
+inline trace_command_t* trace_get_cmd(trace_frame_t* frame, size_t i) {
+    return ((trace_command_t*)get_vec_data(frame->commands)) + i;
 }
 #endif

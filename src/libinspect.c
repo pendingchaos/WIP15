@@ -33,8 +33,10 @@ inspection_t* create_inspection(const trace_t* trace) {
         new_frame->commands = NULL;
         new_frame->trace_frame = frame;
         
-        trace_command_t* command = frame->commands;
-        while (command) {
+        size_t count = get_vec_size(frame->commands) / sizeof(trace_command_t);
+        for (size_t i = 0; i < count; ++i) {
+            trace_command_t* command = trace_get_cmd(frame, i);
+            
             update_context(&context, trace, command);
             
             inspect_command_t* new_command = malloc(sizeof(inspect_command_t));

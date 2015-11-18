@@ -50,11 +50,9 @@ static void free_command(trace_command_t* command) {
 }
 
 static void free_frame(trace_frame_t* frame) {
-    trace_command_t* command = frame->commands;
-    while (command) {
-        trace_command_t* next_command = command->next;
-        free_command(command);
-        command = next_command;
+    size_t count = get_vec_size(frame->commands) / sizeof(trace_command_t);
+    for (size_t i = 0; i < count; ++i) {
+        free_command(trace_get_cmd(frame, i));
     }
     
     free(frame);
@@ -435,31 +433,23 @@ trace_t *load_trace(const char* filename) {
         
         fseek(file, -1, SEEK_CUR);
         
-        trace_command_t *command = malloc(sizeof(trace_command_t));
-        command->func_index = 0;
-        command->args = NULL;
-        command->ret.type = Type_Void;
-        command->ret.group = malloc(1);
-        command->ret.group[0] = 0;
-        command->next = NULL;
+        trace_command_t command;
+        command.func_index = 0;
+        command.args = NULL;
+        command.ret.type = Type_Void;
+        command.ret.group = malloc(1);
+        command.ret.group[0] = 0;
+        command.next = NULL;
         
-        if (!frame->commands) {
-            frame->commands = command;
-        } else {
-            trace_command_t *current = frame->commands;
-            while (current->next) current = current->next;
-            current->next = command;
-        }
-        
-        if (!readf(&command->func_index, 4, 1, file)) {
+        if (!readf(&command.func_index, 4, 1, file)) {
             trace_error = TraceError_Invalid;
             trace_error_desc = "Unable to read function index";
             free_trace(trace);
             return NULL;
         }
-        command->func_index = le32toh(command->func_index);
+        command.func_index = le32toh(command.func_index);
         
-        if (command->func_index > trace->func_name_count) {
+        if (command.func_index > trace->func_name_count) {
             trace_error = TraceError_Invalid;
             trace_error_desc = "Invalid function index";
             free_trace(trace);
@@ -477,14 +467,16 @@ trace_t *load_trace(const char* filename) {
                 trace_arg_t arg;
                 arg.val = val;
                 arg.next = NULL;
-                append_vec(command->args, sizeof(trace_arg_t), &arg);
+                append_vec(command.args, sizeof(trace_arg_t), &arg);
             } else if (res == 2) {
-                free_value(command->ret);
-                command->ret = val;
+                free_value(command.ret);
+                command.ret = val;
             }
         }
         
-        if (strcmp(trace->func_names[command->func_index], "glXSwapBuffers") == 0) {
+        append_vec(frame->commands, sizeof(trace_command_t), &command);
+        
+        if (strcmp(trace->func_names[command.func_index], "glXSwapBuffers") == 0) {
             trace_frame_t *old_frame = frame;
             
             frame = malloc(sizeof(trace_frame_t));
