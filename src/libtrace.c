@@ -38,13 +38,12 @@ static void free_value(trace_value_t value) {
 }
 
 static void free_command(trace_command_t* command) {
-    trace_arg_t* arg = command->args;
-    while (arg) {
+    vec_t args = command->args;
+    for (size_t i = 0; i < get_vec_size(args)/sizeof(trace_arg_t); ++i) {
+        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(args)) + i;
         free_value(arg->val);
-        trace_arg_t* next_arg = arg->next;
-        free(arg);
-        arg = next_arg;
     }
+    free_vec(args);
     
     free_value(command->ret);
     free(command);
@@ -475,17 +474,10 @@ trace_t *load_trace(const char* filename) {
                 trace_error = TraceError_Invalid;
                 return NULL;
             } else if (res == 1) {
-                trace_arg_t *arg = malloc(sizeof(trace_arg_t));
-                arg->val = val;
-                arg->next = NULL;
-                
-                if (!command->args) {
-                    command->args = arg;
-                } else {
-                    trace_arg_t *current = command->args;
-                    while (current->next) current = current->next;
-                    current->next = arg;
-                }
+                trace_arg_t arg;
+                arg.val = val;
+                arg.next = NULL;
+                append_vec(command->args, sizeof(trace_arg_t), &arg);
             } else if (res == 2) {
                 free_value(command->ret);
                 command->ret = val;

@@ -664,7 +664,7 @@ for name in gl.functions:
     
     i = 0
     for param in function.params:
-        arg = "command->args%s->val" % ("->next"*i)
+        arg = "trace_get_arg(command, %d)->val" % (i)
         
         if param.type_[-1] == "]":
             params.append("gl_param_%s_array(&%s)" % (param.type_.split("[")[0], arg))

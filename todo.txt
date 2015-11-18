@@ -18,6 +18,7 @@ Debugging:
         Possible without by rendering the values to the framebuffer
             Use this because it works on more hardware
     Backtraces with line numbers for function calls
+    Debug markers and stuff
 
 Performance:
     CPU-GPU sync points

@@ -16,7 +16,7 @@ static void update_context(uint64_t *context,
     const char *name = trace->func_names[trace_cmd->func_index];
     
     if (strcmp(name, "glXMakeCurrent") == 0) {
-        *context = trace_cmd->args->next->next->val.ptr[0];
+        *context = trace_get_arg(trace_cmd, 2)->val.ptr[0];
     }
 }
 

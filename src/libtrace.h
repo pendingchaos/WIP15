@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "vec.h"
+
 typedef enum {
     Type_Void,
     Type_UInt,
@@ -45,7 +47,7 @@ typedef struct trace_arg_t {
 
 typedef struct trace_command_t {
     uint32_t func_index;
-    trace_arg_t* args;
+    vec_t args; //trace_value_t
     trace_value_t ret;
     struct trace_command_t* next;
 } trace_command_t;
@@ -66,4 +68,8 @@ trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);
 trace_error_t get_trace_error();
 const char *get_trace_error_desc();
+
+inline trace_arg_t* trace_get_arg(trace_command_t* command, size_t i) {
+    return ((trace_arg_t*)get_vec_data(command->args)) + i;
+}
 #endif

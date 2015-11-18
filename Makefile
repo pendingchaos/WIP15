@@ -4,11 +4,11 @@ gl:
 	rm src/gl.c
 
 libtrace:
-	gcc src/libtrace.c -o bin/libtrace.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE
+	gcc src/libtrace.c -o bin/libtrace.so src/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE
 
 libinspect:
 	gcc -c src/glapi.c -std=c99 -o src/glapi.o -w
-	gcc src/libinspect.c src/replay.c src/replay_gl.c src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11
+	gcc src/libinspect.c src/replay.c src/replay_gl.c src/vec.c  src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11
 	rm src/glapi.o
 
 trace:
