@@ -544,6 +544,11 @@ for get in gl_gets:
             }
             """ % (ver_mask, type_str, type, get[2], type_str, get[0], type_str2, get[0], get[2]))
 
+for k, v in enable_entries.iteritems():
+    output.write("            {\n                GLboolean v = F(glIsEnabled)(%s);\n" % v)
+    output.write("                set_state_bool(&cmd->state, \"%s enabled\", 1, &v);\n" % v)
+    output.write("            }\n")
+
 output.write("""}
     }
     begin_time = get_time();
