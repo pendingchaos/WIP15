@@ -4,7 +4,7 @@ gl:
 	rm src/gl.c
 
 libtrace:
-	gcc src/libtrace.c -o bin/libtrace.so src/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -g
+	gcc src/libtrace.c -o bin/libtrace.so src/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE
 
 libinspect:
 	gcc -c src/glapi.c -std=c99 -o src/glapi.o -w

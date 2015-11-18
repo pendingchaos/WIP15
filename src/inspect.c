@@ -111,8 +111,11 @@ static void write_command(FILE* file, inspect_command_t* command) {
 static void write_state(FILE* file, const inspect_gl_state_t* state) {
     fprintf(file, "<ul>");
     
-    inspect_gl_state_entry_t* entry = state->entries;
-    while (entry) {
+    vec_t entries = state->entries;
+    size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
+        
         fprintf(file, "<li>%s = ", entry->name);
         write_value(file, entry->val);
         fprintf(file, "</li>");

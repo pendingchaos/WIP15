@@ -22,7 +22,7 @@ typedef struct inspect_gl_state_entry_t {
 } inspect_gl_state_entry_t;
 
 typedef struct {
-    inspect_gl_state_entry_t* entries;
+    vec_t entries; //inspect_gl_state_entry_t
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {

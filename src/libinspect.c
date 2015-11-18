@@ -46,7 +46,7 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->name = trace->func_names[command->func_index];
             new_command->gl_context = context;
             new_command->next = NULL;
-            new_command->state.entries = NULL;
+            new_command->state.entries = alloc_vec(0);
             
             if (!new_frame->commands) {
                 new_frame->commands = new_command;
@@ -88,9 +88,10 @@ void free_inspection(inspection_t* inspection) {
                 attach = next_attach;
             }
             
-            inspect_gl_state_entry_t* entry = command->state.entries;
-            while (entry) {
-                inspect_gl_state_entry_t* next_entry = entry->next;
+            vec_t entries = command->state.entries;
+            size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
+            for (size_t i = 0; i < count; ++i) {
+                inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
                 
                 if (entry->val.type == Type_Str) {
                     for (size_t i = 0; i < entry->val.count; ++i)
@@ -99,11 +100,8 @@ void free_inspection(inspection_t* inspection) {
                 } else {
                     free(entry->val.ptr);
                 }
-                
-                free(entry);
-                
-                entry = next_entry;
             }
+            free_vec(entries);
             
             free(command);
             

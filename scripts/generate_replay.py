@@ -298,20 +298,12 @@ static uint64_t get_time() {
 }
 
 static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t* v) {
-    inspect_gl_state_entry_t* entry = malloc(sizeof(inspect_gl_state_entry_t));
-    
-    entry->name = name;
-    entry->val = *v;
-    entry->val.group = NULL;
-    entry->next = NULL;
-    
-    if (state->entries) {
-        inspect_gl_state_entry_t* entries = state->entries;
-        while (entries->next) entries = entries->next;
-        entries->next = entry;
-    } else {
-        state->entries = entry;
-    }
+    inspect_gl_state_entry_t entry;
+    entry.name = name;
+    entry.val = *v;
+    entry.val.group = NULL;
+    entry.next = NULL;
+    append_vec(state->entries, sizeof(inspect_gl_state_entry_t), &entry);
 }
 
 static void set_state_bool(inspect_gl_state_t* state, const char* name, size_t count, GLboolean* v) {
