@@ -1,6 +1,6 @@
 gl:
 	cd scripts; python generate_gl.py
-	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE
+	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -O2
 	rm src/gl.c
 
 libtrace:
@@ -12,7 +12,7 @@ libinspect:
 	rm src/glapi.o
 
 trace:
-	gcc src/trace.c -o bin/trace
+	gcc src/trace.c -o bin/trace -O2
 
 inspect:
 	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect.c -std=c99 -o inspect -Wall -O2

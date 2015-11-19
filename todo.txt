@@ -24,7 +24,7 @@ Performance:
     CPU-GPU sync points
     Redundant and expensive state changes
         Not needed because the driver optimizes them out
-    Statistics per function call and per frame
+    Statistics per function call, per frame and per group of function calls
         Improve using timer queries
     Slow paths
     Shader profiler
