@@ -33,8 +33,6 @@ static void free_value(trace_value_t value) {
     case Type_FunctionPtr:
         break;
     }
-    
-    free(value.group);
 }
 
 static void free_command(trace_command_t* command) {
@@ -58,14 +56,14 @@ static void free_frame(trace_frame_t* frame) {
     free(frame);
 }
 
-static void set_int(trace_value_t *val, int64_t i) {
+static void set_int(trace_value_t* val, int64_t i) {
     val->type = Type_Int;
     val->i64 = malloc(sizeof(int64_t));
     *val->i64 = i;
     val->count = 1;
 }
 
-static void set_uint(trace_value_t *val, uint64_t i) {
+static void set_uint(trace_value_t* val, uint64_t i) {
     val->type = Type_UInt;
     val->u64 = malloc(sizeof(uint64_t));
     *val->u64 = i;
@@ -77,7 +75,7 @@ static void set_uint(trace_value_t *val, uint64_t i) {
 //1 = Arg
 //2 = Result
 //TODO: Some of this code assumes little endian.
-static int read_val(FILE* file, trace_value_t *val) {
+static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
     uint8_t type;
     if (!readf(&type, 1, 1, file)) {
         trace_error_desc = "Unable to read type";
@@ -85,7 +83,7 @@ static int read_val(FILE* file, trace_value_t *val) {
     }
     
     val->type = Type_Void;
-    val->group = NULL;
+    val->group_index = -1;
     
     bool group = false;
     
@@ -295,7 +293,7 @@ static int read_val(FILE* file, trace_value_t *val) {
         break;
     }
     case 18: { //result
-        int res = read_val(file, val);
+        int res = read_val(file, val, trace);
         if (res == -1) {
             return -1;
         } else if (res == 0) {
@@ -348,24 +346,22 @@ static int read_val(FILE* file, trace_value_t *val) {
     }
     
     if (group) {
-        uint32_t length;
-        if (!readf(&length, 4, 1, file)) {
+        if (!readf(&val->group_index, 4, 1, file)) {
+            trace_error = TraceError_Invalid;
+            trace_error_desc = "Unable to read group index";
             free_value(*val);
-            trace_error_desc = "Unable to read group length";
             return -1;
         }
-        length = le32toh(length);
+        val->group_index = le32toh(val->group_index);
         
-        val->group = malloc(length+1);
-        if (!readf(val->group, length, 1, file)) {
+        if (val->group_index >= trace->group_name_count && !(val->group_index<0)) {
+            trace_error = TraceError_Invalid;
+            trace_error_desc = "Invalid group index";
             free_value(*val);
-            trace_error_desc = "Unable to read group data";
             return -1;
         }
-        val->group[length] = 0;
     } else {
-        val->group = malloc(1);
-        val->group[0] = 0;
+        val->group_index = -1;
     }
     
     return 1;
@@ -383,6 +379,7 @@ trace_t *load_trace(const char* filename) {
     trace_t *trace = malloc(sizeof(trace_t));
     
     trace->func_name_count = 0;
+    trace->group_name_count = 0;
     trace->frames = NULL;
     
     if (!readf(&trace->func_name_count, 4, 1, file)) {
@@ -421,8 +418,45 @@ trace_t *load_trace(const char* filename) {
         trace->func_names[i] = name;
     }
     
+    if (!readf(&trace->group_name_count, 4, 1, file)) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Unable to read function name count";
+        free_trace(trace);
+        return NULL;
+    }
+    trace->group_name_count = le32toh(trace->group_name_count);
+    trace->group_names = malloc(sizeof(char *)*trace->group_name_count);
+    
+    for (size_t i = 0; i < trace->group_name_count; ++i) {
+        uint32_t length;
+        if (!readf(&length, 4, 1, file)) {
+            trace_error = TraceError_Invalid;
+            trace_error_desc = "Unable to read function name length";
+            free(trace->func_names);
+            trace->func_name_count = 0;
+            free_trace(trace);
+            return NULL;
+        }
+        length = le32toh(length);
+        
+        char *name = malloc(length+1);
+        if (!readf(name, length, 1, file)) {
+            trace_error = TraceError_Invalid;
+            trace_error_desc = "Unable to read function name length";
+            free(name);
+            free(trace->group_names);
+            trace->group_name_count = 0;
+            free_trace(trace);
+            return NULL;
+        }
+        name[length] = 0;
+        
+        trace->group_names[i] = name;
+    }
+    
     trace_frame_t* frame = malloc(sizeof(trace_frame_t));
     frame->commands = alloc_vec(0);
+    frame->next = NULL;
     trace->frames = frame;
     
     while (true) {
@@ -436,29 +470,31 @@ trace_t *load_trace(const char* filename) {
         command.func_index = 0;
         command.args = NULL;
         command.ret.type = Type_Void;
-        command.ret.group = malloc(1);
-        command.ret.group[0] = 0;
+        command.ret.group_index = -1;
         command.args = alloc_vec(0);
         
         if (!readf(&command.func_index, 4, 1, file)) {
             trace_error = TraceError_Invalid;
             trace_error_desc = "Unable to read function index";
+            free_vec(command.args);
             free_trace(trace);
             return NULL;
         }
         command.func_index = le32toh(command.func_index);
         
-        if (command.func_index > trace->func_name_count) {
+        if (command.func_index >= trace->func_name_count) {
             trace_error = TraceError_Invalid;
             trace_error_desc = "Invalid function index";
+            free_vec(command.args);
             free_trace(trace);
             return NULL;
         }
         
         int res;
         trace_value_t val;
-        while ((res = read_val(file, &val)) != 0) {
+        while ((res = read_val(file, &val, trace)) != 0) {
             if (res == -1) {
+                free_vec(command.args);
                 free_trace(trace);
                 trace_error = TraceError_Invalid;
                 return NULL;
@@ -494,7 +530,12 @@ void free_trace(trace_t* trace) {
         free(trace->func_names[i]);
     }
     
+    for (size_t i = 0; i < trace->group_name_count; ++i) {
+        free(trace->group_names[i]);
+    }
+    
     free(trace->func_names);
+    free(trace->group_names);
     
     trace_frame_t *frame = trace->frames;
     while (frame) {

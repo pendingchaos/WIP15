@@ -126,14 +126,14 @@ static const glapi_group_t* find_group(const char *name) {
     return NULL;
 }
 
-static void validate_command(inspect_command_t* command) {
+static void validate_command(inspect_command_t* command, const trace_t* trace) {
     //Validate enum argument values
     vec_t args = command->trace_cmd->args;
     for (size_t i = 0; i < get_vec_size(args)/sizeof(trace_arg_t); ++i) {
         trace_arg_t* arg = ((trace_arg_t*)get_vec_data(args)) + i;
         
-        if (arg->val.group == NULL ? false : (arg->val.group[0] != 0)) {
-            const glapi_group_t* group = find_group(arg->val.group);
+        if (arg->val.group_index < 0 ? false : (trace->group_names[arg->val.group_index][0] != 0)) {
+            const glapi_group_t* group = find_group(trace->group_names[arg->val.group_index]);
             
             if (!group) {
             } else if (group->bitmask) {
@@ -164,7 +164,7 @@ void inspect(inspection_t* inspection) {
     while (frame) {
         inspect_command_t* command = frame->commands;
         while (command) {
-            validate_command(command);
+            validate_command(command, inspection->trace);
             command = command->next;
         }
         frame = frame->next;

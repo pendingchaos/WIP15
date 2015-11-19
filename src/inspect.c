@@ -19,9 +19,9 @@ static const glapi_group_t* find_group(const char *name) {
     return NULL;
 }
 
-static void write_value(FILE* file, trace_value_t value) {
-    if (value.group == NULL ? false : (value.group[0] != 0)) {
-        const glapi_group_t* group = find_group(value.group);
+static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
+    if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
+        const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         
         if (!group) {
         } else if (group->bitmask) {
@@ -29,7 +29,7 @@ static void write_value(FILE* file, trace_value_t value) {
         } else {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
-                if (entry->value == value.u64[0]) {
+                if (entry->value == ((value.type==Type_Boolean)?value.bl[0]:value.u64[0])) {
                     fprintf(file, entry->name);
                     fprintf(file, "(%zu)", value.u64[0]);
                     return;
@@ -86,7 +86,7 @@ static void write_value(FILE* file, trace_value_t value) {
     if (value.count > 1) fprintf(file, "]");
 }
 
-static void write_command(FILE* file, inspect_command_t* command) {
+static void write_command(FILE* file, inspect_command_t* command, trace_t* trace) {
     trace_command_t* trace_cmd = command->trace_cmd;
     
     fprintf(file, "%s(", command->name);
@@ -95,7 +95,7 @@ static void write_command(FILE* file, inspect_command_t* command) {
     for (size_t i = 0; i < count; ++i) {
         trace_arg_t* arg = ((trace_arg_t*)get_vec_data(command->trace_cmd->args)) + i;
         
-        write_value(file, arg->val);
+        write_value(file, arg->val, trace);
         if (i != count-1) {
             fprintf(file, ", ");
         }
@@ -105,11 +105,11 @@ static void write_command(FILE* file, inspect_command_t* command) {
     
     if (trace_cmd->ret.type != Type_Void) {
         fprintf(file, " = ");
-        write_value(file, trace_cmd->ret);
+        write_value(file, trace_cmd->ret, trace);
     }
 }
 
-static void write_state(FILE* file, const inspect_gl_state_t* state) {
+static void write_state(FILE* file, const inspect_gl_state_t* state, trace_t* trace) {
     fprintf(file, "<ul>");
     
     vec_t entries = state->entries;
@@ -118,7 +118,7 @@ static void write_state(FILE* file, const inspect_gl_state_t* state) {
         inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
         
         fprintf(file, "<li>%s = ", entry->name);
-        write_value(file, entry->val);
+        write_value(file, entry->val, trace);
         fprintf(file, "</li>");
         entry = entry->next;
     }
@@ -126,7 +126,7 @@ static void write_state(FILE* file, const inspect_gl_state_t* state) {
     fprintf(file, "</ul>");
 }
 
-static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* frame) {
+static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* frame, trace_t* trace) {
     static size_t command_counter = 0;
     
     fprintf(frame_file, "<ul>");
@@ -154,7 +154,7 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         else if (info)
             fprintf(frame_file, "<u style=\"background:green;color:green\">____</u>");
         
-        write_command(frame_file, command);
+        write_command(frame_file, command, trace);
         
         fprintf(frame_file, "</a></li>");
         
@@ -164,7 +164,7 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         
         FILE *command_file = fopen(command_filename, "w");
         fprintf(command_file, "<h1>");
-        write_command(command_file, command);
+        write_command(command_file, command, trace);
         fprintf(command_file, "</h1>");
         
         fprintf(command_file,
@@ -194,7 +194,7 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         
         fprintf(command_file, "</ul>");
         
-        write_state(command_file, &command->state);
+        write_state(command_file, &command->state, trace);
         
         fclose(command_file);
         
@@ -278,7 +278,7 @@ int main(int argc, char** argv) {
             return EXIT_FAILURE;
         }
         
-        write_frame(frame_file, argv[2], frame);
+        write_frame(frame_file, argv[2], frame, trace);
         fclose(frame_file);
         
         frame = frame->next;

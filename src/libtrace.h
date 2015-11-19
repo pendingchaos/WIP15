@@ -37,7 +37,7 @@ typedef struct {
         uint32_t* bitfield;
         uint64_t *ptr;
     };
-    char *group;
+    int32_t group_index; //Negative if there is no group
 } trace_value_t;
 
 typedef struct trace_arg_t {
@@ -57,7 +57,10 @@ typedef struct trace_frame_t {
 
 typedef struct {
     uint32_t func_name_count;
-    char **func_names;
+    char** func_names;
+    
+    uint32_t group_name_count;
+    char** group_names;
     
     trace_frame_t *frames;
 } trace_t;

@@ -5,10 +5,16 @@ import glxml
 gl = glxml.GL(False)
 
 nameToID = {}
+groupToID = {}
 nextID = 0
 
 for name in gl.functions:
     nameToID[name] = nextID
+    nextID += 1
+
+nextID = 0
+for name in gl.groups:
+    groupToID[name] = nextID
     nextID += 1
 
 output = open("../src/gl.c", "w")
@@ -85,6 +91,11 @@ static void gl_end() {
     gl_write_b(WIP15_END);
 }
 
+static void gl_write_int32(int32_t i) {
+    i = htole32(i);
+    fwrite(&i, 4, 1, trace_file);
+}
+
 static void gl_param_GLuint_array(size_t count, GLuint *data) {
     gl_write_b(WIP15_U32_ARRAY);
     
@@ -129,67 +140,67 @@ static void gl_param_pointer(void *value) {
 #endif
 }
 
-static void gl_param_GLDEBUGPROC(GLDEBUGPROC proc, const char *group) {
+static void gl_param_GLDEBUGPROC(GLDEBUGPROC proc, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
 }
 
-static void gl_param_GLsizei(GLsizei value, const char *group) {
+static void gl_param_GLsizei(GLsizei value, int32_t group) {
     gl_write_b(WIP15_S32);
     int32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLint64EXT(GLint64EXT value, const char *group) {
+static void gl_param_GLint64EXT(GLint64EXT value, int32_t group) {
     gl_write_b(WIP15_S64);
     int64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLshort(GLshort value, const char *group) {
+static void gl_param_GLshort(GLshort value, int32_t group) {
     gl_write_b(WIP15_S16);
     int16_t v = htole16(value);
     fwrite(&v, 2, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_int64_t(GLshort value, const char *group) {
+static void gl_param_int64_t(GLshort value, int32_t group) {
     gl_write_b(WIP15_S64);
     int64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLubyte(GLubyte value, const char *group) {
+static void gl_param_GLubyte(GLubyte value, int32_t group) {
     gl_write_b(WIP15_U8);
     gl_write_b(value);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLDEBUGPROCARB(GLDEBUGPROCARB proc, const char *group) {
+static void gl_param_GLDEBUGPROCARB(GLDEBUGPROCARB proc, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
 }
 
-static void gl_param_GLboolean(GLboolean value, const char *group) {
+static void gl_param_GLboolean(GLboolean value, int32_t group) {
     gl_write_b(WIP15_BOOLEAN);
     gl_write_b(value ? 1 : 0);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_Bool(Bool value, const char *group) {
+static void gl_param_Bool(Bool value, int32_t group) {
     gl_write_b(WIP15_BOOLEAN);
     gl_write_b(value ? 1 : 0);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLbitfield(GLbitfield value, const char *group) {
+static void gl_param_GLbitfield(GLbitfield value, int32_t group) {
     gl_write_b(WIP15_BITFIELD);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLsync(GLsync value, const char *group) {
+static void gl_param_GLsync(GLsync value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -199,31 +210,31 @@ static void gl_param_GLsync(GLsync value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLuint(GLuint value, const char *group) {
+static void gl_param_GLuint(GLuint value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLint64(GLint64 value, const char *group) {
+static void gl_param_GLint64(GLint64 value, int32_t group) {
     gl_write_b(WIP15_S64);
     int64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_int(int value, const char *group) {
+static void gl_param_int(int value, int32_t group) {
     gl_write_b(WIP15_S32);
     int v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLeglImageOES(GLeglImageOES value, const char *group) {
+static void gl_param_GLeglImageOES(GLeglImageOES value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -233,35 +244,35 @@ static void gl_param_GLeglImageOES(GLeglImageOES value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLfixed(GLfixed value, const char *group) {
+static void gl_param_GLfixed(GLfixed value, int32_t group) {
     gl_write_b(WIP15_FLOAT);
     float v = value / 65546.0f;
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLclampf(GLclampf value, const char *group) {
+static void gl_param_GLclampf(GLclampf value, int32_t group) {
     gl_write_b(WIP15_FLOAT);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_float(float value, const char *group) {
+static void gl_param_float(float value, int32_t group) {
     gl_write_b(WIP15_FLOAT);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLhalfNV(GLhalfNV value, const char *group) { //TODO
+static void gl_param_GLhalfNV(GLhalfNV value, int32_t group) { //TODO
     gl_write_b(WIP15_U16);
     fwrite(&value, 2, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLintptr(GLintptr value, const char *group) {
+static void gl_param_GLintptr(GLintptr value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -271,50 +282,50 @@ static void gl_param_GLintptr(GLintptr value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLushort(GLushort value, const char *group) {
+static void gl_param_GLushort(GLushort value, int32_t group) {
     gl_write_b(WIP15_U16);
     uint16_t v = htole16(value);
     fwrite(&v, 2, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLenum(GLenum value, const char *group) {
+static void gl_param_GLenum(GLenum value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_unsigned_int(unsigned int value, const char *group) {
+static void gl_param_unsigned_int(unsigned int value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLfloat(GLfloat value, const char *group) {
+static void gl_param_GLfloat(GLfloat value, int32_t group) {
     gl_write_b(WIP15_FLOAT);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLuint64(GLuint64 value, const char *group) {
+static void gl_param_GLuint64(GLuint64 value, int32_t group) {
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLdouble(GLdouble value, const char *group) {
+static void gl_param_GLdouble(GLdouble value, int32_t group) {
     gl_write_b(WIP15_DOUBLE);
     fwrite(&value, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLhandleARB(GLhandleARB value, const char *group) {
+static void gl_param_GLhandleARB(GLhandleARB value, int32_t group) {
 #ifdef __APPLE__
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
@@ -330,10 +341,10 @@ static void gl_param_GLhandleARB(GLhandleARB value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLintptrARB(GLintptrARB value, const char *group) {
+static void gl_param_GLintptrARB(GLintptrARB value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_S64);
     uint64_t v = htole64(value);
@@ -343,137 +354,137 @@ static void gl_param_GLintptrARB(GLintptrARB value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLsizeiptr(GLsizeiptr value, const char *group)
+static void gl_param_GLsizeiptr(GLsizeiptr value, int32_t group)
 {
     gl_param_GLintptrARB(value, group);
 }
 
-static void gl_param_GLint(GLint value, const char *group)
+static void gl_param_GLint(GLint value, int32_t group)
 {
     gl_write_b(WIP15_S32);
     int32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLclampx(GLclampx value, const char *group) {
+static void gl_param_GLclampx(GLclampx value, int32_t group) {
     gl_write_b(WIP15_S32);
     int32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLsizeiptrARB(GLsizeiptrARB value, const char *group) {
+static void gl_param_GLsizeiptrARB(GLsizeiptrARB value, int32_t group) {
     gl_param_GLsizeiptr(value, group);
 }
 
-static void gl_param_GLuint64EXT(GLuint64EXT value, const char *group) {
+static void gl_param_GLuint64EXT(GLuint64EXT value, int32_t group) {
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLvdpauSurfaceNV(GLvdpauSurfaceNV value, const char *group) {
+static void gl_param_GLvdpauSurfaceNV(GLvdpauSurfaceNV value, int32_t group) {
     gl_param_GLintptrARB(value, group);
 }
 
-static void gl_param_GLbyte(GLbyte value, const char *group) {
+static void gl_param_GLbyte(GLbyte value, int32_t group) {
     gl_write_b(WIP15_S8);
     fwrite(&value, 1, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLclampd(GLclampd value, const char *group) {
+static void gl_param_GLclampd(GLclampd value, int32_t group) {
     gl_write_b(WIP15_DOUBLE);
     fwrite(&value, 8, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLDEBUGPROCKHR(GLDEBUGPROCKHR value, const char *group) {
+static void gl_param_GLDEBUGPROCKHR(GLDEBUGPROCKHR value, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLDEBUGPROCAMD(GLDEBUGPROCAMD value, const char *group) {
+static void gl_param_GLDEBUGPROCAMD(GLDEBUGPROCAMD value, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXPixmap(GLXPixmap value, const char *group) {
+static void gl_param_GLXPixmap(GLXPixmap value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXWindow(GLXWindow value, const char *group) {
+static void gl_param_GLXWindow(GLXWindow value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXPbuffer(GLXPbuffer value, const char *group) {
+static void gl_param_GLXPbuffer(GLXPbuffer value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXDrawable(GLXDrawable value, const char *group) {
+static void gl_param_GLXDrawable(GLXDrawable value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXVideoDeviceNV(GLXVideoDeviceNV value, const char *group) {
+static void gl_param_GLXVideoDeviceNV(GLXVideoDeviceNV value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_Pixmap(Pixmap value, const char *group) {
+static void gl_param_Pixmap(Pixmap value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_Window(Window value, const char *group) {
+static void gl_param_Window(Window value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_Font(Font value, const char *group) {
+static void gl_param_Font(Font value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_Colormap(Colormap value, const char *group) {
+static void gl_param_Colormap(Colormap value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXContextID(GLXContextID value, const char *group) {
+static void gl_param_GLXContextID(GLXContextID value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXFBConfig(GLXFBConfig value, const char *group) {
+static void gl_param_GLXFBConfig(GLXFBConfig value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -483,17 +494,17 @@ static void gl_param_GLXFBConfig(GLXFBConfig value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value, const char *group) {
+static void gl_param_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXFBConfigSGIX(GLXFBConfig value, const char *group) {
+static void gl_param_GLXFBConfigSGIX(GLXFBConfig value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -503,24 +514,24 @@ static void gl_param_GLXFBConfigSGIX(GLXFBConfig value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXPbufferSGIX(GLXPbufferSGIX value, const char *group) {
+static void gl_param_GLXPbufferSGIX(GLXPbufferSGIX value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXVideoSourceSGIX(GLXVideoSourceSGIX value, const char *group) {
+static void gl_param_GLXVideoSourceSGIX(GLXVideoSourceSGIX value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
-static void gl_param_GLXContext(GLXContext value, const char *group) {
+static void gl_param_GLXContext(GLXContext value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
@@ -530,7 +541,7 @@ static void gl_param_GLXContext(GLXContext value, const char *group) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(group);
+    gl_write_int32(group);
 }
 
 static void gl_result_GLenum(GLenum value) {
@@ -866,16 +877,16 @@ for name in gl.functions:
                 output.write("gl_param_pointer((void *)%s);" % (param.name))
             elif param.type_.replace(" ", "") == "unsignedint":
                 if param.group != None:
-                    group = "\"%s\"" % (param.group)
+                    group = "%d" % (groupToID[param.group])
                 else:
-                    group = "NULL";
+                    group = "-1";
                 
                 output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
             elif param.type_.replace(" ", "") == "unsignedlong":
                 if param.group != None:
-                    group = "\"%s\"" % (param.group)
+                    group = "%d" % (groupToID[param.group])
                 else:
-                    group = "NULL";
+                    group = "-1";
                 
                 output.write("gl_param_unsigned_int(%s, %s);" % (param.name, group))
             elif "*" in param.type_:
@@ -885,9 +896,9 @@ for name in gl.functions:
                     output.write("gl_param_pointer((void*)%s);" % (param.name))
             else:
                 if param.group != None:
-                    group = "\"%s\"" % (param.group)
+                    group = "%d" % (groupToID[param.group])
                 else:
-                    group = "NULL";
+                    group = "-1";
                 
                 output.write("gl_param_%s(%s,%s);" % (param.type_.replace("const", "").lstrip().rstrip(), param.name, group))
         
@@ -981,6 +992,12 @@ output.write("uint32_t count = htole32(%d);\n" % (len(gl.functions.keys())))
 output.write("fwrite(&count, 4, 1, trace_file);\n")
 
 for name in gl.functions:
+    output.write("gl_write_str(\"%s\");\n" % (name))
+
+output.write("count = htole32(%d);\n" % (len(gl.groups.keys())))
+output.write("fwrite(&count, 4, 1, trace_file);\n")
+
+for name in gl.groups:
     output.write("gl_write_str(\"%s\");\n" % (name))
 
 output.write("}")

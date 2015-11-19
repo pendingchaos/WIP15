@@ -298,7 +298,7 @@ static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t
     inspect_gl_state_entry_t entry;
     entry.name = name;
     entry.val = *v;
-    entry.val.group = NULL;
+    entry.val.group_index = -1;
     entry.next = NULL;
     append_vec(state->entries, sizeof(inspect_gl_state_entry_t), &entry);
 }
