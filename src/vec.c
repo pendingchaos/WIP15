@@ -27,10 +27,6 @@ static void* _alloc_vec(size_t amount) {
     return vec;
 }
 
-static void _free_vec(void* vec) {
-    free(vec);
-}
-
 static size_t _get_vec_size(void* vec) {
     return *(size_t*)vec;
 }

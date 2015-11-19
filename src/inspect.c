@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <GL/gl.h>
 
 static const glapi_group_t* find_group(const char *name) {
@@ -30,7 +31,7 @@ static void write_value(FILE* file, trace_value_t value) {
                 const glapi_group_entry_t *entry = group->entries[i];
                 if (entry->value == value.u64[0]) {
                     fprintf(file, entry->name);
-                    fprintf(file, "(%d)", value.u64[0]);
+                    fprintf(file, "(%zu)", value.u64[0]);
                     return;
                 }
             }
@@ -45,11 +46,11 @@ static void write_value(FILE* file, trace_value_t value) {
             break;
         }
         case Type_UInt: {
-            fprintf(file, "%llu", value.u64[i]);
+            fprintf(file, "%"PRIu64, value.u64[i]);
             break;
         }
         case Type_Int: {
-            fprintf(file, "%lli", value.i64[i]);
+            fprintf(file, "%"PRId64, value.i64[i]);
             break;
         }
         case Type_Double: {
@@ -73,7 +74,7 @@ static void write_value(FILE* file, trace_value_t value) {
             break;
         }
         case Type_Ptr: {
-            fprintf(file, "0x%llx", value.ptr[i]);
+            fprintf(file, "0x%"PRIx64, value.ptr[i]);
             break;
         }
         }

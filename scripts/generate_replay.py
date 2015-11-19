@@ -16,6 +16,7 @@ output.write("""#include <X11/Xlib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 #include "replay.h"
 #include "libtrace.h"
 #include "libinspect.h"
@@ -32,10 +33,6 @@ output.write(gl.typedecls)
 output.write("""
 static GLuint* gl_param_GLuint_array(trace_value_t* val) {
     return NULL; //TODO
-}
-
-static const char** gl_param_string_array(trace_value_t* val) {
-    return (const char**)val->str;
 }
 
 static const char* gl_param_string(trace_value_t* val) {
@@ -328,28 +325,6 @@ static void set_state_int(inspect_gl_state_t* state, const char* name, size_t co
     set_state(state, name, &val);
 }
 
-static void set_state_int64(inspect_gl_state_t* state, const char* name, size_t count, GLint64* v) {
-    trace_value_t val;
-    val.type = Type_Int;
-    val.count = count;
-    val.bl = malloc(sizeof(int64_t)*count);
-    for (size_t i = 0; i < count; ++i) {
-        val.i64[i] = v[i];
-    }
-    set_state(state, name, &val);
-}
-
-static void set_state_uint(inspect_gl_state_t* state, const char* name, size_t count, GLuint* v) {
-    trace_value_t val;
-    val.type = Type_Int;
-    val.count = count;
-    val.bl = malloc(sizeof(uint64_t)*count);
-    for (size_t i = 0; i < count; ++i) {
-        val.u64[i] = v[i];
-    }
-    set_state(state, name, &val);
-}
-
 static void set_state_float(inspect_gl_state_t* state, const char* name, size_t count, GLfloat* v) {
     trace_value_t val;
     val.type = Type_Double;
@@ -361,26 +336,15 @@ static void set_state_float(inspect_gl_state_t* state, const char* name, size_t 
     set_state(state, name, &val);
 }
 
-static void set_state_double(inspect_gl_state_t* state, const char* name, size_t count, GLdouble* v) {
-    trace_value_t val;
-    val.type = Type_Double;
-    val.count = count;
-    val.bl = malloc(sizeof(double)*count);
-    for (size_t i = 0; i < count; ++i) {
-        val.dbl[i] = v[i];
-    }
-    set_state(state, name, &val);
-}
-
-static void set_state_str(inspect_gl_state_t* state, const char* name, const char* s) {
+static void set_state_str(inspect_gl_state_t* state, const char* name, const GLubyte* s) {
     trace_value_t val;
     val.type = Type_Str;
     val.count = 1;
     
     if (s) {
         val.str = malloc(sizeof(const char*));
-        val.str[0] = malloc(strlen(s)+1);
-        strcpy(val.str[0], s);
+        val.str[0] = malloc(strlen((const char*)s)+1);
+        strcpy(val.str[0], (const char*)s);
     } else {
         val.str = calloc(1, sizeof(char));
     }
@@ -396,7 +360,6 @@ static void debug_callback(GLenum source,
                            const GLchar* message,
                            const void* user_param) {
     const char* source_str = "unknown";
-    const char* type_str = "unknown";
     
     switch (source) {
     case GL_DEBUG_SOURCE_API: {
@@ -505,11 +468,11 @@ for get in gl_gets:
         output.write("""
             if (((%s) & gl2_1) && F(glGetString))
                 set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
-    else:
+    elif get[1] not in ["I", "E"]:
         type = {"B": "GLboolean",
                 "I": "GLint",
                 "I64": "GLint64",
-                "E": "GLenum",
+                "E": "GLint",
                 "F": "GLfloat",
                 "D": "GLdouble"}[get[1]]
         
@@ -523,7 +486,7 @@ for get in gl_gets:
         type_str2 = {"B": "bool",
                      "I": "int",
                      "I64": "int64",
-                     "E": "uint",
+                     "E": "int",
                      "F": "float",
                      "D": "double"}[get[1]]
         
@@ -565,7 +528,6 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
     
     cmd->gpu_duration = end_time - begin_time;
     
-    const char *gl_error = "Unknown";
     switch (error) {
     case GL_NO_ERROR: {
         break;

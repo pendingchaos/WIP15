@@ -17,8 +17,7 @@ glXMakeCurrent:
     if (glctx) {
         reload_gl_funcs(ctx);
         ctx->_current_context = glctx;
-    }
-    else {
+    } else {
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;
     }
@@ -32,12 +31,12 @@ glXMakeCurrent:
         F(glXSwapIntervalSGI)(0);
 
 glXGetProcAddressARB:
-    void (*result)() = real(gl_param_string(&trace_get_arg(command, 0)->val));
+    void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
     if ((result == NULL) != (*command->ret.ptr == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 
 glXGetProcAddress:
-    void (*result)() = real(gl_param_string(&trace_get_arg(command, 0)->val));
+    void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
     if ((result == NULL) != (*command->ret.ptr == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 

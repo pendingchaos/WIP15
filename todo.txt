@@ -31,6 +31,11 @@ Performance:
         Can use recent extensions (timers and SSBOs)
         Possible without but may not be reliable
 
+Bugs:
+    Program crashes with optimizations.
+        Seems to be the glGetIntegerv calls in the state tracking code.
+            Currently removed.
+
 Various TODOs in the source code.
 
 glIsEnabled state from OpenGL 3+.
