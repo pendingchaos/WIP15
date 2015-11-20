@@ -22,7 +22,15 @@ typedef struct inspect_gl_state_entry_t {
 } inspect_gl_state_entry_t;
 
 typedef struct {
+    uint32_t width;
+    uint32_t height;
+    uint8_t* data;
+} inspect_image_t;
+
+typedef struct {
     vec_t entries; //inspect_gl_state_entry_t
+    inspect_image_t color; //data is NULL if it did not change. RGBA
+    inspect_image_t depth; //data is NULL if it did not change. uint32_t
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {

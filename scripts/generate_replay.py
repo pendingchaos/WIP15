@@ -420,6 +420,26 @@ static void debug_callback(GLenum source,
     }
 }
 
+static void replay_get_color(replay_context_t* ctx, inspect_command_t* cmd) {
+    if (!ctx->_in_begin_end && F(glReadPixels)) {
+        void* data = malloc(100*100*4);
+        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.color.width = 100;
+        cmd->state.color.height = 100;
+        cmd->state.color.data = data;
+    }
+}
+
+static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
+    if (!ctx->_in_begin_end && F(glReadPixels)) {
+        void* data = malloc(100*100*4);
+        F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
+        cmd->state.depth.width = 100;
+        cmd->state.depth.height = 100;
+        cmd->state.depth.data = data;
+    }
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {

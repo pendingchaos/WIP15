@@ -103,3 +103,15 @@ glBegin:
 glEnd:
     real();
     ctx->_in_begin_end = false;
+    replay_get_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
+glClear:
+    GLbitfield mask = gl_param_GLbitfield(&trace_get_arg(command, 0)->val);
+    real(mask);
+    if (mask & GL_COLOR_BUFFER_BIT)
+        replay_get_color(ctx, inspect_command);
+    if (mask & GL_DEPTH_BUFFER_BIT)
+        replay_get_depth(ctx, inspect_command);
+
+//TODO glDraw* and glEndList

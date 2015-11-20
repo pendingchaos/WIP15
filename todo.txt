@@ -19,6 +19,8 @@ Debugging:
             Use this because it works on more hardware
     Backtraces with line numbers for function calls
     Debug markers and stuff
+    State inspection
+        Currently have lots though more still needed.
 
 Performance:
     CPU-GPU sync points

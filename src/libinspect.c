@@ -47,6 +47,12 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->gl_context = context;
             new_command->next = NULL;
             new_command->state.entries = alloc_vec(0);
+            new_command->state.color.width = 0;
+            new_command->state.color.height = 0;
+            new_command->state.color.data = NULL;
+            new_command->state.depth.width = 0;
+            new_command->state.depth.height = 0;
+            new_command->state.depth.data = NULL;
             
             if (!new_frame->commands) {
                 new_frame->commands = new_command;
@@ -102,6 +108,9 @@ void free_inspection(inspection_t* inspection) {
                 }
             }
             free_vec(entries);
+            
+            free(command->state.color.data);
+            free(command->state.depth.data);
             
             free(command);
             

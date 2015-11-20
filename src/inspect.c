@@ -1,6 +1,8 @@
 #include "libinspect.h"
 #include "libtrace.h"
 #include "glapi.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -109,7 +111,19 @@ static void write_command(FILE* file, inspect_command_t* command, trace_t* trace
     }
 }
 
-static void write_state(FILE* file, const inspect_gl_state_t* state, trace_t* trace) {
+static int current_color_image = -1;
+static int current_depth_image = -1;
+static unsigned int next_image_id = 0;
+
+static void write_color_image(char *output_dir, const inspect_image_t* image, unsigned int id) {
+    char filename[FILENAME_MAX];
+    memset(filename, 0, FILENAME_MAX);
+    snprintf(filename, FILENAME_MAX, "%s/image_%u.bmp", output_dir, id);
+    
+    stbi_write_bmp(filename, image->width, image->height, 4, image->data);
+}
+
+static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* state, trace_t* trace) {
     fprintf(file, "<ul>");
     
     vec_t entries = state->entries;
@@ -124,6 +138,23 @@ static void write_state(FILE* file, const inspect_gl_state_t* state, trace_t* tr
     }
     
     fprintf(file, "</ul>");
+    
+    if (state->color.data) {
+        current_color_image = next_image_id++;
+        write_color_image(output_dir, &state->color, current_color_image);
+    }
+    
+    if (state->depth.data) {
+        //TODO:
+        //current_depth_image = next_image_id++;
+        //write_depth_image(output_dir, &state->depth, current_depth_image);
+    }
+    
+    if (current_color_image >= 0)
+        fprintf(file, "<img src=\"image_%d.bmp\"/>", current_color_image);
+    
+    if (current_depth_image >= 0)
+        fprintf(file, "<img src=\"image_%d.bmp\"/>", current_depth_image);
 }
 
 static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* frame, trace_t* trace) {
@@ -194,7 +225,7 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         
         fprintf(command_file, "</ul>");
         
-        write_state(command_file, &command->state, trace);
+        write_state(command_file, output_dir, &command->state, trace);
         
         fclose(command_file);
         
