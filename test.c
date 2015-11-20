@@ -25,10 +25,9 @@ int main(int argc, char **argv)
     
     while (1) {
         SDL_Event event;
-        while (SDL_PollEvent(&event)) {
+        while (SDL_PollEvent(&event))
             if (event.type == SDL_QUIT)
                 goto end;
-        }
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         
