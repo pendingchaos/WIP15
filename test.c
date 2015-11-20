@@ -21,8 +21,7 @@ int main(int argc, char **argv)
     
     SDL_GL_LoadLibrary(NULL);
     
-    glEnable(GL_DEPTH_TEST); /* enable depth buffering */
-    glDepthFunc(GL_LESS);    /* pedantic, GL_LESS is the default */
+    glEnable(GL_DEPTH_TEST);
     
     while (1) {
         SDL_Event event;
