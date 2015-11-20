@@ -2,7 +2,7 @@ Debugging:
     Validation:
         Bindless handles
         Implementation defined/undefined behaviour
-        Errors
+        Errors (done)
         Functions not allowed in current OpenGL profile/version
         Using extensions without explicitly enabling them
         Texture formats not natively supported on some GPUs
@@ -13,6 +13,7 @@ Debugging:
     View textures
     View meshes
     View state
+    View framebuffer (done)
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
@@ -27,6 +28,7 @@ Performance:
     Redundant and expensive state changes
         Not needed because the driver optimizes them out
     Statistics per function call, per frame and per group of function calls
+        Per function call is done
         Improve using timer queries
     Slow paths
     Shader profiler
