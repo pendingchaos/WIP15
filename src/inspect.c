@@ -123,6 +123,10 @@ static void write_color_image(char *output_dir, const inspect_image_t* image, un
     stbi_write_bmp(filename, image->width, image->height, 4, image->data);
 }
 
+static void write_depth_image(char *output_dir, const inspect_image_t* image, unsigned int id) {
+    write_color_image(output_dir, image, id);
+}
+
 static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* state, trace_t* trace) {
     fprintf(file, "<ul>");
     
@@ -145,9 +149,8 @@ static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* 
     }
     
     if (state->depth.data) {
-        //TODO:
-        //current_depth_image = next_image_id++;
-        //write_depth_image(output_dir, &state->depth, current_depth_image);
+        current_depth_image = next_image_id++;
+        write_depth_image(output_dir, &state->depth, current_depth_image);
     }
     
     if (current_color_image >= 0)

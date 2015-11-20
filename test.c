@@ -21,6 +21,9 @@ int main(int argc, char **argv)
     
     SDL_GL_LoadLibrary(NULL);
     
+    glEnable(GL_DEPTH_TEST); /* enable depth buffering */
+    glDepthFunc(GL_LESS);    /* pedantic, GL_LESS is the default */
+    
     while (1) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -28,15 +31,41 @@ int main(int argc, char **argv)
                 goto end;
         }
         
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBegin(GL_TRIANGLES);
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glVertex2f(-1.0f, -1.0f);
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glVertex2f(1.0f, -1.0f);
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glVertex2f(0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 10.0);
+        
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(0.0, 0.0, -3.0);
+        glRotatef(45.0f, 1.0, 0.0, 0.0);
+        glRotatef(45.0f, 0.0, 0.0, 1.0);
+        
+        glBegin(GL_QUADS);
+        glColor3f(0.0, 0.7, 0.1);
+        glVertex3f(-1.0, 1.0, 1.0);
+        glVertex3f(1.0, 1.0, 1.0);
+        glVertex3f(1.0, -1.0, 1.0);
+        glVertex3f(-1.0, -1.0, 1.0);
+        glColor3f(0.9, 1.0, 0.0);
+        glVertex3f(-1.0, 1.0, -1.0);
+        glVertex3f(1.0, 1.0, -1.0);
+        glVertex3f(1.0, -1.0, -1.0);
+        glVertex3f(-1.0, -1.0, -1.0);
+        glColor3f(0.2, 0.2, 1.0);
+        glVertex3f(-1.0, 1.0, 1.0);
+        glVertex3f(1.0, 1.0, 1.0);
+        glVertex3f(1.0, 1.0, -1.0);
+        glVertex3f(-1.0, 1.0, -1.0);
+        glColor3f(0.7, 0.0, 0.1);
+        glVertex3f(-1.0, -1.0, 1.0);
+        glVertex3f(1.0, -1.0, 1.0);
+        glVertex3f(1.0, -1.0, -1.0);
+        glVertex3f(-1.0, -1.0, -1.0);
         glEnd();
+        
         SDL_GL_SwapWindow(window);
     }
     end:;
