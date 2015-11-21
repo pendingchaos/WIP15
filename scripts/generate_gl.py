@@ -61,6 +61,7 @@ output.write("""
 #define WIP15_DOUBLE 17
 #define WIP15_RESULT 18
 #define WIP15_STR_ARRAY 19
+#define WIP15_DATA 20
 
 static FILE *trace_file;
 static void *lib_gl;
@@ -96,7 +97,7 @@ static void gl_write_int32(int32_t i) {
     fwrite(&i, 4, 1, trace_file);
 }
 
-static void gl_param_GLuint_array(size_t count, GLuint *data) {
+static void gl_param_GLuint_array(size_t count, const GLuint *data) {
     gl_write_b(WIP15_U32_ARRAY);
     
     uint32_t count_le = htole32(count);
@@ -126,6 +127,13 @@ static void gl_param_string_array(const GLchar * const *data, size_t count) {
 static void gl_param_string(const char *value) {
     gl_write_b(WIP15_STR);
     gl_write_str(value);
+}
+
+static void gl_param_data(size_t size, const void* data) {
+    gl_write_b(WIP15_DATA);
+    uint32_t size_le = htole32(size);
+    fwrite(&size_le, 4, 1, trace_file);
+    fwrite(data, size, 1, trace_file);
 }
 
 static void gl_param_pointer(void *value) {
@@ -826,13 +834,16 @@ for name in gl.functions:
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
     output.write("%s_t gl_f%d;\n" % (name, nameToID[name]))
 
+for k, v, in gl.enumValues.iteritems():
+    output.write("#define %s %s\n" % (k, v))
+
 nontrivial_str = open("nontrivial_func_trace_impls.txt").read()
 nontrivial = {}
 
 current_name = ""
 current = ""
 for line in nontrivial_str.split("\n"):
-    if line.endswith(":"):
+    if line.endswith(":") and line.startswith("gl"):
         if len(current_name) != 0:
             nontrivial[current_name] = current
         
@@ -863,6 +874,9 @@ for name in gl.functions:
     output.write("gl_start(%d);" % (nameToID[name]))
     
     if name in nontrivial:
+        if not name.startswith("glX"):
+            output.write("if(gl_f%d==NULL){gl_f%d=(%s_t)gl_f%s((const GLubyte*)\"%s\");}" %\
+                         (nameToID[name], nameToID[name], name, nameToID["glXGetProcAddress"], name))
         output.write("%s_t real = gl_f%d;\n" % (name, nameToID[name]))
         output.write(nontrivial[name])
     else:
@@ -926,9 +940,6 @@ for name in gl.functions:
     
     output.write("}\n")
 
-output.write("__GLXextFuncPtr glXGetProcAddress(const GLubyte *name);\n")
-output.write("__GLXextFuncPtr glXGetProcAddressARB(const GLubyte *name);\n")
-
 names = ["glXGetProcAddress", "glXGetProcAddressARB"]
 for n in names:
     output.write("""
@@ -940,7 +951,10 @@ for n in names:
     """ % (n, nameToID[n]))
     
     for name in gl.functions:
-        output.write("if(strcmp(name, \"%s\") == 0) {result=(void (*)())%s;}\n" % (name, name))
+        if name in names:
+            output.write("if(strcmp(name, \"%s\") == 0) {result=(void (*)())dlsym(lib_gl, \"%s\");};" % (name, name))
+        else:
+            output.write("if(strcmp(name, \"%s\") == 0) {result=(void (*)())%s;}\n" % (name, name))
     
     output.write("""
         if (result==NULL)
@@ -953,9 +967,7 @@ for n in names:
     
     """ % (nameToID[n]))
 
-output.write("""static void dummy_func() {}
-
-static void* actual_dlopen(const char* filename, int flags) {
+output.write("""static void* actual_dlopen(const char* filename, int flags) {
     return ((void* (*)(const char*, int))dlsym(RTLD_NEXT, "dlopen"))(filename, flags);
 }
 

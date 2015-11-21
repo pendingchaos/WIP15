@@ -115,3 +115,45 @@ glClear:
         replay_get_depth(ctx, inspect_command);
 
 //TODO glDraw* and glEndList
+
+glGenTextures:
+    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLuint textures[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    real(n, textures);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLTexture, textures[i], fake[i]);
+
+glDeleteTextures:
+    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLuint textures[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
+            inspect_add_error(inspect_command, "Invalid texture being deleted.");
+    
+    real(n, textures);
+
+glBindTexture:
+    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake);
+    if (!real_tex)
+        inspect_add_error(inspect_command, "Invalid texture being bound.");
+    real(target, real_tex);
+
+glTexImage2D:
+    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLint level = gl_param_GLint(&trace_get_arg(command, 1)->val);
+    GLint internalFormat = gl_param_GLint(&trace_get_arg(command, 2)->val);
+    GLsizei width = gl_param_GLenum(&trace_get_arg(command, 3)->val);
+    GLsizei height = gl_param_GLenum(&trace_get_arg(command, 4)->val);
+    GLint border = gl_param_GLenum(&trace_get_arg(command, 5)->val);
+    GLenum format = gl_param_GLenum(&trace_get_arg(command, 6)->val);
+    GLenum type = gl_param_GLenum(&trace_get_arg(command, 7)->val);
+    void* data = gl_param_data(&trace_get_arg(command, 8)->val);
+    
+    real(target, level, internalFormat, width, height, border, format, type, data);

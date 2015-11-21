@@ -23,6 +23,14 @@ int main(int argc, char **argv)
     
     glEnable(GL_DEPTH_TEST);
     
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    static const uint8_t data[] = {255, 255, 255,  0, 0, 0,
+                                   0, 0, 0,        255, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glDeleteTextures(1, &texture);
+    
     while (1) {
         SDL_Event event;
         while (SDL_PollEvent(&event))

@@ -16,6 +16,8 @@ static size_t readf(void* ptr, size_t size, size_t count, FILE* stream) {
 void trace_free_value(trace_value_t value) {
     if ((value.count == 1) && (value.type == Type_Str))
         free(value.str);
+    else if ((value.count == 1) && (value.type == Type_Data))
+        free(value.data);
     else if (value.count > 1)
         switch (value.type) {
         case Type_UInt:
@@ -31,6 +33,12 @@ void trace_free_value(trace_value_t value) {
                 free(value.str_array[i]);
             }
             free(value.str_array);
+            break;
+        case Type_Data:
+            for (size_t i = 0; i < value.count; ++i) {
+                free(value.data_array[i]);
+            }
+            free(value.data_array);
             break;
         case Type_Void:
         case Type_FunctionPtr:
@@ -355,6 +363,24 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
                 
                 val->str_array[i] = str;
             }
+        }
+        break;
+    }
+    case 20: { //data
+        uint32_t size;
+        if (!readf(&size, 4, 1, file)) {
+            trace_error_desc = "Unable to read data size";
+            return -1;
+        }
+        size = le32toh(size);
+        
+        val->type = Type_Data;
+        val->count = 1;
+        val->data = malloc(size);
+        if (!readf(val->data, size, 1, file)) {
+            free(val->data);
+            trace_error_desc = "Unable to read data";
+            return -1;
         }
         break;
     }
@@ -719,4 +745,8 @@ uint64_t* trace_get_ptr(trace_value_t* val) {
 
 char** trace_get_str(trace_value_t* val) {
     return val->count==1 ? &val->str : val->str_array;
+}
+
+void** trace_get_data(trace_value_t* val) {
+    return val->count==1 ? &val->data : val->data_array;
 }

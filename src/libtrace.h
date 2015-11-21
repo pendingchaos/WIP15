@@ -16,7 +16,8 @@ typedef enum {
     Type_Str,
     Type_Bitfield,
     Type_FunctionPtr,
-    Type_Ptr
+    Type_Ptr,
+    Type_Data
 } type_t;
 
 typedef enum {
@@ -36,13 +37,15 @@ typedef struct {
         char* str;
         uint32_t bitfield;
         uint64_t ptr;
+        void* data;
         uint64_t* u64_array;
         int64_t* i64_array;
         double* dbl_array;
         bool* bl_array;
         char** str_array;
         uint32_t* bitfield_array;
-        uint64_t *ptr_array;
+        uint64_t* ptr_array;
+        void** data_array;
     };
     int32_t group_index; //Negative if there is no group
 } trace_value_t;
@@ -93,4 +96,5 @@ bool* trace_get_bool(trace_value_t* val);
 uint32_t* trace_get_bitfield(trace_value_t* val);
 uint64_t* trace_get_ptr(trace_value_t* val);
 char** trace_get_str(trace_value_t* val);
+void** trace_get_data(trace_value_t* val);
 #endif

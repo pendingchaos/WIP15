@@ -82,6 +82,10 @@ static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
             fprintf(file, "0x%"PRIx64, trace_get_ptr(&value)[i]);
             break;
         }
+        case Type_Data: {
+            fprintf(file, "(data)");
+            break;
+        }
         }
         
         if (i != value.count-1) {
