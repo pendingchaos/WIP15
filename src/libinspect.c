@@ -16,7 +16,7 @@ static void update_context(uint64_t *context,
     const char *name = trace->func_names[trace_cmd->func_index];
     
     if (strcmp(name, "glXMakeCurrent") == 0) {
-        *context = trace_get_arg(trace_cmd, 2)->val.ptr[0];
+        *context = *trace_get_ptr(&trace_get_arg(trace_cmd, 2)->val);
     }
 }
 
@@ -87,14 +87,7 @@ void free_inspection(inspection_t* inspection) {
             size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
             for (size_t k = 0; k < count; ++k) {
                 inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + k;
-                
-                if (entry->val.type == Type_Str) {
-                    for (size_t k2 = 0; k2 < entry->val.count; ++k2)
-                        free(entry->val.str[k2]);
-                    free(entry->val.ptr);
-                } else {
-                    free(entry->val.ptr);
-                }
+                trace_free_value(entry->val);
             }
             free_vec(entries);
             
@@ -136,7 +129,7 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
                 for (size_t j = 0; j < group->entry_count; ++j) {
                     const glapi_group_entry_t *entry = group->entries[j];
                     //TODO: Requirements
-                    if (entry->value == arg->val.u64[0]) {
+                    if (entry->value == *trace_get_uint(&arg->val)) {
                         valid = true;
                     }
                 }
@@ -144,7 +137,7 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
                 if (!valid) {
                     inspect_add_error(command,
                                       "Invalid enum value %d for enum \"%s\".",
-                                      arg->val.u64[0],
+                                      *trace_get_uint(&arg->val),
                                       group->name);
                 }
             }

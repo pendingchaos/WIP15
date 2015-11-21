@@ -31,9 +31,12 @@ static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
         } else {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
-                if (entry->value == ((value.type==Type_Boolean)?value.bl[0]:value.u64[0])) {
+                uint64_t val = (value.type==Type_Boolean) ?
+                               *trace_get_bool(&value) :
+                               *trace_get_uint(&value);
+                if (entry->value == val) {
                     fprintf(file, entry->name);
-                    fprintf(file, "(%zu)", value.u64[0]);
+                    fprintf(file, "(%zu)", val);
                     return;
                 }
             }
@@ -48,27 +51,27 @@ static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
             break;
         }
         case Type_UInt: {
-            fprintf(file, "%"PRIu64, value.u64[i]);
+            fprintf(file, "%"PRIu64, trace_get_uint(&value)[i]);
             break;
         }
         case Type_Int: {
-            fprintf(file, "%"PRId64, value.i64[i]);
+            fprintf(file, "%"PRId64, trace_get_int(&value)[i]);
             break;
         }
         case Type_Double: {
-            fprintf(file, "%f", value.dbl[i]);
+            fprintf(file, "%f", trace_get_double(&value)[i]);
             break;
         }
         case Type_Boolean: {
-            fprintf(file, value.bl[i] ? "true" : "false");
+            fprintf(file, trace_get_bool(&value)[i] ? "true" : "false");
             break;
         }
         case Type_Str: {
-            fprintf(file, "'%s'", value.str[i]);
+            fprintf(file, "'%s'", trace_get_str(&value)[i]);
             break;
         }
         case Type_Bitfield: {
-            fprintf(file, "%u", value.bitfield[i]);
+            fprintf(file, "%u", trace_get_bitfield(&value)[i]);
             break;
         }
         case Type_FunctionPtr: {
@@ -76,7 +79,7 @@ static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
             break;
         }
         case Type_Ptr: {
-            fprintf(file, "0x%"PRIx64, value.ptr[i]);
+            fprintf(file, "0x%"PRIx64, trace_get_ptr(&value)[i]);
             break;
         }
         }

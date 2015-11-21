@@ -1,6 +1,6 @@
 glXMakeCurrent:
     GLXContext glctx = NULL;
-    uint64_t fake_ctx = *trace_get_arg(command, 2)->val.ptr;
+    uint64_t fake_ctx = *trace_get_uint(&trace_get_arg(command, 2)->val);
     if (fake_ctx) {
         glctx = (GLXContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
         if (!glctx) {
@@ -32,17 +32,17 @@ glXMakeCurrent:
 
 glXGetProcAddressARB:
     void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
-    if ((result == NULL) != (*command->ret.ptr == 0))
+    if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 
 glXGetProcAddress:
     void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
-    if ((result == NULL) != (*command->ret.ptr == 0))
+    if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 
 glXQueryExtension:
     Bool result = real(ctx->_display, NULL, NULL);
-    if (result != *command->ret.bl)
+    if (result != *trace_get_bool(&command->ret))
         inspect_add_warning(inspect_command, "glXQueryExtension returned something different during replay.");
 
 glXChooseVisual:
@@ -50,7 +50,7 @@ glXChooseVisual:
     int int_attribs[attribs.count];
     for (size_t i = 0; i < attribs.count; ++i) {
         union {unsigned int u; int i;} u;
-        u.u = attribs.u64[i];
+        u.u = trace_get_uint(&attribs)[i];
         int_attribs[i] = u.i;
     }
     XVisualInfo* vis = real(ctx->_display, gl_param_int(&trace_get_arg(command, 1)->val), int_attribs);
@@ -62,17 +62,17 @@ glXChooseVisual:
 
 glXCreateContext:
     GLXContext shareList = NULL;
-    if (*trace_get_arg(command, 2)->val.ptr) {
+    if (*trace_get_ptr(&trace_get_arg(command, 2)->val)) {
         shareList = (GLXContext)replay_get_real_object(ctx,
                                                        ReplayObjType_GLXContext,
-                                                       *trace_get_arg(command, 2)->val.ptr);
+                                                       *trace_get_ptr(&trace_get_arg(command, 2)->val));
         if (!shareList) {
             inspect_add_error(inspect_command, "Invalid share list.");
             return;
         }
     }
     GLXContext res = F(glXCreateNewContext)(ctx->_display, ctx->_fbconfig, GLX_RGBA_TYPE, shareList, gl_param_Bool(&trace_get_arg(command, 3)->val));
-    replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *command->ret.ptr);
+    replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
 
 glXQueryExtensionsString:
     //Nothing to have here
@@ -80,14 +80,14 @@ glXQueryExtensionsString:
 glXDestroyContext:
     GLXContext glctx = (GLXContext)replay_get_real_object(ctx,
                                                           ReplayObjType_GLXContext,
-                                                          *trace_get_arg(command, 1)->val.ptr);
+                                                          *trace_get_ptr(&trace_get_arg(command, 1)->val));
     if (!glctx) {
         inspect_add_error(inspect_command, "Invalid GLX context.");
         return;
     }
     
     real(ctx->_display, glctx);
-    replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_arg(command, 1)->val.ptr);
+    replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(&trace_get_arg(command, 1)->val));
 
 glXSwapBuffers:
     if (!ctx->_current_context) {

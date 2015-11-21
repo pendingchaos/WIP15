@@ -36,11 +36,11 @@ static GLuint* gl_param_GLuint_array(trace_value_t* val) {
 }
 
 static const char* gl_param_string(trace_value_t* val) {
-    return *val->str;
+    return *trace_get_str(val);
 }
 
 static uint64_t gl_param_pointer(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_value_t* val) {
@@ -48,23 +48,23 @@ static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_value_t* val) {
 }
 
 static GLsizei gl_param_GLsizei(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLint64EXT gl_param_GLint64EXT(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLshort gl_param_GLshort(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static int64_t gl_param_int64_t(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLubyte gl_param_GLubyte(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_value_t* val) {
@@ -72,121 +72,121 @@ static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_value_t* val) {
 }
 
 static GLboolean gl_param_GLboolean(trace_value_t* val) {
-    return *val->bl;
+    return *trace_get_bool(val);
 }
 
 static Bool gl_param_Bool(trace_value_t* val) {
-    return *val->bl;
+    return *trace_get_bool(val);
 }
 
 static GLbitfield gl_param_GLbitfield(trace_value_t* val) {
-    return *val->bitfield;
+    return *trace_get_bitfield(val);
 }
 
 static uint64_t gl_param_GLsync(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLuint gl_param_GLuint(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLint64 gl_param_GLint64(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static int gl_param_int(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static uint64_t gl_param_GLeglImageOES(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLfixed gl_param_GLfixed(trace_value_t* val) {
-    return (*val->dbl) * 65546.0f;
+    return *trace_get_double(val) * 65546.0f;
 }
 
 static GLclampf gl_param_GLclampf(trace_value_t* val) {
-    return *val->dbl;
+    return *trace_get_double(val);
 }
 
 static float gl_param_float(trace_value_t* val) {
-    return *val->dbl;
+    return *trace_get_double(val);
 }
 
 static GLhalfNV gl_param_GLhalfNV(trace_value_t* val) { //TODO
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static uint64_t gl_param_GLintptr(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLushort gl_param_GLushort(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLenum gl_param_GLenum(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLuint gl_param_unsigned_int(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLfloat gl_param_GLfloat(trace_value_t* val) {
-    return *val->dbl;
+    return *trace_get_double(val);
 }
 
 static GLuint64 gl_param_GLuint64(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLdouble gl_param_GLdouble(trace_value_t* val) {
-    return *val->dbl;
+    return *trace_get_double(val);
 }
 
 static GLhandleARB gl_param_GLhandleARB(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static uint64_t gl_param_GLintptrARB(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static uint64_t gl_param_GLsizeiptr(trace_value_t* val)
 {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLint gl_param_GLint(trace_value_t* val)
 {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLclampx gl_param_GLclampx(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLsizeiptrARB gl_param_GLsizeiptrARB(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLuint64EXT gl_param_GLuint64EXT(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static uint64_t gl_param_GLvdpauSurfaceNV(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLbyte gl_param_GLbyte(trace_value_t* val) {
-    return *val->i64;
+    return *trace_get_int(val);
 }
 
 static GLclampd gl_param_GLclampd(trace_value_t* val) {
-    return *val->dbl;
+    return *trace_get_double(val);
 }
 
 static GLDEBUGPROCKHR gl_param_GLDEBUGPROCKHR(trace_value_t* val) {
@@ -198,67 +198,67 @@ static GLDEBUGPROCAMD gl_param_GLDEBUGPROCAMD(trace_value_t* val) {
 }
 
 static GLXPixmap gl_param_GLXPixmap(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXWindow gl_param_GLXWindow(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXPbuffer gl_param_GLXPbuffer(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXDrawable gl_param_GLXDrawable(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXVideoDeviceNV gl_param_GLXVideoDeviceNV(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static Pixmap gl_param_Pixmap(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static Window gl_param_Window(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static Font gl_param_Font(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static Colormap gl_param_Colormap(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXContextID gl_param_GLXContextID(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static uint64_t gl_param_GLXFBConfig(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLXVideoCaptureDeviceNV gl_param_GLXVideoCaptureDeviceNV(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static uint64_t gl_param_GLXFBConfigSGIX(trace_value_t* val) {
-    return *val->ptr;
+    return *trace_get_ptr(val);
 }
 
 static GLXPbufferSGIX gl_param_GLXPbufferSGIX(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_value_t* val) {
-    return *val->u64;
+    return *trace_get_uint(val);
 }
 
 static GLXContext gl_param_GLXContext(trace_value_t* val) {
-    return (GLXContext)*val->ptr;
+    return (GLXContext)*trace_get_ptr(val);
 }
 
 static void reset_gl_funcs(replay_context_t* ctx);
@@ -294,62 +294,41 @@ static uint64_t get_time() {
     return spec.tv_sec*1000000000 + spec.tv_nsec;
 }
 
-static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t* v) {
+static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t v) {
     inspect_gl_state_entry_t entry;
     entry.name = name;
-    entry.val = *v;
+    entry.val = v;
     entry.val.group_index = -1;
     entry.next = NULL;
     append_vec(state->entries, sizeof(inspect_gl_state_entry_t), &entry);
 }
 
 static void set_state_bool(inspect_gl_state_t* state, const char* name, size_t count, GLboolean* v) {
-    trace_value_t val;
-    val.type = Type_Boolean;
-    val.count = count;
-    val.bl = malloc(sizeof(bool)*count);
+    bool arr[count];
     for (size_t i = 0; i < count; ++i) {
-        val.bl[i] = v[i];
+        arr[i] = v[i];
     }
-    set_state(state, name, &val);
+    set_state(state, name, trace_create_bool(count, arr));
 }
 
 static void set_state_int(inspect_gl_state_t* state, const char* name, size_t count, GLint* v) {
-    trace_value_t val;
-    val.type = Type_Int;
-    val.count = count;
-    val.bl = malloc(sizeof(int64_t)*count);
+    int64_t arr[count];
     for (size_t i = 0; i < count; ++i) {
-        val.i64[i] = v[i];
+        arr[i] = v[i];
     }
-    set_state(state, name, &val);
+    set_state(state, name, trace_create_int(count, arr));
 }
 
 static void set_state_float(inspect_gl_state_t* state, const char* name, size_t count, GLfloat* v) {
-    trace_value_t val;
-    val.type = Type_Double;
-    val.count = count;
-    val.bl = malloc(sizeof(double)*count);
+    double arr[count];
     for (size_t i = 0; i < count; ++i) {
-        val.dbl[i] = v[i];
+        arr[i] = v[i];
     }
-    set_state(state, name, &val);
+    set_state(state, name, trace_create_double(count, arr));
 }
 
 static void set_state_str(inspect_gl_state_t* state, const char* name, const GLubyte* s) {
-    trace_value_t val;
-    val.type = Type_Str;
-    val.count = 1;
-    
-    if (s) {
-        val.str = malloc(sizeof(const char*));
-        val.str[0] = malloc(strlen((const char*)s)+1);
-        strcpy(val.str[0], (const char*)s);
-    } else {
-        val.str = calloc(1, sizeof(char));
-    }
-    
-    set_state(state, name, &val);
+    set_state(state, name, trace_create_str(1, (const char**)&s));
 }
 
 static void debug_callback(GLenum source,
