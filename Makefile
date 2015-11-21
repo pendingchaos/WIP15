@@ -26,7 +26,7 @@ clean:
 	rm bin/gl.so
 
 test:
-	gcc test.c -lSDL2 -lGL -o bin/test
+	gcc test.c -lSDL2 -lGL -o bin/test -O2
 
 all:
 	make gl

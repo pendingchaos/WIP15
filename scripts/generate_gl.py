@@ -832,7 +832,7 @@ for name in gl.functions:
             params.append("%s" % (param.type_))
     
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
-    output.write("%s_t gl_f%d;\n" % (name, nameToID[name]))
+    output.write("%s_t gl_%s;\n" % (name, name))
 
 for k, v, in gl.enumValues.iteritems():
     output.write("#define %s %s\n" % (k, v))
@@ -875,9 +875,8 @@ for name in gl.functions:
     
     if name in nontrivial:
         if not name.startswith("glX"):
-            output.write("if(gl_f%d==NULL){gl_f%d=(%s_t)gl_f%s((const GLubyte*)\"%s\");}" %\
-                         (nameToID[name], nameToID[name], name, nameToID["glXGetProcAddress"], name))
-        output.write("%s_t real = gl_f%d;\n" % (name, nameToID[name]))
+            output.write("if(!gl_%s) gl_%s=(%s_t)gl_glXGetProcAddress((const GLubyte*)\"%s\");" %\
+                         (name, name, name, name))
         output.write(nontrivial[name])
     else:
         for param in function.params:
@@ -917,13 +916,13 @@ for name in gl.functions:
                 output.write("gl_param_%s(%s,%s);" % (param.type_.replace("const", "").lstrip().rstrip(), param.name, group))
         
         if not name.startswith("glX"):
-            output.write("if(gl_f%d==NULL){gl_f%d=(%s_t)gl_f%s((const GLubyte*)\"%s\");}" %\
-                         (nameToID[name], nameToID[name], name, nameToID["glXGetProcAddress"], name))
+            output.write("if(!gl_%s) gl_%s=(%s_t)gl_glXGetProcAddress((const GLubyte*)\"%s\");" %\
+                         (name, name, name, name))
         
         if function.returnType != "void":
-            output.write("%s result=gl_f%d(%s);" % (function.returnType, nameToID[name], ",".join([param.name for param in function.params])))
+            output.write("%s result=gl_%s(%s);" % (function.returnType, name, ",".join([param.name for param in function.params])))
         else:
-            output.write("gl_f%d(%s);" % (nameToID[name], ", ".join([param.name for param in function.params])))
+            output.write("gl_%s(%s);" % (name, ", ".join([param.name for param in function.params])))
         
         if function.returnType != "void":
             if "*" in function.returnType:
@@ -958,14 +957,14 @@ for n in names:
     
     output.write("""
         if (result==NULL)
-            result = gl_f%d(name);
+            result = gl_%s(name);
 
         gl_result_pointer((void*)result);
         gl_end();
         return result;
     }
     
-    """ % (nameToID[n]))
+    """ % (n))
 
 output.write("""static void* actual_dlopen(const char* filename, int flags) {
     return ((void* (*)(const char*, int))dlsym(RTLD_NEXT, "dlopen"))(filename, flags);
@@ -996,9 +995,9 @@ output.write("""void __attribute__ ((constructor)) gl_init() {
 
 for name in gl.functions:
     if name.startswith("glX"):
-        output.write("gl_f%d=(%s_t)dlsym(lib_gl, \"%s\");\n" % (nameToID[name], name, name))
+        output.write("gl_%s=(%s_t)dlsym(lib_gl, \"%s\");\n" % (name, name, name))
     else:
-        output.write("gl_f%d=NULL;\n" % (nameToID[name]))
+        output.write("gl_%s=NULL;\n" % (name))
 
 output.write("uint32_t count = htole32(%d);\n" % (len(gl.functions.keys())))
 output.write("fwrite(&count, 4, 1, trace_file);\n")

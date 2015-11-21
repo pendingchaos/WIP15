@@ -423,6 +423,113 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
     }
 }
 
+static void replay_get_tex_params(replay_context_t* ctx,
+                                  inspect_command_t* cmd,
+                                  GLenum target) {
+    GLint tex;
+    switch (target) {
+    case GL_TEXTURE_1D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_1D, &tex);
+        break;
+    }
+    case GL_TEXTURE_2D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &tex);
+        break;
+    }
+    case GL_TEXTURE_3D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_3D, &tex);
+        break;
+    }
+    case GL_TEXTURE_CUBE_MAP: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_CUBE_MAP, &tex);
+        break;
+    }
+    default: {
+        return;
+    }
+    }
+    
+    inspect_gl_tex_params_t params;
+    params.fake_texture = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+    params.type = target;
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MIN_FILTER, (GLint*)&params.min_filter);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MAG_FILTER, (GLint*)&params.mag_filter);
+    F(glGetTexParameterfv)(target, GL_TEXTURE_MIN_LOD, &params.min_lod);
+    F(glGetTexParameterfv)(target, GL_TEXTURE_MAX_LOD, &params.max_lod);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_BASE_LEVEL, &params.base_level);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MAX_LEVEL, (GLint*)&params.max_level);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, (GLint*)&params.wrap_s);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, (GLint*)&params.wrap_t);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_R, (GLint*)&params.wrap_r);
+    F(glGetTexParameterfv)(target, GL_TEXTURE_PRIORITY, &params.priority);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_MODE, (GLint*)&params.compare_mode);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_FUNC, (GLint*)&params.compare_func);
+    F(glGetTexParameteriv)(target, GL_DEPTH_TEXTURE_MODE, (GLint*)&params.depth_texture_mode);
+    
+    GLint generate_mipmap;
+    F(glGetTexParameteriv)(target, GL_GENERATE_MIPMAP, &generate_mipmap);
+    params.generate_mipmap = generate_mipmap;
+    
+    F(glGetTexParameteriv)(target, GL_DEPTH_STENCIL_TEXTURE_MODE,(GLint*) &params.depth_stencil_mode);
+    F(glGetTexParameterfv)(target, GL_TEXTURE_LOD_BIAS, &params.lod_bias);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_SWIZZLE_RGBA, (GLint*)params.swizzle);
+    F(glGetTexParameterfv)(target, GL_TEXTURE_BORDER_COLOR, params.border_color);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, (GLint*)&params.width);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, (GLint*)&params.height);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, (GLint*)&params.depth);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&params.internal_format);
+    
+    append_vec(cmd->state.texture_params, sizeof(inspect_gl_tex_params_t), &params);
+}
+
+static void replay_get_tex_data(replay_context_t* ctx,
+                                inspect_command_t* cmd,
+                                GLenum target,
+                                GLint level) {
+    GLint tex;
+    switch (target) {
+    case GL_TEXTURE_1D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_1D, &tex);
+        break;
+    }
+    case GL_TEXTURE_2D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &tex);
+        break;
+    }
+    case GL_TEXTURE_3D: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_3D, &tex);
+        break;
+    }
+    case GL_TEXTURE_CUBE_MAP: {
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_CUBE_MAP, &tex);
+        break;
+    }
+    default: {
+        return;
+    }
+    }
+    
+    if (target == GL_TEXTURE_2D) {
+        GLint width;
+        GLint height;
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
+        
+        void* data = malloc(width*height*4);
+        F(glGetTexImage)(target, level, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        
+        inspect_gl_tex_data_t tex_data;
+        tex_data.fake_texture = tex;
+        tex_data.mipmap = level;
+        tex_data.data = data;
+        
+        append_vec(cmd->state.texture_data, sizeof(inspect_gl_tex_data_t), &tex_data);
+    } else {
+        //TODO
+    }
+}
+
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {

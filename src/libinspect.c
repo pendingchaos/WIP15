@@ -60,6 +60,8 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.depth.width = 0;
             new_command->state.depth.height = 0;
             new_command->state.depth.data = NULL;
+            new_command->state.texture_params = alloc_vec(0);
+            new_command->state.texture_data = alloc_vec(0);
         }
         
         frame = frame->next;
@@ -93,6 +95,16 @@ void free_inspection(inspection_t* inspection) {
             
             free(command->state.color.data);
             free(command->state.depth.data);
+            
+            free_vec(command->state.texture_params);
+            
+            vec_t tex_data = command->state.texture_data;
+            count = get_vec_size(tex_data)/sizeof(inspect_gl_tex_data_t);
+            for (size_t k = 0; k < count; ++k) {
+                inspect_gl_tex_data_t* data = ((inspect_gl_tex_data_t*)get_vec_data(tex_data)) + k;
+                free(data->data);
+            }
+            free_vec(tex_data);
         }
         
         free(frame->commands);

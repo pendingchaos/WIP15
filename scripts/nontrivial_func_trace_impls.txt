@@ -4,18 +4,18 @@ glXChooseVisual:
     int *attribs = attribList;
     while (*attribs != None) ++attribs;
     gl_param_GLuint_array(attribs-attribList+1, attribList);
-    XVisualInfo* result = real(dpy, screen, attribList);
+    XVisualInfo* result = gl_glXChooseVisual(dpy, screen, attribList);
     gl_result_pointer(result);
 
 glGenTextures:
     gl_param_GLsizei(n, -1);
-    real(n, textures);
+    gl_glGenTextures(n, textures);
     gl_param_GLuint_array(n, textures);
 
 glDeleteTextures:
     gl_param_GLsizei(n, -1);
     gl_param_GLuint_array(n, textures);
-    real(n, textures);
+    gl_glDeleteTextures(n, textures);
 
 glTexImage2D:
     size_t components = 0;
@@ -103,6 +103,14 @@ glTexImage2D:
     }
     }
     
+    GLint alignment;
+    if (!gl_glGetIntegerv)
+        gl_glGetIntegerv = (glGetIntegerv_t)gl_glXGetProcAddress((const GLubyte*)"glGetIntegerv");
+    gl_glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+    
+    if (final_size)
+        final_size = (final_size/alignment+1) * alignment;
+    
     gl_param_GLenum(target, -1); //TODO: The group
     gl_param_GLint(level, -1);
     gl_param_GLint(internalformat, -1); //TODO: The group
@@ -113,4 +121,4 @@ glTexImage2D:
     gl_param_GLenum(type, -1); //TODO: The group
     gl_param_data(width*height*final_size, pixels);
     
-    real(target, level, internalformat, width, height, border, format, type, pixels);
+    gl_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);

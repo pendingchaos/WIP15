@@ -53,5 +53,8 @@ uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, u
 uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real);
 void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real, uint64_t fake);
 void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
+size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type);
+void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* real);
+void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake);
 void replay(replay_context_t* context);
 #endif

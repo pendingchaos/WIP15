@@ -17,7 +17,7 @@ typedef struct inspect_attachment_t {
 
 typedef struct inspect_gl_state_entry_t {
     const char* name; //this must not be freed.
-    trace_value_t val; //group is always NULL
+    trace_value_t val;
     struct inspect_gl_state_entry_t* next;
 } inspect_gl_state_entry_t;
 
@@ -28,9 +28,44 @@ typedef struct {
 } inspect_image_t;
 
 typedef struct {
+    unsigned int fake_texture;
+    unsigned int type;
+    unsigned int min_filter;
+    unsigned int mag_filter;
+    float min_lod;
+    float max_lod;
+    int base_level;
+    int max_level;
+    unsigned int wrap_s;
+    unsigned int wrap_t;
+    unsigned int wrap_r;
+    float priority;
+    unsigned int compare_mode;
+    unsigned int compare_func;
+    unsigned int depth_texture_mode;
+    bool generate_mipmap;
+    unsigned int depth_stencil_mode;
+    float lod_bias;
+    unsigned int swizzle[4];
+    float border_color[4];
+    unsigned int width;
+    unsigned int height;
+    unsigned int depth;
+    unsigned int internal_format;
+} inspect_gl_tex_params_t;
+
+typedef struct {
+    unsigned int fake_texture;
+    size_t mipmap;
+    void* data;
+} inspect_gl_tex_data_t;
+
+typedef struct {
     vec_t entries; //inspect_gl_state_entry_t
     inspect_image_t color; //data is NULL if it did not change. RGBA
     inspect_image_t depth; //data is NULL if it did not change. uint32_t
+    vec_t texture_params; //vec_t of inspect_gl_tex_params_t.
+    vec_t texture_data; //vec_t of inspect_gl_tex_data_t.
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {

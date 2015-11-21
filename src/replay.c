@@ -24,7 +24,6 @@ typedef struct {
     Window window;
 } replay_internal_t;
 
-
 replay_context_t* create_replay_context(inspection_t* inspection) {
     replay_context_t* ctx = malloc(sizeof(replay_context_t));
     replay_internal_t* internal = malloc(sizeof(replay_internal_t));
@@ -171,7 +170,6 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
     replay_obj_t* obj = internal->objects[type];
     
     if (!obj) {
-        
     } else if (!obj->next && obj->fake == fake) {
         free(obj);
         internal->objects[type] = NULL;
@@ -186,6 +184,43 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
             
             obj = obj->next;
         }
+    }
+}
+
+size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type) {
+    replay_internal_t* internal = ctx->_internal;
+    size_t result = 0;
+    
+    replay_obj_t* obj = internal->objects[type];
+    while (obj) {
+        obj = obj->next;
+        result++;
+    }
+    
+    return result;
+}
+
+void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* real) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[type];
+    size_t i = 0;
+    while (obj) {
+        real[i] = obj->real;
+        obj = obj->next;
+        i++;
+    }
+}
+
+void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[type];
+    size_t i = 0;
+    while (obj) {
+        fake[i] = obj->fake;
+        obj = obj->next;
+        i++;
     }
 }
 

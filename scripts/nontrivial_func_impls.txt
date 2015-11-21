@@ -155,5 +155,19 @@ glTexImage2D:
     GLenum format = gl_param_GLenum(&trace_get_arg(command, 6)->val);
     GLenum type = gl_param_GLenum(&trace_get_arg(command, 7)->val);
     void* data = gl_param_data(&trace_get_arg(command, 8)->val);
-    
     real(target, level, internalFormat, width, height, border, format, type, data);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
+glTexParameterf:
+    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 0)->val);
+    real(target, pname, param);
+    replay_get_tex_params(ctx, inspect_command, target);
+
+glTexParameteri:
+    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 0)->val);
+    real(target, pname, param);
+    replay_get_tex_params(ctx, inspect_command, target);
