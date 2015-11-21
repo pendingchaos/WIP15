@@ -22,30 +22,37 @@ static void update_context(uint64_t *context,
 
 inspection_t* create_inspection(const trace_t* trace) {
     inspection_t* result = malloc(sizeof(inspection_t));
-    result->frames = NULL;
     result->trace = trace;
+    result->frame_count = 0;
     
     trace_frame_t* frame = trace->frames;
-    uint64_t context = 0;
     while (frame) {
-        inspect_frame_t* new_frame = malloc(sizeof(inspect_frame_t));
-        new_frame->next = NULL;
-        new_frame->commands = NULL;
+        ++result->frame_count;
+        frame = frame->next;
+    }
+    
+    result->frames = malloc(sizeof(inspect_frame_t)*result->frame_count);
+    
+    uint64_t context = 0;
+    size_t i = 0;
+    frame = trace->frames;
+    while (frame) {
+        inspect_frame_t* new_frame = result->frames + i;
         new_frame->trace_frame = frame;
+        new_frame->command_count = get_vec_size(frame->commands) / sizeof(trace_command_t);
+        new_frame->commands = malloc(sizeof(inspect_command_t)*new_frame->command_count);
         
-        size_t count = get_vec_size(frame->commands) / sizeof(trace_command_t);
-        for (size_t i = 0; i < count; ++i) {
-            trace_command_t* command = trace_get_cmd(frame, i);
+        for (size_t j = 0; j < new_frame->command_count; ++j) {
+            trace_command_t* command = trace_get_cmd(frame, j);
             
             update_context(&context, trace, command);
             
-            inspect_command_t* new_command = malloc(sizeof(inspect_command_t));
+            inspect_command_t* new_command = new_frame->commands + j;
             
             new_command->trace_cmd = command;
             new_command->attachments = NULL;
             new_command->name = trace->func_names[command->func_index];
             new_command->gl_context = context;
-            new_command->next = NULL;
             new_command->state.entries = alloc_vec(0);
             new_command->state.color.width = 0;
             new_command->state.color.height = 0;
@@ -53,38 +60,20 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.depth.width = 0;
             new_command->state.depth.height = 0;
             new_command->state.depth.data = NULL;
-            
-            if (!new_frame->commands) {
-                new_frame->commands = new_command;
-            } else
-            {
-                inspect_command_t* current = new_frame->commands;
-                while (current->next) current = current->next;
-                current->next = new_command;
-            }
-        }
-        
-        if (!result->frames) {
-            result->frames = new_frame;
-        } else
-        {
-            inspect_frame_t* current = result->frames;
-            while (current->next) current = current->next;
-            current->next = new_frame;
         }
         
         frame = frame->next;
+        ++i;
     }
     
     return result;
 }
 
 void free_inspection(inspection_t* inspection) {
-    inspect_frame_t* frame = inspection->frames;
-    while (frame) {
-        inspect_command_t* command = frame->commands;
-        while (command) {
-            inspect_command_t* next_command = command->next;
+    for (size_t i = 0; i < inspection->frame_count; ++i) {
+        inspect_frame_t* frame = inspection->frames + i;
+        for (size_t j = 0; j < frame->command_count; ++j) {
+            inspect_command_t* command = frame->commands + j;
             
             inspect_attachment_t* attach = command->attachments;
             while (attach) {
@@ -96,12 +85,12 @@ void free_inspection(inspection_t* inspection) {
             
             vec_t entries = command->state.entries;
             size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
-            for (size_t i = 0; i < count; ++i) {
-                inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
+            for (size_t k = 0; k < count; ++k) {
+                inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + k;
                 
                 if (entry->val.type == Type_Str) {
-                    for (size_t i = 0; i < entry->val.count; ++i)
-                        free(entry->val.str[i]);
+                    for (size_t k2 = 0; k2 < entry->val.count; ++k2)
+                        free(entry->val.str[k2]);
                     free(entry->val.ptr);
                 } else {
                     free(entry->val.ptr);
@@ -111,17 +100,12 @@ void free_inspection(inspection_t* inspection) {
             
             free(command->state.color.data);
             free(command->state.depth.data);
-            
-            free(command);
-            
-            command = next_command;
         }
         
-        inspect_frame_t* next_frame = frame->next;
-        free(frame);
-        frame = next_frame;
+        free(frame->commands);
     }
     
+    free(inspection->frames);
     free(inspection);
 }
 
@@ -149,8 +133,8 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
                 //TODO
             } else {
                 bool valid = false;
-                for (size_t i = 0; i < group->entry_count; i++) {
-                    const glapi_group_entry_t *entry = group->entries[i];
+                for (size_t j = 0; j < group->entry_count; ++j) {
+                    const glapi_group_entry_t *entry = group->entries[j];
                     //TODO: Requirements
                     if (entry->value == arg->val.u64[0]) {
                         valid = true;
@@ -169,14 +153,11 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
 }
 
 void inspect(inspection_t* inspection) {
-    inspect_frame_t* frame = inspection->frames;
-    while (frame) {
-        inspect_command_t* command = frame->commands;
-        while (command) {
-            validate_command(command, inspection->trace);
-            command = command->next;
+    for (size_t i = 0; i < inspection->frame_count; ++i) {
+        inspect_frame_t* frame = inspection->frames + i;
+        for (size_t j = 0; j < frame->command_count; ++j) {
+            validate_command(frame->commands + j, inspection->trace);
         }
-        frame = frame->next;
     }
     
     replay_context_t* ctx = create_replay_context(inspection);

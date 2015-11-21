@@ -165,8 +165,9 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
     
     fprintf(frame_file, "<ul>");
     
-    inspect_command_t* command = frame->commands;
-    while (command) {
+    for (size_t i = 0; i < frame->command_count; ++i) {
+        inspect_command_t* command = frame->commands + i;
+        
         bool error = false;
         bool warning = false;
         bool info = false;
@@ -232,7 +233,6 @@ static void write_frame(FILE* frame_file, char *output_dir, inspect_frame_t* fra
         
         fclose(command_file);
         
-        command = command->next;
         ++command_counter;
     }
     
@@ -272,9 +272,9 @@ int main(int argc, char** argv) {
     
     fprintf(index, "<ul>");
     
-    inspect_frame_t* frame = inspection->frames;
-    size_t i = 0;
-    while (frame) {
+    for (size_t i = 0; i < inspection->frame_count; ++i) {
+        inspect_frame_t* frame = inspection->frames + i;
+        
         char frame_filename[FILENAME_MAX];
         memset(frame_filename, 0, FILENAME_MAX);
         snprintf(frame_filename, FILENAME_MAX, "%s/frame_%zu.html", argv[2], i);
@@ -283,16 +283,14 @@ int main(int argc, char** argv) {
         bool warning = false;
         bool info = false;
         
-        inspect_command_t* command = frame->commands;
-        while (command) {
-            inspect_attachment_t* attachment = command->attachments;
+        for (size_t j = 0; j < frame->command_count; ++j) {
+            inspect_attachment_t* attachment = frame->commands[j].attachments;
             while (attachment) {
                 error = error || attachment->type == AttachType_Error;
                 warning = warning || attachment->type == AttachType_Warning;
                 info = info || attachment->type == AttachType_Info;
                 attachment = attachment->next;
             }
-            command = command->next;
         }
         
         fprintf(index, "<li>");
@@ -314,9 +312,6 @@ int main(int argc, char** argv) {
         
         write_frame(frame_file, argv[2], frame, trace);
         fclose(frame_file);
-        
-        frame = frame->next;
-        i++;
     }
     
     fprintf(index, "</ul>");

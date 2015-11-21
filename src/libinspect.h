@@ -41,17 +41,17 @@ typedef struct inspect_command_t {
     uint64_t cpu_duration; //Nanoseconds
     uint64_t gpu_duration; //Nanoseconds
     inspect_gl_state_t state;
-    struct inspect_command_t* next;
 } inspect_command_t;
 
-typedef struct inspect_frame_t {
+typedef struct {
+    size_t command_count;
     inspect_command_t* commands;
     trace_frame_t* trace_frame;
-    struct inspect_frame_t* next;
 } inspect_frame_t;
 
 typedef struct {
     const trace_t *trace;
+    size_t frame_count;
     inspect_frame_t* frames;
 } inspection_t;
 

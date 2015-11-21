@@ -192,14 +192,11 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
 void replay(replay_context_t* ctx) {
     ctx->_in_begin_end = false;
     
-    inspect_frame_t* frame = ctx->inspection->frames;
-    while (frame) {
-        inspect_command_t* command = frame->commands;
-        while (command) {
+    for (size_t i = 0; i < ctx->inspection->frame_count; ++i) {
+        inspect_frame_t* frame = ctx->inspection->frames + i;
+        for (size_t j = 0; j < frame->command_count; ++j) {
+            inspect_command_t* command = frame->commands + j;
             ctx->funcs[command->trace_cmd->func_index](ctx, command->trace_cmd, command);
-            command = command->next;
         }
-        
-        frame = frame->next;
     }
 }
