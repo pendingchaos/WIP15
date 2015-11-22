@@ -22,15 +22,16 @@ int main(int argc, char **argv)
     SDL_GL_LoadLibrary(NULL);
     
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
     
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    static const uint8_t data[] = {255, 255, 255, 0,  0, 0, 0, 0,
-                                   0, 0, 0, 0,        255, 255, 255, 0};
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glDeleteTextures(1, &texture);
+    static const uint8_t data[] = {255, 255, 255, 255,  0, 0, 0, 255,
+                                   0, 0, 0, 255,        255, 255, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     
     while (1) {
         SDL_Event event;
@@ -42,40 +43,30 @@ int main(int argc, char **argv)
         
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 10.0);
+        glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10.0f);
         
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(0.0, 0.0, -3.0);
-        glRotatef(45.0f, 1.0, 0.0, 0.0);
-        glRotatef(45.0f, 0.0, 0.0, 1.0);
+        glTranslatef(0.0f, 0.0f, -3.0f);
+        glRotatef(45.0f, 1.0f, 0.0f, 0.0f);
+        glRotatef(45.0f, 0.0f, 0.0f, 1.0f);
         
         glBegin(GL_QUADS);
-        glColor3f(0.0, 0.7, 0.1);
-        glVertex3f(-1.0, 1.0, 1.0);
-        glVertex3f(1.0, 1.0, 1.0);
-        glVertex3f(1.0, -1.0, 1.0);
-        glVertex3f(-1.0, -1.0, 1.0);
-        glColor3f(0.9, 1.0, 0.0);
-        glVertex3f(-1.0, 1.0, -1.0);
-        glVertex3f(1.0, 1.0, -1.0);
-        glVertex3f(1.0, -1.0, -1.0);
-        glVertex3f(-1.0, -1.0, -1.0);
-        glColor3f(0.2, 0.2, 1.0);
-        glVertex3f(-1.0, 1.0, 1.0);
-        glVertex3f(1.0, 1.0, 1.0);
-        glVertex3f(1.0, 1.0, -1.0);
-        glVertex3f(-1.0, 1.0, -1.0);
-        glColor3f(0.7, 0.0, 0.1);
-        glVertex3f(-1.0, -1.0, 1.0);
-        glVertex3f(1.0, -1.0, 1.0);
-        glVertex3f(1.0, -1.0, -1.0);
-        glVertex3f(-1.0, -1.0, -1.0);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-1.0f, -1.0f, 0.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(1.0f, -1.0f, 0.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(1.0f, 1.0f, 0.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-1.0f, 1.0f, 0.0f);
         glEnd();
         
         SDL_GL_SwapWindow(window);
     }
     end:;
+    
+    glDeleteTextures(1, &texture);
     
     SDL_GL_UnloadLibrary();
     SDL_GL_DeleteContext(context);

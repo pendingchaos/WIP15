@@ -119,6 +119,13 @@ glTexImage2D:
     gl_param_GLint(border, -1);
     gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLenum(type, -1); //TODO: The group
-    gl_param_data(width*height*final_size, pixels);
+    
+    if (pixels) {
+        gl_param_data(width*height*final_size, pixels);
+    } else {
+        void* data = malloc(width*height*final_size);
+        gl_param_data(width*height*final_size, data);
+        free(data);
+    }
     
     gl_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);

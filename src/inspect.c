@@ -11,7 +11,7 @@
 #include <inttypes.h>
 #include <GL/gl.h>
 
-static const glapi_group_t* find_group(const char *name) {
+static const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++) {
         if (strcmp(glapi.groups[i]->name, name) == 0) {
             return glapi.groups[i];
@@ -19,6 +19,35 @@ static const glapi_group_t* find_group(const char *name) {
     }
     
     return NULL;
+}
+
+static const char* get_enum_str(const char* group_name, unsigned int val) {
+    if (!group_name) {
+        for (size_t i = 0; i < glapi.group_count; i++) {
+            const glapi_group_t* group = glapi.groups[i];
+            
+            for (size_t i = 0; i < group->entry_count; i++) {
+                const glapi_group_entry_t *entry = group->entries[i];
+                if (entry->value == val)
+                    return entry->name;
+            }
+        }
+        
+        return "(unable to find string)";
+    } else {
+        const glapi_group_t* group = find_group(group_name);
+        
+        if (!group)
+            return "(unable to find string)";
+        
+        for (size_t i = 0; i < group->entry_count; i++) {
+            const glapi_group_entry_t *entry = group->entries[i];
+            if (entry->value == val)
+                return entry->name;
+        }
+        
+        return "(unable to find string)";
+    }
 }
 
 static void write_value(FILE* file, trace_value_t value, trace_t* trace) {
@@ -134,6 +163,36 @@ static void write_depth_image(char *output_dir, const inspect_image_t* image, un
     write_color_image(output_dir, image, id);
 }
 
+typedef struct {
+    GLuint fake;
+    inspect_gl_tex_params_t params;
+    size_t mipmap_count;
+    void** mipmaps;
+    char** mipmap_filenames;
+} texture_t;
+
+static vec_t textures; //texture_t
+
+texture_t* find_texture(GLuint fake) {
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    for (size_t i = 0; i < count; ++i) {
+        texture_t* tex = (texture_t*)get_vec_data(textures) + i;
+        if (tex->fake == fake)
+            return tex;
+    }
+    
+    texture_t tex;
+    tex.fake = fake;
+    tex.params.fake_texture = fake;
+    tex.params.width = 0;
+    tex.params.height = 0;
+    tex.mipmap_count = 0;
+    tex.mipmaps = NULL;
+    tex.mipmap_filenames = NULL;
+    append_vec(textures, sizeof(texture_t), &tex);
+    return (texture_t*)get_vec_data(textures) + count;
+}
+
 static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* state, trace_t* trace) {
     fprintf(file, "<ul>");
     
@@ -146,6 +205,119 @@ static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* 
         write_value(file, entry->val, trace);
         fprintf(file, "</li>");
         entry = entry->next;
+    }
+    
+    vec_t tex_params = state->texture_params;
+    count = get_vec_size(tex_params)/sizeof(inspect_gl_tex_params_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_tex_params_t* params = (inspect_gl_tex_params_t*)get_vec_data(tex_params) + i;
+        texture_t* tex = find_texture(params->fake_texture);
+        
+        if (tex->params.width != params->width || tex->params.height != params->height) {
+            size_t mipmap_count = 0;
+            size_t w = params->width;
+            size_t h = params->height;
+            while ((w > 1) && (h > 1)) {
+                ++mipmap_count;
+                w /= 2;
+                h /= 2;
+            }
+            
+            for (size_t i = 0; i < tex->mipmap_count; ++i) {
+                free(tex->mipmaps[i]);
+                free(tex->mipmap_filenames[i]);
+            }
+            free(tex->mipmaps);
+            free(tex->mipmap_filenames);
+            
+            tex->mipmap_count = mipmap_count;
+            tex->mipmaps = malloc(tex->mipmap_count*sizeof(void*));
+            tex->mipmap_filenames = malloc(tex->mipmap_count*sizeof(char*));
+            for (size_t i = 0; i < mipmap_count; ++i) {
+                tex->mipmaps[i] = NULL;
+                tex->mipmap_filenames[i] = NULL;
+            }
+        }
+        
+        tex->params = *params;
+    }
+    
+    vec_t tex_data = state->texture_data;
+    count = get_vec_size(tex_data)/sizeof(inspect_gl_tex_data_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_tex_data_t* data = (inspect_gl_tex_data_t*)get_vec_data(tex_data) + i;
+        texture_t* tex = find_texture(data->fake_texture);
+        
+        if (!tex->mipmaps[data->mipmap])
+            tex->mipmaps[data->mipmap] = malloc(data->data_size);
+        
+        memcpy(tex->mipmaps[data->mipmap], data->data, data->data_size);
+        
+        size_t width = tex->params.width;
+        size_t height = tex->params.height;
+        for (size_t j = 0; j < data->mipmap; ++j) {
+            width /= 2;
+            height /= 2;
+        }
+        
+        char filename[FILENAME_MAX];
+        memset(filename, 0, FILENAME_MAX);
+        snprintf(filename, FILENAME_MAX, "%s/image_%u.bmp", output_dir, next_image_id++);
+        stbi_write_bmp(filename, width, height, 4, data->data);
+        
+        free(tex->mipmap_filenames[data->mipmap]);
+        
+        memset(filename, 0, FILENAME_MAX);
+        snprintf(filename, FILENAME_MAX, "image_%u.bmp", next_image_id++);
+        
+        tex->mipmap_filenames[data->mipmap] = malloc(strlen(filename)+1);
+        strcpy(tex->mipmap_filenames[data->mipmap], filename);
+    }
+    
+    count = get_vec_size(textures)/sizeof(texture_t);
+    for (size_t i = 0; i < count; ++i) {
+        texture_t* tex = (texture_t*)get_vec_data(textures) + i;
+        fprintf(file, "<h3>Texture %u</h3><ul>", tex->fake);
+        
+        fprintf(file, "<li>type = %s</li>", get_enum_str("TextureTarget", tex->params.type));
+        fprintf(file, "<li>min filter = %s</li>", get_enum_str("TextureMinFilter", tex->params.min_filter));
+        fprintf(file, "<li>mag_filter = %s</li>", get_enum_str("TextureMagFilter", tex->params.mag_filter));
+        fprintf(file, "<li>min LOD = %f</li>", tex->params.min_lod);
+        fprintf(file, "<li>max LOD = %f</li>", tex->params.max_lod);
+        fprintf(file, "<li>base_level = %d</li>", tex->params.base_level);
+        fprintf(file, "<li>max_level = %d</li>", tex->params.max_level);
+        fprintf(file, "<li>wrap S = %s</li>", get_enum_str("TextureWrapMode", tex->params.wrap_s));
+        fprintf(file, "<li>wrap T = %s</li>", get_enum_str("TextureWrapMode", tex->params.wrap_t));
+        fprintf(file, "<li>wrap R = %s</li>", get_enum_str("TextureWrapMode", tex->params.wrap_r));
+        fprintf(file, "<li>priority = %f</li>", tex->params.priority);
+        fprintf(file, "<li>compare mode = %s</li>", get_enum_str(NULL, tex->params.compare_mode));
+        fprintf(file, "<li>compare_func = %s</li>", get_enum_str("DepthFunction", tex->params.compare_func));
+        fprintf(file, "<li>depth texture mode = %s</li>", get_enum_str(NULL, tex->params.depth_texture_mode));
+        fprintf(file, "<li>generate mipmap = %s</li>", tex->params.generate_mipmap ? "true" : "false");
+        fprintf(file, "<li>depth stencil mode = %s</li>", get_enum_str(NULL, tex->params.depth_stencil_mode));
+        fprintf(file, "<li>LOD bias = %f</li>", tex->params.lod_bias);
+        fprintf(file, "<li>swizzle = [%s, %s, %s, %s]</li>",
+                get_enum_str(NULL, tex->params.swizzle[0]),
+                get_enum_str(NULL, tex->params.swizzle[1]),
+                get_enum_str(NULL, tex->params.swizzle[2]),
+                get_enum_str(NULL, tex->params.swizzle[3]));
+        fprintf(file, "<li>border color = [%f, %f, %f, %f]</li>",
+                tex->params.border_color[0],
+                tex->params.border_color[1],
+                tex->params.border_color[2],
+                tex->params.border_color[3]);
+        fprintf(file, "<li>width = %u</li>", tex->params.width);
+        fprintf(file, "<li>height = %u</li>", tex->params.height);
+        fprintf(file, "<li>depth = %u</li>", tex->params.depth);
+        fprintf(file, "<li>internal format = %s</li>", get_enum_str(NULL, tex->params.internal_format));
+        
+        fprintf(file, "</ul>");
+        
+        for (size_t j = 0; j < tex->mipmap_count; ++j) {
+            fprintf(file, "<img src=\"%s\"/>", tex->mipmap_filenames[j]);
+        }
+        
+        fprintf(file, "<br/>");
     }
     
     fprintf(file, "</ul>");
@@ -279,6 +451,8 @@ int main(int argc, char** argv) {
     
     fprintf(index, "<ul>");
     
+    textures = alloc_vec(0);
+    
     for (size_t i = 0; i < inspection->frame_count; ++i) {
         inspect_frame_t* frame = inspection->frames + i;
         
@@ -320,6 +494,18 @@ int main(int argc, char** argv) {
         write_frame(frame_file, argv[2], frame, trace);
         fclose(frame_file);
     }
+    
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    for (size_t i = 0; i < count; ++i) {
+        texture_t* tex = (texture_t*)get_vec_data(textures) + i;
+        for (size_t j = 0; j < tex->mipmap_count; ++j) {
+            free(tex->mipmaps[j]);
+            free(tex->mipmap_filenames[j]);
+        }
+        free(tex->mipmaps);
+        free(tex->mipmap_filenames);
+    }
+    free_vec(textures);
     
     fprintf(index, "</ul>");
     

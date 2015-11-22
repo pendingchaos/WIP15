@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
     unsigned int fake_texture;
     size_t mipmap;
+    size_t data_size;
     void* data;
 } inspect_gl_tex_data_t;
 

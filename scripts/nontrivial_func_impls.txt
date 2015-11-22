@@ -144,6 +144,7 @@ glBindTexture:
     if (!real_tex)
         inspect_add_error(inspect_command, "Invalid texture being bound.");
     real(target, real_tex);
+    replay_get_tex_params(ctx, inspect_command, target);
 
 glTexImage2D:
     GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
@@ -156,18 +157,19 @@ glTexImage2D:
     GLenum type = gl_param_GLenum(&trace_get_arg(command, 7)->val);
     void* data = gl_param_data(&trace_get_arg(command, 8)->val);
     real(target, level, internalFormat, width, height, border, format, type, data);
+    replay_get_tex_params(ctx, inspect_command, target);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexParameterf:
     GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 0)->val);
+    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 1)->val);
+    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 2)->val);
     real(target, pname, param);
     replay_get_tex_params(ctx, inspect_command, target);
 
 glTexParameteri:
     GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 0)->val);
+    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 1)->val);
+    GLint param = gl_param_GLint(&trace_get_arg(command, 2)->val);
     real(target, pname, param);
     replay_get_tex_params(ctx, inspect_command, target);

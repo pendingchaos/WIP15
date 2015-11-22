@@ -522,6 +522,7 @@ static void replay_get_tex_data(replay_context_t* ctx,
         tex_data.fake_texture = tex;
         tex_data.mipmap = level;
         tex_data.data = data;
+        tex_data.data_size = width*height*4;
         
         append_vec(cmd->state.texture_data, sizeof(inspect_gl_tex_data_t), &tex_data);
     } else {
