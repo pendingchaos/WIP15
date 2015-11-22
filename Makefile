@@ -1,6 +1,6 @@
 gl:
 	cd scripts; python generate_gl.py
-	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -O2
+	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -O2 -std=c99
 	rm src/gl.c
 
 libtrace:

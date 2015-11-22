@@ -719,6 +719,8 @@ for name in gl.functions:
     else:
         output.write("    %s_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_%s;\n" % (name, name))
     
+    output.write("    do {(void)sizeof((real));} while (0);\n")
+    
     if name in nontrivial:
         output.write(nontrivial[name])
         output.write("replay_end_cmd(ctx, \"%s\", inspect_command);\n" % (name))

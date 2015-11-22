@@ -62,6 +62,7 @@ output.write("""
 #define WIP15_RESULT 18
 #define WIP15_STR_ARRAY 19
 #define WIP15_DATA 20
+#define WIP15_DOUBLE_ARRAY 21
 
 static FILE *trace_file;
 static void *lib_gl;
@@ -76,7 +77,7 @@ static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
 }
 
-static void gl_write_str(const char *s) {
+static void gl_write_str(const char* s) {
     uint32_t length = s == NULL ? 0 : strlen(s);
     uint32_t len_le = htole32(length);
     fwrite(&len_le, 4, 1, trace_file);
@@ -97,21 +98,32 @@ static void gl_write_int32(int32_t i) {
     fwrite(&i, 4, 1, trace_file);
 }
 
-static void gl_param_GLuint_array(size_t count, const GLuint *data) {
+static void gl_param_GLuint_array(size_t count, const GLuint* data) {
     gl_write_b(WIP15_U32_ARRAY);
     
     uint32_t count_le = htole32(count);
     fwrite(&count_le, 4, 1, trace_file);
     
-    size_t i;
-    for (i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
     {
         uint32_t item = htole32(data[i]);
         fwrite(&item, 4, 1, trace_file);
     }
 }
 
-static void gl_param_string_array(const GLchar * const *data, size_t count) {
+static void gl_param_double_array(size_t count, const double* data) {
+    gl_write_b(WIP15_DOUBLE_ARRAY);
+    
+    uint32_t count_le = htole32(count);
+    fwrite(&count_le, 4, 1, trace_file);
+    
+    for (size_t i = 0; i < count; ++i)
+    {
+        fwrite(data+i, 8, 1, trace_file);
+    }
+}
+
+static void gl_param_string_array(const GLchar*const* data, size_t count) {
     gl_write_b(WIP15_STR_ARRAY);
     
     uint32_t count_le = htole32(count);

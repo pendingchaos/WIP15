@@ -384,6 +384,30 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
         }
         break;
     }
+    case 21: {//double array
+        if (!readf(&val->count, 4, 1, file)) {
+            trace_error_desc = "Unable to read double array count";
+            return -1;
+        }
+        val->count = le32toh(val->count);
+        val->type = Type_Double;
+        if (val->count == 1) {
+            if (!readf(&val->dbl, 8, 1, file)) {
+                trace_error_desc = "Unable to read double array element";
+                return -1;
+            }
+        } else {
+            val->dbl_array = malloc(sizeof(double)*val->count);
+            for (size_t i = 0; i < val->count; ++i) {
+                if (!readf(val->dbl_array+i, 4, 1, file)) {
+                    free(val->u64_array);
+                    trace_error_desc = "Unable to read double array element";
+                    return -1;
+                }
+            }
+        }
+        break;
+    }
     default: {
         trace_error_desc = "Invalid value type";
         return -1;

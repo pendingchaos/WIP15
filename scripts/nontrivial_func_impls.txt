@@ -216,3 +216,27 @@ glBufferSubData:
     GLsizeiptr size = gl_param_GLsizeiptr(&trace_get_arg(command, 2)->val);
     const void* data = gl_param_data(&trace_get_arg(command, 3)->val);
     real(target, offset, size, data);
+
+glLoadMatrixd:
+    real(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glLoadMatrixf:
+    F(glLoadMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glLoadTransposeMatrixd:
+    real(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glLoadTransposeMatrixf:
+    F(glLoadTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glMultMatrixd:
+    real(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glMultMatrixf:
+    F(glMultMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glMultTransposeMatrixd:
+    real(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glMultTransposeMatrixf:
+    F(glMultTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));

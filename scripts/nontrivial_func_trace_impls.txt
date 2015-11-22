@@ -195,3 +195,43 @@ glTexCoordPointer:
     }
     
     gl_glTexCoordPointer(size, type, stride, pointer);
+
+glLoadMatrixd:
+    gl_param_double_array(16, m);
+    gl_glLoadMatrixd(m);
+
+glLoadMatrixf:
+    double arr[16];
+    for (size_t i = 0; i < 16; ++i) arr[i] = m[i];
+    gl_param_double_array(16, arr);
+    gl_glLoadMatrixf(m);
+
+glLoadTransposeMatrixd:
+    gl_param_double_array(16, m);
+    gl_glLoadTransposeMatrixd(m);
+
+glLoadTransposeMatrixf:
+    double arr[16];
+    for (size_t i = 0; i < 16; ++i) arr[i] = m[i];
+    gl_param_double_array(16, arr);
+    gl_glLoadTransposeMatrixf(m);
+
+glMultMatrixd:
+    gl_param_double_array(16, m);
+    gl_glMultMatrixd(m);
+
+glMultMatrixf:
+    double arr[16];
+    for (size_t i = 0; i < 16; ++i) arr[i] = m[i];
+    gl_param_double_array(16, arr);
+    gl_glMultMatrixf(m);
+
+glMultTransposeMatrixd:
+    gl_param_double_array(16, m);
+    gl_glMultTransposeMatrixd(m);
+
+glMultTransposeMatrixf:
+    double arr[16];
+    for (size_t i = 0; i < 16; ++i) arr[i] = m[i];
+    gl_param_double_array(16, arr);
+    gl_glMultTransposeMatrixf(m);
