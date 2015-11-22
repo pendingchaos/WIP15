@@ -530,7 +530,6 @@ static void replay_get_tex_data(replay_context_t* ctx,
     }
 }
 
-
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {

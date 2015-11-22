@@ -155,7 +155,7 @@ glTexImage2D:
     GLint border = gl_param_GLenum(&trace_get_arg(command, 5)->val);
     GLenum format = gl_param_GLenum(&trace_get_arg(command, 6)->val);
     GLenum type = gl_param_GLenum(&trace_get_arg(command, 7)->val);
-    void* data = gl_param_data(&trace_get_arg(command, 8)->val);
+    const void* data = gl_param_data(&trace_get_arg(command, 8)->val);
     real(target, level, internalFormat, width, height, border, format, type, data);
     replay_get_tex_params(ctx, inspect_command, target);
     replay_get_tex_data(ctx, inspect_command, target, level);
@@ -173,3 +173,46 @@ glTexParameteri:
     GLint param = gl_param_GLint(&trace_get_arg(command, 2)->val);
     real(target, pname, param);
     replay_get_tex_params(ctx, inspect_command, target);
+
+glGenBuffers:
+    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLuint buffers[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    real(n, buffers);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLBuffer, buffers[i], fake[i]);
+
+glDeleteBuffers:
+    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLuint buffers[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(buffers[i] = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake[i])))
+            inspect_add_error(inspect_command, "Invalid buffer being deleted.");
+    
+    real(n, buffers);
+
+glBindBuffer:
+    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
+    if (!real_buf)
+        inspect_add_error(inspect_command, "Invalid buffer being bound.");
+    real(target, real_buf);
+
+glBufferData:
+    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLsizeiptr size = gl_param_GLsizeiptr(&trace_get_arg(command, 1)->val);
+    const void* data = gl_param_data(&trace_get_arg(command, 2)->val);
+    GLenum usage = gl_param_GLenum(&trace_get_arg(command, 3)->val);
+    real(target, size, data, usage);
+
+glBufferSubData:
+    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLintptr offset = gl_param_GLintptr(&trace_get_arg(command, 1)->val);
+    GLsizeiptr size = gl_param_GLsizeiptr(&trace_get_arg(command, 2)->val);
+    const void* data = gl_param_data(&trace_get_arg(command, 3)->val);
+    real(target, offset, size, data);

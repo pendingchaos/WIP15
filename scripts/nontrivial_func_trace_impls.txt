@@ -129,3 +129,69 @@ glTexImage2D:
     }
     
     gl_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+
+glGenBuffers:
+    gl_param_GLsizei(n, -1);
+    gl_glGenBuffers(n, buffers);
+    gl_param_GLuint_array(n, buffers);
+
+glDeleteBuffers:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, buffers);
+    gl_glDeleteBuffers(n, buffers);
+
+glBufferData:
+    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLsizeiptr(size, -1);
+    
+    if (data) {
+        gl_param_data(size, data);
+    } else {
+        void* ptr = malloc(size);
+        gl_param_data(size, ptr);
+        free(ptr);
+    }
+    
+    gl_param_GLenum(usage, -1); //TODO: The group
+    
+    gl_glBufferData(target, size, data, usage);
+
+glBufferSubData:
+    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLintptr(offset, -1);
+    gl_param_GLsizeiptr(size, -1);
+    gl_param_data(size, data);
+    
+    gl_glBufferSubData(target, offset, size, data);
+
+glVertexPointer:
+    gl_param_GLint(size, -1);
+    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLsizei(stride, -1);
+    
+    GLint buffer;
+    gl_glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
+    
+    if (buffer) {
+        gl_param_pointer(pointer);
+    } else {
+        //TODO
+    }
+    
+    gl_glVertexPointer(size, type, stride, pointer);
+
+glTexCoordPointer:
+    gl_param_GLint(size, -1);
+    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLsizei(stride, -1);
+    
+    GLint buffer;
+    gl_glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
+    
+    if (buffer) {
+        gl_param_pointer(pointer);
+    } else {
+        //TODO
+    }
+    
+    gl_glTexCoordPointer(size, type, stride, pointer);

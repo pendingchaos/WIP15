@@ -1,9 +1,15 @@
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
 
-void (*getProcAddress(const char *name, void *user_data))() {
-    return (void (*)())SDL_GL_GetProcAddress(name);
-}
+static const float positions[] = {-1.0f, -1.0f, 0.0f,
+                                   1.0f, -1.0f, 0.0f,
+                                   1.0f, 1.0f, 0.0f,
+                                  -1.0f, 1.0f, 0.0f};
+
+static const float tex_coords[] = {0.0f, 0.0f,
+                                   1.0f, 0.0f,
+                                   1.0f, 1.0f,
+                                   0.0f, 1.0f};
 
 int main(int argc, char **argv)
 {
@@ -19,8 +25,6 @@ int main(int argc, char **argv)
     
     SDL_GLContext context = SDL_GL_CreateContext(window);
     
-    SDL_GL_LoadLibrary(NULL);
-    
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     
@@ -32,6 +36,16 @@ int main(int argc, char **argv)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    
+    GLuint pos_buffer;
+    glGenBuffers(1, &pos_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+    
+    GLuint tex_coord_buffer;
+    glGenBuffers(1, &tex_coord_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
     
     while (1) {
         SDL_Event event;
@@ -51,24 +65,24 @@ int main(int argc, char **argv)
         glRotatef(45.0f, 1.0f, 0.0f, 0.0f);
         glRotatef(45.0f, 0.0f, 0.0f, 1.0f);
         
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0f, 0.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 0.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex3f(1.0f, 1.0f, 0.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex3f(-1.0f, 1.0f, 0.0f);
-        glEnd();
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
+        glVertexPointer(3, GL_FLOAT, 0, NULL);
+        
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+        glTexCoordPointer(2, GL_FLOAT, 0, NULL);
+        
+        glDrawArrays(GL_QUADS, 0, 4);
         
         SDL_GL_SwapWindow(window);
     }
     end:;
     
+    glDeleteBuffers(1, &tex_coord_buffer);
+    glDeleteBuffers(1, &pos_buffer);
     glDeleteTextures(1, &texture);
     
-    SDL_GL_UnloadLibrary();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     

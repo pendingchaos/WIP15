@@ -136,7 +136,7 @@ static void gl_param_data(size_t size, const void* data) {
     fwrite(data, size, 1, trace_file);
 }
 
-static void gl_param_pointer(void *value) {
+static void gl_param_pointer(const void *value) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_PTR64);
     uint64_t v = htole64((uint64_t)value);

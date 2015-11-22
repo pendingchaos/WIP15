@@ -262,7 +262,7 @@ static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* 
         
         char filename[FILENAME_MAX];
         memset(filename, 0, FILENAME_MAX);
-        snprintf(filename, FILENAME_MAX, "%s/image_%u.bmp", output_dir, next_image_id++);
+        snprintf(filename, FILENAME_MAX, "%s/image_%u.bmp", output_dir, next_image_id);
         stbi_write_bmp(filename, width, height, 4, data->data);
         
         free(tex->mipmap_filenames[data->mipmap]);
