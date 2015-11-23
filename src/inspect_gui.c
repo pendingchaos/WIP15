@@ -182,7 +182,7 @@ void about_callback(GObject* obj, gpointer user_data) {
     gtk_show_about_dialog(GTK_WINDOW(main_window),
                           "program-name", "WIP15 Inspector",
                           "version", "0.0.0",
-                          "website", "https://www.gitlab.com/u/pendingchaos/WIP15",
+                          "website", "https://gitlab.com/pendingchaos/WIP15",
                           "logo-icon-name", "image-missing",
                           //"license-type", GTK_LICENSE_GPL_3_0_ONLY,
                           NULL);
