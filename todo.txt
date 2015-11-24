@@ -20,6 +20,7 @@ Debugging:
     Debug markers and stuff
     State inspection
         Currently have lots though more still needed.
+        Some duplicated state (glGetBooleanv and glIsEnabled calls doing the same thing)
 
 Performance:
     CPU-GPU sync points

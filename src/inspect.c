@@ -204,7 +204,6 @@ static void write_state(FILE* file, char *output_dir, const inspect_gl_state_t* 
         fprintf(file, "<li>%s = ", entry->name);
         write_value(file, entry->val, trace);
         fprintf(file, "</li>");
-        entry = entry->next;
     }
     
     vec_t tex_params = state->texture_params;

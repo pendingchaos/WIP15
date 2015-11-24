@@ -215,6 +215,27 @@ static void init_trace_tree(GtkTreeView* tree,
     gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
 }
 
+static void init_state_tree(GtkTreeView* tree,
+                            inspect_gl_state_t* state,
+                            const trace_t* trace) {
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    vec_t entries = state->entries;
+    size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
+        
+        char val_str[1024];
+        memset(val_str, 0, 1024);
+        format_value(val_str, entry->val, trace);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, entry->name, 1, val_str, -1);
+    }
+}
+
 void quit_callback(GObject* obj, gpointer user_data) {
     gtk_main_quit();
 }
@@ -257,6 +278,14 @@ void command_select_callback(GObject* obj, gpointer user_data) {
             
             attachment = attachment->next;
         }
+        
+        init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
+                        &cmd->state,
+                        inspection->trace);
+    } else {
+        GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview"));
+        GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+        gtk_tree_store_clear(store);
     }
 }
 
@@ -332,6 +361,18 @@ int main(int argc, char** argv) {
     GtkTreeViewColumn* column = gtk_tree_view_get_column(GTK_TREE_VIEW(attachments_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
+    //Initialize state view
+    GObject* state_view = gtk_builder_get_object(builder, "state_treeview");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(state_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING)));
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(state_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(state_view), 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);

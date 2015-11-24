@@ -303,7 +303,6 @@ static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t
     entry.name = name;
     entry.val = v;
     entry.val.group_index = -1;
-    entry.next = NULL;
     append_vec(state->entries, sizeof(inspect_gl_state_entry_t), &entry);
 }
 
@@ -678,7 +677,7 @@ for get in gl_gets:
         }
             """ % (ver_mask, type_str, type, get[2], type_str, get[0], type_str2, get[0], get[2]))
 
-for k, v in enable_entries.iteritems():
+for v in enable_entries:
     output.write("            {\n                GLboolean v = F(glIsEnabled)(%s);\n" % v)
     output.write("                set_state_bool(&cmd->state, \"%s enabled\", 1, &v);\n" % v)
     output.write("            }\n")
