@@ -48,3 +48,7 @@ Dramatically reduce memory usage and size of trace files.
 Enum state values are not displayed as enums.
 
 Use a cross-platform library instead of GLX.
+
+Textures are not tracked when created using glGenTextures.
+
+Textures are still tracked after glDeleteTextures.

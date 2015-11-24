@@ -15,6 +15,7 @@ static GtkBuilder* builder;
 static GdkPixbuf* info_pixbuf;
 static GdkPixbuf* warning_pixbuf;
 static GdkPixbuf* error_pixbuf;
+static tex_inspector_t* tex_inspector;
 
 static const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++) {
@@ -250,6 +251,21 @@ void about_callback(GObject* obj, gpointer user_data) {
                           NULL);
 }
 
+static void init_texture_list(GtkTreeView* tree) {
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    for (size_t i = 0; i < inspect_get_tex_count(tex_inspector); ++i) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", inspect_get_tex(tex_inspector, i));
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
+}
+
 void command_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
@@ -265,6 +281,9 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         inspect_frame_t* frame = inspection->frames + indices[0];
         assert(indices[1] < frame->command_count);
         inspect_command_t* cmd = frame->commands + indices[1];
+        
+        seek_tex_inspector(tex_inspector, indices[0], indices[1]);
+        init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
@@ -311,6 +330,8 @@ int main(int argc, char** argv) {
     
     inspection_t* inspection = create_inspection(trace);
     inspect(inspection);
+    
+    tex_inspector = create_tex_inspector(inspection);
     
     gtk_init(&argc, &argv);
     
@@ -374,6 +395,15 @@ int main(int argc, char** argv) {
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
     
+    //Initialize texture list view
+    GObject* tex_list_view = gtk_builder_get_object(builder, "texture_list_treeview");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tex_list_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(1, G_TYPE_STRING)));
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_list_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);
     
@@ -386,6 +416,7 @@ int main(int argc, char** argv) {
     g_object_unref(info_pixbuf);
     g_object_unref(icon_theme);
     
+    free_tex_inspector(tex_inspector);
     free_inspection(inspection);
     free_trace(trace);
     

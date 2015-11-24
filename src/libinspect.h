@@ -3,6 +3,8 @@
 #include "libtrace.h"
 #include <stdbool.h>
 
+typedef struct tex_inspector_t tex_inspector_t;
+
 typedef enum {
     AttachType_Info,
     AttachType_Warning,
@@ -97,4 +99,15 @@ void inspect_add_info(inspect_command_t* command, const char* format, ...);
 void inspect_add_warning(inspect_command_t* command, const char* format, ...);
 void inspect_add_error(inspect_command_t* command, const char* format, ...);
 void inspect_add_attachment(inspect_command_t* command, inspect_attachment_t* attach);
+
+tex_inspector_t* create_tex_inspector(inspection_t* inspection);
+void free_tex_inspector(tex_inspector_t* inspector);
+void seek_tex_inspector(tex_inspector_t* inspector, size_t frame, size_t cmd);
+size_t inspect_get_tex_count(tex_inspector_t* inspector);
+//0 on failure
+unsigned int inspect_get_tex(tex_inspector_t* inspector, size_t index);
+//Negative if it could not be found
+int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex);
+//True if it succeeded.
+bool get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
 #endif

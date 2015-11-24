@@ -10,6 +10,18 @@
 #include <stdarg.h>
 #include <unistd.h>
 
+typedef struct {
+    unsigned int fake;
+    inspect_gl_tex_params_t params;
+    size_t mipmap_count;
+    void** mipmaps;
+} texture_t;
+
+struct tex_inspector_t {
+    inspection_t* inspection;
+    vec_t textures;
+};
+
 static void update_context(uint64_t *context,
                            const trace_t* trace,
                            trace_command_t* trace_cmd) {
@@ -236,4 +248,146 @@ void inspect_add_attachment(inspect_command_t* command, inspect_attachment_t* at
         while (current->next) current = current->next;
         current->next = attach;
     }
+}
+
+
+tex_inspector_t* create_tex_inspector(inspection_t* inspection) {
+    tex_inspector_t* res = malloc(sizeof(tex_inspector_t));
+    res->textures = alloc_vec(0);
+    res->inspection = inspection;
+    return res;
+}
+
+static void free_textures(tex_inspector_t* inspector) {
+    size_t count = get_vec_size(inspector->textures)/sizeof(texture_t);
+    for (size_t i = 0; i < count; ++i) {
+        texture_t* tex = (texture_t*)get_vec_data(inspector->textures) + i;
+        for (size_t j = 0; j < tex->mipmap_count; ++j)
+            free(tex->mipmaps[j]);
+        free(tex->mipmaps);
+    }
+}
+
+void free_tex_inspector(tex_inspector_t* inspector) {
+    free_textures(inspector);
+    free_vec(inspector->textures);
+    free(inspector);
+}
+
+static texture_t* find_or_create_tex(tex_inspector_t* inspector, unsigned int fake) {
+    int tex_index = inspect_find_tex(inspector, fake);
+    if (tex_index == -1) {
+        tex_index = get_vec_size(inspector->textures)/sizeof(texture_t);
+        
+        texture_t tex;
+        tex.fake = fake;
+        tex.params.fake_texture = fake;
+        tex.params.width = 0;
+        tex.params.height = 0;
+        tex.mipmap_count = 0;
+        tex.mipmaps = NULL;
+        append_vec(inspector->textures, sizeof(texture_t), &tex);
+    }
+    
+    return (texture_t*)get_vec_data(inspector->textures) + tex_index;
+}
+
+static void update_tex_inspection(tex_inspector_t* inspector, inspect_gl_state_t* state) {
+    vec_t tex_params = state->texture_params;
+    size_t count = get_vec_size(tex_params)/sizeof(inspect_gl_tex_params_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_tex_params_t* params = (inspect_gl_tex_params_t*)get_vec_data(tex_params) + i;
+        texture_t* tex = find_or_create_tex(inspector, params->fake_texture);
+        
+        if (tex->params.width != params->width || tex->params.height != params->height) {
+            size_t mipmap_count = 0;
+            size_t w = params->width;
+            size_t h = params->height;
+            while ((w > 1) && (h > 1)) {
+                ++mipmap_count;
+                w /= 2;
+                h /= 2;
+            }
+            
+            for (size_t j = 0; j < tex->mipmap_count; ++j)
+                free(tex->mipmaps[j]);
+            free(tex->mipmaps);
+            
+            tex->mipmap_count = mipmap_count;
+            tex->mipmaps = malloc(tex->mipmap_count*sizeof(void*));
+            for (size_t j = 0; j < mipmap_count; ++j)
+                tex->mipmaps[j] = NULL;
+        }
+        
+        tex->params = *params;
+    }
+    
+    vec_t tex_data = state->texture_data;
+    count = get_vec_size(tex_data)/sizeof(inspect_gl_tex_data_t);
+    for (size_t i = 0; i < count; ++i) {
+        inspect_gl_tex_data_t* data = (inspect_gl_tex_data_t*)get_vec_data(tex_data) + i;
+        texture_t* tex = find_or_create_tex(inspector, data->fake_texture);
+        
+        if (!tex->mipmaps[data->mipmap])
+            tex->mipmaps[data->mipmap] = malloc(data->data_size);
+        
+        memcpy(tex->mipmaps[data->mipmap], data->data, data->data_size);
+    }
+}
+
+void seek_tex_inspector(tex_inspector_t* inspector, size_t frame_index, size_t cmd_index) {
+    free_textures(inspector);
+    resize_vec(inspector->textures, 0);
+    
+    inspection_t* inspection = inspector->inspection;
+    
+    if (frame_index >= inspection->frame_count)
+        return;
+    
+    for (size_t i = 0; i <= frame_index; ++i) {
+        inspect_frame_t* frame = inspection->frames;
+        
+        if ((cmd_index >= frame->command_count) && (i == frame_index))
+            return;
+        
+        size_t count = i == frame_index ? frame->command_count : cmd_index+1;
+        for (size_t j = 0; j < count; ++j)
+            update_tex_inspection(inspector, &frame->commands[j].state);
+    }
+}
+
+size_t inspect_get_tex_count(tex_inspector_t* inspector) {
+    return get_vec_size(inspector->textures)/sizeof(texture_t);
+}
+
+unsigned int inspect_get_tex(tex_inspector_t* inspector, size_t index) {
+    vec_t textures = inspector->textures;
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    
+    if (index >= count)
+        return false;
+    
+    return ((texture_t*)get_vec_data(textures))[index].fake;
+}
+
+int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex) {
+    vec_t textures = inspector->textures;
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    for (size_t i = 0; i < count; ++i)
+        if (((texture_t*)get_vec_data(textures))[i].fake == tex)
+            return i;
+    
+    return -1;
+}
+
+bool get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest) {
+    vec_t textures = inspector->textures;
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    
+    if (index >= count)
+        return false;
+    
+    *dest = ((texture_t*)get_vec_data(textures))[index].params;
+    
+    return true;
 }
