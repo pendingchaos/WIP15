@@ -278,7 +278,6 @@ static texture_t* find_or_create_tex(tex_inspector_t* inspector, unsigned int fa
     int tex_index = inspect_find_tex(inspector, fake);
     if (tex_index == -1) {
         tex_index = get_vec_size(inspector->textures)/sizeof(texture_t);
-        
         texture_t tex;
         tex.fake = fake;
         tex.params.fake_texture = fake;
@@ -380,7 +379,7 @@ int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex) {
     return -1;
 }
 
-bool get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest) {
+bool inspect_get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest) {
     vec_t textures = inspector->textures;
     size_t count = get_vec_size(textures)/sizeof(texture_t);
     

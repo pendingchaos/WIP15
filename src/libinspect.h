@@ -109,5 +109,5 @@ unsigned int inspect_get_tex(tex_inspector_t* inspector, size_t index);
 //Negative if it could not be found
 int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex);
 //True if it succeeded.
-bool get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
+bool inspect_get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
 #endif

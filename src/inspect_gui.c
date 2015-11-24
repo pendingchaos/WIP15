@@ -27,6 +27,35 @@ static const glapi_group_t* find_group(const char* name) {
     return NULL;
 }
 
+static const char* get_enum_str(const char* group_name, unsigned int val) {
+    if (!group_name) {
+        for (size_t i = 0; i < glapi.group_count; i++) {
+            const glapi_group_t* group = glapi.groups[i];
+            
+            for (size_t i = 0; i < group->entry_count; i++) {
+                const glapi_group_entry_t *entry = group->entries[i];
+                if (entry->value == val)
+                    return entry->name;
+            }
+        }
+        
+        return "(unable to find string)";
+    } else {
+        const glapi_group_t* group = find_group(group_name);
+        
+        if (!group)
+            return "(unable to find string)";
+        
+        for (size_t i = 0; i < group->entry_count; i++) {
+            const glapi_group_entry_t *entry = group->entries[i];
+            if (entry->value == val)
+                return entry->name;
+        }
+        
+        return "(unable to find string)";
+    }
+}
+
 static char* static_format(const char* format, ...) {
     static char data[1024];
     memset(data, 0, 1024);
@@ -251,6 +280,62 @@ void about_callback(GObject* obj, gpointer user_data) {
                           NULL);
 }
 
+void texture_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
+    
+    if (!store)
+        return;
+    
+    gtk_tree_store_clear(store);
+    
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    
+    if (!path)
+        return;
+    
+    inspect_gl_tex_params_t params;
+    if (!inspect_get_tex_params(tex_inspector, gtk_tree_path_get_indices(path)[0], &params))
+        return;
+    
+    GtkTreeIter row;
+    #define VAL(name, val) gtk_tree_store_append(store, &row, NULL);\
+gtk_tree_store_set(store, &row, 0, (name), 1, (val), -1);
+    VAL("type", static_format("%s", get_enum_str("TextureTarget", params.type)));
+    VAL("min filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
+    VAL("mag_filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
+    VAL("min LOD", static_format("%f", params.min_lod));
+    VAL("max LOD", static_format("%f", params.max_lod));
+    VAL("base_level", static_format("%d", params.base_level));
+    VAL("max_leve", static_format("%d", params.max_level));
+    VAL("wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
+    VAL("wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
+    VAL("wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
+    VAL("priority", static_format("%f", params.priority));
+    VAL("compare mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
+    VAL("compare_func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
+    VAL("depth texture mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
+    VAL("generate mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
+    VAL("depth stencil mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
+    VAL("LOD bias", static_format("%f", params.lod_bias));
+    VAL("swizzle", static_format("[%s, %s, %s, %s]",
+                                 get_enum_str(NULL, params.swizzle[0]),
+                                 get_enum_str(NULL, params.swizzle[1]),
+                                 get_enum_str(NULL, params.swizzle[2]),
+                                 get_enum_str(NULL, params.swizzle[3])));
+    VAL("border color", static_format("[%f, %f, %f, %f]",
+                                     params.border_color[0],
+                                     params.border_color[1],
+                                     params.border_color[2],
+                                     params.border_color[3]));
+    VAL("width", static_format("%u", params.width));
+    VAL("height", static_format("%u", params.height));
+    VAL("depth", static_format("%u", params.depth));
+    VAL("internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
+    #undef VAL
+}
+
 static void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
@@ -403,6 +488,18 @@ int main(int argc, char** argv) {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_list_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
+    //Initialize texture state view
+    GObject* tex_state_view = gtk_builder_get_object(builder, "selected_texture_treeview");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tex_state_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING)));
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_state_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_state_view), 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);
