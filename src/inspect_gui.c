@@ -8,18 +8,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#include <assert.h>
 
 static GtkWidget* main_window;
-
-typedef struct tree_item_t {
-    const char* val;
-    size_t child_count;
-    const struct tree_item_t* children;
-} tree_item_t;
-
-static const tree_item_t _children2[] = {{"Child 3", 0, NULL}};
-static const tree_item_t _children[] = {{"Child 1", 0, NULL}, {"Child 2", 1, _children2}};
-static const tree_item_t items[] = {{"Hello world!", 0, NULL}, {"Hello world again!", 2, _children}, {"Goodbye world!", 0, NULL}};
+static GtkBuilder* builder;
 
 static const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++) {
@@ -188,6 +180,38 @@ void about_callback(GObject* obj, gpointer user_data) {
                           NULL);
 }
 
+void command_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    
+    if (!path)
+        return;
+    
+    if (gtk_tree_path_get_depth(path) == 2) {
+        gint* indices = gtk_tree_path_get_indices(path);
+        
+        inspection_t* inspection = user_data;
+        assert(indices[0] < inspection->frame_count);
+        inspect_frame_t* frame = inspection->frames + indices[0];
+        assert(indices[1] < frame->command_count);
+        inspect_command_t* cmd = frame->commands + indices[1];
+        
+        printf("%s has been selected.\n", cmd->name);
+        GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
+        GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
+        gtk_tree_store_clear(store);
+        
+        inspect_attachment_t* attachment = cmd->attachments;
+        while (attachment) {
+            GtkTreeIter row;
+            gtk_tree_store_append(store, &row, NULL);
+            gtk_tree_store_set(store, &row, 0, attachment->message, -1);
+            
+            attachment = attachment->next;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc != 2) {
         fprintf(stderr, "Expected one argument. Got %d.\n", argc);
@@ -211,11 +235,21 @@ int main(int argc, char** argv) {
     
     gtk_init(&argc, &argv);
     
-    GtkBuilder* builder = gtk_builder_new_from_file("ui.glade");
+    builder = gtk_builder_new_from_file("ui.glade");
     gtk_builder_connect_signals(builder, inspection);
     
+    //Initialize trace view
     GObject* trace_view = gtk_builder_get_object(builder, "trace_view");
     init_trace_tree(GTK_TREE_VIEW(trace_view), inspection);
+    
+    //Initialize attachments view
+    GObject* attachments_view = gtk_builder_get_object(builder, "selected_command_attachments");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(attachments_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(1, G_TYPE_STRING)));
+    GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
+    GtkTreeViewColumn* column = gtk_tree_view_get_column(GTK_TREE_VIEW(attachments_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);
