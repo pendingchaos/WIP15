@@ -68,6 +68,28 @@ static char* static_format(const char* format, ...) {
     return data;
 }
 
+static char* format_float(float val) {
+    static char data[128];
+    memset(data, 0, 128);
+    
+    snprintf(data, 128, "%f", val);
+    
+    char* c = data+127;
+    while (true) {
+        if (*c == '0') {
+            *c = 0;
+        } else if (*c == '.') {
+            *c = 0;
+            break;
+        } else if (*c) {
+            break;
+        }
+        c--;
+    }
+    
+    return data;
+}
+
 static void format_value(char* str, trace_value_t value, const trace_t* trace) {
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
@@ -105,7 +127,7 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
             break;
         }
         case Type_Double: {
-            strcat(str, static_format("%f", trace_get_double(&value)[i]));
+            strcat(str, static_format("%s", format_float(trace_get_double(&value)[i])));
             break;
         }
         case Type_Boolean: {
@@ -121,7 +143,7 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
             break;
         }
         case Type_FunctionPtr: {
-            strcat(str, static_format("<fn ptr>"));
+            strcat(str, static_format("<functionn pointer>"));
             break;
         }
         case Type_Ptr: {
@@ -129,7 +151,7 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
             break;
         }
         case Type_Data: {
-            strcat(str, static_format("(data)"));
+            strcat(str, static_format("<data>"));
             break;
         }
         }
@@ -302,37 +324,37 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeIter row;
     #define VAL(name, val) gtk_tree_store_append(store, &row, NULL);\
 gtk_tree_store_set(store, &row, 0, (name), 1, (val), -1);
-    VAL("type", static_format("%s", get_enum_str("TextureTarget", params.type)));
-    VAL("min filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
-    VAL("mag_filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
-    VAL("min LOD", static_format("%f", params.min_lod));
-    VAL("max LOD", static_format("%f", params.max_lod));
-    VAL("base_level", static_format("%d", params.base_level));
-    VAL("max_leve", static_format("%d", params.max_level));
-    VAL("wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
-    VAL("wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
-    VAL("wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
-    VAL("priority", static_format("%f", params.priority));
-    VAL("compare mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
-    VAL("compare_func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
-    VAL("depth texture mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
-    VAL("generate mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
-    VAL("depth stencil mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
-    VAL("LOD bias", static_format("%f", params.lod_bias));
-    VAL("swizzle", static_format("[%s, %s, %s, %s]",
+    VAL("Type", static_format("%s", get_enum_str("TextureTarget", params.type)));
+    VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
+    VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
+    VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
+    VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
+    VAL("Base Level", static_format("%d", params.base_level));
+    VAL("Max Level", static_format("%d", params.max_level));
+    VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
+    VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
+    VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
+    VAL("Priority", static_format("%s", format_float(params.priority)));
+    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
+    VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
+    VAL("Depth Texture Mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
+    VAL("Generate Mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
+    VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
+    VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
+    VAL("Swizzle", static_format("[%s, %s, %s, %s]",
                                  get_enum_str(NULL, params.swizzle[0]),
                                  get_enum_str(NULL, params.swizzle[1]),
                                  get_enum_str(NULL, params.swizzle[2]),
                                  get_enum_str(NULL, params.swizzle[3])));
-    VAL("border color", static_format("[%f, %f, %f, %f]",
-                                     params.border_color[0],
-                                     params.border_color[1],
-                                     params.border_color[2],
-                                     params.border_color[3]));
-    VAL("width", static_format("%u", params.width));
-    VAL("height", static_format("%u", params.height));
-    VAL("depth", static_format("%u", params.depth));
-    VAL("internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
+    VAL("Border Color", static_format("[%s, %s, %s, %s]",
+                                     format_float(params.border_color[0]),
+                                     format_float(params.border_color[1]),
+                                     format_float(params.border_color[2]),
+                                     format_float(params.border_color[3])));
+    VAL("Width", static_format("%u", params.width));
+    VAL("Height", static_format("%u", params.height));
+    VAL("Depth", static_format("%u", params.depth));
+    VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
     #undef VAL
 }
 

@@ -37,7 +37,7 @@ Performance:
 Bugs:
     Program crashes with optimizations.
         Seems to be the glGetIntegerv calls in the state tracking code.
-            Currently removed.
+            Currently disabled.
 
 Various TODOs in the source code.
 
