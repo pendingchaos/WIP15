@@ -32,8 +32,6 @@ int main(int argc, char **argv)
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    static const uint8_t data[] = {255, 255, 255, 255,  0, 0, 0, 255,
-                                   0, 0, 0, 255,        255, 255, 255, 255};
     
     size_t w = 128;
     size_t h = 128;
@@ -41,7 +39,7 @@ int main(int argc, char **argv)
         void* data = malloc(w*h*4);
         
         for (size_t j = 0; j < w*h; ++j) {
-            ((uint32_t*)data)[j] = i==0 ? ((j%2) * 0xFFFFFFFF) : 0xFF7f7f7f;
+            ((uint32_t*)data)[j] = i==0 ? (j%2 ? 0xFFFFFFFF : 0xFF000000) : 0xFF7f7f7f;
         }
         
         glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

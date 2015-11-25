@@ -380,7 +380,12 @@ gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
             gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, NULL, -1);
         } else {
             GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
-            memcpy(gdk_pixbuf_get_pixels(pixbuf), data, w*h*4);
+            uint32_t* dest = (uint32_t*)gdk_pixbuf_get_pixels(pixbuf);
+            for (size_t y = 0; y < h; y++) {
+                for (size_t x = 0; x < w; x++) {
+                    dest[(h-1-y)*w+x] = ((uint32_t*)data)[y*w+x];
+                }
+            }
             gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
         }
         
@@ -402,6 +407,106 @@ static void init_texture_list(GtkTreeView* tree) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
+    }
+}
+
+static void init_framebuffer_tree(GtkTreeView* tree,
+                                  size_t frame_index,
+                                  size_t cmd_index,
+                                  inspection_t* inspection) {
+    inspect_image_t front;
+    inspect_image_t back;
+    inspect_image_t depth;
+    front.data = NULL;
+    back.data = NULL;
+    depth.data = NULL;
+    
+    if (frame_index >= inspection->frame_count)
+        return;
+    
+    for (size_t i = 0; i <= frame_index; ++i) {
+        inspect_frame_t* frame = inspection->frames + i;
+        
+        if ((cmd_index >= frame->command_count) && (i == frame_index))
+            return;
+        
+        size_t count = (i == frame_index) ? cmd_index+1 : frame->command_count;
+        for (size_t j = 0; j < count; ++j) {
+            inspect_command_t* cmd = frame->commands + j;
+            
+            if (cmd->state.front.data)
+                front = cmd->state.front;
+            
+            if (cmd->state.back.data)
+                back = cmd->state.back;
+            
+            if (cmd->state.depth.data)
+                depth = cmd->state.depth;
+        }
+    }
+    
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    if (front.data) {
+        GdkPixbuf* front_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
+                                              TRUE,
+                                              8,
+                                              front.width,
+                                              front.height);
+        uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(front_buf);
+        for (size_t y = 0; y < front.height; y++) {
+            for (size_t x = 0; x < front.width; x++) {
+                data[(front.height-1-y)*front.width+x] = ((uint32_t*)front.data)[y*front.width+x];
+            }
+        }
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Front", 1, front_buf, -1);
+    }
+    
+    if (back.data) {
+        GdkPixbuf* back_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
+                                             TRUE,
+                                             8,
+                                             back.width,
+                                             back.height);
+        uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(back_buf);
+        for (size_t y = 0; y < back.height; y++) {
+            for (size_t x = 0; x < back.width; x++) {
+                data[(back.height-1-y)*back.width+x] = ((uint32_t*)back.data)[y*back.width+x];
+            }
+        }
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Back", 1, back_buf, -1);
+    }
+    
+    if (depth.data) {
+        GdkPixbuf* depth_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
+                                              FALSE,
+                                              8,
+                                              depth.width,
+                                              depth.height);
+        
+        uint8_t* data = (uint8_t*)gdk_pixbuf_get_pixels(depth_buf);
+        for (size_t y = 0; y < depth.height; y++) {
+            for (size_t x = 0; x < depth.width; x++) {
+                size_t index = (depth.height-1-y)*depth.width + x;
+                
+                uint32_t val = ((uint32_t*)depth.data)[y*depth.width+x];
+                val = val / 4294967296.0 * 16777216.0;
+                data[index*3] = val % 256;
+                data[index*3+1] = val % 65536 / 256;
+                data[index*3+2] = val / 65536;
+            }
+        }
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Depth", 1, depth_buf, -1);
     }
 }
 
@@ -440,6 +545,11 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
                         &cmd->state,
                         inspection->trace);
+        
+        init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_treeview")),
+                              indices[0],
+                              indices[1],
+                              inspection);
     } else {
         GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview"));
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
@@ -565,6 +675,19 @@ int main(int argc, char** argv) {
     gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
     renderer = gtk_cell_renderer_pixbuf_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_image_view), 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+    
+    //Initialize texture framebuffer view
+    GObject* fb_view = gtk_builder_get_object(builder, "framebuffer_treeview");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(fb_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF)));
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    renderer = gtk_cell_renderer_pixbuf_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
     

@@ -64,7 +64,8 @@ typedef struct {
 
 typedef struct {
     vec_t entries; //inspect_gl_state_entry_t
-    inspect_image_t color; //data is NULL if it did not change. RGBA
+    inspect_image_t back; //data is NULL if it did not change. RGBA
+    inspect_image_t front; //data is NULL if it did not change. RGBA
     inspect_image_t depth; //data is NULL if it did not change. uint32_t
     vec_t texture_params; //vec_t of inspect_gl_tex_params_t.
     vec_t texture_data; //vec_t of inspect_gl_tex_data_t.

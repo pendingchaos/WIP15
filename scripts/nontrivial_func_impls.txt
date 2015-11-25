@@ -95,6 +95,8 @@ glXSwapBuffers:
         return;
     }
     real(ctx->_display, ctx->_glx_drawable);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_front_color(ctx, inspect_command);
 
 glBegin:
     real(gl_param_GLenum(&trace_get_arg(command, 0)->val));
@@ -103,14 +105,15 @@ glBegin:
 glEnd:
     real();
     ctx->_in_begin_end = false;
-    replay_get_color(ctx, inspect_command);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_front_color(ctx, inspect_command);
     replay_get_depth(ctx, inspect_command);
 
 glClear:
     GLbitfield mask = gl_param_GLbitfield(&trace_get_arg(command, 0)->val);
     real(mask);
     if (mask & GL_COLOR_BUFFER_BIT)
-        replay_get_color(ctx, inspect_command);
+        replay_get_back_color(ctx, inspect_command);
     if (mask & GL_DEPTH_BUFFER_BIT)
         replay_get_depth(ctx, inspect_command);
 

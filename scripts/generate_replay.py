@@ -402,18 +402,46 @@ static void debug_callback(GLenum source,
     }
 }
 
-static void replay_get_color(replay_context_t* ctx, inspect_command_t* cmd) {
+static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end && F(glReadPixels)) {
+        F(glFinish)();
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+        F(glReadBuffer)(GL_BACK);
+        
         void* data = malloc(100*100*4);
         F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.color.width = 100;
-        cmd->state.color.height = 100;
-        cmd->state.color.data = data;
+        cmd->state.back.width = 100;
+        cmd->state.back.height = 100;
+        cmd->state.back.data = data;
+        
+        F(glReadBuffer)(last_buf);
+    }
+}
+
+static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd) {
+    if (!ctx->_in_begin_end && F(glReadPixels)) {
+        F(glFinish)();
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+        F(glReadBuffer)(GL_FRONT);
+        
+        void* data = malloc(100*100*4);
+        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.front.width = 100;
+        cmd->state.front.height = 100;
+        cmd->state.front.data = data;
+        
+        F(glReadBuffer)(last_buf);
     }
 }
 
 static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end && F(glReadPixels)) {
+        F(glFinish)();
+        
         void* data = malloc(100*100*4);
         F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
         cmd->state.depth.width = 100;
@@ -514,8 +542,14 @@ static void replay_get_tex_data(replay_context_t* ctx,
         F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
         F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
         
+        GLint alignment;
+        F(glGetIntegerv)(GL_PACK_ALIGNMENT, &alignment);
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, 4);
+        
         void* data = malloc(width*height*4);
         F(glGetTexImage)(target, level, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
         inspect_gl_tex_data_t tex_data;
         tex_data.fake_texture = tex;
