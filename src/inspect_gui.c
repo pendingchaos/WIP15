@@ -143,7 +143,7 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
             break;
         }
         case Type_FunctionPtr: {
-            strcat(str, static_format("<functionn pointer>"));
+            strcat(str, static_format("<function pointer>"));
             break;
         }
         case Type_Ptr: {
@@ -156,9 +156,8 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
         }
         }
         
-        if (i != value.count-1) {
+        if (i != value.count-1)
             strcat(str, static_format(", "));
-        }
     }
     if (value.count > 1) strcat(str, static_format("]"));
 }
