@@ -299,7 +299,7 @@ static void update_tex_inspection(tex_inspector_t* inspector, inspect_gl_state_t
         texture_t* tex = find_or_create_tex(inspector, params->fake_texture);
         
         if (tex->params.width != params->width || tex->params.height != params->height) {
-            size_t mipmap_count = 0;
+            size_t mipmap_count = 1;
             size_t w = params->width;
             size_t h = params->height;
             while ((w > 1) && (h > 1)) {
@@ -387,6 +387,23 @@ bool inspect_get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl
         return false;
     
     *dest = ((texture_t*)get_vec_data(textures))[index].params;
+    
+    return true;
+}
+
+bool inspect_get_tex_data(tex_inspector_t* inspector, size_t index, size_t level, void** dest) {
+    vec_t textures = inspector->textures;
+    size_t count = get_vec_size(textures)/sizeof(texture_t);
+    
+    if (index >= count)
+        return false;
+    
+    texture_t* tex = (texture_t*)get_vec_data(textures) + index;
+    
+    if (level > tex->mipmap_count)
+        return false;
+    
+    *dest = tex->mipmaps[level];
     
     return true;
 }

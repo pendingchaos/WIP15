@@ -1,3 +1,4 @@
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
 
@@ -33,9 +34,24 @@ int main(int argc, char **argv)
     glBindTexture(GL_TEXTURE_2D, texture);
     static const uint8_t data[] = {255, 255, 255, 255,  0, 0, 0, 255,
                                    0, 0, 0, 255,        255, 255, 255, 255};
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    
+    size_t w = 128;
+    size_t h = 128;
+    for (size_t i = 0; i < 8; ++i) {
+        void* data = malloc(w*h*4);
+        
+        for (size_t j = 0; j < w*h; ++j) {
+            ((uint32_t*)data)[j] = i==0 ? ((j%2) * 0xFFFFFFFF) : 0xFF7f7f7f;
+        }
+        
+        glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        w /= 2;
+        h /= 2;
+        free(data);
+    }
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     
     GLuint pos_buffer;
     glGenBuffers(1, &pos_buffer);

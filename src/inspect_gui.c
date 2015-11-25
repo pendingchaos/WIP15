@@ -303,12 +303,18 @@ void about_callback(GObject* obj, gpointer user_data) {
 
 void texture_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
-    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
+    GtkTreeStore* param_store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
     
-    if (!store)
+    GtkTreeView* image_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_images"));
+    GtkTreeStore* image_store = GTK_TREE_STORE(gtk_tree_view_get_model(image_tree));
+    
+    if (!param_store)
+        return;
+    if (!image_store)
         return;
     
-    gtk_tree_store_clear(store);
+    gtk_tree_store_clear(image_store);
+    gtk_tree_store_clear(param_store);
     
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
@@ -316,13 +322,16 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     if (!path)
         return;
     
+    //Initialize params
+    size_t tex_index = gtk_tree_path_get_indices(path)[0];
+    
     inspect_gl_tex_params_t params;
-    if (!inspect_get_tex_params(tex_inspector, gtk_tree_path_get_indices(path)[0], &params))
+    if (!inspect_get_tex_params(tex_inspector, tex_index, &params))
         return;
     
     GtkTreeIter row;
-    #define VAL(name, val) gtk_tree_store_append(store, &row, NULL);\
-gtk_tree_store_set(store, &row, 0, (name), 1, (val), -1);
+    #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
+gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
     VAL("Type", static_format("%s", get_enum_str("TextureTarget", params.type)));
     VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
     VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
@@ -355,6 +364,30 @@ gtk_tree_store_set(store, &row, 0, (name), 1, (val), -1);
     VAL("Depth", static_format("%u", params.depth));
     VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
     #undef VAL
+    
+    //Initialize images
+    size_t level = 0;
+    size_t w = params.width;
+    size_t h = params.height;
+    while ((w > 1) && (h > 1)) {
+        void* data;
+        inspect_get_tex_data(tex_inspector, tex_index, level, &data);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(image_store, &row, NULL);
+        
+        if (!data) {
+            gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, NULL, -1);
+        } else {
+            GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
+            memcpy(gdk_pixbuf_get_pixels(pixbuf), data, w*h*4);
+            gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
+        }
+        
+        level++;
+        w /= 2;
+        h /= 2;
+    }
 }
 
 static void init_texture_list(GtkTreeView* tree) {
@@ -521,6 +554,19 @@ int main(int argc, char** argv) {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_state_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
+    
+    //Initialize texture image view
+    GObject* tex_image_view = gtk_builder_get_object(builder, "selected_texture_images");
+    gtk_tree_view_set_model(GTK_TREE_VIEW(tex_image_view),
+                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF)));
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_image_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    renderer = gtk_cell_renderer_pixbuf_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_image_view), 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);

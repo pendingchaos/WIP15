@@ -30,7 +30,7 @@ clean:
 	rm bin/gl.so
 
 test:
-	gcc test.c -lSDL2 -lGL -o bin/test -O2
+	gcc test.c -lSDL2 -lGL -o bin/test -O2 -std=c99
 
 all:
 	make gl

@@ -110,4 +110,5 @@ unsigned int inspect_get_tex(tex_inspector_t* inspector, size_t index);
 int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex);
 //True if it succeeded.
 bool inspect_get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
+bool inspect_get_tex_data(tex_inspector_t* inspector, size_t index, size_t level, void** data);
 #endif
