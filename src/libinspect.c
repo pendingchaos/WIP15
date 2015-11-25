@@ -344,12 +344,12 @@ void seek_tex_inspector(tex_inspector_t* inspector, size_t frame_index, size_t c
         return;
     
     for (size_t i = 0; i <= frame_index; ++i) {
-        inspect_frame_t* frame = inspection->frames;
+        inspect_frame_t* frame = inspection->frames + i;
         
         if ((cmd_index >= frame->command_count) && (i == frame_index))
             return;
         
-        size_t count = i == frame_index ? frame->command_count : cmd_index+1;
+        size_t count = (i == frame_index) ? cmd_index+1 : frame->command_count;
         for (size_t j = 0; j < count; ++j)
             update_tex_inspection(inspector, &frame->commands[j].state);
     }
