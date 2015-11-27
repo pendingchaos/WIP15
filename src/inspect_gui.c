@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <math.h>
 
 static GtkWidget* main_window;
 static GtkBuilder* builder;
@@ -625,8 +626,10 @@ int main(int argc, char** argv) {
     
     //Initialize attachments view
     GObject* attachments_view = gtk_builder_get_object(builder, "selected_command_attachments");
+    GtkTreeStore* store = gtk_tree_store_new(1, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(attachments_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(1, G_TYPE_STRING)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
     GtkTreeViewColumn* column = gtk_tree_view_get_column(GTK_TREE_VIEW(attachments_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -634,8 +637,10 @@ int main(int argc, char** argv) {
     
     //Initialize state view
     GObject* state_view = gtk_builder_get_object(builder, "state_treeview");
+    store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(state_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(state_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -646,8 +651,10 @@ int main(int argc, char** argv) {
     
     //Initialize texture list view
     GObject* tex_list_view = gtk_builder_get_object(builder, "texture_list_treeview");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(tex_list_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(1, G_TYPE_STRING)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_list_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -655,8 +662,10 @@ int main(int argc, char** argv) {
     
     //Initialize texture state view
     GObject* tex_state_view = gtk_builder_get_object(builder, "selected_texture_treeview");
+    store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(tex_state_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_state_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -667,8 +676,10 @@ int main(int argc, char** argv) {
     
     //Initialize texture image view
     GObject* tex_image_view = gtk_builder_get_object(builder, "selected_texture_images");
+    store = gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
     gtk_tree_view_set_model(GTK_TREE_VIEW(tex_image_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_image_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -680,8 +691,10 @@ int main(int argc, char** argv) {
     
     //Initialize texture framebuffer view
     GObject* fb_view = gtk_builder_get_object(builder, "framebuffer_treeview");
+    store = gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
     gtk_tree_view_set_model(GTK_TREE_VIEW(fb_view),
-                            GTK_TREE_MODEL(gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF)));
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
@@ -690,6 +703,48 @@ int main(int argc, char** argv) {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+    
+    //Initialize buffer type combobox
+    GObject* buf_type = gtk_builder_get_object(builder, "type_combobox");
+    GtkTreeStore* buf_type_store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_combo_box_set_model(GTK_COMBO_BOX(buf_type), GTK_TREE_MODEL(buf_type_store));
+    //gtk_tree_view_set_model(GTK_TREE_VIEW(fb_view), GTK_TREE_MODEL(buf_type_store));
+    //renderer = gtk_cell_renderer_text_new();
+    //column = gtk_tree_view_get_column(GTK_TREE_VIEW(buf_type), 0);
+    //gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    //gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(buf_type), renderer, TRUE);
+    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(buf_type), renderer, "text", 0, NULL);
+    GtkTreeIter row;
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Float16", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Float32", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Float64", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Uint8", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Int8", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Uint16", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Int16", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Uint32", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Int32", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Uint64", -1);
+    gtk_tree_store_append(buf_type_store, &row, NULL);
+    gtk_tree_store_set(buf_type_store, &row, 0, "Int64", -1);
+    g_object_unref(buf_type_store);
+    
+    GtkSpinButton* button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "stride"));
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 4294967295);
+    button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "offset"));
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 4294967295);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);
