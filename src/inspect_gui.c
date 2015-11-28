@@ -389,6 +389,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
                     }
                 }
                 gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
+                g_object_unref(pixbuf);
             }
             
             level++;
@@ -467,6 +468,8 @@ static void init_framebuffer_tree(GtkTreeView* tree,
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Front", 1, front_buf, -1);
+        
+        g_object_unref(front_buf);
     }
     
     if (back.data) {
@@ -485,6 +488,8 @@ static void init_framebuffer_tree(GtkTreeView* tree,
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Back", 1, back_buf, -1);
+        
+        g_object_unref(back_buf);
     }
     
     if (depth.data) {
@@ -510,6 +515,8 @@ static void init_framebuffer_tree(GtkTreeView* tree,
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Depth", 1, depth_buf, -1);
+        
+        g_object_unref(depth_buf);
     }
 }
 

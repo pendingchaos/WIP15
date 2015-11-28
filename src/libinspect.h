@@ -148,4 +148,12 @@ int inspect_find_tex(inspector_t* inspector, unsigned int tex);
 //True if it succeeded.
 bool inspect_get_tex_params(inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
 bool inspect_get_tex_data(inspector_t* inspector, size_t index, size_t level, void** data);
+//0 on failure
+unsigned int inspect_get_buf(inspector_t* inspector, size_t index);
+//Negative if it could not be found
+int inspect_find_buf(inspector_t* inspector, unsigned int buf);
+//Negative on failure
+int inspect_get_buf_size(inspector_t* inspector, size_t index);
+//True if it succeeded
+bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data);
 #endif

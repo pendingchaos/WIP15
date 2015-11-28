@@ -17,9 +17,17 @@ typedef struct {
     void** mipmaps;
 } texture_t;
 
+typedef struct {
+    unsigned int fake;
+    unsigned int usage;
+    size_t size;
+    void* data;
+} buffer_t;
+
 struct inspector_t {
     inspection_t* inspection;
-    vec_t textures;
+    vec_t textures; //vec_t of texture_t
+    vec_t buffers; //vec_t of buffer_t
 };
 
 static void update_context(uint64_t *context,
@@ -120,8 +128,7 @@ void free_inspection(inspection_t* inspection) {
                     break;
                 }
                 case InspectAction_TexData: {
-                    inspect_gl_tex_data_t* data = &action->tex_data;
-                    free(data->data);
+                    free(action->tex_data.data);
                     break;
                 }
                 case InspectAction_GenTexture: {
@@ -137,9 +144,11 @@ void free_inspection(inspection_t* inspection) {
                     break;
                 }
                 case InspectAction_BufferData: {
+                    free(action->buf_data.data);
                     break;
                 }
                 case InspectAction_BufferSubData: {
+                    free(action->buf_sub_data.data);
                     break;
                 }
                 }
@@ -282,6 +291,7 @@ void inspect_add_attachment(inspect_command_t* command, inspect_attachment_t* at
 inspector_t* create_inspector(inspection_t* inspection) {
     inspector_t* res = malloc(sizeof(inspector_t));
     res->textures = alloc_vec(0);
+    res->buffers = alloc_vec(0);
     res->inspection = inspection;
     return res;
 }
@@ -296,8 +306,18 @@ static void free_textures(inspector_t* inspector) {
     }
 }
 
+static void free_buffers(inspector_t* inspector) {
+    size_t count = get_vec_size(inspector->buffers)/sizeof(buffer_t);
+    for (size_t i = 0; i < count; ++i) {
+        buffer_t* buf = (buffer_t*)get_vec_data(inspector->buffers) + i;
+        free(buf->data);
+    }
+}
+
 void free_inspector(inspector_t* inspector) {
+    free_buffers(inspector);
     free_textures(inspector);
+    free_vec(inspector->buffers);
     free_vec(inspector->textures);
     free(inspector);
 }
@@ -309,6 +329,15 @@ static texture_t* find_tex(inspector_t* inspector, unsigned int fake) {
     }
     
     return (texture_t*)get_vec_data(inspector->textures) + tex_index;
+}
+
+static buffer_t* find_buf(inspector_t* inspector, unsigned int fake) {
+    int buf_index = inspect_find_buf(inspector, fake);
+    if (buf_index == -1) {
+        return NULL;
+    }
+    
+    return (buffer_t*)get_vec_data(inspector->buffers) + buf_index;
 }
 
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
@@ -351,10 +380,8 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         case InspectAction_TexData: {
             inspect_gl_tex_data_t* data = &action->tex_data;
             texture_t* tex = find_tex(inspector, data->texture);
-            
             if (!tex)
                 break;
-            
             if (!tex->mipmaps[data->mipmap])
                 tex->mipmaps[data->mipmap] = malloc(data->data_size);
             
@@ -375,7 +402,6 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         }
         case InspectAction_DelTexture: {
             texture_t* tex = find_tex(inspector, action->texture);
-            
             if (!tex)
                 break;
             
@@ -389,15 +415,51 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             break;
         }
         case InspectAction_GenBuffer: {
+            buffer_t buf;
+            buf.fake = action->buffer;
+            buf.usage = 0;
+            buf.size = 0;
+            buf.data = NULL;
+            append_vec(inspector->buffers, sizeof(buffer_t), &buf);
             break;
         }
         case InspectAction_DelBuffer: {
+            buffer_t* buf = find_buf(inspector, action->buffer);
+            if (!buf)
+                break;
+            
+            free(buf->data);
+            
+            size_t offset = buf - (buffer_t*)get_vec_data(inspector->buffers);
+            offset *= sizeof(buffer_t);
+            remove_vec(inspector->buffers, offset, sizeof(buffer_t));
             break;
         }
         case InspectAction_BufferData: {
+            inspect_gl_buffer_data_t* data = &action->buf_data;
+            buffer_t* buf = find_buf(inspector, action->buf_data.buffer);
+            if (!buf)
+                break;
+            if (buf->data)
+                free(buf->data);
+            
+            buf->usage = data->usage;
+            buf->size = data->size;
+            buf->data = malloc(data->size);
+            memcpy(buf->data, data->data, data->size);
             break;
         }
         case InspectAction_BufferSubData: {
+            inspect_gl_buffer_sub_data_t* data = &action->buf_sub_data;
+            buffer_t* buf = find_buf(inspector, action->buf_sub_data.buffer);
+            if (!buf)
+                break;
+            if (!buf->data)
+                break;
+            if (data->offset+data->size > buf->size)
+                break;
+            
+            memcpy((uint8_t*)buf->data+data->offset, data->data, data->size);
             break;
         }
         }
@@ -405,7 +467,9 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
 }
 
 void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index) {
+    free_buffers(inspector);
     free_textures(inspector);
+    resize_vec(inspector->buffers, 0);
     resize_vec(inspector->textures, 0);
     
     inspection_t* inspection = inspector->inspection;
@@ -474,6 +538,48 @@ bool inspect_get_tex_data(inspector_t* inspector, size_t index, size_t level, vo
         return false;
     
     *dest = tex->mipmaps[level];
+    
+    return true;
+}
+
+unsigned int inspect_get_buf(inspector_t* inspector, size_t index) {
+    vec_t buffers = inspector->buffers;
+    size_t count = get_vec_size(buffers)/sizeof(buffer_t);
+    
+    if (index >= count)
+        return false;
+    
+    return ((buffer_t*)get_vec_data(buffers))[index].fake;
+}
+
+int inspect_find_buf(inspector_t* inspector, unsigned int buf) {
+    vec_t buffers = inspector->buffers;
+    size_t count = get_vec_size(buffers)/sizeof(buffer_t);
+    for (size_t i = 0; i < count; ++i)
+        if (((buffer_t*)get_vec_data(buffers))[i].fake == buf)
+            return i;
+    
+    return -1;
+}
+
+int inspect_get_buf_size(inspector_t* inspector, size_t index) {
+    vec_t buffers = inspector->buffers;
+    size_t count = get_vec_size(buffers)/sizeof(texture_t);
+    
+    if (index >= count)
+        return -1;
+    
+    return ((buffer_t*)get_vec_data(buffers))[index].size;
+}
+
+bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data) {
+    vec_t buffers = inspector->buffers;
+    size_t count = get_vec_size(buffers)/sizeof(texture_t);
+    
+    if (index >= count)
+        return false;
+    
+    *data = ((buffer_t*)get_vec_data(buffers))[index].data;
     
     return true;
 }

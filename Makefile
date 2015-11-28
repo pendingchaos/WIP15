@@ -14,16 +14,12 @@ libinspect:
 trace:
 	gcc src/trace.c -o bin/trace -O2
 
-inspect:
-	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect.c -std=c99 -o inspect -Wall -O2
-
 inspect-gui:
-	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic
+	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -O2 `pkg-config --cflags --libs gtk+-3.0` -rdynamic
 
 clean:
 	rm bin/libtrace.so
 	rm bin/libinspect.so
-	rm bin/inspect
 	rm bin/inspect-gui
 	rm bin/trace
 	rm bin/test
@@ -37,5 +33,4 @@ all:
 	make libtrace
 	make libinspect
 	make trace
-	make inspect
 	make inspect-gui

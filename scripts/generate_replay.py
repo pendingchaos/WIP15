@@ -569,6 +569,76 @@ static void replay_get_tex_data(replay_context_t* ctx,
     }
 }
 
+static GLuint get_bound_buffer(replay_context_t* ctx, GLenum target) {
+    GLenum get;
+    switch (target) {
+    case GL_ARRAY_BUFFER: {
+        get = GL_ARRAY_BUFFER_BINDING;
+        break;
+    }
+    case GL_ATOMIC_COUNTER_BUFFER: {
+        get = GL_ATOMIC_COUNTER_BUFFER_BINDING;
+        break;
+    }
+    case GL_COPY_READ_BUFFER: {
+        get = GL_COPY_READ_BUFFER_BINDING;
+        break;
+    }
+    case GL_COPY_WRITE_BUFFER: {
+        get = GL_COPY_WRITE_BUFFER_BINDING;
+        break;
+    }
+    case GL_DISPATCH_INDIRECT_BUFFER: {
+        get = GL_DISPATCH_INDIRECT_BUFFER_BINDING;
+        break;
+    }
+    case GL_DRAW_INDIRECT_BUFFER: {
+        get = GL_DRAW_INDIRECT_BUFFER_BINDING;
+        break;
+    }
+    case GL_ELEMENT_ARRAY_BUFFER: {
+        get = GL_ELEMENT_ARRAY_BUFFER_BINDING;
+        break;
+    }
+    case GL_PIXEL_PACK_BUFFER: {
+        get = GL_PIXEL_PACK_BUFFER_BINDING;
+        break;
+    }
+    case GL_PIXEL_UNPACK_BUFFER: {
+        get = GL_PIXEL_UNPACK_BUFFER_BINDING;
+        break;
+    }
+    case GL_QUERY_BUFFER: {
+        get = GL_QUERY_BUFFER_BINDING;
+        break;
+    }
+    case GL_SHADER_STORAGE_BUFFER: {
+        get = GL_SHADER_STORAGE_BUFFER_BINDING;
+        break;
+    }
+    case GL_TEXTURE_BUFFER: {
+        get = GL_TEXTURE_BUFFER_BINDING;
+        break;
+    }
+    case GL_TRANSFORM_FEEDBACK_BUFFER: {
+        get = GL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
+        break;
+    }
+    case GL_UNIFORM_BUFFER: {
+        get = GL_UNIFORM_BUFFER_BINDING;
+        break;
+    }
+    default: {
+        return 0;
+    }
+    }
+    
+    GLint buf;
+    F(glGetIntegerv)(get, &buf);
+    
+    return buf;
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {
