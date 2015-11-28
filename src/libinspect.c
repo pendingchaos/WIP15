@@ -493,6 +493,10 @@ size_t inspect_get_tex_count(inspector_t* inspector) {
     return get_vec_size(inspector->textures)/sizeof(texture_t);
 }
 
+size_t inspect_get_buf_count(inspector_t* inspector) {
+    return get_vec_size(inspector->buffers)/sizeof(buffer_t);
+}
+
 unsigned int inspect_get_tex(inspector_t* inspector, size_t index) {
     vec_t textures = inspector->textures;
     size_t count = get_vec_size(textures)/sizeof(texture_t);
@@ -564,7 +568,7 @@ int inspect_find_buf(inspector_t* inspector, unsigned int buf) {
 
 int inspect_get_buf_size(inspector_t* inspector, size_t index) {
     vec_t buffers = inspector->buffers;
-    size_t count = get_vec_size(buffers)/sizeof(texture_t);
+    size_t count = get_vec_size(buffers)/sizeof(buffer_t);
     
     if (index >= count)
         return -1;
@@ -574,7 +578,7 @@ int inspect_get_buf_size(inspector_t* inspector, size_t index) {
 
 bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data) {
     vec_t buffers = inspector->buffers;
-    size_t count = get_vec_size(buffers)/sizeof(texture_t);
+    size_t count = get_vec_size(buffers)/sizeof(buffer_t);
     
     if (index >= count)
         return false;

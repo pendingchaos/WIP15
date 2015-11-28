@@ -11,6 +11,18 @@
 #include <assert.h>
 #include <math.h>
 
+#define TYPE_FLOAT16 0
+#define TYPE_FLOAT32 1
+#define TYPE_FLOAT64 2
+#define TYPE_UINT8 3
+#define TYPE_INT8 4
+#define TYPE_UINT16 5
+#define TYPE_INT16 6
+#define TYPE_UINT32 7
+#define TYPE_INT32 8
+#define TYPE_UINT64 9
+#define TYPE_INT64 10
+
 static GtkWidget* main_window;
 static GtkBuilder* builder;
 static GdkPixbuf* info_pixbuf;
@@ -69,7 +81,7 @@ static char* static_format(const char* format, ...) {
     return data;
 }
 
-static char* format_float(float val) {
+static char* format_float(double val) {
     static char data[128];
     memset(data, 0, 128);
     
@@ -288,6 +300,146 @@ static void init_state_tree(GtkTreeView* tree,
     }
 }
 
+void update_buffer_view(size_t buf_index) {
+    GtkSpinButton* stride_button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "stride"));
+    GtkSpinButton* offset_button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "offset"));
+    GtkSpinButton* components_button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "components"));
+    GtkComboBox* type_combobox = GTK_COMBO_BOX(gtk_builder_get_object(builder, "type_combobox"));
+    
+    uint32_t stride = gtk_spin_button_get_value(GTK_SPIN_BUTTON(stride_button));
+    uint32_t offset = gtk_spin_button_get_value(GTK_SPIN_BUTTON(offset_button));
+    uint32_t components = gtk_spin_button_get_value(GTK_SPIN_BUTTON(components_button));
+    gint type = gtk_combo_box_get_active(GTK_COMBO_BOX(type_combobox));
+    
+    GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffer_content_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
+    gtk_tree_store_clear(store);
+    
+    if (type < 0)
+        return;
+    
+    size_t type_size = 0;
+    switch (type) {
+    case TYPE_UINT8:
+    case TYPE_INT8: {
+        stride = stride?stride:1;
+        type_size = 1;
+        break;
+    }
+    case TYPE_UINT16:
+    case TYPE_INT16:
+    case TYPE_FLOAT16: {
+        stride = stride?stride:2;
+        type_size = 2;
+        break;
+    }
+    case TYPE_UINT32:
+    case TYPE_INT32:
+    case TYPE_FLOAT32: {
+        stride = stride?stride:4;
+        type_size = 4;
+        break;
+    }
+    case TYPE_UINT64:
+    case TYPE_INT64:
+    case TYPE_FLOAT64: {
+        stride = stride?stride:8;
+        type_size = 8;
+        break;
+    }
+    default: {
+        assert(false && "Unreachable code has been reached.");
+    }
+    }
+    
+    uint8_t* data = NULL;
+    if (!inspect_get_buf_data(inspector, buf_index, (void**)&data))
+        return;
+    
+    size_t buf_size = inspect_get_buf_size(inspector, buf_index);
+    
+    if (!data)
+        return;
+    
+    while (offset+type_size <= buf_size) {
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        
+        char str[1024];
+        memset(str, 0, 1024);
+        
+        char* cur = str;
+        char* end = str+1024;
+        
+        if (components>1)
+            cur += snprintf(cur, end-cur, "[");
+        
+        for (size_t i = 0; i < components; i++) {
+            switch (type) {
+            case TYPE_UINT8: {
+                cur += snprintf(cur, end-cur, "%"PRIu8, *(uint8_t*)(data+offset));
+                break;
+            }
+            case TYPE_INT8: {
+                cur += snprintf(cur, end-cur, "%"PRId8, *(int8_t*)(data+offset));
+                break;
+            }
+            case TYPE_UINT16: {
+                cur += snprintf(cur, end-cur, "%"PRIu16, *(uint16_t*)(data+offset));
+                break;
+            }
+            case TYPE_INT16: {
+                cur += snprintf(cur, end-cur, "%"PRId16, *(int16_t*)(data+offset));
+                break;
+            }
+            case TYPE_UINT32: {
+                cur += snprintf(cur, end-cur, "%"PRIu32, *(uint32_t*)(data+offset));
+                break;
+            }
+            case TYPE_INT32: {
+                cur += snprintf(cur, end-cur, "%"PRId32, *(int32_t*)(data+offset));
+                break;
+            }
+            case TYPE_UINT64: {
+                cur += snprintf(cur, end-cur, "%"PRIu64, *(uint64_t*)(data+offset));
+                break;
+            }
+            case TYPE_INT64: {
+                cur += snprintf(cur, end-cur, "%"PRId64, *(int64_t*)(data+offset));
+                break;
+            }
+            case TYPE_FLOAT16: {
+                //TODO
+                break;
+            }
+            case TYPE_FLOAT32: {
+                cur += snprintf(cur, end-cur, "%s", format_float(*(float*)(data+offset)));
+                break;
+            }
+            case TYPE_FLOAT64: {
+                cur += snprintf(cur, end-cur, "%s", format_float(*(double*)(data+offset)));
+                break;
+            }
+            }
+            
+            offset += stride;
+            
+            bool at_end = offset+type_size > buf_size;
+            
+            if ((i != components-1) && !at_end)
+                cur += snprintf(cur, end-cur, ", ");
+            
+            if (at_end)
+                break;
+        }
+        
+        if (components>1)
+            cur += snprintf(cur, end-cur, "]");
+        
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
+}
+
 void quit_callback(GObject* obj, gpointer user_data) {
     gtk_main_quit();
 }
@@ -319,7 +471,6 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    
     if (!path)
         return;
     
@@ -399,6 +550,19 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     }
 }
 
+void update_buffer_view_callback(GObject* obj, gpointer user_data) {
+    GObject* buf_tree_view = gtk_builder_get_object(builder, "buffers_treeview");
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(buf_tree_view), &path, NULL);
+    if (!path)
+        return;
+    
+    //Initialize params
+    size_t index = gtk_tree_path_get_indices(path)[0];
+    
+    update_buffer_view(index);
+}
+
 static void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
@@ -407,6 +571,21 @@ static void init_texture_list(GtkTreeView* tree) {
         char str[64];
         memset(str, 0, 64);
         snprintf(str, 64, "%u", inspect_get_tex(inspector, i));
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
+}
+
+static void init_buffer_list(GtkTreeView* tree) {
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    for (size_t i = 0; i < inspect_get_buf_count(inspector); ++i) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", inspect_get_buf(inspector, i));
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -538,6 +717,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         
         seek_inspector(inspector, indices[0], indices[1]);
         init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
+        init_buffer_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffers_treeview")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
@@ -749,11 +929,38 @@ int main(int argc, char** argv) {
     gtk_tree_store_append(buf_type_store, &row, NULL);
     gtk_tree_store_set(buf_type_store, &row, 0, "Int64", -1);
     g_object_unref(buf_type_store);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(buf_type), TYPE_FLOAT32);
     
+    //Initialize buffer stride and offset
     GtkSpinButton* button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "stride"));
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 4294967295);
     button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "offset"));
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 4294967295);
+    button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "components"));
+    gtk_adjustment_set_lower(gtk_spin_button_get_adjustment(button), 1);
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 4294967295);
+    
+    //Initialize buffer list view
+    GObject* buf_list_view = gtk_builder_get_object(builder, "buffers_treeview");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(buf_list_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(buf_list_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
+    //Initialize buffer content view
+    GObject* buf_content_view = gtk_builder_get_object(builder, "buffer_content_treeview");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(buf_content_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(buf_content_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);

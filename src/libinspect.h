@@ -141,6 +141,7 @@ inspector_t* create_inspector(inspection_t* inspection);
 void free_inspector(inspector_t* inspector);
 void seek_inspector(inspector_t* inspector, size_t frame, size_t cmd);
 size_t inspect_get_tex_count(inspector_t* inspector);
+size_t inspect_get_buf_count(inspector_t* inspector);
 //0 on failure
 unsigned int inspect_get_tex(inspector_t* inspector, size_t index);
 //Negative if it could not be found
