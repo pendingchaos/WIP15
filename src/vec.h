@@ -9,6 +9,7 @@ vec_t alloc_vec(size_t amount);
 void free_vec(vec_t vec);
 void append_vec(vec_t vec, size_t amount, void* data);
 void resize_vec(vec_t vec, size_t new_size);
+void remove_vec(vec_t vec, size_t offset, size_t amount);
 size_t get_vec_size(vec_t vec);
 void* get_vec_data(vec_t vec);
 #endif

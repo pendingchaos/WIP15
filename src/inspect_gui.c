@@ -330,69 +330,71 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     if (!inspect_get_tex_params(inspector, tex_index, &params))
         return;
     
-    GtkTreeIter row;
-    #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
-gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
-    VAL("Type", static_format("%s", get_enum_str("TextureTarget", params.type)));
-    VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
-    VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
-    VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
-    VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
-    VAL("Base Level", static_format("%d", params.base_level));
-    VAL("Max Level", static_format("%d", params.max_level));
-    VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
-    VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
-    VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
-    VAL("Priority", static_format("%s", format_float(params.priority)));
-    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
-    VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
-    VAL("Depth Texture Mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
-    VAL("Generate Mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
-    VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
-    VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
-    VAL("Swizzle", static_format("[%s, %s, %s, %s]",
-                                 get_enum_str(NULL, params.swizzle[0]),
-                                 get_enum_str(NULL, params.swizzle[1]),
-                                 get_enum_str(NULL, params.swizzle[2]),
-                                 get_enum_str(NULL, params.swizzle[3])));
-    VAL("Border Color", static_format("[%s, %s, %s, %s]",
-                                     format_float(params.border_color[0]),
-                                     format_float(params.border_color[1]),
-                                     format_float(params.border_color[2]),
-                                     format_float(params.border_color[3])));
-    VAL("Width", static_format("%u", params.width));
-    VAL("Height", static_format("%u", params.height));
-    VAL("Depth", static_format("%u", params.depth));
-    VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
-    #undef VAL
-    
-    //Initialize images
-    size_t level = 0;
-    size_t w = params.width;
-    size_t h = params.height;
-    while ((w > 1) && (h > 1)) {
-        void* data;
-        inspect_get_tex_data(inspector, tex_index, level, &data);
-        
+    if (params.type) {
         GtkTreeIter row;
-        gtk_tree_store_append(image_store, &row, NULL);
+        #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
+    gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
+        VAL("Type", static_format("%s", get_enum_str("TextureTarget", params.type)));
+        VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
+        VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
+        VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
+        VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
+        VAL("Base Level", static_format("%d", params.base_level));
+        VAL("Max Level", static_format("%d", params.max_level));
+        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
+        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
+        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
+        VAL("Priority", static_format("%s", format_float(params.priority)));
+        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
+        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
+        VAL("Depth Texture Mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
+        VAL("Generate Mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
+        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
+        VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
+        VAL("Swizzle", static_format("[%s, %s, %s, %s]",
+                                     get_enum_str(NULL, params.swizzle[0]),
+                                     get_enum_str(NULL, params.swizzle[1]),
+                                     get_enum_str(NULL, params.swizzle[2]),
+                                     get_enum_str(NULL, params.swizzle[3])));
+        VAL("Border Color", static_format("[%s, %s, %s, %s]",
+                                         format_float(params.border_color[0]),
+                                         format_float(params.border_color[1]),
+                                         format_float(params.border_color[2]),
+                                         format_float(params.border_color[3])));
+        VAL("Width", static_format("%u", params.width));
+        VAL("Height", static_format("%u", params.height));
+        VAL("Depth", static_format("%u", params.depth));
+        VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
+        #undef VAL
         
-        if (!data) {
-            gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, NULL, -1);
-        } else {
-            GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
-            uint32_t* dest = (uint32_t*)gdk_pixbuf_get_pixels(pixbuf);
-            for (size_t y = 0; y < h; y++) {
-                for (size_t x = 0; x < w; x++) {
-                    dest[(h-1-y)*w+x] = ((uint32_t*)data)[y*w+x];
+        //Initialize images
+        size_t level = 0;
+        size_t w = params.width;
+        size_t h = params.height;
+        while ((w > 1) && (h > 1)) {
+            void* data;
+            inspect_get_tex_data(inspector, tex_index, level, &data);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(image_store, &row, NULL);
+            
+            if (!data) {
+                gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, NULL, -1);
+            } else {
+                GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
+                uint32_t* dest = (uint32_t*)gdk_pixbuf_get_pixels(pixbuf);
+                for (size_t y = 0; y < h; y++) {
+                    for (size_t x = 0; x < w; x++) {
+                        dest[(h-1-y)*w+x] = ((uint32_t*)data)[y*w+x];
+                    }
                 }
+                gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
             }
-            gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
+            
+            level++;
+            w /= 2;
+            h /= 2;
         }
-        
-        level++;
-        w /= 2;
-        h /= 2;
     }
 }
 

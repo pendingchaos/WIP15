@@ -302,18 +302,10 @@ void free_inspector(inspector_t* inspector) {
     free(inspector);
 }
 
-static texture_t* find_or_create_tex(inspector_t* inspector, unsigned int fake) {
+static texture_t* find_tex(inspector_t* inspector, unsigned int fake) {
     int tex_index = inspect_find_tex(inspector, fake);
     if (tex_index == -1) {
-        tex_index = get_vec_size(inspector->textures)/sizeof(texture_t);
-        texture_t tex;
-        tex.fake = fake;
-        tex.params.texture = fake;
-        tex.params.width = 0;
-        tex.params.height = 0;
-        tex.mipmap_count = 0;
-        tex.mipmaps = NULL;
-        append_vec(inspector->textures, sizeof(texture_t), &tex);
+        return NULL;
     }
     
     return (texture_t*)get_vec_data(inspector->textures) + tex_index;
@@ -328,7 +320,10 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         switch (action->type) {
         case InspectAction_TexParams: {
             inspect_gl_tex_params_t* params = &action->tex_params;
-            texture_t* tex = find_or_create_tex(inspector, params->texture);
+            texture_t* tex = find_tex(inspector, params->texture);
+            
+            if (!tex)
+                break;
             
             if (tex->params.width != params->width || tex->params.height != params->height) {
                 size_t mipmap_count = 1;
@@ -355,7 +350,10 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         }
         case InspectAction_TexData: {
             inspect_gl_tex_data_t* data = &action->tex_data;
-            texture_t* tex = find_or_create_tex(inspector, data->texture);
+            texture_t* tex = find_tex(inspector, data->texture);
+            
+            if (!tex)
+                break;
             
             if (!tex->mipmaps[data->mipmap])
                 tex->mipmaps[data->mipmap] = malloc(data->data_size);
@@ -364,9 +362,30 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             break;
         }
         case InspectAction_GenTexture: {
+            texture_t tex;
+            tex.fake = action->texture;
+            tex.params.texture = action->texture;
+            tex.params.width = 0;
+            tex.params.height = 0;
+            tex.params.type = 0;
+            tex.mipmap_count = 0;
+            tex.mipmaps = NULL;
+            append_vec(inspector->textures, sizeof(texture_t), &tex);
             break;
         }
         case InspectAction_DelTexture: {
+            texture_t* tex = find_tex(inspector, action->texture);
+            
+            if (!tex)
+                break;
+            
+            for (size_t j = 0; j < tex->mipmap_count; ++j)
+                free(tex->mipmaps[j]);
+            free(tex->mipmaps);
+            
+            size_t offset = tex - (texture_t*)get_vec_data(inspector->textures);
+            offset *= sizeof(texture_t);
+            remove_vec(inspector->textures, offset, sizeof(texture_t));
             break;
         }
         case InspectAction_GenBuffer: {
