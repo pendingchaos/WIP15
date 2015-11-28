@@ -3,13 +3,24 @@
 #include "libtrace.h"
 #include <stdbool.h>
 
-typedef struct tex_inspector_t tex_inspector_t;
+typedef struct inspector_t inspector_t;
 
 typedef enum {
     AttachType_Info,
     AttachType_Warning,
     AttachType_Error
 } attachment_type_t;
+
+typedef enum {
+    InspectAction_GenTexture,
+    InspectAction_DelTexture,
+    InspectAction_TexParams,
+    InspectAction_TexData,
+    InspectAction_GenBuffer,
+    InspectAction_DelBuffer,
+    InspectAction_BufferData,
+    InspectAction_BufferSubData
+} inspect_action_type_t;
 
 typedef struct inspect_attachment_t {
     attachment_type_t type;
@@ -29,7 +40,7 @@ typedef struct {
 } inspect_image_t;
 
 typedef struct {
-    unsigned int fake_texture;
+    unsigned int texture;
     unsigned int type;
     unsigned int min_filter;
     unsigned int mag_filter;
@@ -56,19 +67,44 @@ typedef struct {
 } inspect_gl_tex_params_t;
 
 typedef struct {
-    unsigned int fake_texture;
+    unsigned int texture;
     size_t mipmap;
     size_t data_size;
     void* data;
 } inspect_gl_tex_data_t;
 
 typedef struct {
+    unsigned int buffer;
+    uint32_t size;
+    void* data;
+    unsigned int usage;
+} inspect_gl_buffer_data_t;
+
+typedef struct {
+    unsigned int buffer;
+    uint32_t offset;
+    uint32_t size;
+    void* data;
+} inspect_gl_buffer_sub_data_t;
+
+typedef struct {
+    inspect_action_type_t type;
+    union {
+        unsigned int texture; //GenTexture and DelTexture
+        inspect_gl_tex_params_t tex_params; //TexParams
+        inspect_gl_tex_data_t tex_data; //TexData
+        unsigned int buffer; //GenBuffer and DelBuffer
+        inspect_gl_buffer_data_t buf_data; //BufferData
+        inspect_gl_buffer_sub_data_t buf_sub_data; //BufferSubData
+    };
+} inspect_action_t;
+
+typedef struct {
     vec_t entries; //inspect_gl_state_entry_t
     inspect_image_t back; //data is NULL if it did not change. RGBA
     inspect_image_t front; //data is NULL if it did not change. RGBA
     inspect_image_t depth; //data is NULL if it did not change. uint32_t
-    vec_t texture_params; //vec_t of inspect_gl_tex_params_t.
-    vec_t texture_data; //vec_t of inspect_gl_tex_data_t.
+    vec_t actions; //vec_t of inspect_action_t
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {
@@ -101,15 +137,15 @@ void inspect_add_warning(inspect_command_t* command, const char* format, ...);
 void inspect_add_error(inspect_command_t* command, const char* format, ...);
 void inspect_add_attachment(inspect_command_t* command, inspect_attachment_t* attach);
 
-tex_inspector_t* create_tex_inspector(inspection_t* inspection);
-void free_tex_inspector(tex_inspector_t* inspector);
-void seek_tex_inspector(tex_inspector_t* inspector, size_t frame, size_t cmd);
-size_t inspect_get_tex_count(tex_inspector_t* inspector);
+inspector_t* create_inspector(inspection_t* inspection);
+void free_inspector(inspector_t* inspector);
+void seek_inspector(inspector_t* inspector, size_t frame, size_t cmd);
+size_t inspect_get_tex_count(inspector_t* inspector);
 //0 on failure
-unsigned int inspect_get_tex(tex_inspector_t* inspector, size_t index);
+unsigned int inspect_get_tex(inspector_t* inspector, size_t index);
 //Negative if it could not be found
-int inspect_find_tex(tex_inspector_t* inspector, unsigned int tex);
+int inspect_find_tex(inspector_t* inspector, unsigned int tex);
 //True if it succeeded.
-bool inspect_get_tex_params(tex_inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
-bool inspect_get_tex_data(tex_inspector_t* inspector, size_t index, size_t level, void** data);
+bool inspect_get_tex_params(inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
+bool inspect_get_tex_data(inspector_t* inspector, size_t index, size_t level, void** data);
 #endif

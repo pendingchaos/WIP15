@@ -477,7 +477,7 @@ static void replay_get_tex_params(replay_context_t* ctx,
     }
     
     inspect_gl_tex_params_t params;
-    params.fake_texture = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+    params.texture = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
     params.type = target;
     F(glGetTexParameteriv)(target, GL_TEXTURE_MIN_FILTER, (GLint*)&params.min_filter);
     F(glGetTexParameteriv)(target, GL_TEXTURE_MAG_FILTER, (GLint*)&params.mag_filter);
@@ -506,7 +506,10 @@ static void replay_get_tex_params(replay_context_t* ctx,
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, (GLint*)&params.depth);
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&params.internal_format);
     
-    append_vec(cmd->state.texture_params, sizeof(inspect_gl_tex_params_t), &params);
+    inspect_action_t action;
+    action.type = InspectAction_TexParams;
+    action.tex_params = params;
+    append_vec(cmd->state.actions, sizeof(inspect_action_t), &action);
 }
 
 static void replay_get_tex_data(replay_context_t* ctx,
@@ -552,12 +555,15 @@ static void replay_get_tex_data(replay_context_t* ctx,
         F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
         inspect_gl_tex_data_t tex_data;
-        tex_data.fake_texture = tex;
+        tex_data.texture = tex;
         tex_data.mipmap = level;
         tex_data.data = data;
         tex_data.data_size = width*height*4;
         
-        append_vec(cmd->state.texture_data, sizeof(inspect_gl_tex_data_t), &tex_data);
+        inspect_action_t action;
+        action.type = InspectAction_TexData;
+        action.tex_data = tex_data;
+        append_vec(cmd->state.actions, sizeof(inspect_action_t), &action);
     } else {
         //TODO
     }

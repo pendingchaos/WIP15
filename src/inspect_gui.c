@@ -16,7 +16,7 @@ static GtkBuilder* builder;
 static GdkPixbuf* info_pixbuf;
 static GdkPixbuf* warning_pixbuf;
 static GdkPixbuf* error_pixbuf;
-static tex_inspector_t* tex_inspector;
+static inspector_t* inspector;
 
 static const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++) {
@@ -327,7 +327,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     
     inspect_gl_tex_params_t params;
-    if (!inspect_get_tex_params(tex_inspector, tex_index, &params))
+    if (!inspect_get_tex_params(inspector, tex_index, &params))
         return;
     
     GtkTreeIter row;
@@ -372,7 +372,7 @@ gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
     size_t h = params.height;
     while ((w > 1) && (h > 1)) {
         void* data;
-        inspect_get_tex_data(tex_inspector, tex_index, level, &data);
+        inspect_get_tex_data(inspector, tex_index, level, &data);
         
         GtkTreeIter row;
         gtk_tree_store_append(image_store, &row, NULL);
@@ -400,10 +400,10 @@ static void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < inspect_get_tex_count(tex_inspector); ++i) {
+    for (size_t i = 0; i < inspect_get_tex_count(inspector); ++i) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", inspect_get_tex(tex_inspector, i));
+        snprintf(str, 64, "%u", inspect_get_tex(inspector, i));
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -527,7 +527,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         assert(indices[1] < frame->command_count);
         inspect_command_t* cmd = frame->commands + indices[1];
         
-        seek_tex_inspector(tex_inspector, indices[0], indices[1]);
+        seek_inspector(inspector, indices[0], indices[1]);
         init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
@@ -581,7 +581,7 @@ int main(int argc, char** argv) {
     inspection_t* inspection = create_inspection(trace);
     inspect(inspection);
     
-    tex_inspector = create_tex_inspector(inspection);
+    inspector = create_inspector(inspection);
     
     gtk_init(&argc, &argv);
     
@@ -758,7 +758,7 @@ int main(int argc, char** argv) {
     g_object_unref(info_pixbuf);
     g_object_unref(icon_theme);
     
-    free_tex_inspector(tex_inspector);
+    free_inspector(inspector);
     free_inspection(inspection);
     free_trace(trace);
     
