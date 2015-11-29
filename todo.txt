@@ -9,7 +9,7 @@ Debugging:
         Uninitialized textures
         Uninitialized buffers
         Unused uniforms
-    View meshes
+    View VAOs
     View lists
     View samplers
     View queries
