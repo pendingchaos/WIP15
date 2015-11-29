@@ -66,6 +66,8 @@ typedef struct trace_frame_t {
 } trace_frame_t;
 
 typedef struct {
+    bool little_endian;
+    
     uint32_t func_name_count;
     char** func_names;
     

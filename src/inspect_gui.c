@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <math.h>
+#include <endian.h>
 
 #define TYPE_FLOAT16 0
 #define TYPE_FLOAT32 1
@@ -29,6 +30,7 @@ static GdkPixbuf* info_pixbuf;
 static GdkPixbuf* warning_pixbuf;
 static GdkPixbuf* error_pixbuf;
 static inspector_t* inspector;
+static trace_t* trace;
 
 static const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++) {
@@ -103,7 +105,7 @@ static char* format_float(double val) {
     return data;
 }
 
-static void format_value(char* str, trace_value_t value, const trace_t* trace) {
+static void format_value(char* str, trace_value_t value) {
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         
@@ -175,7 +177,7 @@ static void format_value(char* str, trace_value_t value, const trace_t* trace) {
     if (value.count > 1) strcat(str, static_format("]"));
 }
 
-static void format_command(char* str, inspect_command_t* command, const trace_t* trace) {
+static void format_command(char* str, inspect_command_t* command) {
     trace_command_t* trace_cmd = command->trace_cmd;
     
     strcat(str, static_format("%s(", command->name));
@@ -184,7 +186,7 @@ static void format_command(char* str, inspect_command_t* command, const trace_t*
     for (size_t i = 0; i < count; ++i) {
         trace_arg_t* arg = ((trace_arg_t*)get_vec_data(command->trace_cmd->args)) + i;
         
-        format_value(str, arg->val, trace);
+        format_value(str, arg->val);
         if (i != count-1) {
             strcat(str, static_format(", "));
         }
@@ -194,7 +196,7 @@ static void format_command(char* str, inspect_command_t* command, const trace_t*
     
     if (trace_cmd->ret.type != Type_Void) {
         strcat(str, static_format(" = "));
-        format_value(str, trace_cmd->ret, trace);
+        format_value(str, trace_cmd->ret);
     }
 }
 
@@ -241,7 +243,7 @@ static void init_trace_tree(GtkTreeView* tree,
             inspect_command_t* cmd = frame->commands + j;
             char cmd_str[1024];
             memset(cmd_str, 0, 1024);
-            format_command(cmd_str, cmd, inspection->trace);
+            format_command(cmd_str, cmd);
             
             bool error = false;
             bool warning = false;
@@ -280,8 +282,7 @@ static void init_trace_tree(GtkTreeView* tree,
 }
 
 static void init_state_tree(GtkTreeView* tree,
-                            inspect_gl_state_t* state,
-                            const trace_t* trace) {
+                            inspect_gl_state_t* state) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
@@ -292,7 +293,7 @@ static void init_state_tree(GtkTreeView* tree,
         
         char val_str[1024];
         memset(val_str, 0, 1024);
-        format_value(val_str, entry->val, trace);
+        format_value(val_str, entry->val);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -375,6 +376,7 @@ void update_buffer_view(size_t buf_index) {
             cur += snprintf(cur, end-cur, "[");
         
         for (size_t i = 0; i < components; i++) {
+            #define CE(v, fle, fbe) (trace->little_endian ? fle(v) : fbe(v))
             switch (type) {
             case TYPE_UINT8: {
                 cur += snprintf(cur, end-cur, "%"PRIu8, *(uint8_t*)(data+offset));
@@ -385,27 +387,33 @@ void update_buffer_view(size_t buf_index) {
                 break;
             }
             case TYPE_UINT16: {
-                cur += snprintf(cur, end-cur, "%"PRIu16, *(uint16_t*)(data+offset));
+                uint16_t v = *(uint16_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRIu16, CE(v, le16toh, be16toh));
                 break;
             }
             case TYPE_INT16: {
-                cur += snprintf(cur, end-cur, "%"PRId16, *(int16_t*)(data+offset));
+                int16_t v = *(int16_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRId16, CE(v, le16toh, be16toh));
                 break;
             }
             case TYPE_UINT32: {
-                cur += snprintf(cur, end-cur, "%"PRIu32, *(uint32_t*)(data+offset));
+                uint32_t v = *(uint32_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRIu32, CE(v, le32toh, be32toh));
                 break;
             }
             case TYPE_INT32: {
-                cur += snprintf(cur, end-cur, "%"PRId32, *(int32_t*)(data+offset));
+                int32_t v = *(int32_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRId32, CE(v, le32toh, be32toh));
                 break;
             }
             case TYPE_UINT64: {
-                cur += snprintf(cur, end-cur, "%"PRIu64, *(uint64_t*)(data+offset));
+                uint64_t v = *(uint64_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRIu64, CE(v, le64toh, be64toh));
                 break;
             }
             case TYPE_INT64: {
-                cur += snprintf(cur, end-cur, "%"PRId64, *(int64_t*)(data+offset));
+                int64_t v = *(int64_t*)(data+offset);
+                cur += snprintf(cur, end-cur, "%"PRId64, CE(v, le64toh, be64toh));
                 break;
             }
             case TYPE_FLOAT16: {
@@ -733,8 +741,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         }
         
         init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
-                        &cmd->state,
-                        inspection->trace);
+                        &cmd->state);
         
         init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_treeview")),
                               indices[0],
@@ -754,8 +761,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
     
-    trace_t* trace = load_trace(argv[1]);
-    
+    trace = load_trace(argv[1]);
     {
         trace_error_t error = get_trace_error();
         if (error == TraceError_Invalid) {

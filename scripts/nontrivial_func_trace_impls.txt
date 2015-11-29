@@ -116,7 +116,7 @@ glTexImage2D:
     
     gl_param_GLenum(target, GROUP_TextureTarget);
     gl_param_GLint(level, -1);
-    gl_param_GLint(internalformat, GROUP_InternalFormat);
+    gl_param_GLint(internalformat, -1); //TODO: The group
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLint(border, -1);

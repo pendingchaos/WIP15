@@ -83,7 +83,6 @@ static void set_uint(trace_value_t* val, uint64_t i) {
 //0 = End
 //1 = Arg
 //2 = Result
-//TODO: Some of this code assumes little endian.
 static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
     uint8_t type;
     if (!readf(&type, 1, 1, file)) {
@@ -198,7 +197,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 16-bit unsigned integer";
             return -1;
         }
-        set_uint(val, v);
+        set_uint(val, le16toh(v));
         group = true;
         break;
     }
@@ -208,7 +207,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 16-bit signed integer";
             return -1;
         }
-        set_int(val, v);
+        set_int(val, le16toh(v));
         group = true;
         break;
     }
@@ -218,7 +217,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 32-bit unsigned integer";
             return -1;
         }
-        set_uint(val, v);
+        set_uint(val, le32toh(v));
         group = true;
         break;
     }
@@ -228,7 +227,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 32-bit signed integer";
             return -1;
         }
-        set_int(val, v);
+        set_int(val, le16toh(v));
         group = true;
         break;
     }
@@ -238,7 +237,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 64-bit unsigned integer";
             return -1;
         }
-        set_uint(val, v);
+        set_uint(val, le64toh(v));
         group = true;
         break;
     }
@@ -248,12 +247,12 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             trace_error_desc = "Unable to read 64-bit signed integer";
             return -1;
         }
-        set_int(val, v);
+        set_int(val, le64toh(v));
         group = true;
         break;
     }
     case 14: { //boolean
-        int8_t v;
+        uint8_t v;
         if (!readf(&v, 1, 1, file)) {
             trace_error_desc = "Unable to read boolean";
             return -1;
@@ -450,6 +449,15 @@ trace_t *load_trace(const char* filename) {
     trace->func_name_count = 0;
     trace->group_name_count = 0;
     trace->frames = NULL;
+    
+    uint8_t little_endian;
+    if (!readf(&little_endian, 1, 1, file)) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Unable to read endian";
+        free_trace(trace);
+        return NULL;
+    }
+    trace->little_endian = little_endian;
     
     if (!readf(&trace->func_name_count, 4, 1, file)) {
         trace_error = TraceError_Invalid;

@@ -1002,6 +1002,14 @@ output.write("""void __attribute__ ((constructor)) gl_init() {
     char *output = getenv("WIP15_OUTPUT");
     trace_file = fopen(output == NULL ? "output.trace" : output, "wb");
     
+    if (trace_file == NULL) {
+        fprintf(stderr, "Unable to open/create %s.", output==NULL?"output.trace":output);
+        exit(1);
+    }
+    
+    uint8_t v = BYTE_ORDER == LITTLE_ENDIAN;
+    fwrite(&v, 1, 1, trace_file);
+    
     lib_gl = actual_dlopen("libGL.so.1", RTLD_NOW|RTLD_LOCAL);
     
     if (lib_gl == NULL) {
