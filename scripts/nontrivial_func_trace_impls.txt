@@ -114,14 +114,14 @@ glTexImage2D:
         final_size = base + (extra?alignment:0);
     }
     
-    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLenum(target, GROUP_TextureTarget);
     gl_param_GLint(level, -1);
-    gl_param_GLint(internalformat, -1); //TODO: The group
+    gl_param_GLint(internalformat, GROUP_InternalFormat);
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLint(border, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLenum(format, GROUP_PixelFormat); 
+    gl_param_GLenum(type, GROUP_PixelType);
     
     if (pixels) {
         gl_param_data(width*height*final_size, pixels);
@@ -169,7 +169,7 @@ glBufferSubData:
 
 glVertexPointer:
     gl_param_GLint(size, -1);
-    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLenum(type, GROUP_VertexPointerType);
     gl_param_GLsizei(stride, -1);
     
     GLint buffer;
@@ -185,7 +185,7 @@ glVertexPointer:
 
 glTexCoordPointer:
     gl_param_GLint(size, -1);
-    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLenum(type, GROUP_TexCoordPointerType);
     gl_param_GLsizei(stride, -1);
     
     GLint buffer;

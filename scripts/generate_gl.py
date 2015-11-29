@@ -832,6 +832,11 @@ static void gl_result_GLXPbufferSGIX(GLXPbufferSGIX value) {
 
 """)
 
+for group in gl.groups.keys():
+    output.write("#define GROUP_%s %d\n" % (group, groupToID[group]))
+
+output.write("\n")
+
 for name in gl.functions:
     function = gl.functions[name]
     
