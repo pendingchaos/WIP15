@@ -10,8 +10,13 @@ Debugging:
         Uninitialized buffers
         Unused uniforms
     View meshes
-    View buffers
-    View state
+    View lists
+    View samplers
+    View queries
+    View sync objects
+    View shaders
+    View programs
+    View program pipelines
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
@@ -31,7 +36,7 @@ Performance:
         Improve using timer queries
     Slow paths
     Shader profiler
-        Can use recent extensions (timers and SSBOs)
+        Can use timers and SSBOs though they may not be available
         Possible without but may not be reliable
 
 Bugs:
@@ -51,6 +56,6 @@ Enum state values are not displayed as enums.
 Use a cross-platform library instead of GLX.
     SDL2
 
-Textures are not tracked when created using glGenTextures.
+1D, 3D, cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 
-Textures are still tracked after glDeleteTextures.
+Enabling or disabling state depending on OpenGL version and extensions.
