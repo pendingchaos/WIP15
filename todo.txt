@@ -9,14 +9,18 @@ Debugging:
         Uninitialized textures
         Uninitialized buffers
         Unused uniforms
-    View VAOs
-    View lists
-    View samplers
-    View queries
-    View sync objects
-    View shaders
-    View programs
-    View program pipelines
+    View
+        VAOs
+        display lists
+        samplers
+        queries
+            timer
+        sync objects
+        shaders
+        programs
+        program pipelines
+        framebuffer
+        renderbuffer
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
