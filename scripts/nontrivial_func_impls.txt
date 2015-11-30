@@ -284,3 +284,77 @@ glMultTransposeMatrixd:
 
 glMultTransposeMatrixf:
     F(glMultTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+
+glCreateShader:
+    GLenum type = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLuint real_shdr = F(glCreateShader)(type);
+    GLuint fake = trace_get_uint(&command->ret)[0];
+    replay_create_object(ctx, ReplayObjType_GLShader, real_shdr, fake);
+    
+    inspect_action_t action;
+    action.type = InspectAction_NewShader;
+    action.new_shader.type = type;
+    action.new_shader.shader = fake;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glDeleteShader:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr) {
+        inspect_add_error(inspect_command, "Invalid shader.");
+        return;
+    }
+    
+    F(glDeleteShader)(real_shdr);
+    
+    replay_destroy_object(ctx, ReplayObjType_GLShader, fake);
+    
+    inspect_action_t action;
+    action.type = InspectAction_DelShader;
+    action.del_shader = fake;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glShaderSource:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLsizei count = gl_param_GLsizei(&trace_get_arg(command, 1)->val);
+    char** sources = gl_param_string_array(&trace_get_arg(command, 2)->val);
+    
+    GLuint shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!shader) {
+        inspect_add_error(inspect_command, "Invalid shader.");
+        return;
+    }
+    
+    inspect_action_t action;
+    action.type = InspectAction_ShaderSource;
+    action.shader_source.shader = fake;
+    action.shader_source.count = count;
+    action.shader_source.sources = malloc(sizeof(char*)*count);
+    
+    if (trace_get_arg(command, 3)->val.count == 0) {
+        real(shader, 1, (const GLchar*const*)sources, NULL);
+        
+        for (GLsizei i = 0; i < count; i++) {
+            size_t len = strlen(sources[i]);
+            action.shader_source.sources[i] = malloc(len+1);
+            memcpy(action.shader_source.sources[i], sources[i], len);
+            action.shader_source.sources[i][len] = 0;
+        }
+    } else {
+        uint64_t* lengths64 = trace_get_uint(&trace_get_arg(command, 3)->val);
+        
+        GLint lengths[count];
+        for (GLsizei i = 0; i < count; i++) {
+            lengths[i] = lengths64[i];
+        }
+        
+        real(shader, count, (const GLchar*const*)sources, lengths);
+        
+        for (GLsizei i = 0; i < count; i++) {
+            action.shader_source.sources[i] = malloc(lengths[i]+1);
+            memcpy(action.shader_source.sources[i], sources[i], lengths[i]);
+            action.shader_source.sources[i][lengths[i]] = 0;
+        }
+    }
+    
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);

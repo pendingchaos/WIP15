@@ -24,10 +24,17 @@ typedef struct {
     void* data;
 } buffer_t;
 
+typedef struct {
+    unsigned int fake;
+    unsigned int type;
+    char* source;
+} shader_t;
+
 struct inspector_t {
     inspection_t* inspection;
     vec_t textures; //vec_t of texture_t
     vec_t buffers; //vec_t of buffer_t
+    vec_t shaders; //vec_t of shader_t
 };
 
 static void update_context(uint64_t *context,
@@ -149,6 +156,19 @@ void free_inspection(inspection_t* inspection) {
                 }
                 case InspectAction_BufferSubData: {
                     free(action->buf_sub_data.data);
+                    break;
+                }
+                case InspectAction_NewShader: {
+                    break;
+                }
+                case InspectAction_DelShader: {
+                    break;
+                }
+                case InspectAction_ShaderSource: {
+                    for (size_t i = 0; i < action->shader_source.count; i++) {
+                        free(action->shader_source.sources[i]);
+                    }
+                    free(action->shader_source.sources);
                     break;
                 }
                 }
@@ -292,6 +312,7 @@ inspector_t* create_inspector(inspection_t* inspection) {
     inspector_t* res = malloc(sizeof(inspector_t));
     res->textures = alloc_vec(0);
     res->buffers = alloc_vec(0);
+    res->shaders = alloc_vec(0);
     res->inspection = inspection;
     return res;
 }
@@ -314,9 +335,18 @@ static void free_buffers(inspector_t* inspector) {
     }
 }
 
+static void free_shaders(inspector_t* inspector) {
+    size_t count = get_vec_size(inspector->shaders)/sizeof(shader_t);
+    for (size_t i = 0; i < count; ++i) {
+        shader_t* shdr = (shader_t*)get_vec_data(inspector->shaders) + i;
+        free(shdr->source);
+    }
+}
+
 void free_inspector(inspector_t* inspector) {
     free_buffers(inspector);
     free_textures(inspector);
+    free_vec(inspector->shaders);
     free_vec(inspector->buffers);
     free_vec(inspector->textures);
     free(inspector);
@@ -338,6 +368,15 @@ static buffer_t* find_buf(inspector_t* inspector, unsigned int fake) {
     }
     
     return (buffer_t*)get_vec_data(inspector->buffers) + buf_index;
+}
+
+static shader_t* find_shdr(inspector_t* inspector, unsigned int fake) {
+    int shdr_index = inspect_find_shdr(inspector, fake);
+    if (shdr_index == -1) {
+        return NULL;
+    }
+    
+    return (shader_t*)get_vec_data(inspector->shaders) + shdr_index;
 }
 
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
@@ -462,6 +501,50 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             memcpy((uint8_t*)buf->data+data->offset, data->data, data->size);
             break;
         }
+        case InspectAction_NewShader: {
+            shader_t shdr;
+            shdr.fake = action->new_shader.shader;
+            shdr.type = action->new_shader.type;
+            shdr.source = NULL;
+            append_vec(inspector->shaders, sizeof(shader_t), &shdr);
+            break;
+        }
+        case InspectAction_DelShader: {
+            shader_t* shdr = find_shdr(inspector, action->del_shader);
+            if (!shdr)
+                break;
+            
+            free(shdr->source);
+            
+            size_t offset = shdr - (shader_t*)get_vec_data(inspector->shaders);
+            offset *= sizeof(shader_t);
+            remove_vec(inspector->shaders, offset, sizeof(shader_t));
+            break;
+        }
+        case InspectAction_ShaderSource: {
+            shader_t* shdr = find_shdr(inspector, action->shader_source.shader);
+            if (!shdr)
+                break;
+            
+            free(shdr->source);
+            
+            size_t lens[action->shader_source.count];
+            size_t len = 0;
+            for (size_t i = 0; i < action->shader_source.count; i++) {
+                lens[i] = strlen(action->shader_source.sources[i]);
+                len += lens[i];
+            }
+            
+            shdr->source = malloc(len+1);
+            shdr->source[len] = 0;
+            
+            size_t offset = 0;
+            for (size_t i = 0; i < action->shader_source.count; i++) {
+                memcpy(shdr->source+offset, action->shader_source.sources[i], lens[i]);
+                offset += lens[i];
+            }
+            break;
+        }
         }
     }
 }
@@ -469,8 +552,10 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
 void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index) {
     free_buffers(inspector);
     free_textures(inspector);
+    free_shaders(inspector);
     resize_vec(inspector->buffers, 0);
     resize_vec(inspector->textures, 0);
+    resize_vec(inspector->shaders, 0);
     
     inspection_t* inspection = inspector->inspection;
     
@@ -494,6 +579,10 @@ size_t inspect_get_tex_count(inspector_t* inspector) {
 }
 
 size_t inspect_get_buf_count(inspector_t* inspector) {
+    return get_vec_size(inspector->buffers)/sizeof(buffer_t);
+}
+
+size_t inspect_get_shdr_count(inspector_t* inspector) {
     return get_vec_size(inspector->buffers)/sizeof(buffer_t);
 }
 
@@ -584,6 +673,48 @@ bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data) {
         return false;
     
     *data = ((buffer_t*)get_vec_data(buffers))[index].data;
+    
+    return true;
+}
+
+unsigned int inspect_get_shdr(inspector_t* inspector, size_t index) {
+    vec_t shaders = inspector->shaders;
+    size_t count = get_vec_size(shaders)/sizeof(shader_t);
+    
+    if (index >= count)
+        return false;
+    
+    return ((shader_t*)get_vec_data(shaders))[index].fake;
+}
+
+int inspect_find_shdr(inspector_t* inspector, unsigned int shdr) {
+    vec_t shaders = inspector->shaders;
+    size_t count = get_vec_size(shaders)/sizeof(shader_t);
+    for (size_t i = 0; i < count; ++i)
+        if (((shader_t*)get_vec_data(shaders))[i].fake == shdr)
+            return i;
+    
+    return -1;
+}
+
+int inspect_get_shdr_type(inspector_t* inspector, size_t index) {
+    vec_t shaders = inspector->shaders;
+    size_t count = get_vec_size(shaders)/sizeof(shader_t);
+    
+    if (index >= count)
+        return -1;
+    
+    return ((shader_t*)get_vec_data(shaders))[index].type;
+}
+
+bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source) {
+    vec_t shaders = inspector->shaders;
+    size_t count = get_vec_size(shaders)/sizeof(shader_t);
+    
+    if (index >= count)
+        return false;
+    
+    *source = ((shader_t*)get_vec_data(shaders))[index].source;
     
     return true;
 }

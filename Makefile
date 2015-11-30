@@ -8,14 +8,14 @@ libtrace:
 
 libinspect:
 	gcc -c src/glapi.c -std=c99 -o src/glapi.o -w -rdynamic
-	gcc src/libinspect.c src/replay.c src/replay_gl.c src/vec.c  src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -O2
+	gcc src/libinspect.c src/replay.c src/replay_gl.c src/vec.c  src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
 	rm src/glapi.o
 
 trace:
 	gcc src/trace.c -o bin/trace -O2
 
 inspect-gui:
-	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -O2 `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
+	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
 
 clean:
 	rm bin/libtrace.so

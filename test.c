@@ -61,6 +61,10 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
     
+    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
+    static const char* source = "void main() {gl_Position = ftransform();}";
+    glShaderSource(shader, 1, &source, NULL);
+    
     while (1) {
         SDL_Event event;
         while (SDL_PollEvent(&event))

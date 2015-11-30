@@ -39,6 +39,10 @@ static const char* gl_param_string(trace_value_t* val) {
     return *trace_get_str(val);
 }
 
+static char** gl_param_string_array(trace_value_t* val) {
+    return trace_get_str(val);
+}
+
 static void* gl_param_data(trace_value_t* val) {
     return *trace_get_data(val);
 }

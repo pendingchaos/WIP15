@@ -129,8 +129,7 @@ static void gl_param_string_array(const GLchar*const* data, size_t count) {
     uint32_t count_le = htole32(count);
     fwrite(&count_le, 4, 1, trace_file);
     
-    size_t i;
-    for (i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
     {
         gl_write_str(data[i]);
     }

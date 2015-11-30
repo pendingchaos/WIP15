@@ -19,7 +19,10 @@ typedef enum {
     InspectAction_GenBuffer,
     InspectAction_DelBuffer,
     InspectAction_BufferData,
-    InspectAction_BufferSubData
+    InspectAction_BufferSubData,
+    InspectAction_NewShader,
+    InspectAction_DelShader,
+    InspectAction_ShaderSource
 } inspect_action_type_t;
 
 typedef struct inspect_attachment_t {
@@ -88,6 +91,17 @@ typedef struct {
 } inspect_gl_buffer_sub_data_t;
 
 typedef struct {
+    unsigned int shader;
+    unsigned int type;
+} inspect_gl_create_shader_t;
+
+typedef struct {
+    unsigned int shader;
+    size_t count;
+    char** sources;
+} inspect_gl_shader_source_t;
+
+typedef struct {
     inspect_action_type_t type;
     union {
         unsigned int texture; //GenTexture and DelTexture
@@ -96,6 +110,9 @@ typedef struct {
         unsigned int buffer; //GenBuffer and DelBuffer
         inspect_gl_buffer_data_t buf_data; //BufferData
         inspect_gl_buffer_sub_data_t buf_sub_data; //BufferSubData
+        inspect_gl_create_shader_t new_shader; //NewShader
+        unsigned int del_shader; //DelShader
+        inspect_gl_shader_source_t shader_source; //ShaderSource
     };
 } inspect_action_t;
 
@@ -157,4 +174,12 @@ int inspect_find_buf(inspector_t* inspector, unsigned int buf);
 int inspect_get_buf_size(inspector_t* inspector, size_t index);
 //True if it succeeded
 bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data);
+//0 on failure
+unsigned int inspect_get_shdr(inspector_t* inspector, size_t index);
+//Negative on failure
+int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
+//Negative on failure
+int inspect_get_shdr_type(inspector_t* inspector, size_t index);
+//True if it succeeded
+bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source);
 #endif

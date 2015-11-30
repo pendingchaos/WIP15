@@ -238,3 +238,27 @@ glMultTransposeMatrixf:
     for (size_t i = 0; i < 16; ++i) arr[i] = m[i];
     gl_param_double_array(16, arr);
     gl_glMultTransposeMatrixf(m);
+
+glShaderSource:
+    gl_param_GLuint(shader, -1);
+    gl_param_GLsizei(count, -1);
+    if (length) {
+        GLchar* sources[count];
+        
+        for (GLsizei i = 0; i < count; i++) {
+            sources[i] = malloc(length[i]+1);
+            memcpy(sources[i], string[i], length[i]);
+            sources[i][length[i]] = 0;
+        }
+        
+        gl_param_string_array((const GLchar*const*)sources, count);
+        
+        for (GLsizei i = 0; i < count; i++)
+            free(sources[i]);
+        
+        gl_param_GLuint_array(count, (GLint*)length);
+    } else {
+        gl_param_string_array(string, count);
+        gl_param_GLuint_array(0, NULL);
+    }
+    gl_glShaderSource(shader, count, string, length);
