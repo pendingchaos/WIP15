@@ -16,7 +16,7 @@ Debugging:
         queries
             timer
         sync objects
-        shaders
+        shaders info logs
         programs
         program pipelines
         framebuffer
