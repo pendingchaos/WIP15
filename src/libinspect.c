@@ -30,11 +30,17 @@ typedef struct {
     char* source;
 } shader_t;
 
+typedef struct {
+    unsigned int fake;
+    vec_t shaders; //vec_t of unsigned int
+} program_t;
+
 struct inspector_t {
     inspection_t* inspection;
     vec_t textures; //vec_t of texture_t
     vec_t buffers; //vec_t of buffer_t
     vec_t shaders; //vec_t of shader_t
+    vec_t programs; //vec_t of program_t
 };
 
 static void update_context(uint64_t *context,
@@ -169,6 +175,18 @@ void free_inspection(inspection_t* inspection) {
                         free(action->shader_source.sources[i]);
                     }
                     free(action->shader_source.sources);
+                    break;
+                }
+                case InspectAction_NewProgram: {
+                    break;
+                }
+                case InspectAction_DelProgram: {
+                    break;
+                }
+                case InspectAction_AttachShader: {
+                    break;
+                }
+                case InspectAction_DetachShader: {
                     break;
                 }
                 }
@@ -313,6 +331,7 @@ inspector_t* create_inspector(inspection_t* inspection) {
     res->textures = alloc_vec(0);
     res->buffers = alloc_vec(0);
     res->shaders = alloc_vec(0);
+    res->programs = alloc_vec(0);
     res->inspection = inspection;
     return res;
 }
@@ -343,9 +362,18 @@ static void free_shaders(inspector_t* inspector) {
     }
 }
 
+static void free_programs(inspector_t* inspector) {
+    size_t count = get_vec_size(inspector->programs)/sizeof(program_t);
+    for (size_t i = 0; i < count; ++i) {
+        program_t* prog = (program_t*)get_vec_data(inspector->programs) + i;
+        free_vec(prog->shaders);
+    }
+}
+
 void free_inspector(inspector_t* inspector) {
     free_buffers(inspector);
     free_textures(inspector);
+    free_vec(inspector->programs);
     free_vec(inspector->shaders);
     free_vec(inspector->buffers);
     free_vec(inspector->textures);
@@ -377,6 +405,15 @@ static shader_t* find_shdr(inspector_t* inspector, unsigned int fake) {
     }
     
     return (shader_t*)get_vec_data(inspector->shaders) + shdr_index;
+}
+
+static program_t* find_prog(inspector_t* inspector, unsigned int fake) {
+    int prog_index = inspect_find_prog(inspector, fake);
+    if (prog_index == -1) {
+        return NULL;
+    }
+    
+    return (program_t*)get_vec_data(inspector->programs) + prog_index;
 }
 
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
@@ -545,6 +582,55 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             }
             break;
         }
+        case InspectAction_NewProgram: {
+            program_t prog;
+            prog.fake = action->program;
+            prog.shaders = alloc_vec(0);
+            append_vec(inspector->programs, sizeof(program_t), &prog);
+            break;
+        }
+        case InspectAction_DelProgram: {
+            program_t* prog = find_prog(inspector, action->program);
+            if (!prog)
+                break;
+            
+            free_vec(prog->shaders);
+            
+            size_t offset = prog - (program_t*)get_vec_data(inspector->programs);
+            offset *= sizeof(program_t);
+            remove_vec(inspector->programs, offset, sizeof(program_t));
+            break;
+        }
+        case InspectAction_AttachShader: {
+            program_t* prog = find_prog(inspector, action->prog_shdr.program);
+            if (!prog)
+                break;
+            
+            size_t count = get_vec_size(prog->shaders)/sizeof(unsigned int);
+            bool attached = false;
+            for (size_t i = 0; i < count; i++)
+                if (((unsigned int *)get_vec_data(prog->shaders))[i] == action->prog_shdr.shader) {
+                    attached = true;
+                    break;
+                }
+            
+            if (!attached)
+                append_vec(prog->shaders, sizeof(unsigned int), &action->prog_shdr.shader);
+            break;
+        }
+        case InspectAction_DetachShader: {
+            program_t* prog = find_prog(inspector, action->prog_shdr.program);
+            if (!prog)
+                break;
+            
+            size_t count = get_vec_size(prog->shaders)/sizeof(unsigned int);
+            for (size_t i = 0; i < count; i++)
+                if (((unsigned int *)get_vec_data(prog->shaders))[i] == action->prog_shdr.shader) {
+                    remove_vec(prog->shaders, i*sizeof(unsigned int), sizeof(unsigned int));
+                    break;
+                }
+            break;
+        }
         }
     }
 }
@@ -553,9 +639,11 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     free_buffers(inspector);
     free_textures(inspector);
     free_shaders(inspector);
+    free_programs(inspector);
     resize_vec(inspector->buffers, 0);
     resize_vec(inspector->textures, 0);
     resize_vec(inspector->shaders, 0);
+    resize_vec(inspector->programs, 0);
     
     inspection_t* inspection = inspector->inspection;
     
@@ -575,15 +663,19 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
 }
 
 size_t inspect_get_tex_count(inspector_t* inspector) {
-    return get_vec_size(inspector->textures)/sizeof(texture_t);
+    return get_vec_size(inspector->textures) / sizeof(texture_t);
 }
 
 size_t inspect_get_buf_count(inspector_t* inspector) {
-    return get_vec_size(inspector->buffers)/sizeof(buffer_t);
+    return get_vec_size(inspector->buffers) / sizeof(buffer_t);
 }
 
 size_t inspect_get_shdr_count(inspector_t* inspector) {
-    return get_vec_size(inspector->shaders)/sizeof(shader_t);
+    return get_vec_size(inspector->shaders) / sizeof(shader_t);
+}
+
+size_t inspect_get_prog_count(inspector_t* inspector) {
+    return get_vec_size(inspector->programs) / sizeof(program_t);
 }
 
 unsigned int inspect_get_tex(inspector_t* inspector, size_t index) {
@@ -591,7 +683,7 @@ unsigned int inspect_get_tex(inspector_t* inspector, size_t index) {
     size_t count = get_vec_size(textures)/sizeof(texture_t);
     
     if (index >= count)
-        return false;
+        return 0;
     
     return ((texture_t*)get_vec_data(textures))[index].fake;
 }
@@ -640,7 +732,7 @@ unsigned int inspect_get_buf(inspector_t* inspector, size_t index) {
     size_t count = get_vec_size(buffers)/sizeof(buffer_t);
     
     if (index >= count)
-        return false;
+        return 0;
     
     return ((buffer_t*)get_vec_data(buffers))[index].fake;
 }
@@ -682,7 +774,7 @@ unsigned int inspect_get_shdr(inspector_t* inspector, size_t index) {
     size_t count = get_vec_size(shaders)/sizeof(shader_t);
     
     if (index >= count)
-        return false;
+        return 0;
     
     return ((shader_t*)get_vec_data(shaders))[index].fake;
 }
@@ -715,6 +807,38 @@ bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source
         return false;
     
     *source = ((shader_t*)get_vec_data(shaders))[index].source;
+    
+    return true;
+}
+
+unsigned int inspect_get_prog(inspector_t* inspector, size_t index) {
+    vec_t programs = inspector->programs;
+    size_t count = get_vec_size(programs)/sizeof(program_t);
+    
+    if (index >= count)
+        return 0;
+    
+    return ((program_t*)get_vec_data(programs))[index].fake;
+}
+
+int inspect_find_prog(inspector_t* inspector, unsigned int prog) {
+    vec_t programs = inspector->programs;
+    size_t count = get_vec_size(programs)/sizeof(program_t);
+    for (size_t i = 0; i < count; ++i)
+        if (((program_t*)get_vec_data(programs))[i].fake == prog)
+            return i;
+    
+    return -1;
+}
+
+bool inspect_get_prog_shaders(inspector_t* inspector, size_t index, vec_t* shaders) {
+    vec_t programs = inspector->programs;
+    size_t count = get_vec_size(programs)/sizeof(program_t);
+    
+    if (index >= count)
+        return false;
+    
+    *shaders = ((program_t*)get_vec_data(programs))[index].shaders;
     
     return true;
 }

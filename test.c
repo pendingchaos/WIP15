@@ -61,9 +61,21 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
     
-    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
-    static const char* source = "void main() {gl_Position = ftransform();}";
-    glShaderSource(shader, 1, &source, NULL);
+    GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
+    static const char* vert_source = "void main() {gl_Position = ftransform();}";
+    glShaderSource(vertex, 1, &vert_source, NULL);
+    glCompileShader(vertex);
+    
+    GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    static const char* frag_source = "void main() {gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}";
+    glShaderSource(fragment, 1, &frag_source, NULL);
+    glCompileShader(fragment);
+    
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex);
+    glAttachShader(program, fragment);
+    glLinkProgram(program);
+    glValidateProgram(program);
     
     while (1) {
         SDL_Event event;
@@ -83,6 +95,8 @@ int main(int argc, char **argv)
         glRotatef(45.0f, 1.0f, 0.0f, 0.0f);
         glRotatef(45.0f, 0.0f, 0.0f, 1.0f);
         
+        glUseProgram(program);
+        
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
         glVertexPointer(3, GL_FLOAT, 0, NULL);
@@ -96,6 +110,10 @@ int main(int argc, char **argv)
         SDL_GL_SwapWindow(window);
     }
     end:;
+    
+    glDeleteProgram(program);
+    glDeleteShader(fragment);
+    glDeleteShader(vertex);
     
     glDeleteBuffers(1, &tex_coord_buffer);
     glDeleteBuffers(1, &pos_buffer);

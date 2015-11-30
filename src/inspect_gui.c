@@ -589,7 +589,11 @@ static void init_texture_list(GtkTreeView* tree) {
 }
 
 static void init_buffer_list(GtkTreeView* tree) {
-    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffer_content_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
+    gtk_tree_store_clear(store);
+    
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
     for (size_t i = 0; i < inspect_get_buf_count(inspector); ++i) {
@@ -648,6 +652,25 @@ static void init_shader_list(GtkTreeView* tree) {
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
     gtk_text_buffer_set_text(source_buffer, "", -1);
+}
+
+static void init_program_list(GtkTreeView* tree) {
+    GtkTreeView* view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_shaders_view"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
+    gtk_tree_store_clear(store);
+    
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    for (size_t i = 0; i < inspect_get_prog_count(inspector); ++i) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", inspect_get_prog(inspector, i));
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
 }
 
 static void init_framebuffer_tree(GtkTreeView* tree,
@@ -776,6 +799,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
         init_buffer_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffers_treeview")));
         init_shader_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "shader_list_treeview")));
+        init_program_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_list_view")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
@@ -820,6 +844,34 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     inspect_get_shdr_source(inspector, index, &source);
     
     gtk_text_buffer_set_text(source_buffer, source, -1);
+}
+
+void program_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    
+    if (!path)
+        return;
+    
+    size_t index = gtk_tree_path_get_indices(path)[0];
+    
+    GtkTreeView* view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_shaders_view"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
+    gtk_tree_store_clear(store);
+    
+    vec_t shaders;
+    inspect_get_prog_shaders(inspector, index, &shaders);
+    
+    size_t count = get_vec_size(shaders) / sizeof(unsigned int);
+    for (size_t i = 0; i < count; i++) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", ((unsigned int*)get_vec_data(shaders))[i]);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -1049,6 +1101,28 @@ int main(int argc, char** argv) {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(shdr_list_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
+    
+    //Initialize program list view
+    GObject* prog_list_view = gtk_builder_get_object(builder, "program_list_view");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(prog_list_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(prog_list_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
+    //Initialize program shader view
+    GObject* prog_shdrs_view = gtk_builder_get_object(builder, "program_shaders_view");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(prog_shdrs_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(prog_shdrs_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);

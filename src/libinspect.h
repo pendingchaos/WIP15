@@ -22,7 +22,11 @@ typedef enum {
     InspectAction_BufferSubData,
     InspectAction_NewShader,
     InspectAction_DelShader,
-    InspectAction_ShaderSource
+    InspectAction_ShaderSource,
+    InspectAction_NewProgram,
+    InspectAction_DelProgram,
+    InspectAction_AttachShader,
+    InspectAction_DetachShader
 } inspect_action_type_t;
 
 typedef struct inspect_attachment_t {
@@ -102,6 +106,11 @@ typedef struct {
 } inspect_gl_shader_source_t;
 
 typedef struct {
+    unsigned int program;
+    unsigned int shader;
+} inspect_gl_prog_shdr_t;
+
+typedef struct {
     inspect_action_type_t type;
     union {
         unsigned int texture; //GenTexture and DelTexture
@@ -113,6 +122,8 @@ typedef struct {
         inspect_gl_create_shader_t new_shader; //NewShader
         unsigned int del_shader; //DelShader
         inspect_gl_shader_source_t shader_source; //ShaderSource
+        unsigned int program; //NewProgram, DelProgram
+        inspect_gl_prog_shdr_t prog_shdr; //AttachShader, DetachShader
     };
 } inspect_action_t;
 
@@ -160,6 +171,7 @@ void seek_inspector(inspector_t* inspector, size_t frame, size_t cmd);
 size_t inspect_get_tex_count(inspector_t* inspector);
 size_t inspect_get_buf_count(inspector_t* inspector);
 size_t inspect_get_shdr_count(inspector_t* inspector);
+size_t inspect_get_prog_count(inspector_t* inspector);
 //0 on failure
 unsigned int inspect_get_tex(inspector_t* inspector, size_t index);
 //Negative if it could not be found
@@ -183,4 +195,10 @@ int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
 int inspect_get_shdr_type(inspector_t* inspector, size_t index);
 //True if it succeeded
 bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source);
+//0 on failure
+unsigned int inspect_get_prog(inspector_t* inspector, size_t index);
+//Negative on failure
+int inspect_find_prog(inspector_t* inspector, unsigned int prog);
+//True if it succeeded. shaders is a vec_t of unsigned int.
+bool inspect_get_prog_shaders(inspector_t* inspector, size_t index, vec_t* shaders);
 #endif

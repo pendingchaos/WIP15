@@ -17,7 +17,7 @@ Debugging:
             timer
         sync objects
         shaders info logs
-        programs
+        program info logs
         program pipelines
         framebuffer
         renderbuffer
@@ -63,3 +63,5 @@ Use a cross-platform library instead of GLX.
 1D, 3D, cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 
 Enabling or disabling state depending on OpenGL version and extensions.
+
+glDel* should only flag the objects for deletion.

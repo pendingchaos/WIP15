@@ -358,3 +358,116 @@ glShaderSource:
     }
     
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glCompileShader:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr) {
+        inspect_add_error(inspect_command, "Invalid shader.");
+        return;
+    }
+    
+    real(real_shdr);
+
+glCreateProgram:
+    GLuint real_program = F(glCreateProgram)();
+    GLuint fake = trace_get_uint(&command->ret)[0];
+    replay_create_object(ctx, ReplayObjType_GLProgram, real_program, fake);
+    
+    inspect_action_t action;
+    action.type = InspectAction_NewProgram;
+    action.program = fake;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glDeleteProgram:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    real(real_program);
+    
+    replay_destroy_object(ctx, ReplayObjType_GLProgram, fake);
+    
+    inspect_action_t action;
+    action.type = InspectAction_DelProgram;
+    action.program = fake;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glAttachShader:
+    GLuint fake_program = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    GLuint fake_shader = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
+    if (!real_shader) {
+        inspect_add_error(inspect_command, "Invalid shader.");
+        return;
+    }
+    
+    real(real_program, real_shader);
+    
+    inspect_action_t action;
+    action.type = InspectAction_AttachShader;
+    action.prog_shdr.program = fake_program;
+    action.prog_shdr.shader = fake_shader;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glDetachShader:
+    GLuint fake_program = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    GLuint fake_shader = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
+    if (!real_shader) {
+        inspect_add_error(inspect_command, "Invalid shader.");
+        return;
+    }
+    
+    real(real_program, real_shader);
+    
+    inspect_action_t action;
+    action.type = InspectAction_DetachShader;
+    action.prog_shdr.program = fake_program;
+    action.prog_shdr.shader = fake_shader;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glLinkProgram:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    real(real_program);
+
+glValidateProgram:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    real(real_program);
+
+glUseProgram:
+    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    real(real_program);
