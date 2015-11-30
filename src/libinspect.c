@@ -583,7 +583,7 @@ size_t inspect_get_buf_count(inspector_t* inspector) {
 }
 
 size_t inspect_get_shdr_count(inspector_t* inspector) {
-    return get_vec_size(inspector->buffers)/sizeof(buffer_t);
+    return get_vec_size(inspector->shaders)/sizeof(shader_t);
 }
 
 unsigned int inspect_get_tex(inspector_t* inspector, size_t index) {
