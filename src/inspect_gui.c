@@ -652,6 +652,10 @@ static void init_shader_list(GtkTreeView* tree) {
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
     gtk_text_buffer_set_text(source_buffer, "", -1);
+    
+    GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shader_info_log"));
+    GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
+    gtk_text_buffer_set_text(info_log_buffer, "", -1);
 }
 
 static void init_program_list(GtkTreeView* tree) {
@@ -671,6 +675,10 @@ static void init_program_list(GtkTreeView* tree) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
     }
+    
+    GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
+    GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
+    gtk_text_buffer_set_text(info_log_buffer, "", -1);
 }
 
 static void init_framebuffer_tree(GtkTreeView* tree,
@@ -843,7 +851,15 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     char* source;
     inspect_get_shdr_source(inspector, index, &source);
     
-    gtk_text_buffer_set_text(source_buffer, source, -1);
+    gtk_text_buffer_set_text(source_buffer, source?source:"", -1);
+    
+    GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shader_info_log"));
+    GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
+    
+    char* info_log;
+    inspect_get_shdr_info_log(inspector, index, &info_log);
+    
+    gtk_text_buffer_set_text(info_log_buffer, info_log?info_log:"", -1);
 }
 
 void program_select_callback(GObject* obj, gpointer user_data) {
@@ -872,6 +888,14 @@ void program_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
     }
+    
+    GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
+    GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
+    
+    char* info_log;
+    inspect_get_prog_info_log(inspector, index, &info_log);
+    
+    gtk_text_buffer_set_text(info_log_buffer, info_log?info_log:"", -1);
 }
 
 int main(int argc, char** argv) {

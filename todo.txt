@@ -17,8 +17,6 @@ Debugging:
             timer
             occlusion
         sync objects
-        shaders info logs
-        program info logs
         program pipelines
         framebuffers
         renderbuffers

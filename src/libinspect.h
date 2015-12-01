@@ -25,8 +25,10 @@ typedef enum {
     InspectAction_ShaderSource,
     InspectAction_NewProgram,
     InspectAction_DelProgram,
+    InspectAction_UpdateProgramInfoLog,
     InspectAction_AttachShader,
-    InspectAction_DetachShader
+    InspectAction_DetachShader,
+    InspectAction_UpdateShdrInfoLog
 } inspect_action_type_t;
 
 typedef struct inspect_attachment_t {
@@ -111,6 +113,11 @@ typedef struct {
 } inspect_gl_prog_shdr_t;
 
 typedef struct {
+    unsigned int obj;
+    char* str;
+} inspect_gl_info_log_t;
+
+typedef struct {
     inspect_action_type_t type;
     union {
         unsigned int texture; //GenTexture and DelTexture
@@ -124,6 +131,7 @@ typedef struct {
         inspect_gl_shader_source_t shader_source; //ShaderSource
         unsigned int program; //NewProgram, DelProgram
         inspect_gl_prog_shdr_t prog_shdr; //AttachShader, DetachShader
+        inspect_gl_info_log_t info_log; //UpdateProgramInfoLog, UpdateShdrInfoLog
     };
 } inspect_action_t;
 
@@ -193,12 +201,16 @@ unsigned int inspect_get_shdr(inspector_t* inspector, size_t index);
 int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
 //Negative on failure
 int inspect_get_shdr_type(inspector_t* inspector, size_t index);
-//True if it succeeded
+//True if it succeeded. The result may be null.
 bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source);
+//True if it succeeded. The result may be null.
+bool inspect_get_shdr_info_log(inspector_t* inspector, size_t index, char** info_log);
 //0 on failure
 unsigned int inspect_get_prog(inspector_t* inspector, size_t index);
 //Negative on failure
 int inspect_find_prog(inspector_t* inspector, unsigned int prog);
 //True if it succeeded. shaders is a vec_t of unsigned int.
 bool inspect_get_prog_shaders(inspector_t* inspector, size_t index, vec_t* shaders);
+//True if it succeeded. The result may be null.
+bool inspect_get_prog_info_log(inspector_t* inspector, size_t index, char** info_log);
 #endif

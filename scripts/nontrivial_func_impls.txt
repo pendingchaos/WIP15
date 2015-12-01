@@ -368,6 +368,24 @@ glCompileShader:
     }
     
     real(real_shdr);
+    
+    GLint status;
+    F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
+    if (!status)
+        inspect_add_error(inspect_command, "Unable to compile shader.");
+    
+    GLint len;
+    F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
+    char* info_log = malloc(len+1);
+    info_log[len] = 0;
+    F(glGetShaderInfoLog)(real_shdr, len, NULL, info_log);
+    
+    inspect_action_t action;
+    action.type = InspectAction_UpdateShdrInfoLog;
+    action.info_log.obj = fake;
+    action.info_log.str = info_log;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
 
 glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
@@ -451,6 +469,24 @@ glLinkProgram:
     }
     
     real(real_program);
+    
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status)
+        inspect_add_error(inspect_command, "Unable to link program.");
+    
+    GLint len;
+    F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
+    char* info_log = malloc(len+1);
+    info_log[len] = 0;
+    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    
+    inspect_action_t action;
+    action.type = InspectAction_UpdateProgramInfoLog;
+    action.info_log.obj = fake;
+    action.info_log.str = info_log;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
 
 glValidateProgram:
     GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
@@ -461,6 +497,24 @@ glValidateProgram:
     }
     
     real(real_program);
+    
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status)
+        inspect_add_error(inspect_command, "Program validation failed.");
+    
+    GLint len;
+    F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
+    char* info_log = malloc(len+1);
+    info_log[len] = 0;
+    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    
+    inspect_action_t action;
+    action.type = InspectAction_UpdateProgramInfoLog;
+    action.info_log.obj = fake;
+    action.info_log.str = info_log;
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
 
 glUseProgram:
     GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);

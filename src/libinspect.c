@@ -28,11 +28,13 @@ typedef struct {
     unsigned int fake;
     unsigned int type;
     char* source;
+    char* info_log;
 } shader_t;
 
 typedef struct {
     unsigned int fake;
     vec_t shaders; //vec_t of unsigned int
+    char* info_log;
 } program_t;
 
 struct inspector_t {
@@ -137,26 +139,22 @@ void free_inspection(inspection_t* inspection) {
             for (size_t k = 0; k < count; ++k) {
                 inspect_action_t* action = (inspect_action_t*)get_vec_data(actions) + k;
                 switch (action->type) {
-                case InspectAction_TexParams: {
-                    break;
-                }
                 case InspectAction_TexData: {
                     free(action->tex_data.data);
                     break;
                 }
-                case InspectAction_GenTexture: {
+                case InspectAction_TexParams:
+                case InspectAction_GenTexture:
+                case InspectAction_DelTexture:
+                case InspectAction_GenBuffer:
+                case InspectAction_DelBuffer:
+                case InspectAction_NewProgram:
+                case InspectAction_DelProgram:
+                case InspectAction_AttachShader:
+                case InspectAction_DetachShader: {
                     break;
                 }
-                case InspectAction_DelTexture: {
-                    break;
-                }
-                case InspectAction_GenBuffer: {
-                    break;
-                }
-                case InspectAction_DelBuffer: {
-                    break;
-                }
-                case InspectAction_BufferData: {
+                case InspectAction_BufferData:{
                     free(action->buf_data.data);
                     break;
                 }
@@ -164,9 +162,7 @@ void free_inspection(inspection_t* inspection) {
                     free(action->buf_sub_data.data);
                     break;
                 }
-                case InspectAction_NewShader: {
-                    break;
-                }
+                case InspectAction_NewShader:
                 case InspectAction_DelShader: {
                     break;
                 }
@@ -177,16 +173,9 @@ void free_inspection(inspection_t* inspection) {
                     free(action->shader_source.sources);
                     break;
                 }
-                case InspectAction_NewProgram: {
-                    break;
-                }
-                case InspectAction_DelProgram: {
-                    break;
-                }
-                case InspectAction_AttachShader: {
-                    break;
-                }
-                case InspectAction_DetachShader: {
+                case InspectAction_UpdateProgramInfoLog:
+                case InspectAction_UpdateShdrInfoLog: {
+                    free(action->info_log.str);
                     break;
                 }
                 }
@@ -359,6 +348,7 @@ static void free_shaders(inspector_t* inspector) {
     for (size_t i = 0; i < count; ++i) {
         shader_t* shdr = (shader_t*)get_vec_data(inspector->shaders) + i;
         free(shdr->source);
+        free(shdr->info_log);
     }
 }
 
@@ -367,6 +357,7 @@ static void free_programs(inspector_t* inspector) {
     for (size_t i = 0; i < count; ++i) {
         program_t* prog = (program_t*)get_vec_data(inspector->programs) + i;
         free_vec(prog->shaders);
+        free(prog->info_log);
     }
 }
 
@@ -543,6 +534,7 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             shdr.fake = action->new_shader.shader;
             shdr.type = action->new_shader.type;
             shdr.source = NULL;
+            shdr.info_log = NULL;
             append_vec(inspector->shaders, sizeof(shader_t), &shdr);
             break;
         }
@@ -586,6 +578,7 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             program_t prog;
             prog.fake = action->program;
             prog.shaders = alloc_vec(0);
+            prog.info_log = NULL;
             append_vec(inspector->programs, sizeof(program_t), &prog);
             break;
         }
@@ -629,6 +622,32 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
                     remove_vec(prog->shaders, i*sizeof(unsigned int), sizeof(unsigned int));
                     break;
                 }
+            break;
+        }
+        case InspectAction_UpdateProgramInfoLog: {
+            program_t* prog = find_prog(inspector, action->info_log.obj);
+            if (!prog)
+                break;
+            
+            free(prog->info_log);
+            
+            size_t len = strlen(action->info_log.str);
+            prog->info_log = malloc(len+1);
+            prog->info_log[len] = 0;
+            memcpy(prog->info_log, action->info_log.str, len);
+            break;
+        }
+        case InspectAction_UpdateShdrInfoLog: {
+            shader_t* shdr = find_shdr(inspector, action->info_log.obj);
+            if (!shdr)
+                break;
+            
+            free(shdr->info_log);
+            
+            size_t len = strlen(action->info_log.str);
+            shdr->info_log = malloc(len+1);
+            shdr->info_log[len] = 0;
+            memcpy(shdr->info_log, action->info_log.str, len);
             break;
         }
         }
@@ -811,6 +830,18 @@ bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source
     return true;
 }
 
+bool inspect_get_shdr_info_log(inspector_t* inspector, size_t index, char** info_log) {
+    vec_t shaders = inspector->shaders;
+    size_t count = get_vec_size(shaders)/sizeof(shader_t);
+    
+    if (index >= count)
+        return false;
+    
+    *info_log = ((shader_t*)get_vec_data(shaders))[index].info_log;
+    
+    return true;
+}
+
 unsigned int inspect_get_prog(inspector_t* inspector, size_t index) {
     vec_t programs = inspector->programs;
     size_t count = get_vec_size(programs)/sizeof(program_t);
@@ -839,6 +870,18 @@ bool inspect_get_prog_shaders(inspector_t* inspector, size_t index, vec_t* shade
         return false;
     
     *shaders = ((program_t*)get_vec_data(programs))[index].shaders;
+    
+    return true;
+}
+
+bool inspect_get_prog_info_log(inspector_t* inspector, size_t index, char** info_log) {
+    vec_t programs = inspector->programs;
+    size_t count = get_vec_size(programs)/sizeof(program_t);
+    
+    if (index >= count)
+        return false;
+    
+    *info_log = ((program_t*)get_vec_data(programs))[index].info_log;
     
     return true;
 }
