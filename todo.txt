@@ -23,7 +23,7 @@ Debugging:
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
-            Use this because it works on more hardware
+            Use this because it works on more hardware and drivers
     Backtraces with line numbers for function calls
     Debug markers and stuff
     State inspection
@@ -41,6 +41,7 @@ Performance:
     Shader profiler
         Can use timers and SSBOs though they may not be available
         Possible without but may not be reliable
+        Texture and UBO cache thingy?
 
 Bugs:
     Program crashes with optimizations.
