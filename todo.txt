@@ -15,12 +15,13 @@ Debugging:
         samplers
         queries
             timer
+            occlusion
         sync objects
         shaders info logs
         program info logs
         program pipelines
-        framebuffer
-        renderbuffer
+        framebuffers
+        renderbuffers
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
