@@ -57,8 +57,7 @@ Dramatically reduce memory usage and size of trace files.
 
 Enum state values are not displayed as enums.
 
-Use a cross-platform library instead of GLX.
-    SDL2
+Use SDL2 instead of GLX.
 
 1D, 3D, cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 
