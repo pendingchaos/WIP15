@@ -386,7 +386,6 @@ glCompileShader:
     action.info_log.str = info_log;
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
-
 glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
     GLuint fake = trace_get_uint(&command->ret)[0];

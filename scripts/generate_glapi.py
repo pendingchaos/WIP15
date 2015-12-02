@@ -13,7 +13,7 @@ class GroupEntry(object):
         self.name = name
         self.value = value
         self.versions = [(1, 0)]
-        self.extension = None
+        self.extensions = []
 
 class Group(object):
     def __init__(self, group, glxml):
@@ -217,7 +217,8 @@ for name, group in groups.iteritems():
         if len(ver_mask) == 0:
             ver_mask = "glnone"
         
-        ext = ("\"%s\"" % entry.extension) if entry.extension != None else "NULL"
+        # TODO: Multiple extensions
+        ext = ("\"%s\"" % entry.extensions[0]) if len(entry.extensions) else "NULL"
         
         output.write("static const glapi_requirements_t req_%d = {%s, %s, %s, %s};\n" %
                      (next_req_id,
@@ -248,6 +249,7 @@ for name, group in groups.iteritems():
     i += 1
 
 i = 0
+
 for name, func in functions.iteritems():
     for arg in func.func.params:
         group = ("&group_%d" % id(groups[arg.group])) if arg.group != None else "NULL"
