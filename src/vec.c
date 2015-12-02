@@ -134,9 +134,12 @@ void resize_vec(vec_t vec, size_t new_size) {
 }
 
 void remove_vec(vec_t vec, size_t offset, size_t amount) {
-    void* new_data = _alloc_vec(get_vec_size(vec)-amount);
-    memcpy((uint8_t*)new_data+4, (uint8_t*)get_vec_data(vec), offset);
-    memcpy((uint8_t*)new_data+4+offset, (uint8_t*)get_vec_data(vec)+offset+amount, get_vec_size(vec)-amount-offset);
+    uint8_t* data = get_vec_data(vec);
+    size_t size = get_vec_size(vec);
+    void* new_data = _alloc_vec(size-amount);
+    memcpy((uint8_t*)new_data+sizeof(size_t), data, offset);
+    memcpy((uint8_t*)new_data+sizeof(size_t)+offset, data+offset+amount, size-amount-offset);
+    free(data-sizeof(size_t));
     _set_vec_data(vec, new_data);
 }
 

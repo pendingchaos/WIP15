@@ -18,7 +18,7 @@ void trace_free_value(trace_value_t value) {
         free(value.str);
     else if ((value.count == 1) && (value.type == Type_Data))
         free(value.data);
-    else if (value.count > 1)
+    else if (value.count != 1)
         switch (value.type) {
         case Type_UInt:
         case Type_Int:
@@ -115,6 +115,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             val->u64 = le32toh(v);
         } else {
             val->u64_array = malloc(sizeof(uint64_t)*val->count);
+            
             for (size_t i = 0; i < val->count; ++i) {
                 uint32_t v;
                 if (!readf(&v, 4, 1, file)) {

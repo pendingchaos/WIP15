@@ -543,6 +543,7 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             if (!shdr)
                 break;
             
+            free(shdr->info_log);
             free(shdr->source);
             
             size_t offset = shdr - (shader_t*)get_vec_data(inspector->shaders);
@@ -587,6 +588,7 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
             if (!prog)
                 break;
             
+            free(prog->info_log);
             free_vec(prog->shaders);
             
             size_t offset = prog - (program_t*)get_vec_data(inspector->programs);
