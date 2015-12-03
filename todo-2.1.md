@@ -42,13 +42,15 @@
 - [ ] glDrawElements
 - [ ] glDrawPixels
 - [ ] glDrawRangeElements
-- [ ] glEdgeFlag
+- [ ] glEdgeFlagv
 - [ ] glEdgeFlagPointer
 - [x] glEnd
 - [ ] glEvalCoord
 - [ ] glEvalPoint
 - [ ] glFeedbackBuffer
 - [ ] glFogCoord
+    - [ ] glFogCoorddv
+    - [ ] glFogCoordfv
 - [ ] glFoxCoordPointer
 - [x] glGenBuffers
 - [x] glGenLists
@@ -58,41 +60,41 @@
 - [ ] glGetActiveAttrib
 - [ ] glGetActiveUniform
 - [ ] glGetAttachedShaders
-- [ ] glGetAttribLocation
-- [ ] glGetBufferParameteriv
-- [ ] glGetBufferPointerv
-- [ ] glGetBufferSubData
-- [ ] glGetClipPlane
+- [x] glGetAttribLocation
+- [x] glGetBufferParameteriv
+- [x] glGetBufferPointerv
+- [x] glGetBufferSubData
+- [x] glGetClipPlane
 - [ ] glGetColorTable
 - [ ] glGetColorTableParameter
 - [ ] glGetCompressedTexImage
-- [ ] glGetConvolutionFilter
-- [ ] glGetConvolutionParameter
-- [ ] glGetHistogram
-- [ ] glGetHistogramParameter
-- [ ] glGetLight
-- [ ] glGetMap
-- [ ] glGetMaterial
-- [ ] glGetMinmax
-- [ ] glGetMinmaxParameter
-- [ ] glGetPixelMap
-- [ ] glGetPointerv
-- [ ] glGetPolygonStipple
-- [ ] glGetProgram
-- [ ] glGetProgramInfoLog
-- [ ] glGetQueryObject
-- [ ] glGetQueryiv
-- [ ] glGetSeparableFilter
-- [ ] glGetShader
-- [ ] glGetShaderInfoLog
-- [ ] glGetShaderSource
-- [ ] glGetTexEnv
-- [ ] glGetTexGen
+- [x] glGetConvolutionFilter
+- [x] glGetConvolutionParameter
+- [x] glGetHistogram
+- [x] glGetHistogramParameter
+- [x] glGetLight
+- [x] glGetMap
+- [x] glGetMaterial
+- [x] glGetMinmax
+- [x] glGetMinmaxParameter
+- [x] glGetPixelMap
+- [x] glGetPointerv
+- [x] glGetPolygonStipple
+- [x] glGetProgramiv
+- [x] glGetProgramInfoLog
+- [x] glGetQueryObject
+- [x] glGetQueryiv
+- [x] glGetSeparableFilter
+- [x] glGetShader
+- [x] glGetShaderInfoLog
+- [x] glGetShaderSource
+- [x] glGetTexEnv
+- [x] glGetTexGen
 - [ ] glGetTexImage
-- [ ] glGenTexLevelParameter
-- [ ] glGetTexPaarameter
-- [ ] glGetUniform
-- [ ] glGetUniformLocation
+- [x] glGenTexLevelParameter
+- [x] glGetTexParameter
+- [x] glGetUniform
+- [x] glGetUniformLocation
 - [ ] glGetVertexAttrib
 - [ ] glGetVertexAttribPointerv
 - [ ] glIndex
@@ -105,6 +107,8 @@
 - [x] glIsShader
 - [x] glIsTexture
 - [ ] glLight
+    - [ ] glLightfv
+    - [ ] glLightiv
 - [ ] glLightModel
 - [x] glLinkProgram
 - [x] glLoadMatrix
@@ -160,31 +164,7 @@
 - [ ] glTexSubImage2D
 - [ ] glTexSubImage3D
 - [ ] glUniform
-    - [x] glUniform1f
-    - [x] glUniform2f
-    - [x] glUniform3f
-    - [x] glUniform4f
-    - [x] glUniform1i
-    - [x] glUniform2i
-    - [x] glUniform3i
-    - [x] glUniform4i
-    - [ ] glUniform1v
-    - [ ] glUniform2v
-    - [ ] glUniform3v
-    - [ ] glUniform4v
-    - [ ] glUniform1v
-    - [ ] glUniform2v
-    - [ ] glUniform3v
-    - [ ] glUniform4v
-    - [ ] glUniformMatrix2fv
-    - [ ] glUniformMatrix3fv
-    - [ ] glUniformMatrix4fv
-    - [ ] glUniformMatrix2x3fv
-    - [ ] glUniformMatrix3x2fv
-    - [ ] glUniformMatrix2x4fv
-    - [ ] glUniformMatrix4x2fv
-    - [ ] glUniformMatrix3x4fv
-    - [ ] glUniformMatrix4x3fv
+    - Would need to handle location differences.
 - [ ] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram

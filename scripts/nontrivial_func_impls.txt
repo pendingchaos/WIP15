@@ -492,7 +492,6 @@ glLinkProgram:
     action.info_log.str = info_log;
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
-
 glValidateProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
@@ -519,7 +518,6 @@ glValidateProgram:
     action.info_log.obj = fake;
     action.info_log.str = info_log;
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
-
 
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -584,58 +582,6 @@ glRects:
     real(x1, y1, x2, y2);
     replay_get_back_color(ctx, inspect_command);
     replay_get_depth(ctx, inspect_command);
-
-glUniform1f:
-    GLint loc = gl_param_GLint(command, 0);
-    GLfloat v0 = gl_param_GLfloat(command, 1);
-    real(loc, v0);
-
-glUniform2f:
-    GLint loc = gl_param_GLint(command, 0);
-    GLfloat v0 = gl_param_GLfloat(command, 1);
-    GLfloat v1 = gl_param_GLfloat(command, 2);
-    real(loc, v0, v1);
-
-glUniform3f:
-    GLint loc = gl_param_GLint(command, 0);
-    GLfloat v0 = gl_param_GLfloat(command, 1);
-    GLfloat v1 = gl_param_GLfloat(command, 2);
-    GLfloat v2 = gl_param_GLfloat(command, 3);
-    real(loc, v0, v1, v2);
-
-glUniform4f:
-    GLint loc = gl_param_GLint(command, 0);
-    GLfloat v0 = gl_param_GLfloat(command, 1);
-    GLfloat v1 = gl_param_GLfloat(command, 2);
-    GLfloat v2 = gl_param_GLfloat(command, 3);
-    GLfloat v3 = gl_param_GLfloat(command, 4);
-    real(loc, v0, v1, v2, v3);
-
-glUniform1i:
-    GLint loc = gl_param_GLint(command, 0);
-    GLint v0 = gl_param_GLint(command, 1);
-    real(loc, v0);
-
-glUniform2i:
-    GLint loc = gl_param_GLint(command, 0);
-    GLint v0 = gl_param_GLint(command, 1);
-    GLint v1 = gl_param_GLint(command, 2);
-    real(loc, v0, v1);
-
-glUniform3i:
-    GLint loc = gl_param_GLint(command, 0);
-    GLint v0 = gl_param_GLint(command, 1);
-    GLint v1 = gl_param_GLint(command, 2);
-    GLint v2 = gl_param_GLint(command, 3);
-    real(loc, v0, v1, v2);
-
-glUniform4i:
-    GLint loc = gl_param_GLint(command, 0);
-    GLint v0 = gl_param_GLint(command, 1);
-    GLint v1 = gl_param_GLint(command, 2);
-    GLint v2 = gl_param_GLint(command, 3);
-    GLint v3 = gl_param_GLint(command, 4);
-    real(loc, v0, v1, v2, v3);
 
 glAreTexturesResident:
     ;
@@ -741,3 +687,187 @@ glCallList:
     }
     
     real(list);
+
+glGetUniformfv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetUniformiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetAttribLocation:
+    GLuint fake = gl_param_GLuint(command, 0);
+    const GLchar* name = gl_param_string(command, 1);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    if (real(real_program, name) < 0)
+        inspect_add_error(inspect_command, "No such attribute \"%s\".", name);
+
+glGetUniformLocation:
+    GLuint fake = gl_param_GLuint(command, 0);
+    const GLchar* name = gl_param_string(command, 1);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    if (real(real_program, name) < 0)
+        inspect_add_error(inspect_command, "No such uniform \"%s\".", name);
+
+glGetShader:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr)
+        inspect_add_error(inspect_command, "Invalid shader.");
+
+glGetShaderInfoLog:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr)
+        inspect_add_error(inspect_command, "Invalid shader.");
+
+glGetShaderSource:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr)
+        inspect_add_error(inspect_command, "Invalid shader.");
+
+glGetQueryiv:
+    ;
+
+glGetQueryObjectiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_query = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid query.");
+
+glGetQueryObjectuiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_query = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid query.");
+
+glGetProgramInfoLog:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_prog = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_prog)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetProgramiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_prog = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_prog)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetLightfv:
+    ;
+
+glGetLightfiv:
+    ;
+
+glGetMaterialfv:
+    ;
+
+glGetMaterialiv:
+    ;
+
+glGetMapdv:
+    ;
+
+glGetMapfv:
+    ;
+
+glGetMapiv:
+    ;
+
+glGetHistogram:
+    ;
+
+glGetHistogramParameterfv:
+    ;
+
+glGetHistogramParameteriv:
+    ;
+
+glGetConvolutionFilter:
+    ;
+
+glGetConvolutionParameterfv:
+    ;
+
+glGetConvolutionParameteriv:
+    ;
+
+glGetClipPlane:
+    ;
+
+glGetTexEnvfv:
+    ;
+
+glGetTexEnviv:
+    ;
+
+glGetTexGendv:
+    ;
+
+glGetTexGenfv:
+    ;
+
+glGetTexGeniv:
+    ;
+
+glGetTexLevelParameterfv:
+    ;
+
+glGetTexLevelParameteriv:
+    ;
+
+glGetTexParameterfv:
+    ;
+
+glGetTexParameteriv:
+    ;
+
+glGetPointerv:
+    ;
+
+glGetPolygonStipple:
+    ;
+
+glGetMinmax:
+    ;
+
+glGetMinmaxParameterfv:
+    ;
+
+glGetMinmaxParameteriv:
+    ;
+
+glGetPixelMapfv:
+    ;
+
+glGetPixelMapuiv:
+    ;
+
+glGetPixelMapusv:
+    ;
+
+glGetSeparableFilter:
+    ;
+
+glGetBufferParameteriv:
+    ;
+
+glGetBufferPointerv:
+    ;
+
+glGetBufferSubData:
+    ;
