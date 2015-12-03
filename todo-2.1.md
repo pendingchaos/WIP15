@@ -1,198 +1,198 @@
 # Functions to implement before supporting OpenGL 2.1
 
-[ ] glAreTexturesResident
-[ ] glArrayElement
-[x] glAttachShader
-[x] glBegin
-[ ] glBeginQuery
-[ ] glBindAttribLocation
-[x] glBindBuffer
-[x] glBindTexture
-[ ] glBitmap
-[x] glBufferData
-[x] glBufferSubData
-[ ] glCallList
-[ ] glCallLists
-[ ] glClear
-[ ] glClipPlane
-[ ] glColor
-[ ] glColorPointer
-[ ] glColorSubTable
-[ ] glColorTable
-[ ] glColorTableParameter
-[x] glCompileShader
-[ ] glCompressedTexImage1D
-[ ] glCompressedTexImage2D
-[ ] glCompressedTexImage3D
-[ ] glCompressedTexSubImage1D
-[ ] glCompressedTexSubImage2D
-[ ] glCompressedTexSubImage3D
-[ ] glConvolutionFilter1D
-[ ] glConvolutionFilter2D
-[x] glCreateProgram
-[x] glCreateShader
-[x] glDeleteBuffers
-[ ] glDeleteLists
-[x] glDeleteProgram
-[ ] glDeleteQueries
-[x] glDeleteShader
-[x] glDeleteTextures
-[x] glDetachShader
-[ ] glDrawArrays
-[ ] glDrawElements
-[ ] glDrawPixels
-[ ] glDrawRangeElements
-[ ] glEdgeFlag
-[ ] glEdgeFlagPointer
-[x] glEnd
-[ ] glEndList
-[ ] glEndQuery
-[ ] glEvalCoord
-[ ] glEvalPoint
-[ ] glFeedbackBuffer
-[ ] glFogCoord
-[ ] glFoxCoordPointer
-[x] glGenBuffers
-[ ] glGenLists
-[ ] glGenQueries
-[x] glGenTextures
-[ ] glGet
-[ ] glGetActiveAttrib
-[ ] glGetActiveUniform
-[ ] glGetAttachedShaders
-[ ] glGetAttribLocation
-[ ] glGetBufferParameteriv
-[ ] glGetBufferPointerv
-[ ] glGetBufferSubData
-[ ] glGetClipPlane
-[ ] glGetColorTable
-[ ] glGetColorTableParameter
-[ ] glGetCompressedTexImage
-[ ] glGetConvolutionFilter
-[ ] glGetConvolutionParameter
-[ ] glGetHistogram
-[ ] glGetHistogramParameter
-[ ] glGetLight
-[ ] glGetMap
-[ ] glGetMaterial
-[ ] glGetMinmax
-[ ] glGetMinmaxParameter
-[ ] glGetPixelMap
-[ ] glGetPointerv
-[ ] glGetPolygonStipple
-[ ] glGetProgram
-[ ] glGetProgramInfoLog
-[ ] glGetQueryObject
-[ ] glGetQueryiv
-[ ] glGetSeparableFilter
-[ ] glGetShader
-[ ] glGetShaderInfoLog
-[ ] glGetShaderSource
-[ ] glGetTexEnv
-[ ] glGetTexGen
-[ ] glGetTexImage
-[ ] glGenTexLevelParameter
-[ ] glGetTexPaarameter
-[ ] glGetUniform
-[ ] glGetUniformLocation
-[ ] glGetVertexAttrib
-[ ] glGetVertexAttribPointerv
-[ ] glIndex
-[ ] glIndexPointer
-[ ] glInterleavedArrays
-[ ] glIsBuffer
-[ ] glIsList
-[ ] glIsProgram
-[ ] glIsQuery
-[ ] glIsShader
-[ ] glIsTexture
-[ ] glLight
-[ ] glLightModel
-[x] glLinkProgram
-[x] glLoadMatrix
-[x] glLoadTransposeMatrix
-[ ] glMap1
-[ ] glMap2
-[ ] glMapBuffer
-[ ] glMaterial
-[x] glMultMatrix
-[x] glMultTransposeMatrix
-[ ] glMultiDrawArrays
-[ ] glMultiDrawElements
-[ ] glMultiTexCoord
-[ ] glNewList
-[ ] glNormal
-[ ] glNormalPointer
-[ ] glPixelMap
-[ ] glPixelStore
-[ ] glPointParameter
-[ ] glPolygonStipple
-[ ] glPushAttrib
-[ ] glPushClientAttrib
-[ ] glPrioritizeTextures
-[ ] glPopAttrib
-[ ] glPopClientAttrib
-[ ] glRasterPos
-[ ] glReadPixels
-[ ] glRect
-[ ] glSecondaryColor
-[ ] glSecondaryColorPointer
-[ ] glSelectBuffer
-[ ] glSeparableFilter2D
-[x] glShaderSource
-[ ] glTexCoord
-[ ] glTexCoordPointer
-[ ] glTexEnv
-[ ] glTexGen
-[ ] glTexImage1D
-[x] glTexImage2D
-[ ] glTexImage3D
-[x] glTexParameter
-[ ] glTexSubImage1D
-[ ] glTexSubImage2D
-[ ] glTexSubImage3D
-[ ] glUniform
-[ ] glUnmapBuffer
-[x] glUseProgram
-[x] glValidateProgram
-[ ] glVertex
-[ ] glVertexAttrib
-[ ] glVertexAttribPointer
-[ ] glVertexPointer
-[ ] glWindowPos
-[ ] glXChooseFBConfig
-[x] glXChooseVisual
-[ ] glXCopyContext
-[x] glXCreateContext
-[ ] glXCreateGLXPixmap
-[ ] glXCreateNewContext
-[ ] glXCreatePbuffer
-[ ] glXCreatePixmap
-[ ] glXCreateWindow
-[x] glXDestroyContext
-[ ] glXDestroyGLXPixmap
-[ ] glXDestroyPbuffer
-[ ] glXDestroyPixmap
-[ ] glXDestroyWindow
-[ ] glXFreeContextEXT
-[ ] glXGetConfig
-[ ] glXGetContextIDEXT
-[ ] glXGetFBConfigAttrib
-[ ] glXGetFBConfigs
-[ ] glXGetSelectedEvent
-[ ] glXGetVisualFromFBConfig
-[x] glXGetProcAddress
-[ ] glXImportContextEXT
-[ ] glXIsDirect
-[ ] glXMakeContextCurrent
-[x] glXMakeCurrent
-[ ] glXQueryContext
-[ ] glXQueryContextInfoEXT
-[ ] glXQueryDrawable
-[x] glXQueryExtension
-[x] glXQueryExtensionsString
-[ ] glXQueryServerString
-[ ] glXQueryVersion
-[ ] glXSelectEvent
-[x] glXSwapBuffers
-[ ] glXUseXFont
+- [ ] glAreTexturesResident
+- [ ] glArrayElement
+- [x] glAttachShader
+- [x] glBegin
+- [ ] glBeginQuery
+- [ ] glBindAttribLocation
+- [x] glBindBuffer
+- [x] glBindTexture
+- [ ] glBitmap
+- [x] glBufferData
+- [x] glBufferSubData
+- [ ] glCallList
+- [ ] glCallLists
+- [ ] glClear
+- [ ] glClipPlane
+- [ ] glColor
+- [ ] glColorPointer
+- [ ] glColorSubTable
+- [ ] glColorTable
+- [ ] glColorTableParameter
+- [x] glCompileShader
+- [ ] glCompressedTexImage1D
+- [ ] glCompressedTexImage2D
+- [ ] glCompressedTexImage3D
+- [ ] glCompressedTexSubImage1D
+- [ ] glCompressedTexSubImage2D
+- [ ] glCompressedTexSubImage3D
+- [ ] glConvolutionFilter1D
+- [ ] glConvolutionFilter2D
+- [x] glCreateProgram
+- [x] glCreateShader
+- [x] glDeleteBuffers
+- [ ] glDeleteLists
+- [x] glDeleteProgram
+- [ ] glDeleteQueries
+- [x] glDeleteShader
+- [x] glDeleteTextures
+- [x] glDetachShader
+- [ ] glDrawArrays
+- [ ] glDrawElements
+- [ ] glDrawPixels
+- [ ] glDrawRangeElements
+- [ ] glEdgeFlag
+- [ ] glEdgeFlagPointer
+- [x] glEnd
+- [ ] glEndList
+- [ ] glEndQuery
+- [ ] glEvalCoord
+- [ ] glEvalPoint
+- [ ] glFeedbackBuffer
+- [ ] glFogCoord
+- [ ] glFoxCoordPointer
+- [x] glGenBuffers
+- [ ] glGenLists
+- [ ] glGenQueries
+- [x] glGenTextures
+- [ ] glGet
+- [ ] glGetActiveAttrib
+- [ ] glGetActiveUniform
+- [ ] glGetAttachedShaders
+- [ ] glGetAttribLocation
+- [ ] glGetBufferParameteriv
+- [ ] glGetBufferPointerv
+- [ ] glGetBufferSubData
+- [ ] glGetClipPlane
+- [ ] glGetColorTable
+- [ ] glGetColorTableParameter
+- [ ] glGetCompressedTexImage
+- [ ] glGetConvolutionFilter
+- [ ] glGetConvolutionParameter
+- [ ] glGetHistogram
+- [ ] glGetHistogramParameter
+- [ ] glGetLight
+- [ ] glGetMap
+- [ ] glGetMaterial
+- [ ] glGetMinmax
+- [ ] glGetMinmaxParameter
+- [ ] glGetPixelMap
+- [ ] glGetPointerv
+- [ ] glGetPolygonStipple
+- [ ] glGetProgram
+- [ ] glGetProgramInfoLog
+- [ ] glGetQueryObject
+- [ ] glGetQueryiv
+- [ ] glGetSeparableFilter
+- [ ] glGetShader
+- [ ] glGetShaderInfoLog
+- [ ] glGetShaderSource
+- [ ] glGetTexEnv
+- [ ] glGetTexGen
+- [ ] glGetTexImage
+- [ ] glGenTexLevelParameter
+- [ ] glGetTexPaarameter
+- [ ] glGetUniform
+- [ ] glGetUniformLocation
+- [ ] glGetVertexAttrib
+- [ ] glGetVertexAttribPointerv
+- [ ] glIndex
+- [ ] glIndexPointer
+- [ ] glInterleavedArrays
+- [ ] glIsBuffer
+- [ ] glIsList
+- [ ] glIsProgram
+- [ ] glIsQuery
+- [ ] glIsShader
+- [ ] glIsTexture
+- [ ] glLight
+- [ ] glLightModel
+- [x] glLinkProgram
+- [x] glLoadMatrix
+- [x] glLoadTransposeMatrix
+- [ ] glMap1
+- [ ] glMap2
+- [ ] glMapBuffer
+- [ ] glMaterial
+- [x] glMultMatrix
+- [x] glMultTransposeMatrix
+- [ ] glMultiDrawArrays
+- [ ] glMultiDrawElements
+- [ ] glMultiTexCoord
+- [ ] glNewList
+- [ ] glNormal
+- [ ] glNormalPointer
+- [ ] glPixelMap
+- [ ] glPixelStore
+- [ ] glPointParameter
+- [ ] glPolygonStipple
+- [ ] glPushAttrib
+- [ ] glPushClientAttrib
+- [ ] glPrioritizeTextures
+- [ ] glPopAttrib
+- [ ] glPopClientAttrib
+- [ ] glRasterPos
+- [ ] glReadPixels
+- [ ] glRect
+- [ ] glSecondaryColor
+- [ ] glSecondaryColorPointer
+- [ ] glSelectBuffer
+- [ ] glSeparableFilter2D
+- [x] glShaderSource
+- [ ] glTexCoord
+- [ ] glTexCoordPointer
+- [ ] glTexEnv
+- [ ] glTexGen
+- [ ] glTexImage1D
+- [x] glTexImage2D
+- [ ] glTexImage3D
+- [x] glTexParameter
+- [ ] glTexSubImage1D
+- [ ] glTexSubImage2D
+- [ ] glTexSubImage3D
+- [ ] glUniform
+- [ ] glUnmapBuffer
+- [x] glUseProgram
+- [x] glValidateProgram
+- [ ] glVertex
+- [ ] glVertexAttrib
+- [ ] glVertexAttribPointer
+- [ ] glVertexPointer
+- [ ] glWindowPos
+- [ ] glXChooseFBConfig
+- [x] glXChooseVisual
+- [ ] glXCopyContext
+- [x] glXCreateContext
+- [ ] glXCreateGLXPixmap
+- [ ] glXCreateNewContext
+- [ ] glXCreatePbuffer
+- [ ] glXCreatePixmap
+- [ ] glXCreateWindow
+- [x] glXDestroyContext
+- [ ] glXDestroyGLXPixmap
+- [ ] glXDestroyPbuffer
+- [ ] glXDestroyPixmap
+- [ ] glXDestroyWindow
+- [ ] glXFreeContextEXT
+- [ ] glXGetConfig
+- [ ] glXGetContextIDEXT
+- [ ] glXGetFBConfigAttrib
+- [ ] glXGetFBConfigs
+- [ ] glXGetSelectedEvent
+- [ ] glXGetVisualFromFBConfig
+- [x] glXGetProcAddress
+- [ ] glXImportContextEXT
+- [ ] glXIsDirect
+- [ ] glXMakeContextCurrent
+- [x] glXMakeCurrent
+- [ ] glXQueryContext
+- [ ] glXQueryContextInfoEXT
+- [ ] glXQueryDrawable
+- [x] glXQueryExtension
+- [x] glXQueryExtensionsString
+- [ ] glXQueryServerString
+- [ ] glXQueryVersion
+- [ ] glXSelectEvent
+- [x] glXSwapBuffers
+- [ ] glXUseXFont
