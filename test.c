@@ -77,6 +77,11 @@ int main(int argc, char **argv)
     glLinkProgram(program);
     glValidateProgram(program);
     
+    float priority;
+    glPrioritizeTextures(1, &texture, &priority);
+    GLboolean resident;
+    glAreTexturesResident(1, &texture, &resident);
+    
     while (1) {
         SDL_Event event;
         while (SDL_PollEvent(&event))

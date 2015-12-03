@@ -1,19 +1,19 @@
-# Functions to implement before supporting OpenGL 2.1
+# OpenGL 2.1 Support Progress
 
-- [ ] glAreTexturesResident
+- [x] glAreTexturesResident
 - [ ] glArrayElement
 - [x] glAttachShader
 - [x] glBegin
-- [ ] glBeginQuery
-- [ ] glBindAttribLocation
+- [x] glBeginQuery
+- [x] glBindAttribLocation
 - [x] glBindBuffer
 - [x] glBindTexture
 - [ ] glBitmap
 - [x] glBufferData
 - [x] glBufferSubData
-- [ ] glCallList
+- [x] glCallList
 - [ ] glCallLists
-- [ ] glClear
+- [x] glClear
 - [ ] glClipPlane
 - [ ] glColor
 - [ ] glColorPointer
@@ -32,9 +32,9 @@
 - [x] glCreateProgram
 - [x] glCreateShader
 - [x] glDeleteBuffers
-- [ ] glDeleteLists
+- [x] glDeleteLists
 - [x] glDeleteProgram
-- [ ] glDeleteQueries
+- [x] glDeleteQueries
 - [x] glDeleteShader
 - [x] glDeleteTextures
 - [x] glDetachShader
@@ -45,16 +45,14 @@
 - [ ] glEdgeFlag
 - [ ] glEdgeFlagPointer
 - [x] glEnd
-- [ ] glEndList
-- [ ] glEndQuery
 - [ ] glEvalCoord
 - [ ] glEvalPoint
 - [ ] glFeedbackBuffer
 - [ ] glFogCoord
 - [ ] glFoxCoordPointer
 - [x] glGenBuffers
-- [ ] glGenLists
-- [ ] glGenQueries
+- [x] glGenLists
+- [x] glGenQueries
 - [x] glGenTextures
 - [ ] glGet
 - [ ] glGetActiveAttrib
@@ -115,12 +113,14 @@
 - [ ] glMap2
 - [ ] glMapBuffer
 - [ ] glMaterial
+    - [ ] glMaterialfv
+    - [ ] glMaterialiv
 - [x] glMultMatrix
 - [x] glMultTransposeMatrix
 - [ ] glMultiDrawArrays
 - [ ] glMultiDrawElements
 - [ ] glMultiTexCoord
-- [ ] glNewList
+- [x] glNewList
 - [ ] glNormal
 - [ ] glNormalPointer
 - [ ] glPixelMap
@@ -129,7 +129,7 @@
 - [ ] glPolygonStipple
 - [ ] glPushAttrib
 - [ ] glPushClientAttrib
-- [ ] glPrioritizeTextures
+- [x] glPrioritizeTextures
 - [ ] glPopAttrib
 - [ ] glPopClientAttrib
 - [ ] glRasterPos

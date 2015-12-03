@@ -262,3 +262,20 @@ glShaderSource:
         gl_param_GLuint_array(0, NULL);
     }
     gl_glShaderSource(shader, count, string, length);
+
+glAreTexturesResident:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, textures);
+    gl_param_data(0, NULL);
+    GLboolean result = gl_glAreTexturesResident(n, textures, residences);
+    gl_result_GLboolean(result);
+
+glPrioritizeTextures:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, textures);
+    
+    double priorities_dbl[n];
+    for (GLsizei i = 0; i < n; i++)
+        priorities_dbl[i] = priorities[i];    
+    gl_param_double_array(n, priorities_dbl);
+    gl_glPrioritizeTextures(n, textures, priorities);

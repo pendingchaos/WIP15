@@ -636,3 +636,108 @@ glUniform4i:
     GLint v2 = gl_param_GLint(command, 3);
     GLint v3 = gl_param_GLint(command, 4);
     real(loc, v0, v1, v2, v3);
+
+glAreTexturesResident:
+    ;
+
+glPrioritizeTextures:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    
+    GLuint textures[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    for (size_t i = 0; i < n; i++)
+        if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
+            inspect_add_error(inspect_command, "Invalid texture at %zu.", i);
+    
+    float priorities[n];
+    for (size_t i = 0; i < n; i++)
+        priorities[i] = trace_get_double(&trace_get_arg(command, 2)->val)[i];
+    
+    real(n, textures, priorities);
+
+glBindAttribLocation:
+    GLuint fake_prog = gl_param_GLuint(command, 0);
+    GLuint index = gl_param_GLuint(command, 1);
+    const GLchar* name = gl_param_string(command, 2);
+    
+    GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_prog);
+    if (!program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    real(program, index, name);
+
+glBeginQuery:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
+    GLuint id = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
+    real(target, id);
+
+glGenLists:
+    GLsizei range = gl_param_GLsizei(command, 0);
+    GLuint fake = *trace_get_uint(&command->ret);
+    GLuint real_lists = real(range);
+    if (!real_lists) {
+        inspect_add_error(inspect_command, "Unable to create lists.");
+        return;
+    }
+    
+    for (GLsizei i = 0; i < range; i++)
+        replay_create_object(ctx, ReplayObjType_GLDisplayList, real_lists+i, fake+i);
+
+glNewList:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLenum mode = gl_param_GLenum(command, 1);
+    
+    GLuint list = replay_get_real_object(ctx, ReplayObjType_GLDisplayList, fake);
+    if (!list) {
+        inspect_add_error(inspect_command, "Invalid display list.");
+        return;
+    }
+    
+    real(list, mode);
+
+glGenQueries:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint queries[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    real(n, queries);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLQuery, queries[i], fake[i]);
+
+glDeleteQueries:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint queries[n];
+    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i])))
+            inspect_add_error(inspect_command, "Invalid query being deleted.");
+    
+    real(n, queries);
+
+glDeleteLists:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLsizei range = gl_param_GLsizei(command, 1);
+    
+    GLuint list = replay_get_real_object(ctx, ReplayObjType_GLDisplayList, fake);
+    if (!list) {
+        inspect_add_error(inspect_command, "Invalid display list.");
+        return;
+    }
+    
+    real(list, range);
+
+glCallList:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint list = replay_get_real_object(ctx, ReplayObjType_GLDisplayList, fake);
+    if (!list) {
+        inspect_add_error(inspect_command, "Invalid display list.");
+        return;
+    }
+    
+    real(list);
