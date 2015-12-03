@@ -900,7 +900,7 @@ void program_select_callback(GObject* obj, gpointer user_data) {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        fprintf(stderr, "Expected one argument. Got %d.\n", argc);
+        fprintf(stderr, "Expected one argument. Got %d.\n", argc-1);
         fprintf(stderr, "Usage: inspect-gui <trace file>\n");
         return EXIT_FAILURE;
     }

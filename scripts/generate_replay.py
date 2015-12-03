@@ -31,242 +31,242 @@ typedef void (*_func)();
 output.write(gl.typedecls)
 
 output.write("""
-static GLuint* gl_param_GLuint_array(trace_value_t* val) {
+static GLuint* gl_param_GLuint_array(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
 
-static const char* gl_param_string(trace_value_t* val) {
-    return *trace_get_str(val);
+static const char* gl_param_string(trace_command_t* cmd, size_t index) {
+    return *trace_get_str(&trace_get_arg(cmd, index)->val);
 }
 
-static char** gl_param_string_array(trace_value_t* val) {
-    return trace_get_str(val);
+static char** gl_param_string_array(trace_command_t* cmd, size_t index) {
+    return trace_get_str(&trace_get_arg(cmd, index)->val);
 }
 
-static void* gl_param_data(trace_value_t* val) {
-    return *trace_get_data(val);
+static void* gl_param_data(trace_command_t* cmd, size_t index) {
+    return *trace_get_data(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_pointer(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_pointer(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_value_t* val) {
+static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
 
-static GLsizei gl_param_GLsizei(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLsizei gl_param_GLsizei(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLint64EXT gl_param_GLint64EXT(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLint64EXT gl_param_GLint64EXT(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLshort gl_param_GLshort(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLshort gl_param_GLshort(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static int64_t gl_param_int64_t(trace_value_t* val) {
-    return *trace_get_int(val);
+static int64_t gl_param_int64_t(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLubyte gl_param_GLubyte(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLubyte gl_param_GLubyte(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_value_t* val) {
+static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
 
-static GLboolean gl_param_GLboolean(trace_value_t* val) {
-    return *trace_get_bool(val);
+static GLboolean gl_param_GLboolean(trace_command_t* cmd, size_t index) {
+    return *trace_get_bool(&trace_get_arg(cmd, index)->val);
 }
 
-static Bool gl_param_Bool(trace_value_t* val) {
-    return *trace_get_bool(val);
+static Bool gl_param_Bool(trace_command_t* cmd, size_t index) {
+    return *trace_get_bool(&trace_get_arg(cmd, index)->val);
 }
 
-static GLbitfield gl_param_GLbitfield(trace_value_t* val) {
-    return *trace_get_bitfield(val);
+static GLbitfield gl_param_GLbitfield(trace_command_t* cmd, size_t index) {
+    return *trace_get_bitfield(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLsync(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLsync(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLuint gl_param_GLuint(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLuint gl_param_GLuint(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLint64 gl_param_GLint64(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLint64 gl_param_GLint64(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static int gl_param_int(trace_value_t* val) {
-    return *trace_get_int(val);
+static int gl_param_int(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLeglImageOES(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLeglImageOES(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLfixed gl_param_GLfixed(trace_value_t* val) {
-    return *trace_get_double(val) * 65546.0f;
+static GLfixed gl_param_GLfixed(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val) * 65546.0f;
 }
 
-static GLclampf gl_param_GLclampf(trace_value_t* val) {
-    return *trace_get_double(val);
+static GLclampf gl_param_GLclampf(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val);
 }
 
-static float gl_param_float(trace_value_t* val) {
-    return *trace_get_double(val);
+static float gl_param_float(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val);
 }
 
-static GLhalfNV gl_param_GLhalfNV(trace_value_t* val) { //TODO
-    return *trace_get_uint(val);
+static GLhalfNV gl_param_GLhalfNV(trace_command_t* cmd, size_t index) { //TODO
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLintptr(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLushort gl_param_GLushort(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLushort gl_param_GLushort(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLenum gl_param_GLenum(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLenum gl_param_GLenum(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLuint gl_param_unsigned_int(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLuint gl_param_unsigned_int(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLfloat gl_param_GLfloat(trace_value_t* val) {
-    return *trace_get_double(val);
+static GLfloat gl_param_GLfloat(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val);
 }
 
-static GLuint64 gl_param_GLuint64(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLuint64 gl_param_GLuint64(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLdouble gl_param_GLdouble(trace_value_t* val) {
-    return *trace_get_double(val);
+static GLdouble gl_param_GLdouble(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val);
 }
 
-static GLhandleARB gl_param_GLhandleARB(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLhandleARB gl_param_GLhandleARB(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLintptrARB(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLsizeiptr(trace_value_t* val)
+static uint64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_ptr(val);
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLint gl_param_GLint(trace_value_t* val)
+static GLint gl_param_GLint(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_int(val);
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLclampx gl_param_GLclampx(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLclampx gl_param_GLclampx(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLsizeiptrARB gl_param_GLsizeiptrARB(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static GLsizeiptrARB gl_param_GLsizeiptrARB(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLuint64EXT gl_param_GLuint64EXT(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLuint64EXT gl_param_GLuint64EXT(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLvdpauSurfaceNV(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLvdpauSurfaceNV(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLbyte gl_param_GLbyte(trace_value_t* val) {
-    return *trace_get_int(val);
+static GLbyte gl_param_GLbyte(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(&trace_get_arg(cmd, index)->val);
 }
 
-static GLclampd gl_param_GLclampd(trace_value_t* val) {
-    return *trace_get_double(val);
+static GLclampd gl_param_GLclampd(trace_command_t* cmd, size_t index) {
+    return *trace_get_double(&trace_get_arg(cmd, index)->val);
 }
 
-static GLDEBUGPROCKHR gl_param_GLDEBUGPROCKHR(trace_value_t* val) {
+static GLDEBUGPROCKHR gl_param_GLDEBUGPROCKHR(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
 
-static GLDEBUGPROCAMD gl_param_GLDEBUGPROCAMD(trace_value_t* val) {
+static GLDEBUGPROCAMD gl_param_GLDEBUGPROCAMD(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
 
-static GLXPixmap gl_param_GLXPixmap(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXPixmap gl_param_GLXPixmap(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXWindow gl_param_GLXWindow(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXWindow gl_param_GLXWindow(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXPbuffer gl_param_GLXPbuffer(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXPbuffer gl_param_GLXPbuffer(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXDrawable gl_param_GLXDrawable(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXDrawable gl_param_GLXDrawable(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXVideoDeviceNV gl_param_GLXVideoDeviceNV(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXVideoDeviceNV gl_param_GLXVideoDeviceNV(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static Pixmap gl_param_Pixmap(trace_value_t* val) {
-    return *trace_get_uint(val);
+static Pixmap gl_param_Pixmap(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static Window gl_param_Window(trace_value_t* val) {
-    return *trace_get_uint(val);
+static Window gl_param_Window(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static Font gl_param_Font(trace_value_t* val) {
-    return *trace_get_uint(val);
+static Font gl_param_Font(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static Colormap gl_param_Colormap(trace_value_t* val) {
-    return *trace_get_uint(val);
+static Colormap gl_param_Colormap(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXContextID gl_param_GLXContextID(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXContextID gl_param_GLXContextID(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLXFBConfig(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLXFBConfig(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXVideoCaptureDeviceNV gl_param_GLXVideoCaptureDeviceNV(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXVideoCaptureDeviceNV gl_param_GLXVideoCaptureDeviceNV(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static uint64_t gl_param_GLXFBConfigSGIX(trace_value_t* val) {
-    return *trace_get_ptr(val);
+static uint64_t gl_param_GLXFBConfigSGIX(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXPbufferSGIX gl_param_GLXPbufferSGIX(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXPbufferSGIX gl_param_GLXPbufferSGIX(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_value_t* val) {
-    return *trace_get_uint(val);
+static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size_t index) {
+    return *trace_get_uint(&trace_get_arg(cmd, index)->val);
 }
 
-static GLXContext gl_param_GLXContext(trace_value_t* val) {
-    return (GLXContext)*trace_get_ptr(val);
+static GLXContext gl_param_GLXContext(trace_command_t* cmd, size_t index) {
+    return (GLXContext)*trace_get_ptr(&trace_get_arg(cmd, index)->val);
 }
 
 static void reset_gl_funcs(replay_context_t* ctx);
@@ -846,27 +846,27 @@ for name in gl.functions:
     
     i = 0
     for param in function.params:
-        arg = "trace_get_arg(command, %d)->val" % (i)
+        arg = "command, %d" % (i)
         
         if param.type_[-1] == "]":
-            params.append("gl_param_%s_array(&%s)" % (param.type_.split("[")[0], arg))
+            params.append("gl_param_%s_array(%s)" % (param.type_.split("[")[0], arg))
         elif param.type_.replace(" ", "") == "constGLchar*const*":
-            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
         elif param.type_.replace(" ", "") == "constGLchar**":
-            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
         elif param.type_.replace(" ", "") == "constGLcharARB**":
-            params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
         elif param.type_.replace(" ", "") == "unsignedint":
-            params.append("(%s)gl_param_unsigned_int(&%s)" % (param.type_, arg))
+            params.append("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
         elif param.type_.replace(" ", "") == "unsignedlong":
-            params.append("(%s)gl_param_unsigned_int(&%s)" % (param.type_, arg))
+            params.append("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
         elif "*" in param.type_:
             if "GLchar" in param.type_:
-                params.append("(%s)gl_param_string(&%s)" % (param.type_, arg))
+                params.append("(%s)gl_param_string(%s)" % (param.type_, arg))
             else:
-                params.append("(%s)gl_param_pointer(&%s)" % (param.type_, arg))
+                params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
         else:
-            params.append("(%s)gl_param_%s(&%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
+            params.append("(%s)gl_param_%s(%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
         
         i += 1
     

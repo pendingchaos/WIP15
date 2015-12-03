@@ -38,7 +38,7 @@
 - [x] glDeleteShader
 - [x] glDeleteTextures
 - [x] glDetachShader
-- [ ] glDrawArrays
+- [x] glDrawArrays
 - [ ] glDrawElements
 - [ ] glDrawPixels
 - [ ] glDrawRangeElements
@@ -100,12 +100,12 @@
 - [ ] glIndex
 - [ ] glIndexPointer
 - [ ] glInterleavedArrays
-- [ ] glIsBuffer
-- [ ] glIsList
-- [ ] glIsProgram
-- [ ] glIsQuery
-- [ ] glIsShader
-- [ ] glIsTexture
+- [x] glIsBuffer
+- [x] glIsList
+- [x] glIsProgram
+- [x] glIsQuery
+- [x] glIsShader
+- [x] glIsTexture
 - [ ] glLight
 - [ ] glLightModel
 - [x] glLinkProgram
@@ -135,6 +135,14 @@
 - [ ] glRasterPos
 - [ ] glReadPixels
 - [ ] glRect
+    - [x] glRectd
+    - [x] glRectf
+    - [x] glRecti
+    - [x] glRects
+    - [ ] glRectdv
+    - [ ] glRectfv
+    - [ ] glRectiv
+    - [ ] glRectsv
 - [ ] glSecondaryColor
 - [ ] glSecondaryColorPointer
 - [ ] glSelectBuffer
@@ -152,6 +160,31 @@
 - [ ] glTexSubImage2D
 - [ ] glTexSubImage3D
 - [ ] glUniform
+    - [x] glUniform1f
+    - [x] glUniform2f
+    - [x] glUniform3f
+    - [x] glUniform4f
+    - [x] glUniform1i
+    - [x] glUniform2i
+    - [x] glUniform3i
+    - [x] glUniform4i
+    - [ ] glUniform1v
+    - [ ] glUniform2v
+    - [ ] glUniform3v
+    - [ ] glUniform4v
+    - [ ] glUniform1v
+    - [ ] glUniform2v
+    - [ ] glUniform3v
+    - [ ] glUniform4v
+    - [ ] glUniformMatrix2fv
+    - [ ] glUniformMatrix3fv
+    - [ ] glUniformMatrix4fv
+    - [ ] glUniformMatrix2x3fv
+    - [ ] glUniformMatrix3x2fv
+    - [ ] glUniformMatrix2x4fv
+    - [ ] glUniformMatrix4x2fv
+    - [ ] glUniformMatrix3x4fv
+    - [ ] glUniformMatrix4x3fv
 - [ ] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram

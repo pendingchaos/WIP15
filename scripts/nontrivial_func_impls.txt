@@ -31,12 +31,12 @@ glXMakeCurrent:
         F(glXSwapIntervalSGI)(0);
 
 glXGetProcAddressARB:
-    void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
+    void (*result)() = real((const GLubyte*)gl_param_string(command, 0));
     if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 
 glXGetProcAddress:
-    void (*result)() = real((const GLubyte*)gl_param_string(&trace_get_arg(command, 0)->val));
+    void (*result)() = real((const GLubyte*)gl_param_string(command, 0));
     if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
         inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
 
@@ -53,7 +53,7 @@ glXChooseVisual:
         u.u = trace_get_uint(&attribs)[i];
         int_attribs[i] = u.i;
     }
-    XVisualInfo* vis = real(ctx->_display, gl_param_int(&trace_get_arg(command, 1)->val), int_attribs);
+    XVisualInfo* vis = real(ctx->_display, gl_param_int(command, 1), int_attribs);
     if (!vis) {
         inspect_add_error(inspect_command, "Unable to create visual.");
         return;
@@ -71,11 +71,11 @@ glXCreateContext:
             return;
         }
     }
-    GLXContext res = F(glXCreateNewContext)(ctx->_display, ctx->_fbconfig, GLX_RGBA_TYPE, shareList, gl_param_Bool(&trace_get_arg(command, 3)->val));
+    GLXContext res = F(glXCreateNewContext)(ctx->_display, ctx->_fbconfig, GLX_RGBA_TYPE, shareList, gl_param_Bool(command, 3));
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
 
 glXQueryExtensionsString:
-    //Nothing to have here
+    ;
 
 glXDestroyContext:
     GLXContext glctx = (GLXContext)replay_get_real_object(ctx,
@@ -99,7 +99,7 @@ glXSwapBuffers:
     replay_get_front_color(ctx, inspect_command);
 
 glBegin:
-    real(gl_param_GLenum(&trace_get_arg(command, 0)->val));
+    real(gl_param_GLenum(command, 0));
     ctx->_in_begin_end = true;
 
 glEnd:
@@ -110,17 +110,23 @@ glEnd:
     replay_get_depth(ctx, inspect_command);
 
 glClear:
-    GLbitfield mask = gl_param_GLbitfield(&trace_get_arg(command, 0)->val);
+    GLbitfield mask = gl_param_GLbitfield(command, 0);
     real(mask);
     if (mask & GL_COLOR_BUFFER_BIT)
         replay_get_back_color(ctx, inspect_command);
     if (mask & GL_DEPTH_BUFFER_BIT)
         replay_get_depth(ctx, inspect_command);
 
-//TODO glDraw* and glEndList
+glDrawArrays:
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLint first = gl_param_GLint(command, 1);
+    GLsizei count = gl_param_GLsizei(command, 2);
+    real(mode, first, count);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
 
 glGenTextures:
-    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
     uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
     
@@ -136,7 +142,7 @@ glGenTextures:
     }
 
 glDeleteTextures:
-    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
     uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
     
@@ -153,43 +159,43 @@ glDeleteTextures:
     real(n, textures);
 
 glBindTexture:
-    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint target = gl_param_GLenum(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake);
     if (!real_tex)
         inspect_add_error(inspect_command, "Invalid texture being bound.");
     real(target, real_tex);
 
 glTexImage2D:
-    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLint level = gl_param_GLint(&trace_get_arg(command, 1)->val);
-    GLint internalFormat = gl_param_GLint(&trace_get_arg(command, 2)->val);
-    GLsizei width = gl_param_GLenum(&trace_get_arg(command, 3)->val);
-    GLsizei height = gl_param_GLenum(&trace_get_arg(command, 4)->val);
-    GLint border = gl_param_GLenum(&trace_get_arg(command, 5)->val);
-    GLenum format = gl_param_GLenum(&trace_get_arg(command, 6)->val);
-    GLenum type = gl_param_GLenum(&trace_get_arg(command, 7)->val);
-    const void* data = gl_param_data(&trace_get_arg(command, 8)->val);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint internalFormat = gl_param_GLint(command, 2);
+    GLsizei width = gl_param_GLenum(command, 3);
+    GLsizei height = gl_param_GLenum(command, 4);
+    GLint border = gl_param_GLenum(command, 5);
+    GLenum format = gl_param_GLenum(command, 6);
+    GLenum type = gl_param_GLenum(command, 7);
+    const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
     replay_get_tex_params(ctx, inspect_command, target);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexParameterf:
-    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 1)->val);
-    GLfloat param = gl_param_GLfloat(&trace_get_arg(command, 2)->val);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLfloat param = gl_param_GLfloat(command, 2);
     real(target, pname, param);
     replay_get_tex_params(ctx, inspect_command, target);
 
 glTexParameteri:
-    GLenum target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLenum pname = gl_param_GLenum(&trace_get_arg(command, 1)->val);
-    GLint param = gl_param_GLint(&trace_get_arg(command, 2)->val);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLint param = gl_param_GLint(command, 2);
     real(target, pname, param);
     replay_get_tex_params(ctx, inspect_command, target);
 
 glGenBuffers:
-    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
     uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
     
@@ -205,7 +211,7 @@ glGenBuffers:
     }
 
 glDeleteBuffers:
-    GLsizei n = gl_param_GLsizei(&trace_get_arg(command, 0)->val);
+    GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
     uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
     
@@ -222,18 +228,18 @@ glDeleteBuffers:
     real(n, buffers);
 
 glBindBuffer:
-    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint target = gl_param_GLenum(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
     if (!real_buf)
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
     real(target, real_buf);
 
 glBufferData:
-    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLsizeiptr size = gl_param_GLsizeiptr(&trace_get_arg(command, 1)->val);
-    const void* data = gl_param_data(&trace_get_arg(command, 2)->val);
-    GLenum usage = gl_param_GLenum(&trace_get_arg(command, 3)->val);
+    GLuint target = gl_param_GLenum(command, 0);
+    GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
+    const void* data = gl_param_data(command, 2);
+    GLenum usage = gl_param_GLenum(command, 3);
     real(target, size, data, usage);
     
     inspect_action_t action;
@@ -246,10 +252,10 @@ glBufferData:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glBufferSubData:
-    GLuint target = gl_param_GLenum(&trace_get_arg(command, 0)->val);
-    GLintptr offset = gl_param_GLintptr(&trace_get_arg(command, 1)->val);
-    GLsizeiptr size = gl_param_GLsizeiptr(&trace_get_arg(command, 2)->val);
-    const void* data = gl_param_data(&trace_get_arg(command, 3)->val);
+    GLuint target = gl_param_GLenum(command, 0);
+    GLintptr offset = gl_param_GLintptr(command, 1);
+    GLsizeiptr size = gl_param_GLsizeiptr(command, 2);
+    const void* data = gl_param_data(command, 3);
     real(target, offset, size, data);
     
     inspect_action_t action;
@@ -286,7 +292,7 @@ glMultTransposeMatrixf:
     F(glMultTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
 
 glCreateShader:
-    GLenum type = gl_param_GLenum(&trace_get_arg(command, 0)->val);
+    GLenum type = gl_param_GLenum(command, 0);
     GLuint real_shdr = F(glCreateShader)(type);
     GLuint fake = trace_get_uint(&command->ret)[0];
     replay_create_object(ctx, ReplayObjType_GLShader, real_shdr, fake);
@@ -298,7 +304,7 @@ glCreateShader:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glDeleteShader:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!real_shdr) {
         inspect_add_error(inspect_command, "Invalid shader.");
@@ -315,9 +321,9 @@ glDeleteShader:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glShaderSource:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
-    GLsizei count = gl_param_GLsizei(&trace_get_arg(command, 1)->val);
-    char** sources = gl_param_string_array(&trace_get_arg(command, 2)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    char** sources = gl_param_string_array(command, 2);
     
     GLuint shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!shader) {
@@ -360,7 +366,7 @@ glShaderSource:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glCompileShader:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!real_shdr) {
         inspect_add_error(inspect_command, "Invalid shader.");
@@ -397,7 +403,7 @@ glCreateProgram:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glDeleteProgram:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
@@ -414,14 +420,14 @@ glDeleteProgram:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glAttachShader:
-    GLuint fake_program = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake_program = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
         return;
     }
     
-    GLuint fake_shader = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
     if (!real_shader) {
         inspect_add_error(inspect_command, "Invalid shader.");
@@ -437,14 +443,14 @@ glAttachShader:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glDetachShader:
-    GLuint fake_program = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake_program = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
         return;
     }
     
-    GLuint fake_shader = gl_param_GLuint(&trace_get_arg(command, 1)->val);
+    GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
     if (!real_shader) {
         inspect_add_error(inspect_command, "Invalid shader.");
@@ -460,7 +466,7 @@ glDetachShader:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glLinkProgram:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
@@ -488,7 +494,7 @@ glLinkProgram:
 
 
 glValidateProgram:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
@@ -516,7 +522,7 @@ glValidateProgram:
 
 
 glUseProgram:
-    GLuint fake = gl_param_GLuint(&trace_get_arg(command, 0)->val);
+    GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
@@ -524,3 +530,109 @@ glUseProgram:
     }
     
     real(real_program);
+
+glIsBuffer:
+    ;
+
+glIsList:
+    ;
+
+glIsProgram:
+    ;
+
+glIsQuery:
+    ;
+
+glIsShader:
+    ;
+
+glIsTexture:
+    ;
+
+glRectd:
+    GLdouble x1 = gl_param_GLdouble(command, 0);
+    GLdouble y1 = gl_param_GLdouble(command, 1);
+    GLdouble x2 = gl_param_GLdouble(command, 2);
+    GLdouble y2 = gl_param_GLdouble(command, 3);
+    real(x1, y1, x2, y2);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
+glRectf:
+    GLfloat x1 = gl_param_GLfloat(command, 0);
+    GLfloat y1 = gl_param_GLfloat(command, 1);
+    GLfloat x2 = gl_param_GLfloat(command, 2);
+    GLfloat y2 = gl_param_GLfloat(command, 3);
+    real(x1, y1, x2, y2);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
+glRecti:
+    GLint x1 = gl_param_GLint(command, 0);
+    GLint y1 = gl_param_GLint(command, 1);
+    GLint x2 = gl_param_GLint(command, 2);
+    GLint y2 = gl_param_GLint(command, 3);
+    real(x1, y1, x2, y2);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
+glRects:
+    GLshort x1 = gl_param_GLshort(command, 0);
+    GLshort y1 = gl_param_GLshort(command, 1);
+    GLshort x2 = gl_param_GLshort(command, 2);
+    GLshort y2 = gl_param_GLshort(command, 3);
+    real(x1, y1, x2, y2);
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
+glUniform1f:
+    GLint loc = gl_param_GLint(command, 0);
+    GLfloat v0 = gl_param_GLfloat(command, 1);
+    real(loc, v0);
+
+glUniform2f:
+    GLint loc = gl_param_GLint(command, 0);
+    GLfloat v0 = gl_param_GLfloat(command, 1);
+    GLfloat v1 = gl_param_GLfloat(command, 2);
+    real(loc, v0, v1);
+
+glUniform3f:
+    GLint loc = gl_param_GLint(command, 0);
+    GLfloat v0 = gl_param_GLfloat(command, 1);
+    GLfloat v1 = gl_param_GLfloat(command, 2);
+    GLfloat v2 = gl_param_GLfloat(command, 3);
+    real(loc, v0, v1, v2);
+
+glUniform4f:
+    GLint loc = gl_param_GLint(command, 0);
+    GLfloat v0 = gl_param_GLfloat(command, 1);
+    GLfloat v1 = gl_param_GLfloat(command, 2);
+    GLfloat v2 = gl_param_GLfloat(command, 3);
+    GLfloat v3 = gl_param_GLfloat(command, 4);
+    real(loc, v0, v1, v2, v3);
+
+glUniform1i:
+    GLint loc = gl_param_GLint(command, 0);
+    GLint v0 = gl_param_GLint(command, 1);
+    real(loc, v0);
+
+glUniform2i:
+    GLint loc = gl_param_GLint(command, 0);
+    GLint v0 = gl_param_GLint(command, 1);
+    GLint v1 = gl_param_GLint(command, 2);
+    real(loc, v0, v1);
+
+glUniform3i:
+    GLint loc = gl_param_GLint(command, 0);
+    GLint v0 = gl_param_GLint(command, 1);
+    GLint v1 = gl_param_GLint(command, 2);
+    GLint v2 = gl_param_GLint(command, 3);
+    real(loc, v0, v1, v2);
+
+glUniform4i:
+    GLint loc = gl_param_GLint(command, 0);
+    GLint v0 = gl_param_GLint(command, 1);
+    GLint v1 = gl_param_GLint(command, 2);
+    GLint v2 = gl_param_GLint(command, 3);
+    GLint v3 = gl_param_GLint(command, 4);
+    real(loc, v0, v1, v2, v3);

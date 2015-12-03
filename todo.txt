@@ -47,7 +47,6 @@ Bugs:
     Program crashes with optimizations.
         Seems to be the glGetIntegerv calls in the state tracking code.
             Currently disabled.
-    Framebuffer viewing does not seem to completely work.
 
 Various TODOs in the source code.
 
