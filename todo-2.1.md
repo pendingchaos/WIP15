@@ -56,7 +56,7 @@
 - [x] glGenLists
 - [x] glGenQueries
 - [x] glGenTextures
-- [ ] glGet
+- [x] glGet
 - [ ] glGetActiveAttrib
 - [ ] glGetActiveUniform
 - [ ] glGetAttachedShaders
@@ -90,7 +90,7 @@
 - [x] glGetShaderSource
 - [x] glGetTexEnv
 - [x] glGetTexGen
-- [ ] glGetTexImage
+- [x] glGetTexImage
 - [x] glGenTexLevelParameter
 - [x] glGetTexParameter
 - [x] glGetUniform

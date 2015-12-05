@@ -746,13 +746,13 @@ glGetQueryiv:
 glGetQueryObjectiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_query = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
-    if (!real_program)
+    if (!real_query)
         inspect_add_error(inspect_command, "Invalid query.");
 
 glGetQueryObjectuiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_query = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
-    if (!real_program)
+    if (!real_query)
         inspect_add_error(inspect_command, "Invalid query.");
 
 glGetProgramInfoLog:
@@ -870,4 +870,19 @@ glGetBufferPointerv:
     ;
 
 glGetBufferSubData:
+    ;
+
+glGetTexImage:
+    ;
+
+glGetBooleanv:
+    ;
+
+glGetDoublev:
+    ;
+
+glGetFloatv:
+    ;
+
+glGetIntegerv:
     ;
