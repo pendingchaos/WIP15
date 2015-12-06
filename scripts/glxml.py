@@ -70,6 +70,14 @@ class GL:
         tree = ET.parse("glx.xml")
         root = tree.getroot()
         self._run(root)
+        
+        self._create_wip15_extension()
+    
+    def _create_wip15_extension(self):
+        self.functions["glSetContextCapsWIP15"] = Function("void")
+        
+        ext = Extension()
+        ext.functions.append("glSetContextCapsWIP15")
     
     def _run(self, root):
         groups = {}

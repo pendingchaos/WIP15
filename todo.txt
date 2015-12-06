@@ -29,6 +29,7 @@ Debugging:
     State inspection
         Currently have lots though more still needed.
         Some duplicated state (glGetBooleanv and glIsEnabled calls doing the same thing)
+    Replay should check to see if the user supplied limits have been reached.
 
 Performance:
     CPU-GPU sync points

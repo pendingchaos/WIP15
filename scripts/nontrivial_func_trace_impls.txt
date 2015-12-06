@@ -1,3 +1,11 @@
+glXCreateContext:
+    gl_param_pointer(dpy);
+    gl_param_pointer(vis);
+    gl_param_GLXContext(shareList, -1);
+    gl_param_Bool(direct, -1);
+    GLXContext result = gl_glXCreateContext(dpy, vis, shareList, direct);
+    gl_result_GLXContext(result);
+
 glXChooseVisual:
     gl_param_pointer(dpy);
     gl_param_int(screen, -1);
@@ -6,6 +14,77 @@ glXChooseVisual:
     gl_param_GLuint_array(attribs-attribList+1, attribList);
     XVisualInfo* result = gl_glXChooseVisual(dpy, screen, attribList);
     gl_result_pointer(result);
+
+glXMakeCurrent:
+    gl_param_pointer(dpy);
+    gl_param_GLXDrawable(drawable, -1);
+    gl_param_GLXContext(ctx, -1);
+    Bool result = gl_glXMakeCurrent(dpy, drawable, ctx);
+    gl_result_Bool(result);
+    if (!ctx) {
+        current_limits = NULL;
+    } else {
+        current_limits = &gl21_limits; //TODO
+    }
+
+glSetContextCapsWIP15:
+    gl_write_b(WIP15_DATA);
+    gl_write_u32(34*sizeof(uint32_t)); //TODO: Add variable sized stuff
+    #define LIMIT(pname) gl_write_u32(*gl_geti(GL_##pname));
+    //TODO: Make LIMITF more portable
+    #define LIMITF(pname) fwrite(gl_getf(GL_##pname), 4, 1, trace_file);
+    LIMIT(MAX_LIGHTS)
+    LIMIT(MAX_CLIP_PLANES)
+    LIMIT(MAX_COLOR_MATRIX_STACK_DEPTH)
+    LIMIT(MAX_MODELVIEW_STACK_DEPTH)
+    LIMIT(MAX_PROJECTION_STACK_DEPTH)
+    LIMIT(MAX_TEXTURE_STACK_DEPTH)
+    LIMIT(SUBPIXEL_BITS)
+    LIMIT(MAX_3D_TEXTURE_SIZE)
+    LIMIT(MAX_TEXTURE_SIZE)
+    LIMIT(MAX_TEXTURE_LOD_BIAS)
+    LIMIT(MAX_CUBE_MAP_TEXTURE_SIZE)
+    LIMIT(MAX_PIXEL_MAP_TABLE)
+    LIMIT(MAX_NAME_STACK_DEPTH)
+    LIMIT(MAX_LIST_NESTING)
+    LIMIT(MAX_EVAL_ORDER)
+    LIMIT(MAX_ATTRIB_STACK_DEPTH)
+    LIMIT(MAX_CLIENT_ATTRIB_STACK_DEPTH)
+    //TODO: MAX_COLOR_TABLE_SIZE
+    LIMIT(AUX_BUFFERS)
+    //TODO: rgba_mode_supported
+    //TODO: index_mode_supported
+    //TODO: doublebuffer_supported
+    //TODO: stereo_supported
+    //TODO: ALIASED_POINT_SIZE_RANGE
+    //TODO: SMOOTH_POINT_SIZE_RANGE
+    LIMITF(SMOOTH_POINT_SIZE_GRANULARITY)
+    //TODO: aliased_line_width_range
+    //TODO: smooth_line_width_range
+    LIMIT(SMOOTH_LINE_WIDTH_GRANULARITY)
+    //TODO: max_convolution_width
+    //TODO: max_convolution_height
+    LIMIT(MAX_ELEMENTS_INDICES)
+    LIMIT(MAX_ELEMENTS_VERTICES)
+    //TODO: sample_buffers
+    //TODO: samples
+    LIMIT(NUM_COMPRESSED_TEXTURE_FORMATS)
+    //TODO: compressed_texture_formats
+    LIMIT(QUERY_COUNTER_BITS)
+    //TODO: extensions
+    LIMIT(MAX_TEXTURE_UNITS)
+    LIMIT(MAX_VERTEX_ATTRIBS)
+    LIMIT(MAX_VERTEX_UNIFORM_COMPONENTS)
+    LIMIT(MAX_VARYING_FLOATS)
+    LIMIT(MAX_COMBINED_TEXTURE_IMAGE_UNITS)
+    LIMIT(MAX_VERTEX_TEXTURE_IMAGE_UNITS)
+    LIMIT(MAX_TEXTURE_IMAGE_UNITS)
+    LIMIT(MAX_TEXTURE_COORDS)
+    LIMIT(MAX_FRAGMENT_UNIFORM_COMPONENTS)
+    LIMIT(MAX_DRAW_BUFFERS)
+    //TODO: *bits_supported
+    #undef LIMITF
+    #undef LIMIT
 
 glGenTextures:
     gl_param_GLsizei(n, -1);
@@ -279,3 +358,65 @@ glPrioritizeTextures:
         priorities_dbl[i] = priorities[i];    
     gl_param_double_array(n, priorities_dbl);
     gl_glPrioritizeTextures(n, textures, priorities);
+
+glGetBooleanv:
+    gl_param_GLenum(pname, GROUP_GetPName);
+    gl_param_pointer(data);
+    GL_GET(glGetBooleanv)
+
+glGetDoublev:
+    gl_param_GLenum(pname, GROUP_GetPName);
+    gl_param_pointer(data);
+    GL_GET(glGetDoublev)
+
+glGetFloatv:
+    gl_param_GLenum(pname, GROUP_GetPName);
+    gl_param_pointer(data);
+    GL_GET(glGetFloatv)
+
+glGetIntegerv:
+    gl_param_GLenum(pname, GROUP_GetPName);
+    gl_param_pointer(data);
+    GL_GET(glGetIntegerv)
+
+glGetString:
+    gl_param_GLenum(name, GROUP_StringName);
+    const GLubyte* result = "";
+    switch (name) {
+    case GL_VENDOR: {
+        if (current_limits->vendor.exists)
+            result = current_limits->vendor.str;
+        else
+            result = glGetString(GL_VENDOR);
+        break;
+    }
+    case GL_RENDERER: {
+        if (current_limits->renderer.exists)
+            result = current_limits->renderer.str;
+        else
+            result = glGetString(GL_RENDERER);
+        break;
+    }
+    case GL_VERSION: {
+        if (current_limits->version.exists)
+            result = current_limits->version.str;
+        else
+            result = glGetString(GL_VERSION);
+        break;
+    }
+    case GL_SHADING_LANGUAGE_VERSION: {
+        if (current_limits->shading_language_version.exists)
+            result = current_limits->shading_language_version.str;
+        else
+            result = glGetString(GL_SHADING_LANGUAGE_VERSION);
+        break;
+    }
+    case GL_EXTENSIONS: {
+        if (current_limits->extensions.exists)
+            result = current_limits->extensions_str;
+        else
+            result = glGetString(GL_EXTENSIONS);
+        break;
+    }
+    }
+    gl_param_string(result);

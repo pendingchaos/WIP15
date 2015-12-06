@@ -98,6 +98,9 @@ glXSwapBuffers:
     replay_get_back_color(ctx, inspect_command);
     replay_get_front_color(ctx, inspect_command);
 
+glSetContextCapsWIP15:
+    ;
+
 glBegin:
     real(gl_param_GLenum(command, 0));
     ctx->_in_begin_end = true;

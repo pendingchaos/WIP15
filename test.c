@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     glLinkProgram(program);
     glValidateProgram(program);
     
-    float priority;
+    float priority = 0.5f;
     glPrioritizeTextures(1, &texture, &priority);
     GLboolean resident;
     glAreTexturesResident(1, &texture, &resident);
