@@ -475,3 +475,324 @@ glTexParameteriv:
     }
     
     gl_glTexParameteriv(target, pname, params);
+
+glLightModelfv:
+    gl_param_GLenum(pname, GROUP_LightModelParameter);
+    
+    if (pname == GL_LIGHT_MODEL_AMBIENT) {
+        double arr[] = {params[0], params[1], params[2], params[3]};
+        gl_param_double_array(4, arr);
+    } else {
+        gl_param_GLfloat(*params, -1);
+    }
+    
+    gl_glLightModelfv(pname, params);
+
+glLightModeliv:
+    gl_param_GLenum(pname, GROUP_LightModelParameter);
+    
+    if (pname == GL_LIGHT_MODEL_AMBIENT) {
+        gl_param_GLint_array(4, params);
+    } else {
+        gl_param_GLint(*params, -1);
+    }
+    
+    gl_glLightModeliv(pname, params);
+
+glLightfv:
+    gl_param_GLenum(light, GROUP_LightName);
+    gl_param_GLenum(pname, GROUP_LightParameter);
+    
+    switch (pname) {
+    case GL_AMBIENT:
+    case GL_DIFFUSE:
+    case GL_SPECULAR:
+    case GL_POSITION: {
+        double arr[] = {params[0], params[1], params[2], params[3]};
+        gl_param_double_array(4, arr);
+        break;
+    }
+    case GL_SPOT_DIRECTION: {
+        double arr[] = {params[0], params[1], params[2]};
+        gl_param_double_array(3, arr);
+        break;
+    }
+    default: {
+        gl_param_GLfloat(*params, -1);
+        break;
+    }
+    }
+    
+    gl_glLightfv(light, pname, params);
+
+glLightiv:
+    gl_param_GLenum(light, GROUP_LightName);
+    gl_param_GLenum(pname, GROUP_LightParameter);
+    
+    switch (pname) {
+    case GL_AMBIENT:
+    case GL_DIFFUSE:
+    case GL_SPECULAR:
+    case GL_POSITION: {
+        gl_param_GLint_array(4, params);
+        break;
+    }
+    case GL_SPOT_DIRECTION: {
+        gl_param_GLint_array(3, params);
+        break;
+    }
+    default: {
+        gl_param_GLint(*params, -1);
+        break;
+    }
+    }
+    
+    gl_glLightiv(light, pname, params);
+
+glMaterialfv:
+    gl_param_GLenum(face, GROUP_MaterialFace);
+    gl_param_GLenum(pname, GROUP_MaterialParameter);
+    
+    switch (pname) {
+    case GL_AMBIENT:
+    case GL_DIFFUSE:
+    case GL_SPECULAR:
+    case GL_EMISSION:
+    case GL_AMBIENT_AND_DIFFUSE: {
+        double arr[] = {params[0], params[1], params[2], params[3]};
+        gl_param_double_array(4, arr);
+        break;
+    }
+    case GL_COLOR_INDEXES: {
+        double arr[] = {params[0], params[1], params[2]};
+        gl_param_double_array(3, arr);
+        break;
+    }
+    default: {
+        gl_param_GLfloat(*params, -1);
+        break;
+    }
+    }
+    
+    gl_glMaterialfv(face, pname, params);
+
+glMaterialiv:
+    gl_param_GLenum(face, GROUP_MaterialFace);
+    gl_param_GLenum(pname, GROUP_MaterialParameter);
+    
+    switch (pname) {
+    case GL_AMBIENT:
+    case GL_DIFFUSE:
+    case GL_SPECULAR:
+    case GL_EMISSION:
+    case GL_AMBIENT_AND_DIFFUSE: {
+        gl_param_GLint_array(4, params);
+        break;
+    }
+    case GL_COLOR_INDEXES: {
+        gl_param_GLint_array(3, params);
+        break;
+    }
+    default: {
+        gl_param_GLint(*params, -1);
+        break;
+    }
+    }
+    
+    gl_glMaterialiv(face, pname, params);
+
+glNormal3bv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glNormal3dv:
+    gl_param_double_array(3, v);
+
+glNormal3fv:
+    double arr[] = {v[0], v[1], v[2]};
+    gl_param_double_array(3, arr);
+
+glNormal3iv:
+    gl_param_GLint_array(3, v);
+
+glNormal3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glVertex2sv:
+    GLint arr[] = {v[0], v[1]};
+    gl_param_GLint_array(2, arr);
+
+glVertex2iv:
+    gl_param_GLint_array(2, v);
+
+glVertex2fv:
+    GLdouble arr[] = {v[0], v[1]};
+    gl_param_double_array(2, arr);
+
+glVertex2dv:
+    gl_param_double_array(2, v);
+
+glVertex3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glVertex3iv:
+    gl_param_GLint_array(3, v);
+
+glVertex3fv:
+    GLdouble arr[] = {v[0], v[1], v[2]};
+    gl_param_double_array(3, arr);
+
+glVertex3dv:
+    gl_param_double_array(3, v);
+
+glVertex4sv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glVertex4iv:
+    gl_param_GLint_array(4, v);
+
+glVertex4fv:
+    GLdouble arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_double_array(4, arr);
+
+glVertex4dv:
+    gl_param_double_array(4, v);
+
+glTexCoord1sv:
+    gl_param_GLshort(*v, -1);
+
+glTexCoord1iv:
+    gl_param_GLint(*v, -1);
+
+glTexCoord1fv:
+    gl_param_GLfloat(*v, -1);
+
+glTexCoord1dv:
+    gl_param_GLdouble(*v, -1);
+
+glTexCoord2sv:
+    GLint arr[] = {v[0], v[1]};
+    gl_param_GLint_array(2, arr);
+
+glTexCoord2iv:
+    gl_param_GLint_array(2, v);
+
+glTexCoord2fv:
+    double arr[] = {v[0], v[1]};
+    gl_param_double_array(2, arr);
+
+glTexCoord2dv:
+    gl_param_double_array(2, v);
+
+glTexCoord3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glTexCoord3iv:
+    gl_param_GLint_array(3, v);
+
+glTexCoord3fv:
+    double arr[] = {v[0], v[1], v[2]};
+    gl_param_double_array(3, arr);
+
+glTexCoord3dv:
+    gl_param_double_array(3, v);
+
+glTexCoord4sv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glTexCoord4iv:
+    gl_param_GLint_array(4, v);
+
+glTexCoord4fv:
+    double arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_double_array(4, arr);
+
+glTexCoord4dv:
+    gl_param_double_array(4, v);
+
+glIndexsv:
+    gl_param_GLshort(*c, -1);
+
+glIndexiv:
+    gl_param_GLint(*c, -1);
+
+glIndexfv:
+    gl_param_GLfloat(*c, -1);
+
+glIndexdv:
+    gl_param_GLdouble(*c, -1);
+
+glIndexubv:
+    gl_param_GLubyte(*c, -1);
+
+glFogCoorddv:
+    gl_param_GLdouble(*coord, -1);
+
+glFogCoordfv:
+    gl_param_GLfloat(*coord, -1);
+
+glEdgeFlagv:
+    gl_param_GLboolean(*flag, -1);
+
+glColor3bv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glColor3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glColor3iv:
+    gl_param_GLint_array(3, v);
+
+glColor3fv:
+    double arr[] = {v[0], v[1], v[2]};
+    gl_param_double_array(3, arr);
+
+glColor3dv:
+    gl_param_double_array(3, v);
+
+glColor3ubv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glColor3usv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+
+glColor3uiv:
+    gl_param_GLuint_array(3, v);
+
+glColor4bv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glColor4sv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glColor4iv:
+    gl_param_GLint_array(4, v);
+
+glColor4fv:
+    double arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_double_array(4, arr);
+
+glColor4dv:
+    gl_param_double_array(4, v);
+
+glColor4ubv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glColor4usv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+
+glColor4uiv:
+    gl_param_GLuint_array(4, v);

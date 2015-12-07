@@ -15,7 +15,7 @@
 - [x] glCallLists
 - [x] glClear
 - [ ] glClipPlane
-- [ ] glColor
+- [x] glColor
 - [ ] glColorPointer
 - [ ] glColorSubTable
 - [ ] glColorTable
@@ -42,13 +42,13 @@
 - [ ] glDrawElements
 - [ ] glDrawPixels
 - [ ] glDrawRangeElements
-- [ ] glEdgeFlagv
+- [x] glEdgeFlagv
 - [ ] glEdgeFlagPointer
 - [x] glEnd
 - [ ] glEvalCoord
 - [ ] glEvalPoint
 - [ ] glFeedbackBuffer
-- [ ] glFogCoord
+- [x] glFogCoord
 - [ ] glFogCoordPointer
 - [x] glGenBuffers
 - [x] glGenLists
@@ -95,7 +95,7 @@
 - [x] glGetUniformLocation
 - [x] glGetVertexAttrib
 - [x] glGetVertexAttribPointerv
-- [ ] glIndex
+- [x] glIndex
 - [ ] glIndexPointer
 - [ ] glInterleavedArrays
 - [x] glIsBuffer
@@ -104,22 +104,22 @@
 - [x] glIsQuery
 - [x] glIsShader
 - [x] glIsTexture
-- [ ] glLight
-- [ ] glLightModel
+- [x] glLight
+- [x] glLightModel
 - [x] glLinkProgram
 - [x] glLoadMatrix
 - [x] glLoadTransposeMatrix
 - [ ] glMap1
 - [ ] glMap2
 - [ ] glMapBuffer
-- [ ] glMaterial
+- [x] glMaterial
 - [x] glMultMatrix
 - [x] glMultTransposeMatrix
 - [ ] glMultiDrawArrays
 - [ ] glMultiDrawElements
 - [ ] glMultiTexCoord
 - [x] glNewList
-- [ ] glNormal
+- [x] glNormal
 - [ ] glNormalPointer
 - [ ] glPixelMap
 - [ ] glPixelStore
@@ -138,7 +138,7 @@
 - [ ] glSelectBuffer
 - [ ] glSeparableFilter2D
 - [x] glShaderSource
-- [ ] glTexCoord
+- [x] glTexCoord
 - [ ] glTexCoordPointer
 - [ ] glTexEnv
 - [ ] glTexGen
@@ -154,7 +154,7 @@
 - [ ] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram
-- [ ] glVertex
+- [x] glVertex
 - [ ] glVertexAttrib
 - [ ] glVertexAttribPointer
 - [ ] glVertexPointer

@@ -1021,3 +1021,283 @@ glCallLists:
 
 glReadPixels:
     ;
+
+glLightModelfv:
+    GLenum pname = gl_param_GLenum(command, 0);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 1)->val;
+    GLfloat params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_double(params_val)[i];
+    
+    real(pname, params);
+
+glLightModeliv:
+    GLenum pname = gl_param_GLenum(command, 0);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 1)->val;
+    GLint params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_int(params_val)[i];
+    
+    real(pname, params);
+
+glLightfv:
+    GLenum light = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    GLfloat params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_double(params_val)[i];
+    
+    real(light, pname, params);
+
+glLightiv:
+    GLenum light = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    GLint params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_int(params_val)[i];
+    
+    real(light, pname, params);
+
+glMaterialfv:
+    GLenum face = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    GLfloat params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_double(params_val)[i];
+    
+    real(face, pname, params);
+
+glMaterialiv:
+    GLenum face = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    GLint params[params_val->count];
+    for (size_t i = 0; i < params_val->count; i++)
+        params[i] = trace_get_int(params_val)[i];
+    
+    real(face, pname, params);
+
+glNormal3bv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glNormal3b)(v[0], v[1], v[2]);
+
+glNormal3dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glNormal3d)(v[0], v[1], v[2]);
+
+glNormal3fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glNormal3f)(v[0], v[1], v[2]);
+
+glNormal3iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glNormal3i)(v[0], v[1], v[2]);
+
+glNormal3sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glNormal3s)(v[0], v[1], v[2]);
+
+glVertex2sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex2s)(v[0], v[1]);
+
+glVertex2iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex2i)(v[0], v[1]);
+
+glVertex2fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex2f)(v[0], v[1]);
+
+glVertex2dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex2d)(v[0], v[1]);
+
+glVertex3sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex3s)(v[0], v[1], v[2]);
+
+glVertex3iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex3i)(v[0], v[1], v[2]);
+
+glVertex3fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex3f)(v[0], v[1], v[2]);
+
+glVertex3dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex3d)(v[0], v[1], v[2]);
+
+glVertex4sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex4s)(v[0], v[1], v[2], v[3]);
+
+glVertex4iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glVertex4i)(v[0], v[1], v[2], v[3]);
+
+glVertex4fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex4f)(v[0], v[1], v[2], v[3]);
+
+glVertex4dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glVertex4d)(v[0], v[1], v[2], v[3]);
+
+glTexCoord1sv:
+    F(glTexCoord1s)(gl_param_GLshort(command, 0));
+
+glTexCoord1iv:
+    F(glTexCoord1i)(gl_param_GLint(command, 0));
+
+glTexCoord1fv:
+    F(glTexCoord1f)(gl_param_GLfloat(command, 0));
+
+glTexCoord1dv:
+    F(glTexCoord1d)(gl_param_GLdouble(command, 0));
+
+glTexCoord2sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord2s(v[0], v[1]));
+
+glTexCoord2iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord2i(v[0], v[1]));
+
+glTexCoord2fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord2f(v[0], v[1]));
+
+glTexCoord2dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord2d(v[0], v[1]));
+
+glTexCoord3sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord3s(v[0], v[1], v[2]));
+
+glTexCoord3iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord3i(v[0], v[1], v[2]));
+
+glTexCoord3fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord3f(v[0], v[1], v[2]));
+
+glTexCoord3dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord3d(v[0], v[1], v[2]));
+
+glTexCoord4sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord4s(v[0], v[1], v[2], v[3]));
+
+glTexCoord4iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glTexCoord4i(v[0], v[1], v[2], v[3]));
+
+glTexCoord4fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord4f(v[0], v[1], v[2], v[3]));
+
+glTexCoord4dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glTexCoord4d(v[0], v[1], v[2], v[3]));
+
+glIndexsv:
+    F(glIndexs)(gl_param_GLshort(command, 0));
+
+glIndexiv:
+    F(glIndexi)(gl_param_GLint(command, 0));
+
+glIndexfv:
+    F(glIndexf)(gl_param_GLfloat(command, 0));
+
+glIndexdv:
+    F(glIndexd)(gl_param_GLdouble(command, 0));
+
+glIndexubv:
+    F(glIndexub)(gl_param_GLubyte(command, 0));
+
+glFogCoorddv:
+    F(glFogCoordd)(gl_param_GLdouble(command, 0));
+
+glFogCoordfv:
+    F(glFogCoordf)(gl_param_GLfloat(command, 0));
+
+glEdgeFlagv:
+    F(glEdgeFlag)(gl_param_GLboolean(command, 0));
+
+glColor3bv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor3b)(v[0], v[1], v[2]);
+
+glColor3sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor3s)(v[0], v[1], v[2]);
+
+glColor3iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor3i)(v[0], v[1], v[2]);
+
+glColor3fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glColor3f)(v[0], v[1], v[2]);
+
+glColor3dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glColor3d)(v[0], v[1], v[2]);
+
+glColor3ubv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor3ub)(v[0], v[1], v[2]);
+
+glColor3usv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor3us)(v[0], v[1], v[2]);
+
+glColor3uiv:
+    uint64_t* v = trace_get_uint(&trace_get_arg(command, 0)->val);
+    F(glColor3ui)(v[0], v[1], v[2]);
+
+glColor4bv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor4b)(v[0], v[1], v[2], v[3]);
+
+glColor4sv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor4s)(v[0], v[1], v[2], v[3]);
+
+glColor4iv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor4i)(v[0], v[1], v[2], v[3]);
+
+glColor4fv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glColor4f)(v[0], v[1], v[2], v[3]);
+
+glColor4dv:
+    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    F(glColor4d)(v[0], v[1], v[2], v[3]);
+
+glColor4ubv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor4ub)(v[0], v[1], v[2], v[3]);
+
+glColor4usv:
+    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    F(glColor4us)(v[0], v[1], v[2], v[3]);
+
+glColor4uiv:
+    uint64_t* v = trace_get_uint(&trace_get_arg(command, 0)->val);
+    F(glColor4ui)(v[0], v[1], v[2], v[3]);
