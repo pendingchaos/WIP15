@@ -422,7 +422,7 @@ glGetString:
     gl_param_string(result);
 
 glCallLists:
-    gl_param_GLsizei(n);
+    gl_param_GLsizei(n, -1);
     gl_param_GLenum(type, GROUP_ListNameType);
     
     switch (type) {
@@ -450,3 +450,28 @@ glCallLists:
     }
     
     gl_glCallLists(n, type, lists);
+
+glTexParameterfv:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLenum(pname, GROUP_TextureParameterName);
+    
+    if (pname == GL_TEXTURE_BORDER_COLOR) {
+        double arr[] = {params[0], params[1], params[2], params[3]};
+        gl_param_double_array(4, arr);
+    } else {
+        gl_param_GLfloat(*params, -1);
+    }
+    
+    gl_glTexParameterfv(target, pname, params);
+
+glTexParameteriv:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLenum(pname, GROUP_TextureParameterName);
+    
+    if (pname == GL_TEXTURE_BORDER_COLOR) {
+        gl_param_GLint_array(4, params);
+    } else {
+        gl_param_GLint(*params, -1);
+    }
+    
+    gl_glTexParameteriv(target, pname, params);

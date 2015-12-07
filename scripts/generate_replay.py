@@ -804,7 +804,7 @@ nontrivial = {}
 current_name = ""
 current = ""
 for line in nontrivial_str.split("\n"):
-    if line.endswith(":"):
+    if line.endswith(":") and line.startswith("gl"):
         if len(current_name) != 0:
             nontrivial[current_name] = current
         
