@@ -12,7 +12,7 @@
 - [x] glBufferData
 - [x] glBufferSubData
 - [x] glCallList
-- [ ] glCallLists
+- [x] glCallLists
 - [x] glClear
 - [ ] glClipPlane
 - [ ] glColor
@@ -49,25 +49,23 @@
 - [ ] glEvalPoint
 - [ ] glFeedbackBuffer
 - [ ] glFogCoord
-    - [ ] glFogCoorddv
-    - [ ] glFogCoordfv
-- [ ] glFoxCoordPointer
+- [ ] glFogCoordPointer
 - [x] glGenBuffers
 - [x] glGenLists
 - [x] glGenQueries
 - [x] glGenTextures
 - [x] glGet
-- [ ] glGetActiveAttrib
-- [ ] glGetActiveUniform
-- [ ] glGetAttachedShaders
+- [x] glGetActiveAttrib
+- [x] glGetActiveUniform
+- [x] glGetAttachedShaders
 - [x] glGetAttribLocation
 - [x] glGetBufferParameteriv
 - [x] glGetBufferPointerv
 - [x] glGetBufferSubData
 - [x] glGetClipPlane
-- [ ] glGetColorTable
-- [ ] glGetColorTableParameter
-- [ ] glGetCompressedTexImage
+- [x] glGetColorTable
+- [x] glGetColorTableParameter
+- [x] glGetCompressedTexImage
 - [x] glGetConvolutionFilter
 - [x] glGetConvolutionParameter
 - [x] glGetHistogram
@@ -95,8 +93,8 @@
 - [x] glGetTexParameter
 - [x] glGetUniform
 - [x] glGetUniformLocation
-- [ ] glGetVertexAttrib
-- [ ] glGetVertexAttribPointerv
+- [x] glGetVertexAttrib
+- [x] glGetVertexAttribPointerv
 - [ ] glIndex
 - [ ] glIndexPointer
 - [ ] glInterleavedArrays
@@ -107,8 +105,6 @@
 - [x] glIsShader
 - [x] glIsTexture
 - [ ] glLight
-    - [ ] glLightfv
-    - [ ] glLightiv
 - [ ] glLightModel
 - [x] glLinkProgram
 - [x] glLoadMatrix
@@ -117,8 +113,6 @@
 - [ ] glMap2
 - [ ] glMapBuffer
 - [ ] glMaterial
-    - [ ] glMaterialfv
-    - [ ] glMaterialiv
 - [x] glMultMatrix
 - [x] glMultTransposeMatrix
 - [ ] glMultiDrawArrays
@@ -137,16 +131,8 @@
 - [ ] glPopAttrib
 - [ ] glPopClientAttrib
 - [ ] glRasterPos
-- [ ] glReadPixels
+- [x] glReadPixels
 - [ ] glRect
-    - [x] glRectd
-    - [x] glRectf
-    - [x] glRecti
-    - [x] glRects
-    - [ ] glRectdv
-    - [ ] glRectfv
-    - [ ] glRectiv
-    - [ ] glRectsv
 - [ ] glSecondaryColor
 - [ ] glSecondaryColorPointer
 - [ ] glSelectBuffer

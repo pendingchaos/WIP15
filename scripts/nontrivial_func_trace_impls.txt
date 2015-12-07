@@ -387,36 +387,66 @@ glGetString:
         if (current_limits->vendor.exists)
             result = current_limits->vendor.str;
         else
-            result = glGetString(GL_VENDOR);
+            result = gl_glGetString(GL_VENDOR);
         break;
     }
     case GL_RENDERER: {
         if (current_limits->renderer.exists)
             result = current_limits->renderer.str;
         else
-            result = glGetString(GL_RENDERER);
+            result = gl_glGetString(GL_RENDERER);
         break;
     }
     case GL_VERSION: {
         if (current_limits->version.exists)
             result = current_limits->version.str;
         else
-            result = glGetString(GL_VERSION);
+            result = gl_glGetString(GL_VERSION);
         break;
     }
     case GL_SHADING_LANGUAGE_VERSION: {
         if (current_limits->shading_language_version.exists)
             result = current_limits->shading_language_version.str;
         else
-            result = glGetString(GL_SHADING_LANGUAGE_VERSION);
+            result = gl_glGetString(GL_SHADING_LANGUAGE_VERSION);
         break;
     }
     case GL_EXTENSIONS: {
         if (current_limits->extensions.exists)
             result = current_limits->extensions_str;
         else
-            result = glGetString(GL_EXTENSIONS);
+            result = gl_glGetString(GL_EXTENSIONS);
         break;
     }
     }
     gl_param_string(result);
+
+glCallLists:
+    gl_param_GLsizei(n);
+    gl_param_GLenum(type, GROUP_ListNameType);
+    
+    switch (type) {
+    case GL_BYTE:
+    case GL_UNSIGNED_BYTE:
+        gl_param_data(n, lists);
+        break;
+    case GL_SHORT:
+    case GL_UNSIGNED_SHORT:
+    case GL_2_BYTES:
+        gl_param_data(n * 2, lists);
+        break;
+    case GL_3_BYTES:
+        gl_param_data(n * 3, lists);
+        break;
+    case GL_INT:
+    case GL_UNSIGNED_INT:
+    case GL_FLOAT:
+    case GL_4_BYTES:
+        gl_param_data(n * 4, lists);
+        break;
+    default:
+        gl_param_data(0, lists);
+        break;
+    }
+    
+    gl_glCallLists(n, type, lists);

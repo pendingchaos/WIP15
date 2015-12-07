@@ -889,3 +889,111 @@ glGetFloatv:
 
 glGetIntegerv:
     ;
+
+glGetVertexAttribdv:
+    ;
+
+glGetVertexAttrivfv:
+    ;
+
+glGetVertexAttribiv:
+    ;
+
+glGetVertexAttribPointerv:
+    ;
+
+glGetCompressedTexImage:
+    ;
+
+glGetColorTableParameterfv:
+    ;
+
+glGetColorTableParameteriv:
+    ;
+
+glGetColorTable:
+    ;
+
+glGetAttachedShaders:
+    ;
+
+glGetActiveUniform:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetActiveAttrib:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glCallLists:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLenum type = gl_param_GLenum(command, 1);
+    void* lists = gl_param_void(command, 2);
+    
+    int64_t real_lists[n];
+    for (GLsizei i = 0; i < n; i++) {
+        switch (type) {
+        case GL_BYTE:
+            real_lists[i] = ((int8_t*)lists)[i];
+            break;
+        case GL_UNSIGNED BYTE:
+            real_lists[i] = ((uint8_t*)lists)[i];
+            break;
+        case GL_SHORT:
+            real_lists[i] = ((int16_t*)lists)[i];
+            break;
+        case GL_UNSIGNED_SHORT:
+            real_lists[i] = ((uint16_t*)lists)[i];
+            break;
+        case GL_INT:
+            real_lists[i] = ((int32_t*)lists)[i];
+            break;
+        case GL_UNSIGNED_INT:
+            real_lists[i] = ((uint32_t*)lists)[i];
+            break;
+        case GL_FLOAT:
+            real_lists[i] = ((float*)lists)[i];
+            break;
+        case GL_2_BYTES:
+            real_lists[i] = ((uint8_t*)lists)[i*2]*256 +
+                            ((uint8_t*lists))[i*2+1];
+            break;
+        case GL_3_BYTES:
+            real_lists[i] = ((uint8_t*)lists)[i*3]*65536u +
+                            ((uint8_t*)lists)[i*3+1]*256u +
+                            ((uint8_t*)lists)[i*3+2];
+            break;
+        case GL_4_BYTES:
+            real_lists[i] = ((uint8_t*)lists)[i*3]*16777216u +
+                            ((uint8_t*)lists)[i*3+1]*65536u +
+                            ((uint8_t*)lists)[i*3+2]*256u +
+                            ((uint8_t*)lists)[i*3+3];
+            break;
+        default:
+            inspect_add_error(inspect_command, "Invalid type.");
+            return;
+        }
+    }
+    
+    GLint base;
+    glGetIntegerv(GL_LIST_BASE, &base);
+    
+    GLuint gl_lists[n];
+    for (GLsizei i = 0; i < n; i++) {
+        real_lists[i] += base;
+        GLuint real = replay_get_real_object(ctx, ReplayObjType_GLDisplayList, real_lists[i]);
+        if ((real_lists[i] < 0) || !real) {
+            inspect_add_error(inspect_command, "Invalid display list at %d.\n", (int)i);
+            return;
+        }
+        gl_lists[i] = real;
+    }
+    
+    glCallLists(n, GL_UNSIGNED_INT, gl_lists);
+
+glReadPixels:
+    ;
