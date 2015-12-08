@@ -132,7 +132,7 @@
 - [ ] glPopClientAttrib
 - [ ] glRasterPos
 - [x] glReadPixels
-- [ ] glRect
+- [x] glRect
 - [ ] glSecondaryColor
 - [ ] glSecondaryColorPointer
 - [ ] glSelectBuffer

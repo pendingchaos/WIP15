@@ -796,3 +796,23 @@ glColor4usv:
 
 glColor4uiv:
     gl_param_GLuint_array(4, v);
+
+glRectdv:
+    gl_param_double_array(2, v1);
+    gl_param_double_array(2, v2);
+
+glRectfv:
+    GLdouble arr1[] = {v1[0], v1[1]};
+    gl_param_double_array(2, arr1);
+    GLdouble arr2[] = {v2[0], v2[1]};
+    gl_param_double_array(2, arr2);
+
+glRectiv:
+    gl_param_GLint_array(2, v1);
+    gl_param_GLint_array(2, v2);
+
+glRectsv:
+    GLint arr1[] = {v1[0], v1[1]};
+    gl_param_GLint_array(2, arr1);
+    GLint arr2[] = {v2[0], v2[1]};
+    gl_param_GLint_array(2, arr2);
