@@ -1416,3 +1416,26 @@ void __attribute__ ((destructor)) gl_deinit() {
 }
 
 void glSetContextCapsWIP15();
+void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
+
+GLboolean glUnmapBuffer(GLenum target) {
+    GLint access;
+    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+    
+    gl_start(FUNC_glUnmapBuffer);
+    gl_param_GLenum(target, -1);
+    GLboolean result = F(glUnmapBuffer)(target);
+    gl_result_GLboolean(result);
+    gl_end();
+    
+    if (access != GL_READ_ONLY) {
+        GLint size;
+        F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
+        
+        void* data = malloc(size);
+        F(glGetBufferSubData)(target, 0, size, data);
+        glMappedBufferDataWIP15(target, size, data);
+        free(data);
+    }
+    return result;
+}

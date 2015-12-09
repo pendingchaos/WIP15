@@ -111,7 +111,7 @@
 - [x] glLoadTransposeMatrix
 - [ ] glMap1
 - [ ] glMap2
-- [ ] glMapBuffer
+- [x] glMapBuffer
 - [x] glMaterial
 - [x] glMultMatrix
 - [x] glMultTransposeMatrix
@@ -151,7 +151,7 @@
 - [ ] glTexSubImage3D
 - [ ] glUniform
     - Would need to handle location differences.
-- [ ] glUnmapBuffer
+- [x] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram
 - [x] glVertex

@@ -54,7 +54,10 @@ int main(int argc, char **argv)
     GLuint pos_buffer;
     glGenBuffers(1, &pos_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), NULL, GL_STATIC_DRAW);
+    void* pos_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    memcpy(pos_data, positions, sizeof(positions));
+    glUnmapBuffer(GL_ARRAY_BUFFER);
     
     GLuint tex_coord_buffer;
     glGenBuffers(1, &tex_coord_buffer);

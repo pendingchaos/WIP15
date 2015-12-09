@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import glxml
 
+dont_implement = ["glUnmapBuffer"]
+
 gl = glxml.GL(False)
 
 nameToID = {}
@@ -81,7 +83,7 @@ if len(current_name) != 0:
     nontrivial[current_name] = current
 
 for name in gl.functions:
-    if name in ["glXGetProcAddress", "glXGetProcAddressARB"]:
+    if name in ["glXGetProcAddress", "glXGetProcAddressARB"] or name in dont_implement:
         continue
     
     function = gl.functions[name]

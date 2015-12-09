@@ -76,8 +76,16 @@ class GL:
     def _create_wip15_extension(self):
         self.functions["glSetContextCapsWIP15"] = Function("void")
         
+        glMappedBufferDataWIP15 = Function("void")
+        glMappedBufferDataWIP15.params.append(FunctionParam("GLenum", "target"))
+        glMappedBufferDataWIP15.params.append(FunctionParam("GLsizei", "size"))
+        glMappedBufferDataWIP15.params.append(FunctionParam("const GLvoid*", "data"))
+        self.functions["glMappedBufferDataWIP15"] = glMappedBufferDataWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
+        
+        self.extensions["GL_WIP15_debug_internal"] = ext
     
     def _run(self, root):
         groups = {}

@@ -286,9 +286,24 @@ glBufferSubData:
     real(target, offset, size, data);
     
     inspect_action_t action;
-    action.type = InspectAction_BufferData;
+    action.type = InspectAction_BufferSubData;
     action.buf_sub_data.buffer = get_bound_buffer(ctx, target);
     action.buf_sub_data.offset = offset;
+    action.buf_sub_data.size = size;
+    action.buf_sub_data.data = malloc(size);
+    memcpy(action.buf_sub_data.data, data, size);
+    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+
+glMappedBufferDataWIP15:
+    GLuint target = gl_param_GLenum(command, 0);
+    GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
+    const void* data = gl_param_data(command, 2);
+    F(glBufferSubData)(target, 0, size, data);
+    
+    inspect_action_t action;
+    action.type = InspectAction_BufferSubData;
+    action.buf_sub_data.buffer = get_bound_buffer(ctx, target);
+    action.buf_sub_data.offset = 0;
     action.buf_sub_data.size = size;
     action.buf_sub_data.data = malloc(size);
     memcpy(action.buf_sub_data.data, data, size);

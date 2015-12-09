@@ -86,6 +86,11 @@ glSetContextCapsWIP15:
     #undef LIMITF
     #undef LIMIT
 
+glMappedBufferDataWIP15:
+    gl_param_GLenum(target, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
 glGenTextures:
     gl_param_GLsizei(n, -1);
     gl_glGenTextures(n, textures);
