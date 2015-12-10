@@ -184,11 +184,12 @@ static void format_command(char* str, inspect_command_t* command) {
     
     strcat(str, static_format("%s(", command->name));
     
-    size_t count = get_vec_size(command->trace_cmd->args) / sizeof(trace_arg_t);
+    trace_val_vec_t args = command->trace_cmd->args;
+    size_t count = get_trace_val_vec_count(args);
     for (size_t i = 0; i < count; ++i) {
-        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(command->trace_cmd->args)) + i;
+        trace_value_t* arg = get_trace_val_vec(args, i);
         
-        format_value(str, arg->val);
+        format_value(str, *arg);
         if (i != count-1) {
             strcat(str, static_format(", "));
         }

@@ -51,30 +51,23 @@ static void update_context(uint64_t *context,
     const char *name = trace->func_names[trace_cmd->func_index];
     
     if (strcmp(name, "glXMakeCurrent") == 0) {
-        *context = *trace_get_ptr(&trace_get_arg(trace_cmd, 2)->val);
+        *context = *trace_get_ptr(trace_get_arg(trace_cmd, 2));
     }
 }
 
 inspection_t* create_inspection(const trace_t* trace) {
     inspection_t* result = malloc(sizeof(inspection_t));
     result->trace = trace;
-    result->frame_count = 0;
-    
-    trace_frame_t* frame = trace->frames;
-    while (frame) {
-        ++result->frame_count;
-        frame = frame->next;
-    }
-    
+    result->frame_count = get_trace_frame_vec_count(trace->frames);
     result->frames = malloc(sizeof(inspect_frame_t)*result->frame_count);
     
     uint64_t context = 0;
-    size_t i = 0;
-    frame = trace->frames;
-    while (frame) {
+    for (size_t i = 0; i < result->frame_count; i++) {
+        trace_frame_t* frame = get_trace_frame_vec(trace->frames, i);
+        
         inspect_frame_t* new_frame = result->frames + i;
         new_frame->trace_frame = frame;
-        new_frame->command_count = get_vec_size(frame->commands) / sizeof(trace_command_t);
+        new_frame->command_count = get_trace_cmd_vec_count(frame->commands);
         new_frame->commands = malloc(sizeof(inspect_command_t)*new_frame->command_count);
         
         for (size_t j = 0; j < new_frame->command_count; ++j) {
@@ -100,9 +93,6 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.depth.data = NULL;
             new_command->state.actions = alloc_vec(0);
         }
-        
-        frame = frame->next;
-        ++i;
     }
     
     return result;
@@ -203,11 +193,11 @@ static const glapi_group_t* find_group(const char *name) {
 static void validate_command(inspect_command_t* command, const trace_t* trace) {
     //Validate enum argument values
     vec_t args = command->trace_cmd->args;
-    for (size_t i = 0; i < get_vec_size(args)/sizeof(trace_arg_t); ++i) {
-        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(args)) + i;
+    for (size_t i = 0; i < get_trace_val_vec_count(args); ++i) {
+        trace_value_t* arg = get_trace_val_vec(args, i);
         
-        if (arg->val.group_index < 0 ? false : (trace->group_names[arg->val.group_index][0] != 0)) {
-            const glapi_group_t* group = find_group(trace->group_names[arg->val.group_index]);
+        if (arg->group_index < 0 ? false : (trace->group_names[arg->group_index][0] != 0)) {
+            const glapi_group_t* group = find_group(trace->group_names[arg->group_index]);
             
             if (!group) {
             } else if (group->bitmask) {
@@ -217,7 +207,7 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
                 for (size_t j = 0; j < group->entry_count; ++j) {
                     const glapi_group_entry_t *entry = group->entries[j];
                     //TODO: Requirements
-                    if (entry->value == *trace_get_uint(&arg->val)) {
+                    if (entry->value == *trace_get_uint(arg)) {
                         valid = true;
                     }
                 }
@@ -225,7 +215,7 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
                 if (!valid) {
                     inspect_add_error(command,
                                       "Invalid enum value %d for enum \"%s\".",
-                                      *trace_get_uint(&arg->val),
+                                      *trace_get_uint(arg),
                                       group->name);
                 }
             }

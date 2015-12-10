@@ -49,21 +49,19 @@ typedef struct {
     };
     int32_t group_index; //Negative if there is no group
 } trace_value_t;
-
-typedef struct trace_arg_t {
-    trace_value_t val;
-} trace_arg_t;
+TYPED_VEC(trace_value_t, trace_val)
 
 typedef struct trace_command_t {
     uint32_t func_index;
-    vec_t args; //trace_value_t
+    trace_val_vec_t args;
     trace_value_t ret;
 } trace_command_t;
+TYPED_VEC(trace_command_t, trace_cmd)
 
 typedef struct trace_frame_t {
-    vec_t commands; //trace_command_t
-    struct trace_frame_t* next;
+    trace_cmd_vec_t commands;
 } trace_frame_t;
+TYPED_VEC(trace_frame_t, trace_frame)
 
 typedef struct {
     bool little_endian;
@@ -74,13 +72,13 @@ typedef struct {
     uint32_t group_name_count;
     char** group_names;
     
-    trace_frame_t *frames;
+    trace_frame_vec_t frames;
 } trace_t;
 
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);
 void trace_free_value(trace_value_t value);
-trace_arg_t* trace_get_arg(trace_command_t* command, size_t i);
+trace_value_t* trace_get_arg(trace_command_t* command, size_t i);
 trace_command_t* trace_get_cmd(trace_frame_t* frame, size_t i);
 trace_error_t get_trace_error();
 const char *get_trace_error_desc();

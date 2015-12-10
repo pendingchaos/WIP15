@@ -47,24 +47,21 @@ void trace_free_value(trace_value_t value) {
 }
 
 static void free_command(trace_command_t* command) {
-    vec_t args = command->args;
-    for (size_t i = 0; i < get_vec_size(args)/sizeof(trace_arg_t); ++i) {
-        trace_arg_t* arg = ((trace_arg_t*)get_vec_data(args)) + i;
-        trace_free_value(arg->val);
+    trace_val_vec_t args = command->args;
+    for (size_t i = 0; i < get_trace_val_vec_count(args); ++i) {
+        trace_free_value(*get_trace_val_vec(args, i));
     }
-    free_vec(args);
+    free_trace_val_vec(args);
     
     trace_free_value(command->ret);
 }
 
 static void free_frame(trace_frame_t* frame) {
-    size_t count = get_vec_size(frame->commands) / sizeof(trace_command_t);
+    size_t count = get_trace_cmd_vec_count(frame->commands);
     for (size_t i = 0; i < count; ++i) {
         free_command(trace_get_cmd(frame, i));
     }
-    free_vec(frame->commands);
-    
-    free(frame);
+    free_trace_cmd_vec(frame->commands);
 }
 
 static void set_int(trace_value_t* val, int64_t i) {
@@ -560,10 +557,9 @@ trace_t *load_trace(const char* filename) {
         trace->group_names[i] = name;
     }
     
-    trace_frame_t* frame = malloc(sizeof(trace_frame_t));
-    frame->commands = alloc_vec(0);
-    frame->next = NULL;
-    trace->frames = frame;
+    trace->frames = alloc_trace_frame_vec(1);
+    trace_frame_t *frame = get_trace_frame_vec(trace->frames, 0);
+    frame->commands = alloc_trace_cmd_vec(0);
     
     while (true) {
         if (fgetc(file) == EOF) {
@@ -606,24 +602,21 @@ trace_t *load_trace(const char* filename) {
                 trace_error = TraceError_Invalid;
                 return NULL;
             } else if (res == 1) {
-                trace_arg_t arg;
-                arg.val = val;
-                append_vec(command.args, sizeof(trace_arg_t), &arg);
+                append_vec(command.args, sizeof(trace_value_t), &val);
             } else if (res == 2) {
                 trace_free_value(command.ret);
                 command.ret = val;
             }
         }
         
-        append_vec(frame->commands, sizeof(trace_command_t), &command);
+        append_trace_cmd_vec(frame->commands, &command);
         
         if (strcmp(trace->func_names[command.func_index], "glXSwapBuffers") == 0) {
-            trace_frame_t *old_frame = frame;
+            size_t index = get_trace_frame_vec_count(trace->frames);
+            resize_trace_frame_vec(trace->frames, index+1);
             
-            frame = malloc(sizeof(trace_frame_t));
-            frame->commands = alloc_vec(0);
-            frame->next = NULL;
-            old_frame->next = frame;
+            frame = get_trace_frame_vec(trace->frames, index);
+            frame->commands = alloc_trace_cmd_vec(0);
         }
     }
     
@@ -644,22 +637,20 @@ void free_trace(trace_t* trace) {
     free(trace->func_names);
     free(trace->group_names);
     
-    trace_frame_t *frame = trace->frames;
-    while (frame) {
-        trace_frame_t* next_frame = frame->next;
-        free_frame(frame);
-        frame = next_frame;
+    for (size_t i = 0; i < get_trace_frame_vec_count(trace->frames); i++) {
+        free_frame(get_trace_frame_vec(trace->frames, i));
     }
+    free_trace_frame_vec(trace->frames);
     
     free(trace);
 }
 
-trace_arg_t* trace_get_arg(trace_command_t* command, size_t i) {
-    return ((trace_arg_t*)get_vec_data(command->args)) + i;
+trace_value_t* trace_get_arg(trace_command_t* command, size_t i) {
+    return get_trace_val_vec(command->args, i);
 }
 
 trace_command_t* trace_get_cmd(trace_frame_t* frame, size_t i) {
-    return ((trace_command_t*)get_vec_data(frame->commands)) + i;
+    return get_trace_cmd_vec(frame->commands, i);
 }
 
 trace_error_t get_trace_error() {

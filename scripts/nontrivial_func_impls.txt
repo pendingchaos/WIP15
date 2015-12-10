@@ -1,6 +1,6 @@
 glXMakeCurrent:
     GLXContext glctx = NULL;
-    uint64_t fake_ctx = *trace_get_uint(&trace_get_arg(command, 2)->val);
+    uint64_t fake_ctx = *trace_get_uint(trace_get_arg(command, 2));
     if (fake_ctx) {
         glctx = (GLXContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
         if (!glctx) {
@@ -46,11 +46,11 @@ glXQueryExtension:
         inspect_add_warning(inspect_command, "glXQueryExtension returned something different during replay.");
 
 glXChooseVisual:
-    trace_value_t attribs = trace_get_arg(command, 2)->val;
-    int int_attribs[attribs.count];
-    for (size_t i = 0; i < attribs.count; ++i) {
+    trace_value_t* attribs = trace_get_arg(command, 2);
+    int int_attribs[attribs->count];
+    for (size_t i = 0; i < attribs->count; ++i) {
         union {unsigned int u; int i;} u;
-        u.u = trace_get_uint(&attribs)[i];
+        u.u = trace_get_uint(attribs)[i];
         int_attribs[i] = u.i;
     }
     XVisualInfo* vis = real(ctx->_display, gl_param_int(command, 1), int_attribs);
@@ -62,10 +62,10 @@ glXChooseVisual:
 
 glXCreateContext:
     GLXContext shareList = NULL;
-    if (*trace_get_ptr(&trace_get_arg(command, 2)->val)) {
+    if (*trace_get_ptr(trace_get_arg(command, 2))) {
         shareList = (GLXContext)replay_get_real_object(ctx,
                                                        ReplayObjType_GLXContext,
-                                                       *trace_get_ptr(&trace_get_arg(command, 2)->val));
+                                                       *trace_get_ptr(trace_get_arg(command, 2)));
         if (!shareList) {
             inspect_add_error(inspect_command, "Invalid share list.");
             return;
@@ -80,14 +80,14 @@ glXQueryExtensionsString:
 glXDestroyContext:
     GLXContext glctx = (GLXContext)replay_get_real_object(ctx,
                                                           ReplayObjType_GLXContext,
-                                                          *trace_get_ptr(&trace_get_arg(command, 1)->val));
+                                                          *trace_get_ptr(trace_get_arg(command, 1)));
     if (!glctx) {
         inspect_add_error(inspect_command, "Invalid GLX context.");
         return;
     }
     
     real(ctx->_display, glctx);
-    replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(&trace_get_arg(command, 1)->val));
+    replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(trace_get_arg(command, 1)));
 
 glXSwapBuffers:
     if (!ctx->_current_context) {
@@ -130,8 +130,8 @@ glDrawArrays:
 
 glMultiDrawArrays:
     GLenum mode = gl_param_GLenum(command, 0);
-    int64_t* first64 = trace_get_int(&trace_get_arg(command, 1)->val);
-    int64_t* count64 = trace_get_int(&trace_get_arg(command, 2)->val);
+    int64_t* first64 = trace_get_int(trace_get_arg(command, 1));
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 2));
     GLsizei primcount = gl_param_GLsizei(command, 3);
     
     GLint first[primcount];
@@ -149,7 +149,7 @@ glMultiDrawArrays:
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     real(n, textures);
     
@@ -165,7 +165,7 @@ glGenTextures:
 glDeleteTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i) {
         if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
@@ -219,7 +219,7 @@ glTexParameterfv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLfloat params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_double(params_val)[i];
@@ -231,7 +231,7 @@ glTexParameteriv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLint params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_int(params_val)[i];
@@ -242,7 +242,7 @@ glTexParameteriv:
 glGenBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     real(n, buffers);
     
@@ -258,7 +258,7 @@ glGenBuffers:
 glDeleteBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i) {
         if (!(buffers[i] = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake[i])))
@@ -328,28 +328,28 @@ glMappedBufferDataWIP15:
     append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
 
 glLoadMatrixd:
-    real(trace_get_double(&trace_get_arg(command, 0)->val));
+    real(trace_get_double(trace_get_arg(command, 0)));
 
 glLoadMatrixf:
-    F(glLoadMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+    F(glLoadMatrixd)(trace_get_double(trace_get_arg(command, 0)));
 
 glLoadTransposeMatrixd:
-    real(trace_get_double(&trace_get_arg(command, 0)->val));
+    real(trace_get_double(trace_get_arg(command, 0)));
 
 glLoadTransposeMatrixf:
-    F(glLoadTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+    F(glLoadTransposeMatrixd)(trace_get_double(trace_get_arg(command, 0)));
 
 glMultMatrixd:
-    real(trace_get_double(&trace_get_arg(command, 0)->val));
+    real(trace_get_double(trace_get_arg(command, 0)));
 
 glMultMatrixf:
-    F(glMultMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+    F(glMultMatrixd)(trace_get_double(trace_get_arg(command, 0)));
 
 glMultTransposeMatrixd:
-    real(trace_get_double(&trace_get_arg(command, 0)->val));
+    real(trace_get_double(trace_get_arg(command, 0)));
 
 glMultTransposeMatrixf:
-    F(glMultTransposeMatrixd)(trace_get_double(&trace_get_arg(command, 0)->val));
+    F(glMultTransposeMatrixd)(trace_get_double(trace_get_arg(command, 0)));
 
 glCreateShader:
     GLenum type = gl_param_GLenum(command, 0);
@@ -397,7 +397,7 @@ glShaderSource:
     action.shader_source.count = count;
     action.shader_source.sources = malloc(sizeof(char*)*count);
     
-    if (trace_get_arg(command, 3)->val.count == 0) {
+    if (trace_get_arg(command, 3)->count == 0) {
         real(shader, 1, (const GLchar*const*)sources, NULL);
         
         for (GLsizei i = 0; i < count; i++) {
@@ -407,7 +407,7 @@ glShaderSource:
             action.shader_source.sources[i][len] = 0;
         }
     } else {
-        uint64_t* lengths64 = trace_get_uint(&trace_get_arg(command, 3)->val);
+        uint64_t* lengths64 = trace_get_uint(trace_get_arg(command, 3));
         
         GLint lengths[count];
         for (GLsizei i = 0; i < count; i++) {
@@ -650,7 +650,7 @@ glPrioritizeTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     
     GLuint textures[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; i++)
         if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
@@ -658,7 +658,7 @@ glPrioritizeTextures:
     
     float priorities[n];
     for (size_t i = 0; i < n; i++)
-        priorities[i] = trace_get_double(&trace_get_arg(command, 2)->val)[i];
+        priorities[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(n, textures, priorities);
 
@@ -708,7 +708,7 @@ glNewList:
 glGenQueries:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint queries[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     real(n, queries);
     
@@ -718,7 +718,7 @@ glGenQueries:
 glDeleteQueries:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint queries[n];
-    uint64_t* fake = trace_get_uint(&trace_get_arg(command, 1)->val);
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i])))
@@ -1058,7 +1058,7 @@ glReadPixels:
 glLightModelfv:
     GLenum pname = gl_param_GLenum(command, 0);
     
-    trace_value_t* params_val = &trace_get_arg(command, 1)->val;
+    trace_value_t* params_val = trace_get_arg(command, 1);
     GLfloat params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_double(params_val)[i];
@@ -1068,7 +1068,7 @@ glLightModelfv:
 glLightModeliv:
     GLenum pname = gl_param_GLenum(command, 0);
     
-    trace_value_t* params_val = &trace_get_arg(command, 1)->val;
+    trace_value_t* params_val = trace_get_arg(command, 1);
     GLint params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_int(params_val)[i];
@@ -1079,7 +1079,7 @@ glLightfv:
     GLenum light = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLfloat params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_double(params_val)[i];
@@ -1090,7 +1090,7 @@ glLightiv:
     GLenum light = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLint params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_int(params_val)[i];
@@ -1101,7 +1101,7 @@ glMaterialfv:
     GLenum face = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLfloat params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_double(params_val)[i];
@@ -1112,7 +1112,7 @@ glMaterialiv:
     GLenum face = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = &trace_get_arg(command, 2)->val;
+    trace_value_t* params_val = trace_get_arg(command, 2);
     GLint params[params_val->count];
     for (size_t i = 0; i < params_val->count; i++)
         params[i] = trace_get_int(params_val)[i];
@@ -1120,71 +1120,71 @@ glMaterialiv:
     real(face, pname, params);
 
 glNormal3bv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glNormal3b)(v[0], v[1], v[2]);
 
 glNormal3dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glNormal3d)(v[0], v[1], v[2]);
 
 glNormal3fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glNormal3f)(v[0], v[1], v[2]);
 
 glNormal3iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glNormal3i)(v[0], v[1], v[2]);
 
 glNormal3sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glNormal3s)(v[0], v[1], v[2]);
 
 glVertex2sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex2s)(v[0], v[1]);
 
 glVertex2iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex2i)(v[0], v[1]);
 
 glVertex2fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex2f)(v[0], v[1]);
 
 glVertex2dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex2d)(v[0], v[1]);
 
 glVertex3sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex3s)(v[0], v[1], v[2]);
 
 glVertex3iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex3i)(v[0], v[1], v[2]);
 
 glVertex3fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex3f)(v[0], v[1], v[2]);
 
 glVertex3dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex3d)(v[0], v[1], v[2]);
 
 glVertex4sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex4s)(v[0], v[1], v[2], v[3]);
 
 glVertex4iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glVertex4i)(v[0], v[1], v[2], v[3]);
 
 glVertex4fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex4f)(v[0], v[1], v[2], v[3]);
 
 glVertex4dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glVertex4d)(v[0], v[1], v[2], v[3]);
 
 glTexCoord1sv:
@@ -1200,51 +1200,51 @@ glTexCoord1dv:
     F(glTexCoord1d)(gl_param_GLdouble(command, 0));
 
 glTexCoord2sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord2s(v[0], v[1]));
 
 glTexCoord2iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord2i(v[0], v[1]));
 
 glTexCoord2fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord2f(v[0], v[1]));
 
 glTexCoord2dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord2d(v[0], v[1]));
 
 glTexCoord3sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord3s(v[0], v[1], v[2]));
 
 glTexCoord3iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord3i(v[0], v[1], v[2]));
 
 glTexCoord3fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord3f(v[0], v[1], v[2]));
 
 glTexCoord3dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord3d(v[0], v[1], v[2]));
 
 glTexCoord4sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord4s(v[0], v[1], v[2], v[3]));
 
 glTexCoord4iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glTexCoord4i(v[0], v[1], v[2], v[3]));
 
 glTexCoord4fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord4f(v[0], v[1], v[2], v[3]));
 
 glTexCoord4dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glTexCoord4d(v[0], v[1], v[2], v[3]));
 
 glIndexsv:
@@ -1272,85 +1272,85 @@ glEdgeFlagv:
     F(glEdgeFlag)(gl_param_GLboolean(command, 0));
 
 glColor3bv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor3b)(v[0], v[1], v[2]);
 
 glColor3sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor3s)(v[0], v[1], v[2]);
 
 glColor3iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor3i)(v[0], v[1], v[2]);
 
 glColor3fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glColor3f)(v[0], v[1], v[2]);
 
 glColor3dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glColor3d)(v[0], v[1], v[2]);
 
 glColor3ubv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor3ub)(v[0], v[1], v[2]);
 
 glColor3usv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor3us)(v[0], v[1], v[2]);
 
 glColor3uiv:
-    uint64_t* v = trace_get_uint(&trace_get_arg(command, 0)->val);
+    uint64_t* v = trace_get_uint(trace_get_arg(command, 0));
     F(glColor3ui)(v[0], v[1], v[2]);
 
 glColor4bv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor4b)(v[0], v[1], v[2], v[3]);
 
 glColor4sv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor4s)(v[0], v[1], v[2], v[3]);
 
 glColor4iv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor4i)(v[0], v[1], v[2], v[3]);
 
 glColor4fv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glColor4f)(v[0], v[1], v[2], v[3]);
 
 glColor4dv:
-    double* v = trace_get_double(&trace_get_arg(command, 0)->val);
+    double* v = trace_get_double(trace_get_arg(command, 0));
     F(glColor4d)(v[0], v[1], v[2], v[3]);
 
 glColor4ubv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor4ub)(v[0], v[1], v[2], v[3]);
 
 glColor4usv:
-    int64_t* v = trace_get_int(&trace_get_arg(command, 0)->val);
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
     F(glColor4us)(v[0], v[1], v[2], v[3]);
 
 glColor4uiv:
-    uint64_t* v = trace_get_uint(&trace_get_arg(command, 0)->val);
+    uint64_t* v = trace_get_uint(trace_get_arg(command, 0));
     F(glColor4ui)(v[0], v[1], v[2], v[3]);
 
 glRectdv:
-    double *v1 = trace_get_double(&trace_get_arg(command, 0)->val);
-    double *v2 = trace_get_double(&trace_get_arg(command, 1)->val);
+    double *v1 = trace_get_double(trace_get_arg(command, 0));
+    double *v2 = trace_get_double(trace_get_arg(command, 1));
     F(glRectd)(v1[0], v1[1], v2[0], v2[1]);
 
 glRectfv:
-    double *v1 = trace_get_double(&trace_get_arg(command, 0)->val);
-    double *v2 = trace_get_double(&trace_get_arg(command, 1)->val);
+    double *v1 = trace_get_double(trace_get_arg(command, 0));
+    double *v2 = trace_get_double(trace_get_arg(command, 1));
     F(glRectf)(v1[0], v1[1], v2[0], v2[1]);
 
 glRectiv:
-    int64_t *v1 = trace_get_int(&trace_get_arg(command, 0)->val);
-    int64_t *v2 = trace_get_int(&trace_get_arg(command, 1)->val);
+    int64_t *v1 = trace_get_int(trace_get_arg(command, 0));
+    int64_t *v2 = trace_get_int(trace_get_arg(command, 1));
     F(glRecti)(v1[0], v1[1], v2[0], v2[1]);
 
 glRectsv:
-    int64_t *v1 = trace_get_int(&trace_get_arg(command, 0)->val);
-    int64_t *v2 = trace_get_int(&trace_get_arg(command, 1)->val);
+    int64_t *v1 = trace_get_int(trace_get_arg(command, 0));
+    int64_t *v2 = trace_get_int(trace_get_arg(command, 1));
     F(glRects)(v1[0], v1[1], v2[0], v2[1]);
