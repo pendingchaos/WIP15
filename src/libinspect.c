@@ -81,7 +81,7 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->attachments = NULL;
             new_command->name = trace->func_names[command->func_index];
             new_command->gl_context = context;
-            new_command->state.entries = alloc_vec(0);
+            new_command->state.entries = alloc_inspect_gl_state_vec(0);
             new_command->state.back.width = 0;
             new_command->state.back.height = 0;
             new_command->state.back.data = NULL;
@@ -91,7 +91,7 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.depth.width = 0;
             new_command->state.depth.height = 0;
             new_command->state.depth.data = NULL;
-            new_command->state.actions = alloc_vec(0);
+            new_command->state.actions = alloc_inspect_act_vec(0);
         }
     }
     
@@ -112,22 +112,21 @@ void free_inspection(inspection_t* inspection) {
                 attach = next_attach;
             }
             
-            vec_t entries = command->state.entries;
-            size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
+            inspect_gl_state_vec_t entries = command->state.entries;
+            size_t count = get_inspect_gl_state_vec_count(entries);
             for (size_t k = 0; k < count; ++k) {
-                inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + k;
-                trace_free_value(entry->val);
+                trace_free_value(get_inspect_gl_state_vec(entries, k)->val);
             }
-            free_vec(entries);
+            free_inspect_gl_state_vec(entries);
             
             free(command->state.back.data);
             free(command->state.front.data);
             free(command->state.depth.data);
             
-            vec_t actions = command->state.actions;
-            count = get_vec_size(actions)/sizeof(inspect_action_t);
+            inspect_act_vec_t actions = command->state.actions;
+            count = get_inspect_act_vec_count(actions);
             for (size_t k = 0; k < count; ++k) {
-                inspect_action_t* action = (inspect_action_t*)get_vec_data(actions) + k;
+                inspect_action_t* action = get_inspect_act_vec(actions, k);
                 switch (action->type) {
                 case InspectAction_TexData: {
                     free(action->tex_data.data);
@@ -170,7 +169,7 @@ void free_inspection(inspection_t* inspection) {
                 }
                 }
             }
-            free_vec(actions);
+            free_inspect_act_vec(actions);
         }
         
         free(frame->commands);
@@ -398,10 +397,10 @@ static program_t* find_prog(inspector_t* inspector, unsigned int fake) {
 }
 
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
-    vec_t actions = state->actions;
-    size_t count = get_vec_size(actions)/sizeof(inspect_action_t);
+    inspect_act_vec_t actions = state->actions;
+    size_t count = get_inspect_act_vec_count(actions);
     for (size_t i = 0; i < count; ++i) {
-        inspect_action_t* action = (inspect_action_t*)get_vec_data(actions) + i;
+        inspect_action_t* action = get_inspect_act_vec(actions, i);
         
         switch (action->type) {
         case InspectAction_TexParams: {

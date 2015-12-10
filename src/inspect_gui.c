@@ -289,10 +289,10 @@ static void init_state_tree(GtkTreeView* tree,
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    vec_t entries = state->entries;
-    size_t count = get_vec_size(entries)/sizeof(inspect_gl_state_entry_t);
+    inspect_gl_state_vec_t entries = state->entries;
+    size_t count = get_inspect_gl_state_vec_count(entries);
     for (size_t i = 0; i < count; ++i) {
-        inspect_gl_state_entry_t* entry = ((inspect_gl_state_entry_t*)get_vec_data(entries)) + i;
+        inspect_gl_state_entry_t* entry = get_inspect_gl_state_vec(entries, i);
         
         char val_str[1024];
         memset(val_str, 0, 1024);

@@ -307,7 +307,7 @@ static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t
     entry.name = name;
     entry.val = v;
     entry.val.group_index = -1;
-    append_vec(state->entries, sizeof(inspect_gl_state_entry_t), &entry);
+    append_inspect_gl_state_vec(state->entries, &entry);
 }
 
 static void set_state_bool(inspect_gl_state_t* state, const char* name, size_t count, GLboolean* v) {

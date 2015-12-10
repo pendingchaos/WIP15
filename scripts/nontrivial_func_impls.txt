@@ -159,7 +159,7 @@ glGenTextures:
         inspect_action_t action;
         action.type = InspectAction_GenTexture;
         action.texture = fake[i];
-        append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+        append_inspect_act_vec(inspect_command->state.actions, &action);
     }
 
 glDeleteTextures:
@@ -174,7 +174,7 @@ glDeleteTextures:
         inspect_action_t action;
         action.type = InspectAction_DelTexture;
         action.texture = fake[i];
-        append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+        append_inspect_act_vec(inspect_command->state.actions, &action);
     }
     
     real(n, textures);
@@ -252,7 +252,7 @@ glGenBuffers:
         inspect_action_t action;
         action.type = InspectAction_GenBuffer;
         action.buffer = fake[i];
-        append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+        append_inspect_act_vec(inspect_command->state.actions, &action);
     }
 
 glDeleteBuffers:
@@ -267,7 +267,7 @@ glDeleteBuffers:
         inspect_action_t action;
         action.type = InspectAction_DelBuffer;
         action.buffer = fake[i];
-        append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+        append_inspect_act_vec(inspect_command->state.actions, &action);
     }
     
     real(n, buffers);
@@ -294,7 +294,7 @@ glBufferData:
     action.buf_data.data = malloc(size);
     memcpy(action.buf_data.data, data, size);
     action.buf_data.usage = usage;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glBufferSubData:
     GLuint target = gl_param_GLenum(command, 0);
@@ -310,7 +310,7 @@ glBufferSubData:
     action.buf_sub_data.size = size;
     action.buf_sub_data.data = malloc(size);
     memcpy(action.buf_sub_data.data, data, size);
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glMappedBufferDataWIP15:
     GLuint target = gl_param_GLenum(command, 0);
@@ -325,7 +325,7 @@ glMappedBufferDataWIP15:
     action.buf_sub_data.size = size;
     action.buf_sub_data.data = malloc(size);
     memcpy(action.buf_sub_data.data, data, size);
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glLoadMatrixd:
     real(trace_get_double(trace_get_arg(command, 0)));
@@ -361,7 +361,7 @@ glCreateShader:
     action.type = InspectAction_NewShader;
     action.new_shader.type = type;
     action.new_shader.shader = fake;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glDeleteShader:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -378,7 +378,7 @@ glDeleteShader:
     inspect_action_t action;
     action.type = InspectAction_DelShader;
     action.del_shader = fake;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glShaderSource:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -423,7 +423,7 @@ glShaderSource:
         }
     }
     
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glCompileShader:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -450,7 +450,7 @@ glCompileShader:
     action.type = InspectAction_UpdateShdrInfoLog;
     action.info_log.obj = fake;
     action.info_log.str = info_log;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
@@ -460,7 +460,7 @@ glCreateProgram:
     inspect_action_t action;
     action.type = InspectAction_NewProgram;
     action.program = fake;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glDeleteProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -477,7 +477,7 @@ glDeleteProgram:
     inspect_action_t action;
     action.type = InspectAction_DelProgram;
     action.program = fake;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glAttachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
@@ -500,7 +500,7 @@ glAttachShader:
     action.type = InspectAction_AttachShader;
     action.prog_shdr.program = fake_program;
     action.prog_shdr.shader = fake_shader;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glDetachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
@@ -523,7 +523,7 @@ glDetachShader:
     action.type = InspectAction_DetachShader;
     action.prog_shdr.program = fake_program;
     action.prog_shdr.shader = fake_shader;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glLinkProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -550,7 +550,7 @@ glLinkProgram:
     action.type = InspectAction_UpdateProgramInfoLog;
     action.info_log.obj = fake;
     action.info_log.str = info_log;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glValidateProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -577,7 +577,7 @@ glValidateProgram:
     action.type = InspectAction_UpdateProgramInfoLog;
     action.info_log.obj = fake;
     action.info_log.str = info_log;
-    append_vec(inspect_command->state.actions, sizeof(inspect_action_t), &action);
+    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);

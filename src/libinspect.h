@@ -41,6 +41,7 @@ typedef struct inspect_gl_state_entry_t {
     const char* name; //this must not be freed.
     trace_value_t val;
 } inspect_gl_state_entry_t;
+TYPED_VEC(inspect_gl_state_entry_t, inspect_gl_state)
 
 typedef struct {
     uint32_t width;
@@ -134,13 +135,14 @@ typedef struct {
         inspect_gl_info_log_t info_log; //UpdateProgramInfoLog, UpdateShdrInfoLog
     };
 } inspect_action_t;
+TYPED_VEC(inspect_action_t, inspect_act)
 
 typedef struct {
-    vec_t entries; //inspect_gl_state_entry_t
+    inspect_gl_state_vec_t entries;
     inspect_image_t back; //data is NULL if it did not change. RGBA
     inspect_image_t front; //data is NULL if it did not change. RGBA
     inspect_image_t depth; //data is NULL if it did not change. uint32_t
-    vec_t actions; //vec_t of inspect_action_t
+    inspect_act_vec_t actions;
 } inspect_gl_state_t;
 
 typedef struct inspect_command_t {
