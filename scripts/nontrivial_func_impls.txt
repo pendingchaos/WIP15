@@ -128,6 +128,24 @@ glDrawArrays:
     replay_get_back_color(ctx, inspect_command);
     replay_get_depth(ctx, inspect_command);
 
+glMultiDrawArrays:
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* first64 = trace_get_int(&trace_get_arg(command, 1)->val);
+    int64_t* count64 = trace_get_int(&trace_get_arg(command, 2)->val);
+    GLsizei primcount = gl_param_GLsizei(command, 3);
+    
+    GLint first[primcount];
+    GLint count[primcount];
+    for (GLsizei i = 0; i < primcount; i++) {
+        first[i] = first64[i];
+        count[i] = count64[i];
+    }
+    
+    real(mode, first, count, primcount);
+    
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
+
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];

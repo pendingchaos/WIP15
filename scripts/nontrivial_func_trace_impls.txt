@@ -609,215 +609,283 @@ glMaterialiv:
 glNormal3bv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glNormal3bv(v);
 
 glNormal3dv:
     gl_param_double_array(3, v);
+    gl_glNormal3dv(v);
 
 glNormal3fv:
     double arr[] = {v[0], v[1], v[2]};
     gl_param_double_array(3, arr);
+    gl_glNormal3fv(v);
 
 glNormal3iv:
     gl_param_GLint_array(3, v);
+    gl_glNormal3iv(v);
 
 glNormal3sv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glNormal3sv(v);
 
 glVertex2sv:
     GLint arr[] = {v[0], v[1]};
     gl_param_GLint_array(2, arr);
+    gl_glVertex2sv(v);
 
 glVertex2iv:
     gl_param_GLint_array(2, v);
+    gl_glVertex2iv(v);
 
 glVertex2fv:
     GLdouble arr[] = {v[0], v[1]};
     gl_param_double_array(2, arr);
+    gl_glVertex2fv(v);
 
 glVertex2dv:
     gl_param_double_array(2, v);
+    gl_glVertex2dv(v);
 
 glVertex3sv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glVertex3sv(v);
 
 glVertex3iv:
     gl_param_GLint_array(3, v);
+    gl_glVertex3iv(v);
 
 glVertex3fv:
     GLdouble arr[] = {v[0], v[1], v[2]};
     gl_param_double_array(3, arr);
+    gl_glVertex3fv(v);
 
 glVertex3dv:
     gl_param_double_array(3, v);
+    gl_glVertex3dv(v);
 
 glVertex4sv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glVertex4sv(v);
 
 glVertex4iv:
     gl_param_GLint_array(4, v);
+    gl_glVertex4iv(v);
 
 glVertex4fv:
     GLdouble arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_double_array(4, arr);
+    gl_glVertex4fv(v);
 
 glVertex4dv:
     gl_param_double_array(4, v);
+    gl_glVertex4dv(v);
 
 glTexCoord1sv:
     gl_param_GLshort(*v, -1);
+    gl_glTexCoord1sv(v);
 
 glTexCoord1iv:
     gl_param_GLint(*v, -1);
+    gl_glTexCoord1iv(v);
 
 glTexCoord1fv:
     gl_param_GLfloat(*v, -1);
+    gl_glTexCoord1fv(v);
 
 glTexCoord1dv:
     gl_param_GLdouble(*v, -1);
+    gl_glTexCoord1dv(v);
 
 glTexCoord2sv:
     GLint arr[] = {v[0], v[1]};
     gl_param_GLint_array(2, arr);
+    gl_glTexCoord2sv(v);
 
 glTexCoord2iv:
     gl_param_GLint_array(2, v);
+    gl_glTexCoord2iv(v);
 
 glTexCoord2fv:
     double arr[] = {v[0], v[1]};
     gl_param_double_array(2, arr);
+    gl_glTexCoord2fv(v);
 
 glTexCoord2dv:
     gl_param_double_array(2, v);
+    gl_glTexCoord2dv(v);
 
 glTexCoord3sv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glTexCoord3sv(v);
 
 glTexCoord3iv:
     gl_param_GLint_array(3, v);
+    gl_glTexCoord3iv(v);
 
 glTexCoord3fv:
     double arr[] = {v[0], v[1], v[2]};
     gl_param_double_array(3, arr);
+    gl_glTexCoord3fv(v);
 
 glTexCoord3dv:
     gl_param_double_array(3, v);
+    gl_glTexCoord3dv(v);
 
 glTexCoord4sv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glTexCoord4sv(v);
 
 glTexCoord4iv:
     gl_param_GLint_array(4, v);
+    gl_glTexCoord4iv(v);
 
 glTexCoord4fv:
     double arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_double_array(4, arr);
+    gl_glTexCoord4fv(v);
 
 glTexCoord4dv:
     gl_param_double_array(4, v);
+    gl_glTexCoord4dv(v);
 
 glIndexsv:
     gl_param_GLshort(*c, -1);
+    gl_glIndexsv(c);
 
 glIndexiv:
     gl_param_GLint(*c, -1);
+    gl_glIndexiv(c);
 
 glIndexfv:
     gl_param_GLfloat(*c, -1);
+    gl_glIndexfv(c);
 
 glIndexdv:
     gl_param_GLdouble(*c, -1);
+    gl_glIndexdv(c);
 
 glIndexubv:
     gl_param_GLubyte(*c, -1);
+    gl_glIndexubv(c);
 
 glFogCoorddv:
     gl_param_GLdouble(*coord, -1);
+    gl_glFogCoorddv(coord);
 
 glFogCoordfv:
     gl_param_GLfloat(*coord, -1);
+    gl_glFogCoordfv(coord);
 
 glEdgeFlagv:
     gl_param_GLboolean(*flag, -1);
+    gl_glEdgeFlagv(flag);
 
 glColor3bv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glColor3bv(v);
 
 glColor3sv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glColor3sv(v);
 
 glColor3iv:
     gl_param_GLint_array(3, v);
+    gl_glColor3iv(v);
 
 glColor3fv:
     double arr[] = {v[0], v[1], v[2]};
     gl_param_double_array(3, arr);
+    gl_glColor3fv(v);
 
 glColor3dv:
     gl_param_double_array(3, v);
+    gl_glColor3dv(v);
 
 glColor3ubv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glColor3ubv(v);
 
 glColor3usv:
     GLint arr[] = {v[0], v[1], v[2]};
     gl_param_GLint_array(3, arr);
+    gl_glColor3usv(v);
 
 glColor3uiv:
     gl_param_GLuint_array(3, v);
+    gl_glColor3uiv(v);
 
 glColor4bv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glColor4bv(v);
 
 glColor4sv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glColor4sv(v);
 
 glColor4iv:
     gl_param_GLint_array(4, v);
+    gl_glColor4iv(v);
 
 glColor4fv:
     double arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_double_array(4, arr);
+    gl_glColor4fv(v);
 
 glColor4dv:
     gl_param_double_array(4, v);
+    gl_glColor4dv(v);
 
 glColor4ubv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glColor4ubv(v);
 
 glColor4usv:
     GLint arr[] = {v[0], v[1], v[2], v[3]};
     gl_param_GLint_array(4, arr);
+    gl_glColor4usv(v);
 
 glColor4uiv:
     gl_param_GLuint_array(4, v);
+    gl_glColor4uiv(v);
 
 glRectdv:
     gl_param_double_array(2, v1);
     gl_param_double_array(2, v2);
+    gl_glRectdv(v1, v2);
 
 glRectfv:
     GLdouble arr1[] = {v1[0], v1[1]};
     gl_param_double_array(2, arr1);
     GLdouble arr2[] = {v2[0], v2[1]};
     gl_param_double_array(2, arr2);
+    gl_glRectfv(v1, v2);
 
 glRectiv:
     gl_param_GLint_array(2, v1);
     gl_param_GLint_array(2, v2);
+    gl_glRectiv(v1, v2);
 
 glRectsv:
     GLint arr1[] = {v1[0], v1[1]};
     gl_param_GLint_array(2, arr1);
     GLint arr2[] = {v2[0], v2[1]};
     gl_param_GLint_array(2, arr2);
+    gl_glRectsv(v1, v2);
+
+glMultiDrawArrays:
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint_array(drawcount, first);
+    gl_param_GLint_array(drawcount, count);
+    gl_param_GLsizei(drawcount, -1);
+    gl_glMultiDrawArrays(mode, first, count, drawcount);

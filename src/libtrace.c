@@ -416,18 +416,22 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
         val->count = le32toh(val->count);
         val->type = Type_Int;
         if (val->count == 1) {
-            if (!readf(&val->i64, 8, 1, file)) {
+            int32_t i;
+            if (!readf(&i, 4, 1, file)) {
                 trace_error_desc = "Unable to read double array element";
                 return -1;
             }
+            val->i64 = le32toh(i);
         } else {
             val->i64_array = malloc(sizeof(int64_t)*val->count);
             for (size_t i = 0; i < val->count; ++i) {
-                if (!readf(val->i64_array+i, 4, 1, file)) {
+                int32_t iv;
+                if (!readf(&iv, 4, 1, file)) {
                     free(val->i64_array);
                     trace_error_desc = "Unable to read double array element";
                     return -1;
                 }
+                val->i64_array[i] = le32toh(iv);
             }
         }
         break;
