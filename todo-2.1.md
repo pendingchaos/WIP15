@@ -115,7 +115,7 @@
 - [x] glMaterial
 - [x] glMultMatrix
 - [x] glMultTransposeMatrix
-- [ ] glMultiDrawArrays
+- [x] glMultiDrawArrays
 - [ ] glMultiDrawElements
 - [ ] glMultiTexCoord
 - [x] glNewList
