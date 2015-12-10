@@ -3,8 +3,6 @@
 #include "libtrace.h"
 #include <stdbool.h>
 
-typedef struct inspector_t inspector_t;
-
 typedef enum {
     AttachType_Info,
     AttachType_Warning,
@@ -167,6 +165,45 @@ typedef struct {
     inspect_frame_t* frames;
 } inspection_t;
 
+typedef struct {
+    unsigned int fake;
+    inspect_gl_tex_params_t params;
+    size_t mipmap_count;
+    void** mipmaps;
+} inspect_texture_t;
+TYPED_VEC(inspect_texture_t, inspect_tex)
+
+typedef struct {
+    unsigned int fake;
+    unsigned int usage;
+    size_t size;
+    void* data;
+} inspect_buffer_t;
+TYPED_VEC(inspect_buffer_t, inspect_buf)
+
+typedef struct {
+    unsigned int fake;
+    unsigned int type;
+    char* source;
+    char* info_log;
+} inspect_shader_t;
+TYPED_VEC(inspect_shader_t, inspect_shdr)
+
+typedef struct {
+    unsigned int fake;
+    vec_t shaders; //vec_t of unsigned int
+    char* info_log;
+} inspect_program_t;
+TYPED_VEC(inspect_program_t, inspect_prog)
+
+typedef struct {
+    inspection_t* inspection;
+    inspect_tex_vec_t textures;
+    inspect_buf_vec_t buffers;
+    inspect_shdr_vec_t shaders;
+    inspect_prog_vec_t programs;
+} inspector_t;
+
 inspection_t* create_inspection(const trace_t* trace);
 void free_inspection(inspection_t* inspection);
 void inspect(inspection_t* inspection);
@@ -178,41 +215,16 @@ void inspect_add_attachment(inspect_command_t* command, inspect_attachment_t* at
 inspector_t* create_inspector(inspection_t* inspection);
 void free_inspector(inspector_t* inspector);
 void seek_inspector(inspector_t* inspector, size_t frame, size_t cmd);
-size_t inspect_get_tex_count(inspector_t* inspector);
-size_t inspect_get_buf_count(inspector_t* inspector);
-size_t inspect_get_shdr_count(inspector_t* inspector);
-size_t inspect_get_prog_count(inspector_t* inspector);
-//0 on failure
-unsigned int inspect_get_tex(inspector_t* inspector, size_t index);
+
 //Negative if it could not be found
 int inspect_find_tex(inspector_t* inspector, unsigned int tex);
-//True if it succeeded.
-bool inspect_get_tex_params(inspector_t* inspector, size_t index, inspect_gl_tex_params_t* dest);
-bool inspect_get_tex_data(inspector_t* inspector, size_t index, size_t level, void** data);
-//0 on failure
-unsigned int inspect_get_buf(inspector_t* inspector, size_t index);
-//Negative if it could not be found
 int inspect_find_buf(inspector_t* inspector, unsigned int buf);
-//Negative on failure
-int inspect_get_buf_size(inspector_t* inspector, size_t index);
-//True if it succeeded
-bool inspect_get_buf_data(inspector_t* inspector, size_t index, void** data);
-//0 on failure
-unsigned int inspect_get_shdr(inspector_t* inspector, size_t index);
-//Negative on failure
 int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
-//Negative on failure
-int inspect_get_shdr_type(inspector_t* inspector, size_t index);
-//True if it succeeded. The result may be null.
-bool inspect_get_shdr_source(inspector_t* inspector, size_t index, char** source);
-//True if it succeeded. The result may be null.
-bool inspect_get_shdr_info_log(inspector_t* inspector, size_t index, char** info_log);
-//0 on failure
-unsigned int inspect_get_prog(inspector_t* inspector, size_t index);
-//Negative on failure
 int inspect_find_prog(inspector_t* inspector, unsigned int prog);
-//True if it succeeded. shaders is a vec_t of unsigned int.
-bool inspect_get_prog_shaders(inspector_t* inspector, size_t index, vec_t* shaders);
-//True if it succeeded. The result may be null.
-bool inspect_get_prog_info_log(inspector_t* inspector, size_t index, char** info_log);
+
+//NULL if it could not be found
+inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake);
+inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake);
+inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fake);
+inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake);
 #endif
