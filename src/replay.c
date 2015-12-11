@@ -12,9 +12,22 @@
 void init_replay_gl(replay_context_t* ctx);
 void deinit_replay_gl(replay_context_t* ctx);
 
+typedef struct {
+    unsigned int real;
+    unsigned int fake;
+} uniform_t;
+TYPED_VEC(uniform_t, uni)
+
+typedef struct {
+    uni_vec_t uniforms;
+} program_data_t;
+
 typedef struct replay_obj_t {
     uint64_t real;
     uint64_t fake;
+    
+    program_data_t prog;
+    
     struct replay_obj_t* prev;
     struct replay_obj_t* next;
 } replay_obj_t;
@@ -81,7 +94,7 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
         strcat(name, trace->func_names[i]);
         ctx->funcs[i] = dlsym(RTLD_DEFAULT, name);
         if (!ctx->funcs[i]) {
-            fprintf(stderr, "Unable to find \"%s\".", name); //TODO: Handle
+            fprintf(stderr, "Unable to find \"%s\".\n", name); //TODO: Handle
             fflush(stderr);
         }
     }
@@ -162,6 +175,26 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
         new_obj->prev = objs;
         objs->next = new_obj;
     }
+    
+    switch (type) {
+    case ReplayObjType_GLProgram:
+        new_obj->prog.uniforms = alloc_uni_vec(0);
+        break;
+    default:
+        break;
+    }
+}
+
+void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
+    switch (type) {
+    case ReplayObjType_GLProgram:
+        free_uni_vec(obj->prog.uniforms);
+        break;
+    default:
+        break;
+    }
+    
+    free(obj);
 }
 
 void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
@@ -171,14 +204,14 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
     
     if (!obj) {
     } else if (!obj->next && obj->fake == fake) {
-        free(obj);
+        free_obj(type, obj);
         internal->objects[type] = NULL;
     } else {
         while (obj) {
             if (obj->fake == fake) {
                 if (obj->prev) obj->prev->next = obj->next;
                 if (obj->next) obj->next->prev = obj->prev;
-                free(obj);
+                free_obj(type, obj);
                 return;
             }
             
@@ -233,5 +266,42 @@ void replay(replay_context_t* ctx) {
             inspect_command_t* command = frame->commands + j;
             ctx->funcs[command->trace_cmd->func_index](ctx, command->trace_cmd, command);
         }
+    }
+}
+
+int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
+    while (obj) {
+        if (obj->fake == fake_prog) {
+            uni_vec_t uniforms = obj->prog.uniforms;
+            for (uniform_t* uni = uniforms->data; !vec_end(uniforms, uni); uni++)
+                if (uni->fake == fake_loc)
+                    return uni->real;
+            
+            return -1;
+        }
+        
+        obj = obj->next;
+    }
+    
+    return -1;
+}
+
+void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
+    while (obj) {
+        if (obj->fake == fake_prog) {
+            uniform_t uni;
+            uni.fake = fake;
+            uni.real = real;
+            append_uni_vec(obj->prog.uniforms, &uni);
+            return;
+        }
+        
+        obj = obj->next;
     }
 }

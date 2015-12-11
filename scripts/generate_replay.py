@@ -635,6 +635,17 @@ static GLuint get_bound_buffer(replay_context_t* ctx, GLenum target) {
     return buf;
 }
 
+static bool uniform(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
+    GLint prog;
+    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
+    
+    *res = replay_conv_uniform_location(ctx, prog, gl_param_GLint(cmd, 0));
+    if (*res < 0)
+        return true;
+    
+    return false;
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {

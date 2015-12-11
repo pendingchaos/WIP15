@@ -60,4 +60,8 @@ size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type);
 void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* real);
 void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake);
 void replay(replay_context_t* context);
+
+//Negative on failure.
+int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc);
+void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real);
 #endif

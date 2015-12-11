@@ -1276,3 +1276,285 @@ glRectsv:
     int64_t *v1 = trace_get_int(trace_get_arg(command, 0));
     int64_t *v2 = trace_get_int(trace_get_arg(command, 1));
     F(glRects)(v1[0], v1[1], v2[0], v2[1]);
+
+glProgramUniformWIP15:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    
+    GLint loc = F(glGetUniformLocation)(real_program, gl_param_string(command, 1));
+    if (loc < 0) {
+        inspect_add_error(inspect_command, "Nonexistent or inactive uniforms.");
+        return;
+    }
+    
+    replay_add_uniform(ctx, fake, gl_param_GLuint(command, 2), loc);
+
+glUniform1f:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLfloat(command, 1));
+
+glUniform2f:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLfloat(command, 1), gl_param_GLfloat(command, 2));
+
+glUniform3f:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLfloat(command, 1),
+         gl_param_GLfloat(command, 2),
+         gl_param_GLfloat(command, 3));
+
+glUniform4f:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLfloat(command, 1),
+         gl_param_GLfloat(command, 2),
+         gl_param_GLfloat(command, 3),
+         gl_param_GLfloat(command, 4));
+
+glUniform1i:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLint(command, 1));
+
+glUniform2i:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLint(command, 1), gl_param_GLint(command, 2));
+
+glUniform3i:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLint(command, 1),
+         gl_param_GLint(command, 2),
+         gl_param_GLint(command, 3));
+
+glUniform4i:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLint(command, 1),
+         gl_param_GLint(command, 2),
+         gl_param_GLint(command, 3),
+         gl_param_GLint(command, 4));
+
+glUniform1fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform2fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform3fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform4fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform1iv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform2iv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform3iv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform4iv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniformMatrix2fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix3fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix4fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix2x3fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix3x2fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix2x4fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix4x2fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix3x4fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);
+
+glUniformMatrix4x3fv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLfloat values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 3))[i];
+    
+    real(loc, count, gl_param_GLboolean(command, 2), values);

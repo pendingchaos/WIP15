@@ -149,14 +149,15 @@
 - [ ] glTexSubImage1D
 - [ ] glTexSubImage2D
 - [ ] glTexSubImage3D
-- [ ] glUniform
-    - Would need to handle location differences.
+- [x] glUniform
 - [x] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram
 - [x] glVertex
 - [ ] glVertexAttrib
+    - Would need to handle index differences.
 - [ ] glVertexAttribPointer
+    - Would need to handle index differences.
 - [ ] glVertexPointer
 - [ ] glWindowPos
 - [ ] glXChooseFBConfig

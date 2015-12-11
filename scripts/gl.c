@@ -191,6 +191,19 @@ static void gl_param_GLint_array(size_t count, const GLint* data) {
     }
 }
 
+static void gl_param_GLfloat_array(size_t count, const GLfloat* data) {
+    gl_write_b(WIP15_DOUBLE_ARRAY);
+    
+    uint32_t count_le = htole32(count);
+    fwrite(&count_le, 4, 1, trace_file);
+    
+    for (size_t i = 0; i < count; ++i)
+    {
+        double val = data[i];
+        fwrite(&val, 8, 1, trace_file);
+    }
+}
+
 static void gl_param_double_array(size_t count, const double* data) {
     gl_write_b(WIP15_DOUBLE_ARRAY);
     
@@ -1417,6 +1430,7 @@ void __attribute__ ((destructor)) gl_deinit() {
 
 void glSetContextCapsWIP15();
 void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
+void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
 
 GLboolean glUnmapBuffer(GLenum target) {
     GLint access;
@@ -1438,4 +1452,42 @@ GLboolean glUnmapBuffer(GLenum target) {
         free(data);
     }
     return result;
+}
+
+void glLinkProgram(GLuint program) {
+    gl_start(FUNC_glLinkProgram);
+    gl_param_GLuint(program, -1);
+    F(glLinkProgram)(program);
+    gl_end();
+    
+    GLint count;
+    F(glGetProgramiv)(program, GL_ACTIVE_UNIFORMS, &count);
+    
+    GLint maxNameLen;
+    F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLen);
+    
+    for (size_t i = 0; i < count; i++) {
+        GLchar name[maxNameLen+1];
+        memset(name, 0, maxNameLen+1);
+        
+        GLint size;
+        GLenum type;
+        
+        F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
+        
+        if (!strncmp(name, "gl_", 3))
+            continue;
+        
+        if (size == 1) {
+            glProgramUniformWIP15(program, name, F(glGetUniformLocation)(program, name));
+        } else {
+            for (size_t j = 0; j < size; j++) {
+                GLchar new_name[maxNameLen+1];
+                memset(new_name, 0, maxNameLen+1);
+                snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
+                
+                glProgramUniformWIP15(program, new_name, F(glGetUniformLocation)(program, name));
+            }
+        }
+    }
 }

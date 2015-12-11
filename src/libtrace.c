@@ -394,7 +394,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
         } else {
             val->dbl_array = malloc(sizeof(double)*val->count);
             for (size_t i = 0; i < val->count; ++i) {
-                if (!readf(val->dbl_array+i, 4, 1, file)) {
+                if (!readf(val->dbl_array+i, 8, 1, file)) {
                     free(val->dbl_array);
                     trace_error_desc = "Unable to read double array element";
                     return -1;

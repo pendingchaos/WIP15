@@ -65,12 +65,12 @@ int main(int argc, char **argv)
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
     
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    static const char* vert_source = "void main() {gl_Position = ftransform();}";
+    static const char* vert_source = "#version 120\n\nvoid main() {\n    gl_Position = ftransform();\n}\n";
     glShaderSource(vertex, 1, &vert_source, NULL);
     glCompileShader(vertex);
     
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    static const char* frag_source = "void main() {gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);}";
+    static const char* frag_source = "#version 120\n\nuniform vec3 color;\n\nvoid main() {\n    gl_FragColor = vec4(color, 1.0);\n}\n";
     glShaderSource(fragment, 1, &frag_source, NULL);
     glCompileShader(fragment);
     
@@ -104,6 +104,9 @@ int main(int argc, char **argv)
         glRotatef(45.0f, 0.0f, 0.0f, 1.0f);
         
         glUseProgram(program);
+        
+        const GLfloat color[] = {1.0f, 0.0f, 0.0f};
+        glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);

@@ -82,8 +82,16 @@ class GL:
         glMappedBufferDataWIP15.params.append(FunctionParam("const GLvoid*", "data"))
         self.functions["glMappedBufferDataWIP15"] = glMappedBufferDataWIP15
         
+        glProgramUniformWIP15 = Function("void")
+        glProgramUniformWIP15.params.append(FunctionParam("GLuint", "program"))
+        glProgramUniformWIP15.params.append(FunctionParam("const GLchar*", "name"))
+        glProgramUniformWIP15.params.append(FunctionParam("GLuint", "location"))
+        self.functions["glProgramUniformWIP15"] = glProgramUniformWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
+        ext.functions.append("glMappedBufferDataWIP15")
+        ext.functions.append("glProgramUniformWIP15")
         
         self.extensions["GL_WIP15_debug_internal"] = ext
     

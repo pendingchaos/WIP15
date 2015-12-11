@@ -889,3 +889,119 @@ glMultiDrawArrays:
     gl_param_GLint_array(drawcount, count);
     gl_param_GLsizei(drawcount, -1);
     gl_glMultiDrawArrays(mode, first, count, drawcount);
+
+glProgramUniformWIP15:
+    gl_param_GLuint(program, -1);
+    gl_param_string(name);
+    gl_param_GLuint(location, -1);
+
+glUniform1fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLfloat_array(count, value);
+    gl_glUniform1fv(location, count, value);
+
+glUniform2fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLfloat_array(count*2, value);
+    gl_glUniform2fv(location, count, value);
+
+glUniform3fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLfloat_array(count*3, value);
+    gl_glUniform3fv(location, count, value);
+
+glUniform4fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLfloat_array(count*4, value);
+    gl_glUniform4fv(location, count, value);
+
+glUniform1iv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLint_array(count, value);
+    gl_glUniform1iv(location, count, value);
+
+glUniform2iv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLint_array(count*2, value);
+    gl_glUniform2iv(location, count, value);
+
+glUniform3iv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLint_array(count*3, value);
+    gl_glUniform3iv(location, count, value);
+
+glUniform4iv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLint_array(count*4, value);
+    gl_glUniform4iv(location, count, value);
+
+glUniformMatrix2fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose,-1);
+    gl_param_GLfloat_array(count*4, value);
+    gl_glUniformMatrix2fv(location, count, transpose, value);
+
+glUniformMatrix3fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*9, value);
+    gl_glUniformMatrix3fv(location, count, transpose, value);
+
+glUniformMatrix4fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*16, value);
+    gl_glUniformMatrix4fv(location, count, transpose, value);
+
+glUniformMatrix2x3fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*6, value);
+    gl_glUniformMatrix2x3fv(location, count, transpose, value);
+
+glUniformMatrix3x2fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*6, value);
+    gl_glUniformMatrix3x2fv(location, count, transpose, value);
+
+glUniformMatrix2x4fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*8, value);
+    gl_glUniformMatrix2x4fv(location, count, transpose, value);
+
+glUniformMatrix4x2fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*8, value);
+    gl_glUniformMatrix4x2fv(location, count, transpose, value);
+
+glUniformMatrix3x4fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*12, value);
+    gl_glUniformMatrix3x4fv(location, count, transpose, value);
+
+glUniformMatrix4x3fv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLboolean(transpose, -1);
+    gl_param_GLfloat_array(count*12, value);
+    gl_glUniformMatrix4x3fv(location, count, transpose, value);
