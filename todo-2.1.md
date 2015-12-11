@@ -155,9 +155,20 @@
 - [x] glValidateProgram
 - [x] glVertex
 - [ ] glVertexAttrib
-    - Would need to handle index differences.
+    - This seems to not be per-program.
+        - Need to resolve actual indices at glUseProgram
+    - Make it work with matrices.
 - [ ] glVertexAttribPointer
-    - Would need to handle index differences.
+    - This seems to not be per-program.
+        - Need to resolve actual indices at glUseProgram
+    - Make it work with matrices.
+- [ ] glBindAttribLocation
+- [ ] glEnableVertexAttribArray
+    - This seems to not be per-program.
+        - Need to resolve actual indices at glUseProgram
+- [ ] glDisableVertexAttribArray
+    - This seems to not be per-program.
+        - Need to resolve actual indices at glUseProgram
 - [ ] glVertexPointer
 - [ ] glWindowPos
 - [ ] glXChooseFBConfig
@@ -196,3 +207,4 @@
 - [ ] glXSelectEvent
 - [x] glXSwapBuffers
 - [ ] glXUseXFont
+- [ ] Client-side arrays.

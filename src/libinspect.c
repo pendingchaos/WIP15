@@ -103,14 +103,13 @@ void free_inspection(inspection_t* inspection) {
 }
 
 static const glapi_group_t* find_group(const char *name) {
-    for (size_t i = 0; i < glapi.group_count; i++) {
-        if (strcmp(glapi.groups[i]->name, name) == 0) {
+    for (size_t i = 0; i < glapi.group_count; i++)
+        if (strcmp(glapi.groups[i]->name, name) == 0)
             return glapi.groups[i];
-        }
-    }
     
     return NULL;
 }
+
 
 static void validate_command(inspect_command_t* command, const trace_t* trace) {
     //Validate enum argument values
@@ -125,11 +124,15 @@ static void validate_command(inspect_command_t* command, const trace_t* trace) {
             } else if (group->bitmask) {
                 //TODO
             } else {
+                uint64_t val = (arg->type==Type_Boolean) ?
+                                *trace_get_bool(arg) :
+                                *trace_get_uint(arg);
+                
                 bool valid = false;
                 for (size_t j = 0; j < group->entry_count; ++j) {
                     const glapi_group_entry_t *entry = group->entries[j];
                     //TODO: Requirements
-                    if (entry->value == *trace_get_uint(arg)) {
+                    if (entry->value == val) {
                         valid = true;
                     }
                 }

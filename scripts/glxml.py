@@ -88,10 +88,17 @@ class GL:
         glProgramUniformWIP15.params.append(FunctionParam("GLuint", "location"))
         self.functions["glProgramUniformWIP15"] = glProgramUniformWIP15
         
+        glProgramAttribWIP15 = Function("void")
+        glProgramAttribWIP15.params.append(FunctionParam("GLuint", "program"))
+        glProgramAttribWIP15.params.append(FunctionParam("const GLchar*", "name"))
+        glProgramAttribWIP15.params.append(FunctionParam("GLuint", "index"))
+        self.functions["glProgramAttribWIP15"] = glProgramAttribWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
         ext.functions.append("glMappedBufferDataWIP15")
         ext.functions.append("glProgramUniformWIP15")
+        ext.functions.append("glProgramAttribWIP15")
         
         self.extensions["GL_WIP15_debug_internal"] = ext
     

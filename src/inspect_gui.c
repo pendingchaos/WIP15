@@ -35,11 +35,9 @@ static inspector_t* inspector;
 static trace_t* trace;
 
 static const glapi_group_t* find_group(const char* name) {
-    for (size_t i = 0; i < glapi.group_count; i++) {
-        if (strcmp(glapi.groups[i]->name, name) == 0) {
+    for (size_t i = 0; i < glapi.group_count; i++)
+        if (strcmp(glapi.groups[i]->name, name) == 0)
             return glapi.groups[i];
-        }
-    }
     
     return NULL;
 }
@@ -111,15 +109,16 @@ static void format_value(char* str, trace_value_t value) {
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         
+        uint64_t val = (value.type==Type_Boolean) ?
+                        *trace_get_bool(&value) :
+                        *trace_get_uint(&value);
+        
         if (!group) {
         } else if (group->bitmask) {
             //TODO
         } else {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
-                uint64_t val = (value.type==Type_Boolean) ?
-                               *trace_get_bool(&value) :
-                               *trace_get_uint(&value);
                 if (entry->value == val) {
                     strcat(str, static_format("%s(%zu)", entry->name, val));
                     return;

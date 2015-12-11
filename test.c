@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
     
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    static const char* vert_source = "#version 120\n\nvoid main() {\n    gl_Position = ftransform();\n}\n";
+    static const char* vert_source = "#version 120\n\nattribute vec3 position;\n\nvoid main() {\n    gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);\n}\n";
     glShaderSource(vertex, 1, &vert_source, NULL);
     glCompileShader(vertex);
     
@@ -108,9 +108,14 @@ int main(int argc, char **argv)
         const GLfloat color[] = {1.0f, 0.0f, 0.0f};
         glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
-        glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-        glVertexPointer(3, GL_FLOAT, 0, NULL);
+        glEnableVertexAttribArray(glGetAttribLocation(program, "position"));
+        glVertexAttribPointer(glGetAttribLocation(program, "position"),
+                              3,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              0,
+                              (const GLvoid*)0);
         
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);

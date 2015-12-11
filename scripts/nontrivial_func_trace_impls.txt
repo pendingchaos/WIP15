@@ -1005,3 +1005,8 @@ glUniformMatrix4x3fv:
     gl_param_GLboolean(transpose, -1);
     gl_param_GLfloat_array(count*12, value);
     gl_glUniformMatrix4x3fv(location, count, transpose, value);
+
+glProgramAttribWIP15:
+    gl_param_GLuint(program, -1);
+    gl_param_string(name);
+    gl_param_GLuint(index, -1);

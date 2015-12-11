@@ -1431,6 +1431,7 @@ void __attribute__ ((destructor)) gl_deinit() {
 void glSetContextCapsWIP15();
 void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
 void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
+void glProgramAttribWIP15(GLuint program, const GLchar* name, GLuint index);
 
 GLboolean glUnmapBuffer(GLenum target) {
     GLint access;
@@ -1487,6 +1488,34 @@ void glLinkProgram(GLuint program) {
                 snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
                 
                 glProgramUniformWIP15(program, new_name, F(glGetUniformLocation)(program, name));
+            }
+        }
+    }
+    
+    F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTES, &count);
+    F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxNameLen);
+    
+    for (size_t i = 0; i < count; i++) {
+        GLchar name[maxNameLen+1];
+        memset(name, 0, maxNameLen+1);
+        
+        GLint size;
+        GLenum type;
+        
+        F(glGetActiveAttrib)(program, i, maxNameLen, NULL, &size, &type, name);
+        
+        if (!strncmp(name, "gl_", 3))
+            continue;
+        
+        if (size == 1) {
+            glProgramAttribWIP15(program, name, F(glGetAttribLocation)(program, name));
+        } else {
+            for (size_t j = 0; j < size; j++) {
+                GLchar new_name[maxNameLen+1];
+                memset(new_name, 0, maxNameLen+1);
+                snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
+                
+                glProgramAttribWIP15(program, new_name, F(glGetAttribLocation)(program, name));
             }
         }
     }

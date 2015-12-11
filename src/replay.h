@@ -64,4 +64,7 @@ void replay(replay_context_t* context);
 //Negative on failure.
 int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc);
 void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real);
+//Negative on failure.
+int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_idx);
+void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real);
 #endif

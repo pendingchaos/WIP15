@@ -19,7 +19,14 @@ typedef struct {
 TYPED_VEC(uniform_t, uni)
 
 typedef struct {
+    unsigned int real;
+    unsigned int fake;
+} attrib_t;
+TYPED_VEC(attrib_t, attrib)
+
+typedef struct {
     uni_vec_t uniforms;
+    uni_vec_t attribs;
 } program_data_t;
 
 typedef struct replay_obj_t {
@@ -102,6 +109,19 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     return ctx;
 }
 
+void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
+    switch (type) {
+    case ReplayObjType_GLProgram:
+        free_uni_vec(obj->prog.uniforms);
+        free_attrib_vec(obj->prog.attribs);
+        break;
+    default:
+        break;
+    }
+    
+    free(obj);
+}
+
 void destroy_replay_context(replay_context_t* context) {
     free(context->funcs);
     
@@ -120,7 +140,7 @@ void destroy_replay_context(replay_context_t* context) {
         replay_obj_t* obj = internal->objects[i];
         while (obj) {
             replay_obj_t* next = obj->next;
-            free(obj);
+            free_obj(i, obj);
             obj = next;
         }
     }
@@ -179,22 +199,11 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
     switch (type) {
     case ReplayObjType_GLProgram:
         new_obj->prog.uniforms = alloc_uni_vec(0);
+        new_obj->prog.attribs = alloc_attrib_vec(0);
         break;
     default:
         break;
     }
-}
-
-void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
-    switch (type) {
-    case ReplayObjType_GLProgram:
-        free_uni_vec(obj->prog.uniforms);
-        break;
-    default:
-        break;
-    }
-    
-    free(obj);
 }
 
 void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
@@ -299,6 +308,43 @@ void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int 
             uni.fake = fake;
             uni.real = real;
             append_uni_vec(obj->prog.uniforms, &uni);
+            return;
+        }
+        
+        obj = obj->next;
+    }
+}
+
+int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_idx) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
+    while (obj) {
+        if (obj->fake == fake_prog) {
+            attrib_vec_t attribs = obj->prog.attribs;
+            for (attrib_t* attrib = attribs->data; !vec_end(attribs, attrib); attrib++)
+                if (attrib->fake == fake_idx)
+                    return attrib->real;
+            
+            return -1;
+        }
+        
+        obj = obj->next;
+    }
+    
+    return -1;
+}
+
+void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
+    while (obj) {
+        if (obj->fake == fake_prog) {
+            uniform_t uni;
+            uni.fake = fake;
+            uni.real = real;
+            append_uni_vec(obj->prog.attribs, &uni);
             return;
         }
         
