@@ -669,7 +669,7 @@ static void init_program_list(GtkTreeView* tree) {
     for (size_t i = 0; i < get_inspect_prog_vec_count(inspector->programs); ++i) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", get_inspect_prog_vec(inspector, i)->fake);
+        snprintf(str, 64, "%u", get_inspect_prog_vec(inspector->programs, i)->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -875,11 +875,11 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
     
-    size_t count = get_vec_size(prog->shaders) / sizeof(unsigned int);
+    size_t count = prog->shaders->size / sizeof(unsigned int);
     for (size_t i = 0; i < count; i++) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", ((unsigned int*)get_vec_data(prog->shaders))[i]);
+        snprintf(str, 64, "%u", ((unsigned int*)prog->shaders->data)[i]);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

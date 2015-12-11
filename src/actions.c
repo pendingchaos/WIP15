@@ -107,9 +107,9 @@ static void apply_attach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = get_vec_size(prog->shaders)/sizeof(unsigned int);
+    size_t count = prog->shaders->size/sizeof(unsigned int);
     for (size_t i = 0; i < count; i++)
-        if (((unsigned int *)get_vec_data(prog->shaders))[i] == data->shdr)
+        if (((unsigned int *)prog->shaders->data)[i] == data->shdr)
             goto end;
     
     append_vec(prog->shaders, sizeof(unsigned int), &data->shdr);
@@ -124,9 +124,9 @@ static void apply_detach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = get_vec_size(prog->shaders)/sizeof(unsigned int);
+    size_t count = prog->shaders->size/sizeof(unsigned int);
     for (size_t i = 0; i < count; i++)
-        if (((unsigned int *)get_vec_data(prog->shaders))[i] == data->shdr) {
+        if (((unsigned int *)prog->shaders->data)[i] == data->shdr) {
             remove_vec(prog->shaders, i*sizeof(unsigned int), sizeof(unsigned int));
             return;
         }
