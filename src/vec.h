@@ -2,6 +2,7 @@
 #define VEC_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct {
     size_t size;
@@ -14,6 +15,7 @@ void free_vec(vec_t vec);
 void append_vec(vec_t vec, size_t amount, void* data);
 void resize_vec(vec_t vec, size_t new_size);
 void remove_vec(vec_t vec, size_t offset, size_t amount);
+bool vec_end(vec_t vec, void* ptr);
 
 #define TYPED_VEC(type, name) typedef vec_t name##_vec_t; \
 static inline vec_t alloc_##name##_vec(size_t count) {return alloc_vec(sizeof(type)*count);} \

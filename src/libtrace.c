@@ -48,20 +48,18 @@ void trace_free_value(trace_value_t value) {
 
 static void free_command(trace_command_t* command) {
     trace_val_vec_t args = command->args;
-    for (size_t i = 0; i < get_trace_val_vec_count(args); ++i) {
-        trace_free_value(*get_trace_val_vec(args, i));
-    }
+    for (trace_value_t* arg = args->data; !vec_end(args, arg); arg++)
+        trace_free_value(*arg);
     free_trace_val_vec(args);
     
     trace_free_value(command->ret);
 }
 
 static void free_frame(trace_frame_t* frame) {
-    size_t count = get_trace_cmd_vec_count(frame->commands);
-    for (size_t i = 0; i < count; ++i) {
-        free_command(trace_get_cmd(frame, i));
-    }
-    free_trace_cmd_vec(frame->commands);
+    trace_cmd_vec_t commands = frame->commands;
+    for (trace_command_t* cmd = commands->data; !vec_end(commands, cmd); cmd++)
+        free_command(cmd);
+    free_trace_cmd_vec(commands);
 }
 
 static void set_int(trace_value_t* val, int64_t i) {
@@ -637,9 +635,9 @@ void free_trace(trace_t* trace) {
     free(trace->func_names);
     free(trace->group_names);
     
-    for (size_t i = 0; i < get_trace_frame_vec_count(trace->frames); i++) {
-        free_frame(get_trace_frame_vec(trace->frames, i));
-    }
+    trace_frame_vec_t frames = trace->frames;
+    for (trace_frame_t* frame = frames->data; !vec_end(frames, frame); frame++)
+        free_frame(frame);
     free_trace_frame_vec(trace->frames);
     
     free(trace);

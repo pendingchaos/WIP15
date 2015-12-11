@@ -34,3 +34,7 @@ void remove_vec(vec_t vec, size_t offset, size_t amount) {
     
     resize_vec(vec, vec->size-amount);
 }
+
+bool vec_end(vec_t vec, void* ptr) {
+    return (uint8_t*)ptr >= (uint8_t*)vec->data+vec->size;
+}

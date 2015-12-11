@@ -78,10 +78,10 @@ void free_inspection(inspection_t* inspection) {
             }
             
             inspect_gl_state_vec_t entries = command->state.entries;
-            size_t count = get_inspect_gl_state_vec_count(entries);
-            for (size_t k = 0; k < count; ++k) {
-                trace_free_value(get_inspect_gl_state_vec(entries, k)->val);
-            }
+            for (inspect_gl_state_entry_t* entry = entries->data;
+                 !vec_end(entries, entry);
+                 entry++)
+                trace_free_value(entry->val);
             free_inspect_gl_state_vec(entries);
             
             free(command->state.back.data);
@@ -89,12 +89,9 @@ void free_inspection(inspection_t* inspection) {
             free(command->state.depth.data);
             
             inspect_act_vec_t actions = command->state.actions;
-            count = get_inspect_act_vec_count(actions);
-            for (size_t k = 0; k < count; ++k) {
-                inspect_action_t* action = get_inspect_act_vec(actions, k);
-                if (action->free_func)
-                    action->free_func(action);
-            }
+            for (inspect_action_t* act = actions->data; !vec_end(actions, act); act++)
+                if (act->free_func)
+                    act->free_func(act);
             free_inspect_act_vec(actions);
         }
         
@@ -241,9 +238,8 @@ inspector_t* create_inspector(inspection_t* inspection) {
 }
 
 static void free_textures(inspector_t* inspector) {
-    size_t count = get_inspect_tex_vec_count(inspector->textures);
-    for (size_t i = 0; i < count; i++) {
-        inspect_texture_t* tex = get_inspect_tex_vec(inspector->textures, i);
+    inspect_tex_vec_t textures = inspector->textures;
+    for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++) {
         for (size_t j = 0; j < tex->mipmap_count; j++)
             free(tex->mipmaps[j]);
         free(tex->mipmaps);
@@ -251,26 +247,22 @@ static void free_textures(inspector_t* inspector) {
 }
 
 static void free_buffers(inspector_t* inspector) {
-    size_t count = get_inspect_buf_vec_count(inspector->buffers);
-    for (size_t i = 0; i < count; i++) {
-        inspect_buffer_t* buf = get_inspect_buf_vec(inspector->buffers, i);
+    inspect_buf_vec_t buffers = inspector->buffers;
+    for (inspect_buffer_t* buf = buffers->data; !vec_end(buffers, buf); buf++)
         free(buf->data);
-    }
 }
 
 static void free_shaders(inspector_t* inspector) {
-    size_t count = get_inspect_shdr_vec_count(inspector->shaders);
-    for (size_t i = 0; i < count; i++) {
-        inspect_shader_t* shdr = get_inspect_shdr_vec(inspector->shaders, i);
+    inspect_shdr_vec_t shaders = inspector->shaders;
+    for (inspect_shader_t* shdr = shaders->data; !vec_end(shaders, shdr); shdr++) {
         free(shdr->source);
         free(shdr->info_log);
     }
 }
 
 static void free_programs(inspector_t* inspector) {
-    size_t count = get_inspect_prog_vec_count(inspector->programs);
-    for (size_t i = 0; i < count; i++) {
-        inspect_program_t* prog = get_inspect_prog_vec(inspector->programs, i);
+    inspect_prog_vec_t programs = inspector->programs;
+    for (inspect_program_t* prog = programs->data; !vec_end(programs, prog); prog++) {
         free_vec(prog->shaders);
         free(prog->info_log);
     }
@@ -326,12 +318,9 @@ inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fa
 
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
     inspect_act_vec_t actions = state->actions;
-    size_t count = get_inspect_act_vec_count(actions);
-    for (size_t i = 0; i < count; ++i) {
-        inspect_action_t* action = get_inspect_act_vec(actions, i);
+    for (inspect_action_t* action = actions->data; !vec_end(actions, action); action++)
         if (action->apply_func)
             action->apply_func(inspector, action);
-    }
 }
 
 void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index) {

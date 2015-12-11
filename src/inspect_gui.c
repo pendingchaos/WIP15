@@ -186,10 +186,8 @@ static void format_command(char* str, inspect_command_t* command) {
     
     trace_val_vec_t args = command->trace_cmd->args;
     size_t count = get_trace_val_vec_count(args);
-    for (size_t i = 0; i < count; ++i) {
-        trace_value_t* arg = get_trace_val_vec(args, i);
-        
-        format_value(str, *arg);
+    for (size_t i = 0; i < count; i++) {
+        format_value(str, *get_trace_val_vec(args, i));
         if (i != count-1) {
             strcat(str, static_format(", "));
         }
@@ -290,10 +288,7 @@ static void init_state_tree(GtkTreeView* tree,
     gtk_tree_store_clear(store);
     
     inspect_gl_state_vec_t entries = state->entries;
-    size_t count = get_inspect_gl_state_vec_count(entries);
-    for (size_t i = 0; i < count; ++i) {
-        inspect_gl_state_entry_t* entry = get_inspect_gl_state_vec(entries, i);
-        
+    for (inspect_gl_state_entry_t* entry = entries->data; !vec_end(entries, entry); entry++) {
         char val_str[1024];
         memset(val_str, 0, 1024);
         format_value(val_str, entry->val);
@@ -575,10 +570,11 @@ static void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < get_inspect_tex_vec_count(inspector->textures); i++) {
+    inspect_tex_vec_t textures = inspector->textures;
+    for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", get_inspect_tex_vec(inspector->textures, i)->fake);
+        snprintf(str, 64, "%u", tex->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -594,10 +590,11 @@ static void init_buffer_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < get_inspect_buf_vec_count(inspector->buffers); i++) {
+    inspect_buf_vec_t buffers = inspector->buffers;
+    for (inspect_buffer_t* buf = buffers->data; !vec_end(buffers, buf); buf++) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", get_inspect_buf_vec(inspector->buffers, i)->fake);
+        snprintf(str, 64, "%u", buf->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -609,9 +606,8 @@ static void init_shader_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < get_inspect_shdr_vec_count(inspector->shaders); i++) {
-        inspect_shader_t* shdr = get_inspect_shdr_vec(inspector->shaders, i);
-        
+    inspect_shdr_vec_t shaders = inspector->shaders;
+    for (inspect_shader_t* shdr = shaders->data; !vec_end(shaders, shdr); shdr++) {
         char str[64];
         memset(str, 0, 64);
         snprintf(str, 64, "%u", shdr->fake);
@@ -666,10 +662,11 @@ static void init_program_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < get_inspect_prog_vec_count(inspector->programs); ++i) {
+    inspect_prog_vec_t programs = inspector->programs;
+    for (inspect_program_t* prog = programs->data; !vec_end(programs, prog); prog++) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", get_inspect_prog_vec(inspector->programs, i)->fake);
+        snprintf(str, 64, "%u", prog->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
