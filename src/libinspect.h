@@ -9,26 +9,6 @@ typedef enum {
     AttachType_Error
 } attachment_type_t;
 
-typedef enum {
-    InspectAction_GenTexture,
-    InspectAction_DelTexture,
-    InspectAction_TexParams,
-    InspectAction_TexData,
-    InspectAction_GenBuffer,
-    InspectAction_DelBuffer,
-    InspectAction_BufferData,
-    InspectAction_BufferSubData,
-    InspectAction_NewShader,
-    InspectAction_DelShader,
-    InspectAction_ShaderSource,
-    InspectAction_NewProgram,
-    InspectAction_DelProgram,
-    InspectAction_UpdateProgramInfoLog,
-    InspectAction_AttachShader,
-    InspectAction_DetachShader,
-    InspectAction_UpdateShdrInfoLog
-} inspect_action_type_t;
-
 typedef struct inspect_attachment_t {
     attachment_type_t type;
     char* message;
@@ -75,97 +55,6 @@ typedef struct {
 } inspect_gl_tex_params_t;
 
 typedef struct {
-    unsigned int texture;
-    size_t mipmap;
-    size_t data_size;
-    void* data;
-} inspect_gl_tex_data_t;
-
-typedef struct {
-    unsigned int buffer;
-    uint32_t size;
-    void* data;
-    unsigned int usage;
-} inspect_gl_buffer_data_t;
-
-typedef struct {
-    unsigned int buffer;
-    uint32_t offset;
-    uint32_t size;
-    void* data;
-} inspect_gl_buffer_sub_data_t;
-
-typedef struct {
-    unsigned int shader;
-    unsigned int type;
-} inspect_gl_create_shader_t;
-
-typedef struct {
-    unsigned int shader;
-    size_t count;
-    char** sources;
-} inspect_gl_shader_source_t;
-
-typedef struct {
-    unsigned int program;
-    unsigned int shader;
-} inspect_gl_prog_shdr_t;
-
-typedef struct {
-    unsigned int obj;
-    char* str;
-} inspect_gl_info_log_t;
-
-typedef struct {
-    inspect_action_type_t type;
-    union {
-        unsigned int texture; //GenTexture and DelTexture
-        inspect_gl_tex_params_t tex_params; //TexParams
-        inspect_gl_tex_data_t tex_data; //TexData
-        unsigned int buffer; //GenBuffer and DelBuffer
-        inspect_gl_buffer_data_t buf_data; //BufferData
-        inspect_gl_buffer_sub_data_t buf_sub_data; //BufferSubData
-        inspect_gl_create_shader_t new_shader; //NewShader
-        unsigned int del_shader; //DelShader
-        inspect_gl_shader_source_t shader_source; //ShaderSource
-        unsigned int program; //NewProgram, DelProgram
-        inspect_gl_prog_shdr_t prog_shdr; //AttachShader, DetachShader
-        inspect_gl_info_log_t info_log; //UpdateProgramInfoLog, UpdateShdrInfoLog
-    };
-} inspect_action_t;
-TYPED_VEC(inspect_action_t, inspect_act)
-
-typedef struct {
-    inspect_gl_state_vec_t entries;
-    inspect_image_t back; //data is NULL if it did not change. RGBA
-    inspect_image_t front; //data is NULL if it did not change. RGBA
-    inspect_image_t depth; //data is NULL if it did not change. uint32_t
-    inspect_act_vec_t actions;
-} inspect_gl_state_t;
-
-typedef struct inspect_command_t {
-    trace_command_t* trace_cmd;
-    inspect_attachment_t* attachments;
-    uint64_t gl_context;
-    char *name;
-    uint64_t cpu_duration; //Nanoseconds
-    uint64_t gpu_duration; //Nanoseconds
-    inspect_gl_state_t state;
-} inspect_command_t;
-
-typedef struct {
-    size_t command_count;
-    inspect_command_t* commands;
-    trace_frame_t* trace_frame;
-} inspect_frame_t;
-
-typedef struct {
-    const trace_t *trace;
-    size_t frame_count;
-    inspect_frame_t* frames;
-} inspection_t;
-
-typedef struct {
     unsigned int fake;
     inspect_gl_tex_params_t params;
     size_t mipmap_count;
@@ -196,13 +85,55 @@ typedef struct {
 } inspect_program_t;
 TYPED_VEC(inspect_program_t, inspect_prog)
 
+struct inspection_t;
 typedef struct {
-    inspection_t* inspection;
+    struct inspection_t* inspection;
     inspect_tex_vec_t textures;
     inspect_buf_vec_t buffers;
     inspect_shdr_vec_t shaders;
     inspect_prog_vec_t programs;
 } inspector_t;
+
+struct inspect_action_t;
+typedef struct inspect_action_t {
+    void (*apply_func)(inspector_t*, struct inspect_action_t*);
+    void (*free_func)(struct inspect_action_t*);
+    union {
+        void* data;
+        unsigned int obj;
+    };
+} inspect_action_t;
+TYPED_VEC(inspect_action_t, inspect_act)
+
+typedef struct {
+    inspect_gl_state_vec_t entries;
+    inspect_image_t back; //data is NULL if it did not change. RGBA
+    inspect_image_t front; //data is NULL if it did not change. RGBA
+    inspect_image_t depth; //data is NULL if it did not change. uint32_t
+    inspect_act_vec_t actions;
+} inspect_gl_state_t;
+
+typedef struct inspect_command_t {
+    trace_command_t* trace_cmd;
+    inspect_attachment_t* attachments;
+    uint64_t gl_context;
+    char *name;
+    uint64_t cpu_duration; //Nanoseconds
+    uint64_t gpu_duration; //Nanoseconds
+    inspect_gl_state_t state;
+} inspect_command_t;
+
+typedef struct {
+    size_t command_count;
+    inspect_command_t* commands;
+    trace_frame_t* trace_frame;
+} inspect_frame_t;
+
+typedef struct inspection_t {
+    const trace_t *trace;
+    size_t frame_count;
+    inspect_frame_t* frames;
+} inspection_t;
 
 inspection_t* create_inspection(const trace_t* trace);
 void free_inspection(inspection_t* inspection);

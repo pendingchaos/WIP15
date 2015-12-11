@@ -20,6 +20,7 @@ output.write("""#include <X11/Xlib.h>
 #include "replay.h"
 #include "libtrace.h"
 #include "libinspect.h"
+#include "actions.h"
 #include "glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
@@ -510,10 +511,7 @@ static void replay_get_tex_params(replay_context_t* ctx,
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, (GLint*)&params.depth);
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&params.internal_format);
     
-    inspect_action_t action;
-    action.type = InspectAction_TexParams;
-    action.tex_params = params;
-    append_vec(cmd->state.actions, sizeof(inspect_action_t), &action);
+    inspect_act_tex_params(&cmd->state, params.texture, &params);
 }
 
 static void replay_get_tex_data(replay_context_t* ctx,
@@ -558,16 +556,10 @@ static void replay_get_tex_data(replay_context_t* ctx,
         
         F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
-        inspect_gl_tex_data_t tex_data;
-        tex_data.texture = tex;
-        tex_data.mipmap = level;
-        tex_data.data = data;
-        tex_data.data_size = width*height*4;
+        GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+        inspect_act_tex_data(&cmd->state, fake, level, width*height*4, data);
         
-        inspect_action_t action;
-        action.type = InspectAction_TexData;
-        action.tex_data = tex_data;
-        append_vec(cmd->state.actions, sizeof(inspect_action_t), &action);
+        free(data);
     } else {
         //TODO
     }

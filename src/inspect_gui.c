@@ -552,7 +552,6 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
                 g_object_unref(pixbuf);
             }
             
-            level++;
             w /= 2;
             h /= 2;
         }

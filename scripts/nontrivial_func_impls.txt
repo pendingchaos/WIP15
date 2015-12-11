@@ -155,11 +155,7 @@ glGenTextures:
     
     for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLTexture, textures[i], fake[i]);
-        
-        inspect_action_t action;
-        action.type = InspectAction_GenTexture;
-        action.texture = fake[i];
-        append_inspect_act_vec(inspect_command->state.actions, &action);
+        inspect_act_gen_tex(&inspect_command->state, fake[i]);
     }
 
 glDeleteTextures:
@@ -167,15 +163,11 @@ glDeleteTextures:
     GLuint textures[n];
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i)
         if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
             inspect_add_error(inspect_command, "Invalid texture being deleted.");
-        
-        inspect_action_t action;
-        action.type = InspectAction_DelTexture;
-        action.texture = fake[i];
-        append_inspect_act_vec(inspect_command->state.actions, &action);
-    }
+        else
+            inspect_act_del_tex(&inspect_command->state, fake[i]);
     
     real(n, textures);
 
@@ -248,11 +240,7 @@ glGenBuffers:
     
     for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLBuffer, buffers[i], fake[i]);
-        
-        inspect_action_t action;
-        action.type = InspectAction_GenBuffer;
-        action.buffer = fake[i];
-        append_inspect_act_vec(inspect_command->state.actions, &action);
+        inspect_act_gen_buf(&inspect_command->state, fake[i]);
     }
 
 glDeleteBuffers:
@@ -263,11 +251,8 @@ glDeleteBuffers:
     for (size_t i = 0; i < n; ++i) {
         if (!(buffers[i] = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake[i])))
             inspect_add_error(inspect_command, "Invalid buffer being deleted.");
-        
-        inspect_action_t action;
-        action.type = InspectAction_DelBuffer;
-        action.buffer = fake[i];
-        append_inspect_act_vec(inspect_command->state.actions, &action);
+        else
+            inspect_act_del_buf(&inspect_command->state, fake[i]);
     }
     
     real(n, buffers);
@@ -286,15 +271,7 @@ glBufferData:
     const void* data = gl_param_data(command, 2);
     GLenum usage = gl_param_GLenum(command, 3);
     real(target, size, data, usage);
-    
-    inspect_action_t action;
-    action.type = InspectAction_BufferData;
-    action.buf_data.buffer = get_bound_buffer(ctx, target);
-    action.buf_data.size = size;
-    action.buf_data.data = malloc(size);
-    memcpy(action.buf_data.data, data, size);
-    action.buf_data.usage = usage;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_buf_data(&inspect_command->state, get_bound_buffer(ctx, target), size, data, usage);
 
 glBufferSubData:
     GLuint target = gl_param_GLenum(command, 0);
@@ -302,30 +279,14 @@ glBufferSubData:
     GLsizeiptr size = gl_param_GLsizeiptr(command, 2);
     const void* data = gl_param_data(command, 3);
     real(target, offset, size, data);
-    
-    inspect_action_t action;
-    action.type = InspectAction_BufferSubData;
-    action.buf_sub_data.buffer = get_bound_buffer(ctx, target);
-    action.buf_sub_data.offset = offset;
-    action.buf_sub_data.size = size;
-    action.buf_sub_data.data = malloc(size);
-    memcpy(action.buf_sub_data.data, data, size);
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), offset, size, data);
 
 glMappedBufferDataWIP15:
     GLuint target = gl_param_GLenum(command, 0);
     GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
     const void* data = gl_param_data(command, 2);
     F(glBufferSubData)(target, 0, size, data);
-    
-    inspect_action_t action;
-    action.type = InspectAction_BufferSubData;
-    action.buf_sub_data.buffer = get_bound_buffer(ctx, target);
-    action.buf_sub_data.offset = 0;
-    action.buf_sub_data.size = size;
-    action.buf_sub_data.data = malloc(size);
-    memcpy(action.buf_sub_data.data, data, size);
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, size, data);
 
 glLoadMatrixd:
     real(trace_get_double(trace_get_arg(command, 0)));
@@ -356,12 +317,7 @@ glCreateShader:
     GLuint real_shdr = F(glCreateShader)(type);
     GLuint fake = trace_get_uint(&command->ret)[0];
     replay_create_object(ctx, ReplayObjType_GLShader, real_shdr, fake);
-    
-    inspect_action_t action;
-    action.type = InspectAction_NewShader;
-    action.new_shader.type = type;
-    action.new_shader.shader = fake;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_new_shdr(&inspect_command->state, fake, type);
 
 glDeleteShader:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -374,11 +330,7 @@ glDeleteShader:
     F(glDeleteShader)(real_shdr);
     
     replay_destroy_object(ctx, ReplayObjType_GLShader, fake);
-    
-    inspect_action_t action;
-    action.type = InspectAction_DelShader;
-    action.del_shader = fake;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_del_shdr(&inspect_command->state, fake);
 
 glShaderSource:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -391,21 +343,9 @@ glShaderSource:
         return;
     }
     
-    inspect_action_t action;
-    action.type = InspectAction_ShaderSource;
-    action.shader_source.shader = fake;
-    action.shader_source.count = count;
-    action.shader_source.sources = malloc(sizeof(char*)*count);
-    
     if (trace_get_arg(command, 3)->count == 0) {
         real(shader, 1, (const GLchar*const*)sources, NULL);
-        
-        for (GLsizei i = 0; i < count; i++) {
-            size_t len = strlen(sources[i]);
-            action.shader_source.sources[i] = malloc(len+1);
-            memcpy(action.shader_source.sources[i], sources[i], len);
-            action.shader_source.sources[i][len] = 0;
-        }
+        inspect_act_shdr_source(&inspect_command->state, fake, count, (const char*const*)sources);
     } else {
         uint64_t* lengths64 = trace_get_uint(trace_get_arg(command, 3));
         
@@ -416,14 +356,18 @@ glShaderSource:
         
         real(shader, count, (const GLchar*const*)sources, lengths);
         
+        char* new_sources[count];
         for (GLsizei i = 0; i < count; i++) {
-            action.shader_source.sources[i] = malloc(lengths[i]+1);
-            memcpy(action.shader_source.sources[i], sources[i], lengths[i]);
-            action.shader_source.sources[i][lengths[i]] = 0;
+            new_sources[i] = malloc(lengths[i]+1);
+            memcpy(new_sources[i], sources[i], lengths[i]);
+            new_sources[i][lengths[i]] = 0;
         }
+        
+        inspect_act_shdr_source(&inspect_command->state, fake, count, (const char*const*)new_sources);
+        
+        for (GLsizei i = 0; i < count; i++)
+            free(new_sources[i]);
     }
-    
-    append_inspect_act_vec(inspect_command->state.actions, &action);
 
 glCompileShader:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -446,21 +390,15 @@ glCompileShader:
     info_log[len] = 0;
     F(glGetShaderInfoLog)(real_shdr, len, NULL, info_log);
     
-    inspect_action_t action;
-    action.type = InspectAction_UpdateShdrInfoLog;
-    action.info_log.obj = fake;
-    action.info_log.str = info_log;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_set_shdr_info_log(&inspect_command->state, fake, info_log);
+    
+    free(info_log);
 
 glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
     GLuint fake = trace_get_uint(&command->ret)[0];
     replay_create_object(ctx, ReplayObjType_GLProgram, real_program, fake);
-    
-    inspect_action_t action;
-    action.type = InspectAction_NewProgram;
-    action.program = fake;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_new_prog(&inspect_command->state, fake);
 
 glDeleteProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -473,11 +411,7 @@ glDeleteProgram:
     real(real_program);
     
     replay_destroy_object(ctx, ReplayObjType_GLProgram, fake);
-    
-    inspect_action_t action;
-    action.type = InspectAction_DelProgram;
-    action.program = fake;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_del_prog(&inspect_command->state, fake);
 
 glAttachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
@@ -496,11 +430,7 @@ glAttachShader:
     
     real(real_program, real_shader);
     
-    inspect_action_t action;
-    action.type = InspectAction_AttachShader;
-    action.prog_shdr.program = fake_program;
-    action.prog_shdr.shader = fake_shader;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_attach_shdr(&inspect_command->state, fake_program, fake_shader);
 
 glDetachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
@@ -519,11 +449,7 @@ glDetachShader:
     
     real(real_program, real_shader);
     
-    inspect_action_t action;
-    action.type = InspectAction_DetachShader;
-    action.prog_shdr.program = fake_program;
-    action.prog_shdr.shader = fake_shader;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_detach_shdr(&inspect_command->state, fake_program, fake_shader);
 
 glLinkProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -546,11 +472,9 @@ glLinkProgram:
     info_log[len] = 0;
     F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
     
-    inspect_action_t action;
-    action.type = InspectAction_UpdateProgramInfoLog;
-    action.info_log.obj = fake;
-    action.info_log.str = info_log;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_set_prog_info_log(&inspect_command->state, fake, info_log);
+    
+    free(info_log);
 
 glValidateProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -573,11 +497,9 @@ glValidateProgram:
     info_log[len] = 0;
     F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
     
-    inspect_action_t action;
-    action.type = InspectAction_UpdateProgramInfoLog;
-    action.info_log.obj = fake;
-    action.info_log.str = info_log;
-    append_inspect_act_vec(inspect_command->state.actions, &action);
+    inspect_act_set_prog_info_log(&inspect_command->state, fake, info_log);
+    
+    free(info_log);
 
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);

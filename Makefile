@@ -8,7 +8,7 @@ libtrace:
 
 libinspect:
 	gcc -c src/glapi.c -std=c99 -o src/glapi.o -w -rdynamic
-	gcc src/libinspect.c src/replay.c src/replay_gl.c src/vec.c src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
+	gcc src/libinspect.c src/actions.c src/replay.c src/replay_gl.c src/vec.c src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
 	rm src/glapi.o
 
 trace:
