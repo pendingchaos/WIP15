@@ -1,7 +1,7 @@
 #define GL_GLEXT_PROTOTYPES
-#include "libinspect.h"
-#include "libtrace.h"
-#include "glapi.h"
+#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
+#include "shared/glapi.h"
 
 #include <gtk/gtk.h>
 #include <stdlib.h>

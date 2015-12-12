@@ -1,4 +1,4 @@
-#include "actions.h"
+#include "libinspect/actions.h"
 
 #include <stdlib.h>
 #include <string.h>

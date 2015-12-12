@@ -1,4 +1,4 @@
-#include "replay.h"
+#include "libinspect/replay.h"
 
 #include <stddef.h>
 #include <stdlib.h>

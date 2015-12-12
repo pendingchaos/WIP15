@@ -4,21 +4,23 @@ gl:
 	rm src/gl.c
 
 libtrace:
-	gcc src/libtrace.c -o bin/libtrace.so src/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -Wall -g
+	gcc -Isrc src/libtrace/libtrace.c -o bin/libtrace.so src/shared/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -Wall -g
 
 libinspect:
-	gcc -c src/glapi.c -std=c99 -o src/glapi.o -w -rdynamic
-	gcc src/libinspect.c src/actions.c src/replay.c src/replay_gl.c src/vec.c src/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
-	rm src/glapi.o
+	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
+	gcc -Isrc src/libinspect/libinspect.c src/libinspect/actions.c src/libinspect/replay.c src/libinspect/replay_gl.c src/shared/vec.c src/shared/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
+	rm src/shared/glapi.o
 
 trace:
 	gcc src/trace.c -o bin/trace -g
 
 inspect-gui:
-	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
+	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
+	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/shared/glapi.o ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
+	rm src/shared/glapi.o
 
 leakcheck:
-	cd bin; gcc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
+	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
 
 clean:
 	rm bin/libtrace.so

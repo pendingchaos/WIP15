@@ -1,6 +1,6 @@
 #ifndef LIB_INSPECT_H
 #define LIB_INSPECT_H
-#include "libtrace.h"
+#include "libtrace/libtrace.h"
 #include <stdbool.h>
 
 typedef enum {

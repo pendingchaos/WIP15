@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "vec.h"
+#include "shared/vec.h"
 
 typedef enum {
     Type_Void,

@@ -1,7 +1,7 @@
-#include "libtrace.h"
-#include "libinspect.h"
-#include "replay.h"
-#include "glapi.h"
+#include "libtrace/libtrace.h"
+#include "libinspect/libinspect.h"
+#include "libinspect/replay.h"
+#include "shared/glapi.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# TODO: Nontrivial functions (very important)
-# TODO: Return values (very important)
-# TODO: Function pointers (very important)
-# TODO: Integer arrays
+# TODO: Function pointers
 import glxml
 from gl_state import *
 
 gl = glxml.GL(False)
 
-output = open("../src/replay_gl.c", "w")
+output = open("../src/libinspect/replay_gl.c", "w")
 
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -17,11 +14,11 @@ output.write("""#include <X11/Xlib.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
-#include "replay.h"
-#include "libtrace.h"
-#include "libinspect.h"
-#include "actions.h"
-#include "glapi.h"
+#include "libinspect/replay.h"
+#include "libtrace/libtrace.h"
+#include "libinspect/libinspect.h"
+#include "libinspect/actions.h"
+#include "shared/glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
 

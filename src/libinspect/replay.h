@@ -1,7 +1,7 @@
 #ifndef REPLAY_H
 #define REPLAY_H
-#include "libtrace.h"
-#include "libinspect.h"
+#include "libtrace/libtrace.h"
+#include "libinspect/libinspect.h"
 
 #include <stdint.h>
 

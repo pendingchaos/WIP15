@@ -1,6 +1,6 @@
 //This program is meant to be run under valgrind to check for memory leaks.
-#include "libinspect.h"
-#include "libtrace.h"
+#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 
 #include <stdlib.h>
 #include <stdio.h>
