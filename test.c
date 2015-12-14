@@ -121,6 +121,10 @@ int main(int argc, char **argv)
         glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
         glTexCoordPointer(2, GL_FLOAT, 0, NULL);
         
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexPointer(3, GL_FLOAT, 0, positions);
+        
         GLint first = 0;
         GLsizei count = 4;
         glMultiDrawArrays(GL_QUADS, &first, &count, 1);

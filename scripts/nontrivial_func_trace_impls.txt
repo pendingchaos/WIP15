@@ -883,13 +883,6 @@ glRectsv:
     gl_param_GLint_array(2, arr2);
     gl_glRectsv(v1, v2);
 
-glMultiDrawArrays:
-    gl_param_GLenum(mode, GROUP_PrimitiveType);
-    gl_param_GLint_array(drawcount, first);
-    gl_param_GLint_array(drawcount, count);
-    gl_param_GLsizei(drawcount, -1);
-    gl_glMultiDrawArrays(mode, first, count, drawcount);
-
 glProgramUniformWIP15:
     gl_param_GLuint(program, -1);
     gl_param_string(name);
@@ -1010,3 +1003,46 @@ glProgramAttribWIP15:
     gl_param_GLuint(program, -1);
     gl_param_string(name);
     gl_param_GLuint(index, -1);
+
+glBeginClientArrayDataWIP15:
+    gl_param_GLsizei(primcount, -1);
+
+glClientColorDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientEdgeFlagDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientFogCoordDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientIndexDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientNormalDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientSecondaryColorDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientTextureCoordDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);
+
+glClientVertexDataWIP15:
+    gl_param_GLuint(prim, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);

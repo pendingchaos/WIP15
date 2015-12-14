@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import glxml
 
-dont_implement = ["glUnmapBuffer", "glLinkProgram"]
+dont_implement = ["glUnmapBuffer", "glLinkProgram", "glDrawArrays", "glMultiDrawArrays"]
 
 gl = glxml.GL(False)
 

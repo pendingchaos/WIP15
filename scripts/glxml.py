@@ -94,11 +94,33 @@ class GL:
         glProgramAttribWIP15.params.append(FunctionParam("GLuint", "index"))
         self.functions["glProgramAttribWIP15"] = glProgramAttribWIP15
         
+        glBeginClientArrayDataWIP15 = Function("void")
+        glBeginClientArrayDataWIP15.params.append(FunctionParam("GLsizei", "primcount"))
+        self.functions["glBeginClientArrayDataWIP15"] = glBeginClientArrayDataWIP15
+        
+        names = ["glClientColorDataWIP15",
+                 "glClientEdgeFlagDataWIP15",
+                 "glClientFogCoordDataWIP15",
+                 "glClientIndexDataWIP15",
+                 "glClientNormalDataWIP15",
+                 "glClientSecondaryColorDataWIP15",
+                 "glClientTextureCoordDataWIP15",
+                 "glClientVertexDataWIP15"]
+        
+        for name in names:
+            func = Function("void")
+            func.params.append(FunctionParam("GLuint", "prim"))
+            func.params.append(FunctionParam("GLsizei", "size"))
+            func.params.append(FunctionParam("const GLvoid*", "data"))
+            self.functions[name] = func
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
         ext.functions.append("glMappedBufferDataWIP15")
         ext.functions.append("glProgramUniformWIP15")
         ext.functions.append("glProgramAttribWIP15")
+        ext.functions.append("glClientVertexDataWIP15")
+        ext.functions += names
         
         self.extensions["GL_WIP15_debug_internal"] = ext
     

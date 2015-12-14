@@ -1432,16 +1432,21 @@ void glSetContextCapsWIP15();
 void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
 void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
 void glProgramAttribWIP15(GLuint program, const GLchar* name, GLuint index);
+void glBeginClientArrayDataWIP15(GLsizei primcount);
+void glClientVertexDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientColorDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientEdgeFlagDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientFogCoordDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientIndexDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientNormalDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientSecondaryColorDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
+void glClientTexCoordDataWIP15(GLuint prim, GLsizei size, const GLvoid* data);
 
 GLboolean glUnmapBuffer(GLenum target) {
     GLint access;
     F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
     
-    gl_start(FUNC_glUnmapBuffer);
-    gl_param_GLenum(target, -1);
     GLboolean result = F(glUnmapBuffer)(target);
-    gl_result_GLboolean(result);
-    gl_end();
     
     if (access != GL_READ_ONLY) {
         GLint size;
@@ -1452,6 +1457,12 @@ GLboolean glUnmapBuffer(GLenum target) {
         glMappedBufferDataWIP15(target, size, data);
         free(data);
     }
+    
+    gl_start(FUNC_glUnmapBuffer);
+    gl_param_GLenum(target, -1);
+    gl_result_GLboolean(result);
+    gl_end();
+    
     return result;
 }
 
@@ -1519,4 +1530,171 @@ void glLinkProgram(GLuint program) {
             }
         }
     }
+}
+
+static GLint get_vertex_size(GLint count, GLint type, GLint stride) {
+    if (stride)
+        return stride;
+    else
+        switch (type) {
+        case GL_BYTE:
+        case GL_UNSIGNED_BYTE:
+            return count;
+        case GL_SHORT:
+        case GL_UNSIGNED_SHORT:
+            return count * 2;
+        case GL_INT:
+        case GL_UNSIGNED_INT:
+        case GL_FLOAT:
+            return count * 4;
+        case GL_DOUBLE:
+            return count * 8;
+        }
+}
+
+void do_arrays(GLuint prim, GLint vertex_count) {
+    GLint buf;
+    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
+        GLint count;
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(count, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_VERTEX_ARRAY_POINTER, &data);
+        
+        glClientVertexDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
+        GLint count;
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(count, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_COLOR_ARRAY_POINTER, &data);
+        
+        glClientColorDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
+        GLint stride;
+        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
+        
+        GLint size = sizeof(GLboolean) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_EDGE_FLAG_ARRAY_POINTER, &data);
+        
+        glClientEdgeFlagDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(1, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_FOG_COORD_ARRAY_POINTER, &data);
+        
+        glClientFogCoordDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(1, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_INDEX_ARRAY_POINTER, &data);
+        
+        glClientIndexDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(3, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_NORMAL_ARRAY_POINTER, &data);
+        
+        glClientNormalDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
+        GLint count;
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(count, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_SECONDARY_COLOR_ARRAY_POINTER, &data);
+        
+        glClientSecondaryColorDataWIP15(prim, size, data);
+    }
+    
+    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
+        GLint count;
+        GLint type;
+        GLint stride;
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
+        
+        GLint size = get_vertex_size(count, type, stride) * vertex_count;
+        GLvoid* data;
+        F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, &data);
+        
+        glClientTexCoordDataWIP15(prim, size, data);
+    }
+}
+
+void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
+    glBeginClientArrayDataWIP15(1);
+    do_arrays(0, count);
+    
+    gl_start(FUNC_glDrawArrays);
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint(first, -1);
+    gl_param_GLsizei(count, -1);
+    F(glDrawArrays)(mode, first, count);
+    gl_end();
+}
+
+void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primcount) {
+    glBeginClientArrayDataWIP15(primcount);
+    for (GLsizei i = 0; i < primcount; i++)
+        do_arrays(i, count[i]);
+    
+    gl_start(FUNC_glMultiDrawArrays);
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint_array(primcount, first);
+    gl_param_GLint_array(primcount, count);
+    gl_param_GLsizei(primcount, -1);
+    F(glMultiDrawArrays)(mode, first, count, primcount);
+    gl_end();
 }

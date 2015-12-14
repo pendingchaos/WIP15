@@ -815,6 +815,7 @@ typedef void (*glGetCombinerStageParameterfvNV_t)(GLenum, GLenum, GLfloat  *);
 typedef void (*glInvalidateSubFramebuffer_t)(GLenum, GLsizei, const  GLenum  *, GLint, GLint, GLsizei, GLsizei);
 typedef void * (*glMapBuffer_t)(GLenum, GLenum);
 typedef void (*glSecondaryColor3d_t)(GLdouble, GLdouble, GLdouble);
+typedef void (*glClientSecondaryColorDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glGetQueryObjectivEXT_t)(GLuint, GLenum, GLint  *);
 typedef void (*glVertexAttribLFormat_t)(GLuint, GLint, GLenum, GLuint);
 typedef void (*glElementPointerAPPLE_t)(GLenum, const void *);
@@ -954,6 +955,7 @@ typedef void (*glMultiTexImage1DEXT_t)(GLenum, GLenum, GLint, GLint, GLsizei, GL
 typedef void (*glGetCompressedTexImage_t)(GLenum, GLint, void *);
 typedef void (*glDetailTexFuncSGIS_t)(GLenum, GLsizei, const  GLfloat  *);
 typedef void (*glUniform1i_t)(GLint, GLint);
+typedef void (*glClientNormalDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glGetTexEnvfv_t)(GLenum, GLenum, GLfloat  *);
 typedef void (*glColorTableParameterivSGI_t)(GLenum, GLenum, const  GLint  *);
 typedef void (*glCullFace_t)(GLenum);
@@ -997,6 +999,7 @@ typedef void (*glVertexAttribLFormatNV_t)(GLuint, GLint, GLenum, GLsizei);
 typedef void (*glLightModelfv_t)(GLenum, const  GLfloat  *);
 typedef void (*glVertexAttrib4NubvARB_t)(GLuint, const  GLubyte  *);
 typedef void (*glGetCompressedTexImageARB_t)(GLenum, GLint, void *);
+typedef void (*glClientColorDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glConvolutionParameteri_t)(GLenum, GLenum, GLint);
 typedef void (*glVertexWeighthNV_t)(GLhalfNV);
 typedef void (*glColorMaski_t)(GLuint, GLboolean, GLboolean, GLboolean, GLboolean);
@@ -1223,6 +1226,7 @@ typedef void (*glMap2d_t)(GLenum, GLdouble, GLdouble, GLint, GLint, GLdouble, GL
 typedef void (*glMap2f_t)(GLenum, GLfloat, GLfloat, GLint, GLint, GLfloat, GLfloat, GLint, GLint, const  GLfloat  *);
 typedef void (*glMakeImageHandleResidentNV_t)(GLuint64, GLenum);
 typedef void (*glUniformMatrix2x4fv_t)(GLint, GLsizei, GLboolean, const  GLfloat  *);
+typedef void (*glClientFogCoordDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glGetMultiTexParameterfvEXT_t)(GLenum, GLenum, GLenum, GLfloat  *);
 typedef void (*glDepthRangeIndexed_t)(GLuint, GLdouble, GLdouble);
 typedef void (*glGetVertexAttribIuivEXT_t)(GLuint, GLenum, GLuint  *);
@@ -1375,6 +1379,7 @@ typedef void (*glProgramUniform4i64vARB_t)(GLuint, GLint, GLsizei, const  GLint6
 typedef void (*glVertexAttrib4Nuiv_t)(GLuint, const  GLuint  *);
 typedef void (*glRenderbufferStorage_t)(GLenum, GLenum, GLsizei, GLsizei);
 typedef void (*glWaitSync_t)(GLsync, GLbitfield, GLuint64);
+typedef void (*glClientTextureCoordDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glFramebufferTextureMultisampleMultiviewOVR_t)(GLenum, GLenum, GLuint, GLint, GLsizei, GLint, GLsizei);
 typedef void (*glBlendEquationSeparatei_t)(GLuint, GLenum, GLenum);
 typedef void (*glVertexAttrib2hvNV_t)(GLuint, const  GLhalfNV  *);
@@ -2215,6 +2220,7 @@ typedef void (*glEdgeFlag_t)(GLboolean);
 typedef void (*glProgramUniform1ui_t)(GLuint, GLint, GLuint);
 typedef void (*glVertex3d_t)(GLdouble, GLdouble, GLdouble);
 typedef void (*glVertex3f_t)(GLfloat, GLfloat, GLfloat);
+typedef void (*glBeginClientArrayDataWIP15_t)(GLsizei);
 typedef void (*glVertex3i_t)(GLint, GLint, GLint);
 typedef void (*glMultiTexRenderbufferEXT_t)(GLenum, GLenum, GLuint);
 typedef void (*glRenderbufferStorageMultisampleNV_t)(GLenum, GLsizei, GLenum, GLsizei, GLsizei);
@@ -2317,6 +2323,7 @@ typedef void (*glTexCoord1fv_t)(const  GLfloat  *);
 typedef void (*glNormal3xvOES_t)(const  GLfixed  *);
 typedef void (*glGetActiveVaryingNV_t)(GLuint, GLuint, GLsizei, GLsizei  *, GLsizei  *, GLenum  *, GLchar  *);
 typedef void * (*glMapBufferOES_t)(GLenum, GLenum);
+typedef void (*glClientIndexDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glUniform1i64vARB_t)(GLint, GLsizei, const  GLint64  *);
 typedef void (*glMultiTexCoord1dv_t)(GLenum, const  GLdouble  *);
 typedef void (*glTexCoord3fv_t)(const  GLfloat  *);
@@ -2676,6 +2683,7 @@ typedef GLboolean (*glTestFenceNV_t)(GLuint);
 typedef void (*glVertexAttribs3fvNV_t)(GLuint, GLsizei, const  GLfloat  *);
 typedef void (*glVertexAttrib2fv_t)(GLuint, const  GLfloat  *);
 typedef void (*glVertexStream3fvATI_t)(GLenum, const  GLfloat  *);
+typedef void (*glClientVertexDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glCombinerParameterfvNV_t)(GLenum, const  GLfloat  *);
 typedef void (*glValidateProgramPipelineEXT_t)(GLuint);
 typedef void (*glGetBooleani_v_t)(GLenum, GLuint, GLboolean  *);
@@ -2720,6 +2728,7 @@ typedef void (*glRenderbufferStorageMultisampleAPPLE_t)(GLenum, GLsizei, GLenum,
 typedef void (*glVertexAttribI1ui_t)(GLuint, GLuint);
 typedef void (*glProgramNamedParameter4dvNV_t)(GLuint, GLsizei, const  GLubyte  *, const  GLdouble  *);
 typedef void (*glCompressedMultiTexImage3DEXT_t)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLint, GLsizei, const void *);
+typedef void (*glClientEdgeFlagDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glGetRenderbufferParameterivEXT_t)(GLenum, GLenum, GLint  *);
 typedef void (*glGetnPolygonStipple_t)(GLsizei, GLubyte  *);
 typedef GLboolean (*glIsBufferResidentNV_t)(GLenum);
@@ -4081,6 +4090,7 @@ typedef struct {
     glInvalidateSubFramebuffer_t real_glInvalidateSubFramebuffer;
     glMapBuffer_t real_glMapBuffer;
     glSecondaryColor3d_t real_glSecondaryColor3d;
+    glClientSecondaryColorDataWIP15_t real_glClientSecondaryColorDataWIP15;
     glGetQueryObjectivEXT_t real_glGetQueryObjectivEXT;
     glVertexAttribLFormat_t real_glVertexAttribLFormat;
     glElementPointerAPPLE_t real_glElementPointerAPPLE;
@@ -4220,6 +4230,7 @@ typedef struct {
     glGetCompressedTexImage_t real_glGetCompressedTexImage;
     glDetailTexFuncSGIS_t real_glDetailTexFuncSGIS;
     glUniform1i_t real_glUniform1i;
+    glClientNormalDataWIP15_t real_glClientNormalDataWIP15;
     glGetTexEnvfv_t real_glGetTexEnvfv;
     glColorTableParameterivSGI_t real_glColorTableParameterivSGI;
     glCullFace_t real_glCullFace;
@@ -4263,6 +4274,7 @@ typedef struct {
     glLightModelfv_t real_glLightModelfv;
     glVertexAttrib4NubvARB_t real_glVertexAttrib4NubvARB;
     glGetCompressedTexImageARB_t real_glGetCompressedTexImageARB;
+    glClientColorDataWIP15_t real_glClientColorDataWIP15;
     glConvolutionParameteri_t real_glConvolutionParameteri;
     glVertexWeighthNV_t real_glVertexWeighthNV;
     glColorMaski_t real_glColorMaski;
@@ -4489,6 +4501,7 @@ typedef struct {
     glMap2f_t real_glMap2f;
     glMakeImageHandleResidentNV_t real_glMakeImageHandleResidentNV;
     glUniformMatrix2x4fv_t real_glUniformMatrix2x4fv;
+    glClientFogCoordDataWIP15_t real_glClientFogCoordDataWIP15;
     glGetMultiTexParameterfvEXT_t real_glGetMultiTexParameterfvEXT;
     glDepthRangeIndexed_t real_glDepthRangeIndexed;
     glGetVertexAttribIuivEXT_t real_glGetVertexAttribIuivEXT;
@@ -4641,6 +4654,7 @@ typedef struct {
     glVertexAttrib4Nuiv_t real_glVertexAttrib4Nuiv;
     glRenderbufferStorage_t real_glRenderbufferStorage;
     glWaitSync_t real_glWaitSync;
+    glClientTextureCoordDataWIP15_t real_glClientTextureCoordDataWIP15;
     glFramebufferTextureMultisampleMultiviewOVR_t real_glFramebufferTextureMultisampleMultiviewOVR;
     glBlendEquationSeparatei_t real_glBlendEquationSeparatei;
     glVertexAttrib2hvNV_t real_glVertexAttrib2hvNV;
@@ -5481,6 +5495,7 @@ typedef struct {
     glProgramUniform1ui_t real_glProgramUniform1ui;
     glVertex3d_t real_glVertex3d;
     glVertex3f_t real_glVertex3f;
+    glBeginClientArrayDataWIP15_t real_glBeginClientArrayDataWIP15;
     glVertex3i_t real_glVertex3i;
     glMultiTexRenderbufferEXT_t real_glMultiTexRenderbufferEXT;
     glRenderbufferStorageMultisampleNV_t real_glRenderbufferStorageMultisampleNV;
@@ -5583,6 +5598,7 @@ typedef struct {
     glNormal3xvOES_t real_glNormal3xvOES;
     glGetActiveVaryingNV_t real_glGetActiveVaryingNV;
     glMapBufferOES_t real_glMapBufferOES;
+    glClientIndexDataWIP15_t real_glClientIndexDataWIP15;
     glUniform1i64vARB_t real_glUniform1i64vARB;
     glMultiTexCoord1dv_t real_glMultiTexCoord1dv;
     glTexCoord3fv_t real_glTexCoord3fv;
@@ -5942,6 +5958,7 @@ typedef struct {
     glVertexAttribs3fvNV_t real_glVertexAttribs3fvNV;
     glVertexAttrib2fv_t real_glVertexAttrib2fv;
     glVertexStream3fvATI_t real_glVertexStream3fvATI;
+    glClientVertexDataWIP15_t real_glClientVertexDataWIP15;
     glCombinerParameterfvNV_t real_glCombinerParameterfvNV;
     glValidateProgramPipelineEXT_t real_glValidateProgramPipelineEXT;
     glGetBooleani_v_t real_glGetBooleani_v;
@@ -5986,6 +6003,7 @@ typedef struct {
     glVertexAttribI1ui_t real_glVertexAttribI1ui;
     glProgramNamedParameter4dvNV_t real_glProgramNamedParameter4dvNV;
     glCompressedMultiTexImage3DEXT_t real_glCompressedMultiTexImage3DEXT;
+    glClientEdgeFlagDataWIP15_t real_glClientEdgeFlagDataWIP15;
     glGetRenderbufferParameterivEXT_t real_glGetRenderbufferParameterivEXT;
     glGetnPolygonStipple_t real_glGetnPolygonStipple;
     glIsBufferResidentNV_t real_glIsBufferResidentNV;
@@ -15586,6 +15604,8 @@ void replay_glMappedBufferDataWIP15(replay_context_t* ctx, trace_command_t* comm
     GLuint target = gl_param_GLenum(command, 0);
     GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
     const void* data = gl_param_data(command, 2);
+    
+    F(glUnmapBuffer)(target);
     F(glBufferSubData)(target, 0, size, data);
     inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, size, data);
 
@@ -16367,7 +16387,8 @@ void replay_glVertexPointer(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glVertexPointer", inspect_command);
     glVertexPointer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glVertexPointer;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (const void *)gl_param_pointer(command, 3));
+    ;
+
 replay_end_cmd(ctx, "glVertexPointer", inspect_command);
 }
 
@@ -18638,6 +18659,19 @@ void replay_glSecondaryColor3d(replay_context_t* ctx, trace_command_t* command, 
 replay_end_cmd(ctx, "glSecondaryColor3d", inspect_command);
 }
 
+void replay_glClientSecondaryColorDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientSecondaryColorDataWIP15", inspect_command);
+    glClientSecondaryColorDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientSecondaryColorDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientSecondaryColorDataWIP15", inspect_command);
+}
+
 void replay_glGetQueryObjectivEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -18820,7 +18854,7 @@ void replay_glUniform3iv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*3; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -20407,6 +20441,19 @@ void replay_glUniform1i(replay_context_t* ctx, trace_command_t* command, inspect
 replay_end_cmd(ctx, "glUniform1i", inspect_command);
 }
 
+void replay_glClientNormalDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientNormalDataWIP15", inspect_command);
+    glClientNormalDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientNormalDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientNormalDataWIP15", inspect_command);
+}
+
 void replay_glGetTexEnvfv(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -20951,6 +20998,19 @@ void replay_glGetCompressedTexImageARB(replay_context_t* ctx, trace_command_t* c
 replay_end_cmd(ctx, "glGetCompressedTexImageARB", inspect_command);
 }
 
+void replay_glClientColorDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientColorDataWIP15", inspect_command);
+    glClientColorDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientColorDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientColorDataWIP15", inspect_command);
+}
+
 void replay_glConvolutionParameteri(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -21194,7 +21254,7 @@ void replay_glUniform2fv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*2; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -23727,6 +23787,19 @@ void replay_glUniformMatrix2x4fv(replay_context_t* ctx, trace_command_t* command
 replay_end_cmd(ctx, "glUniformMatrix2x4fv", inspect_command);
 }
 
+void replay_glClientFogCoordDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientFogCoordDataWIP15", inspect_command);
+    glClientFogCoordDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientFogCoordDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientFogCoordDataWIP15", inspect_command);
+}
+
 void replay_glGetMultiTexParameterfvEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -25541,6 +25614,19 @@ void replay_glWaitSync(replay_context_t* ctx, trace_command_t* command, inspect_
     do {(void)sizeof((real));} while (0);
     real((GLsync)gl_param_GLsync(command, 0), (GLbitfield)gl_param_GLbitfield(command, 1), (GLuint64)gl_param_GLuint64(command, 2));
 replay_end_cmd(ctx, "glWaitSync", inspect_command);
+}
+
+void replay_glClientTextureCoordDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientTextureCoordDataWIP15", inspect_command);
+    glClientTextureCoordDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientTextureCoordDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientTextureCoordDataWIP15", inspect_command);
 }
 
 void replay_glFramebufferTextureMultisampleMultiviewOVR(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -30117,7 +30203,7 @@ void replay_glBindTexture(replay_context_t* ctx, trace_command_t* command, inspe
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake);
-    if (!real_tex)
+    if (!real_tex && fake)
         inspect_add_error(inspect_command, "Invalid texture being bound.");
     real(target, real_tex);
 
@@ -30697,7 +30783,7 @@ void replay_glBindBuffer(replay_context_t* ctx, trace_command_t* command, inspec
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
-    if (!real_buf)
+    if (!real_buf && fake)
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
     real(target, real_buf);
 
@@ -31290,7 +31376,8 @@ void replay_glUnmapBuffer(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUnmapBuffer", inspect_command);
     glUnmapBuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUnmapBuffer;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glUnmapBuffer", inspect_command);
 }
 
@@ -33348,7 +33435,7 @@ void replay_glUniform4fv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*4; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -35831,6 +35918,19 @@ void replay_glVertex3f(replay_context_t* ctx, trace_command_t* command, inspect_
 replay_end_cmd(ctx, "glVertex3f", inspect_command);
 }
 
+void replay_glBeginClientArrayDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glBeginClientArrayDataWIP15", inspect_command);
+    glBeginClientArrayDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBeginClientArrayDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glBeginClientArrayDataWIP15", inspect_command);
+}
+
 void replay_glVertex3i(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -37082,6 +37182,19 @@ void replay_glMapBufferOES(replay_context_t* ctx, trace_command_t* command, insp
     do {(void)sizeof((real));} while (0);
     real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1));
 replay_end_cmd(ctx, "glMapBufferOES", inspect_command);
+}
+
+void replay_glClientIndexDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientIndexDataWIP15", inspect_command);
+    glClientIndexDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientIndexDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientIndexDataWIP15", inspect_command);
 }
 
 void replay_glUniform1i64vARB(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -39019,7 +39132,7 @@ void replay_glUniform3fv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*3; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -41436,6 +41549,19 @@ void replay_glVertexStream3fvATI(replay_context_t* ctx, trace_command_t* command
 replay_end_cmd(ctx, "glVertexStream3fvATI", inspect_command);
 }
 
+void replay_glClientVertexDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientVertexDataWIP15", inspect_command);
+    glClientVertexDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientVertexDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientVertexDataWIP15", inspect_command);
+}
+
 void replay_glCombinerParameterfvNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -41953,6 +42079,19 @@ void replay_glCompressedMultiTexImage3DEXT(replay_context_t* ctx, trace_command_
     do {(void)sizeof((real));} while (0);
     real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLint)gl_param_GLint(command, 2), (GLenum)gl_param_GLenum(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (GLsizei)gl_param_GLsizei(command, 6), (GLint)gl_param_GLint(command, 7), (GLsizei)gl_param_GLsizei(command, 8), (const void *)gl_param_pointer(command, 9));
 replay_end_cmd(ctx, "glCompressedMultiTexImage3DEXT", inspect_command);
+}
+
+void replay_glClientEdgeFlagDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientEdgeFlagDataWIP15", inspect_command);
+    glClientEdgeFlagDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientEdgeFlagDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    ;
+
+replay_end_cmd(ctx, "glClientEdgeFlagDataWIP15", inspect_command);
 }
 
 void replay_glGetRenderbufferParameterivEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -47506,7 +47645,7 @@ void replay_glUniform4iv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*4; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -48249,7 +48388,7 @@ void replay_glUniform2iv(replay_context_t* ctx, trace_command_t* command, inspec
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*2; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -55222,6 +55361,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glInvalidateSubFramebuffer = NULL;
     funcs->real_glMapBuffer = NULL;
     funcs->real_glSecondaryColor3d = NULL;
+    funcs->real_glClientSecondaryColorDataWIP15 = NULL;
     funcs->real_glGetQueryObjectivEXT = NULL;
     funcs->real_glVertexAttribLFormat = NULL;
     funcs->real_glElementPointerAPPLE = NULL;
@@ -55356,6 +55496,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetCompressedTexImage = NULL;
     funcs->real_glDetailTexFuncSGIS = NULL;
     funcs->real_glUniform1i = NULL;
+    funcs->real_glClientNormalDataWIP15 = NULL;
     funcs->real_glGetTexEnvfv = NULL;
     funcs->real_glColorTableParameterivSGI = NULL;
     funcs->real_glCullFace = NULL;
@@ -55399,6 +55540,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glLightModelfv = NULL;
     funcs->real_glVertexAttrib4NubvARB = NULL;
     funcs->real_glGetCompressedTexImageARB = NULL;
+    funcs->real_glClientColorDataWIP15 = NULL;
     funcs->real_glConvolutionParameteri = NULL;
     funcs->real_glVertexWeighthNV = NULL;
     funcs->real_glColorMaski = NULL;
@@ -55617,6 +55759,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glMap2f = NULL;
     funcs->real_glMakeImageHandleResidentNV = NULL;
     funcs->real_glUniformMatrix2x4fv = NULL;
+    funcs->real_glClientFogCoordDataWIP15 = NULL;
     funcs->real_glGetMultiTexParameterfvEXT = NULL;
     funcs->real_glDepthRangeIndexed = NULL;
     funcs->real_glGetVertexAttribIuivEXT = NULL;
@@ -55762,6 +55905,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttrib4Nuiv = NULL;
     funcs->real_glRenderbufferStorage = NULL;
     funcs->real_glWaitSync = NULL;
+    funcs->real_glClientTextureCoordDataWIP15 = NULL;
     funcs->real_glFramebufferTextureMultisampleMultiviewOVR = NULL;
     funcs->real_glBlendEquationSeparatei = NULL;
     funcs->real_glVertexAttrib2hvNV = NULL;
@@ -56571,6 +56715,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glProgramUniform1ui = NULL;
     funcs->real_glVertex3d = NULL;
     funcs->real_glVertex3f = NULL;
+    funcs->real_glBeginClientArrayDataWIP15 = NULL;
     funcs->real_glVertex3i = NULL;
     funcs->real_glMultiTexRenderbufferEXT = NULL;
     funcs->real_glRenderbufferStorageMultisampleNV = NULL;
@@ -56670,6 +56815,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glNormal3xvOES = NULL;
     funcs->real_glGetActiveVaryingNV = NULL;
     funcs->real_glMapBufferOES = NULL;
+    funcs->real_glClientIndexDataWIP15 = NULL;
     funcs->real_glUniform1i64vARB = NULL;
     funcs->real_glMultiTexCoord1dv = NULL;
     funcs->real_glTexCoord3fv = NULL;
@@ -57014,6 +57160,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttribs3fvNV = NULL;
     funcs->real_glVertexAttrib2fv = NULL;
     funcs->real_glVertexStream3fvATI = NULL;
+    funcs->real_glClientVertexDataWIP15 = NULL;
     funcs->real_glCombinerParameterfvNV = NULL;
     funcs->real_glValidateProgramPipelineEXT = NULL;
     funcs->real_glGetBooleani_v = NULL;
@@ -57055,6 +57202,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttribI1ui = NULL;
     funcs->real_glProgramNamedParameter4dvNV = NULL;
     funcs->real_glCompressedMultiTexImage3DEXT = NULL;
+    funcs->real_glClientEdgeFlagDataWIP15 = NULL;
     funcs->real_glGetRenderbufferParameterivEXT = NULL;
     funcs->real_glGetnPolygonStipple = NULL;
     funcs->real_glIsBufferResidentNV = NULL;
@@ -58361,6 +58509,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glInvalidateSubFramebuffer = (glInvalidateSubFramebuffer_t)glXGetProcAddress((const GLubyte*)"glInvalidateSubFramebuffer");
     funcs->real_glMapBuffer = (glMapBuffer_t)glXGetProcAddress((const GLubyte*)"glMapBuffer");
     funcs->real_glSecondaryColor3d = (glSecondaryColor3d_t)glXGetProcAddress((const GLubyte*)"glSecondaryColor3d");
+    funcs->real_glClientSecondaryColorDataWIP15 = (glClientSecondaryColorDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientSecondaryColorDataWIP15");
     funcs->real_glGetQueryObjectivEXT = (glGetQueryObjectivEXT_t)glXGetProcAddress((const GLubyte*)"glGetQueryObjectivEXT");
     funcs->real_glVertexAttribLFormat = (glVertexAttribLFormat_t)glXGetProcAddress((const GLubyte*)"glVertexAttribLFormat");
     funcs->real_glElementPointerAPPLE = (glElementPointerAPPLE_t)glXGetProcAddress((const GLubyte*)"glElementPointerAPPLE");
@@ -58495,6 +58644,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetCompressedTexImage = (glGetCompressedTexImage_t)glXGetProcAddress((const GLubyte*)"glGetCompressedTexImage");
     funcs->real_glDetailTexFuncSGIS = (glDetailTexFuncSGIS_t)glXGetProcAddress((const GLubyte*)"glDetailTexFuncSGIS");
     funcs->real_glUniform1i = (glUniform1i_t)glXGetProcAddress((const GLubyte*)"glUniform1i");
+    funcs->real_glClientNormalDataWIP15 = (glClientNormalDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientNormalDataWIP15");
     funcs->real_glGetTexEnvfv = (glGetTexEnvfv_t)glXGetProcAddress((const GLubyte*)"glGetTexEnvfv");
     funcs->real_glColorTableParameterivSGI = (glColorTableParameterivSGI_t)glXGetProcAddress((const GLubyte*)"glColorTableParameterivSGI");
     funcs->real_glCullFace = (glCullFace_t)glXGetProcAddress((const GLubyte*)"glCullFace");
@@ -58538,6 +58688,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glLightModelfv = (glLightModelfv_t)glXGetProcAddress((const GLubyte*)"glLightModelfv");
     funcs->real_glVertexAttrib4NubvARB = (glVertexAttrib4NubvARB_t)glXGetProcAddress((const GLubyte*)"glVertexAttrib4NubvARB");
     funcs->real_glGetCompressedTexImageARB = (glGetCompressedTexImageARB_t)glXGetProcAddress((const GLubyte*)"glGetCompressedTexImageARB");
+    funcs->real_glClientColorDataWIP15 = (glClientColorDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientColorDataWIP15");
     funcs->real_glConvolutionParameteri = (glConvolutionParameteri_t)glXGetProcAddress((const GLubyte*)"glConvolutionParameteri");
     funcs->real_glVertexWeighthNV = (glVertexWeighthNV_t)glXGetProcAddress((const GLubyte*)"glVertexWeighthNV");
     funcs->real_glColorMaski = (glColorMaski_t)glXGetProcAddress((const GLubyte*)"glColorMaski");
@@ -58756,6 +58907,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glMap2f = (glMap2f_t)glXGetProcAddress((const GLubyte*)"glMap2f");
     funcs->real_glMakeImageHandleResidentNV = (glMakeImageHandleResidentNV_t)glXGetProcAddress((const GLubyte*)"glMakeImageHandleResidentNV");
     funcs->real_glUniformMatrix2x4fv = (glUniformMatrix2x4fv_t)glXGetProcAddress((const GLubyte*)"glUniformMatrix2x4fv");
+    funcs->real_glClientFogCoordDataWIP15 = (glClientFogCoordDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientFogCoordDataWIP15");
     funcs->real_glGetMultiTexParameterfvEXT = (glGetMultiTexParameterfvEXT_t)glXGetProcAddress((const GLubyte*)"glGetMultiTexParameterfvEXT");
     funcs->real_glDepthRangeIndexed = (glDepthRangeIndexed_t)glXGetProcAddress((const GLubyte*)"glDepthRangeIndexed");
     funcs->real_glGetVertexAttribIuivEXT = (glGetVertexAttribIuivEXT_t)glXGetProcAddress((const GLubyte*)"glGetVertexAttribIuivEXT");
@@ -58901,6 +59053,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttrib4Nuiv = (glVertexAttrib4Nuiv_t)glXGetProcAddress((const GLubyte*)"glVertexAttrib4Nuiv");
     funcs->real_glRenderbufferStorage = (glRenderbufferStorage_t)glXGetProcAddress((const GLubyte*)"glRenderbufferStorage");
     funcs->real_glWaitSync = (glWaitSync_t)glXGetProcAddress((const GLubyte*)"glWaitSync");
+    funcs->real_glClientTextureCoordDataWIP15 = (glClientTextureCoordDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientTextureCoordDataWIP15");
     funcs->real_glFramebufferTextureMultisampleMultiviewOVR = (glFramebufferTextureMultisampleMultiviewOVR_t)glXGetProcAddress((const GLubyte*)"glFramebufferTextureMultisampleMultiviewOVR");
     funcs->real_glBlendEquationSeparatei = (glBlendEquationSeparatei_t)glXGetProcAddress((const GLubyte*)"glBlendEquationSeparatei");
     funcs->real_glVertexAttrib2hvNV = (glVertexAttrib2hvNV_t)glXGetProcAddress((const GLubyte*)"glVertexAttrib2hvNV");
@@ -59710,6 +59863,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glProgramUniform1ui = (glProgramUniform1ui_t)glXGetProcAddress((const GLubyte*)"glProgramUniform1ui");
     funcs->real_glVertex3d = (glVertex3d_t)glXGetProcAddress((const GLubyte*)"glVertex3d");
     funcs->real_glVertex3f = (glVertex3f_t)glXGetProcAddress((const GLubyte*)"glVertex3f");
+    funcs->real_glBeginClientArrayDataWIP15 = (glBeginClientArrayDataWIP15_t)glXGetProcAddress((const GLubyte*)"glBeginClientArrayDataWIP15");
     funcs->real_glVertex3i = (glVertex3i_t)glXGetProcAddress((const GLubyte*)"glVertex3i");
     funcs->real_glMultiTexRenderbufferEXT = (glMultiTexRenderbufferEXT_t)glXGetProcAddress((const GLubyte*)"glMultiTexRenderbufferEXT");
     funcs->real_glRenderbufferStorageMultisampleNV = (glRenderbufferStorageMultisampleNV_t)glXGetProcAddress((const GLubyte*)"glRenderbufferStorageMultisampleNV");
@@ -59809,6 +59963,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glNormal3xvOES = (glNormal3xvOES_t)glXGetProcAddress((const GLubyte*)"glNormal3xvOES");
     funcs->real_glGetActiveVaryingNV = (glGetActiveVaryingNV_t)glXGetProcAddress((const GLubyte*)"glGetActiveVaryingNV");
     funcs->real_glMapBufferOES = (glMapBufferOES_t)glXGetProcAddress((const GLubyte*)"glMapBufferOES");
+    funcs->real_glClientIndexDataWIP15 = (glClientIndexDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientIndexDataWIP15");
     funcs->real_glUniform1i64vARB = (glUniform1i64vARB_t)glXGetProcAddress((const GLubyte*)"glUniform1i64vARB");
     funcs->real_glMultiTexCoord1dv = (glMultiTexCoord1dv_t)glXGetProcAddress((const GLubyte*)"glMultiTexCoord1dv");
     funcs->real_glTexCoord3fv = (glTexCoord3fv_t)glXGetProcAddress((const GLubyte*)"glTexCoord3fv");
@@ -60153,6 +60308,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttribs3fvNV = (glVertexAttribs3fvNV_t)glXGetProcAddress((const GLubyte*)"glVertexAttribs3fvNV");
     funcs->real_glVertexAttrib2fv = (glVertexAttrib2fv_t)glXGetProcAddress((const GLubyte*)"glVertexAttrib2fv");
     funcs->real_glVertexStream3fvATI = (glVertexStream3fvATI_t)glXGetProcAddress((const GLubyte*)"glVertexStream3fvATI");
+    funcs->real_glClientVertexDataWIP15 = (glClientVertexDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientVertexDataWIP15");
     funcs->real_glCombinerParameterfvNV = (glCombinerParameterfvNV_t)glXGetProcAddress((const GLubyte*)"glCombinerParameterfvNV");
     funcs->real_glValidateProgramPipelineEXT = (glValidateProgramPipelineEXT_t)glXGetProcAddress((const GLubyte*)"glValidateProgramPipelineEXT");
     funcs->real_glGetBooleani_v = (glGetBooleani_v_t)glXGetProcAddress((const GLubyte*)"glGetBooleani_v");
@@ -60194,6 +60350,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertexAttribI1ui = (glVertexAttribI1ui_t)glXGetProcAddress((const GLubyte*)"glVertexAttribI1ui");
     funcs->real_glProgramNamedParameter4dvNV = (glProgramNamedParameter4dvNV_t)glXGetProcAddress((const GLubyte*)"glProgramNamedParameter4dvNV");
     funcs->real_glCompressedMultiTexImage3DEXT = (glCompressedMultiTexImage3DEXT_t)glXGetProcAddress((const GLubyte*)"glCompressedMultiTexImage3DEXT");
+    funcs->real_glClientEdgeFlagDataWIP15 = (glClientEdgeFlagDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientEdgeFlagDataWIP15");
     funcs->real_glGetRenderbufferParameterivEXT = (glGetRenderbufferParameterivEXT_t)glXGetProcAddress((const GLubyte*)"glGetRenderbufferParameterivEXT");
     funcs->real_glGetnPolygonStipple = (glGetnPolygonStipple_t)glXGetProcAddress((const GLubyte*)"glGetnPolygonStipple");
     funcs->real_glIsBufferResidentNV = (glIsBufferResidentNV_t)glXGetProcAddress((const GLubyte*)"glIsBufferResidentNV");

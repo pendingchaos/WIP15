@@ -175,7 +175,7 @@ glBindTexture:
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake);
-    if (!real_tex)
+    if (!real_tex && fake)
         inspect_add_error(inspect_command, "Invalid texture being bound.");
     real(target, real_tex);
 
@@ -261,7 +261,7 @@ glBindBuffer:
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
-    if (!real_buf)
+    if (!real_buf && fake)
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
     real(target, real_buf);
 
@@ -285,8 +285,13 @@ glMappedBufferDataWIP15:
     GLuint target = gl_param_GLenum(command, 0);
     GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
     const void* data = gl_param_data(command, 2);
+    
+    F(glUnmapBuffer)(target);
     F(glBufferSubData)(target, 0, size, data);
     inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, size, data);
+
+glUnmapBuffer:
+    ;
 
 glLoadMatrixd:
     real(trace_get_double(trace_get_arg(command, 0)));
@@ -1374,7 +1379,7 @@ glUniform2fv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*2; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1386,7 +1391,7 @@ glUniform3fv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*3; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1398,7 +1403,7 @@ glUniform4fv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
-    for (GLsizei i = 0; i < count; i++)
+    for (GLsizei i = 0; i < count*4; i++)
         values[i] = trace_get_double(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1422,7 +1427,7 @@ glUniform2iv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*2; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1434,7 +1439,7 @@ glUniform3iv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*3; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1446,7 +1451,7 @@ glUniform4iv:
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    for (GLsizei i = 0 ; i < count*4; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
@@ -1600,3 +1605,33 @@ glDisableVertexAttribArray:
         return;
     
     real(idx);
+
+glVertexPointer:
+    ;
+
+glBeginClientArrayDataWIP15:
+    ;
+
+glClientColorDataWIP15:
+    ;
+
+glClientEdgeFlagDataWIP15:
+    ;
+
+glClientFogCoordDataWIP15:
+    ;
+
+glClientIndexDataWIP15:
+    ;
+
+glClientNormalDataWIP15:
+    ;
+
+glClientSecondaryColorDataWIP15:
+    ;
+
+glClientTextureCoordDataWIP15:
+    ;
+
+glClientVertexDataWIP15:
+    ;
