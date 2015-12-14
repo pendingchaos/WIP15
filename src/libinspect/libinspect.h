@@ -118,8 +118,6 @@ typedef struct inspect_command_t {
     inspect_attachment_t* attachments;
     uint64_t gl_context;
     char *name;
-    uint64_t cpu_duration; //Nanoseconds
-    uint64_t gpu_duration; //Nanoseconds
     inspect_gl_state_t state;
 } inspect_command_t;
 

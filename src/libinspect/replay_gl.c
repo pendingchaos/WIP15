@@ -12935,13 +12935,6 @@ typedef struct {
 #define GL_RG16F_EXT 33327
 #define GL_DRAW_BUFFER11_EXT 34864
 #define GL_RGB10_A2UI 36975
-static uint64_t begin_time;
-
-static uint64_t get_time() {
-    struct timespec spec;
-    clock_gettime(CLOCK_MONOTONIC, &spec);
-    return spec.tv_sec*1000000000 + spec.tv_nsec;
-}
 
 static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t v) {
     inspect_gl_state_entry_t entry;
@@ -13313,28 +13306,14 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
         if (F(glGetError))
             F(glGetError)();
     }
-    begin_time = get_time();
 }
 
 static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
     
-    if (ctx->_current_context) {
-        if (F(glGetError) && !ctx->_in_begin_end) {
+    if (ctx->_current_context)
+        if (F(glGetError) && !ctx->_in_begin_end)
             error = F(glGetError)();
-            F(glFlush)();
-        }
-    }
-    
-    uint64_t end_time = get_time();
-    
-    cmd->cpu_duration = end_time - begin_time;
-    
-    begin_time = get_time();
-    if (ctx->_current_context) if (F(glFinish) && !ctx->_in_begin_end) F(glFinish)();
-    end_time = get_time();
-    
-    cmd->gpu_duration = end_time - begin_time;
     
     switch (error) {
     case GL_NO_ERROR: {
