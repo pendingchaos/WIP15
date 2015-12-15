@@ -97,7 +97,6 @@
 - [x] glGetVertexAttribPointerv
 - [x] glIndex
 - [x] glIndexPointer
-- [ ] glInterleavedArrays
 - [x] glIsBuffer
 - [x] glIsList
 - [x] glIsProgram
@@ -155,12 +154,9 @@
 - [x] glValidateProgram
 - [x] glVertex
 - [ ] glVertexAttrib
-    - This seems to not be per-program.
-        - Need to resolve actual indices at glUseProgram
     - Make it work with matrices.
 - [ ] glVertexAttribPointer
-    - This seems to not be per-program.
-        - Need to resolve actual indices at glUseProgram
+
     - Make it work with matrices.
 - [ ] glBindAttribLocation
 - [ ] glEnableVertexAttribArray

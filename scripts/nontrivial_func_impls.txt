@@ -17,6 +17,17 @@ glXMakeCurrent:
     if (glctx) {
         reload_gl_funcs(ctx);
         ctx->_current_context = glctx;
+        
+        free(ctx->generic_client_arrays);
+        
+        //TODO: This should use the limits.
+        GLint count;
+        F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &count);
+        
+        ctx->generic_client_array_count = count;
+        ctx->generic_client_arrays = malloc(ctx->generic_client_array_count*sizeof(void*));
+        for (GLint i = 0; i < count; i++)
+            ctx->generic_client_arrays[i] = NULL;
     } else {
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;
@@ -1603,6 +1614,17 @@ glClientTextureCoordDataWIP15:
 
 glClientVertexDataWIP15:
     client_array(ctx, command, ReplayClientArr_Vertex);
+
+glClientGenericAttribDataWIP15:
+    GLuint index = gl_param_GLuint(command, 0);
+    GLsizei size = gl_param_GLsizei(command, 1);
+    
+    if (index < ctx->generic_client_array_count) {
+        void* data = malloc(size);
+        memcpy(data, gl_param_data(command, 2), size);
+        free(ctx->generic_client_arrays[index]);
+        ctx->generic_client_arrays[index] = data;
+    }
 
 glDrawArrays:
     begin_draw(ctx);

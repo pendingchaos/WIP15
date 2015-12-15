@@ -114,14 +114,15 @@ int main(int argc, char **argv)
         const GLfloat color[] = {1.0f, 0.0f, 0.0f};
         glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
-        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+        //glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
         glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
                               2,
                               GL_FLOAT,
                               GL_FALSE,
                               0,
-                              (const GLvoid*)0);
+                              tex_coords/*(const GLvoid*)0*/);
         
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -651,10 +651,23 @@ static void client_array(replay_context_t* ctx, trace_command_t* cmd, replay_cli
     GLsizei size = gl_param_GLsizei(cmd, 0);
     void* data = malloc(size);
     memcpy(data, gl_param_data(cmd, 1), size);
+    free(ctx->client_arrays[array]);
     ctx->client_arrays[array] = data;
 }
 
 static void* old_pointers[ReplayClientArr_Max];
+
+typedef struct {
+    GLint enabled;
+    GLint count;
+    GLint type;
+    GLint normalized;
+    GLint stride;
+    GLint buffer;
+    void* pointer;
+} generic_vertex_attrib_t;
+
+static generic_vertex_attrib_t* attribs;
 
 static void begin_draw(replay_context_t* ctx) {
     GLint count;
@@ -727,11 +740,99 @@ static void begin_draw(replay_context_t* ctx) {
         F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_TextureCoord);
         F(glTexCoordPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_TextureCoord]);
     }
+    
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    attribs = malloc(sizeof(generic_vertex_attrib_t)*attrib_count);
+    
+    GLint prog;
+    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attribs[i].enabled);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &attribs[i].count);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &attribs[i].type);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
+        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
+    }
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        GLint loc = replay_conv_attrib_index(ctx, prog, i);
+        if (loc < 0)
+            continue;
+        
+        if (attribs[i].enabled)
+            F(glEnableVertexAttribArray)(loc);
+        else
+            F(glDisableVertexAttribArray)(loc);
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+        
+        if (attribs[i].buffer) {
+            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
+            F(glVertexAttribPointer)(loc,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        } else {
+            F(glBindBuffer)(GL_ARRAY_BUFFER, 0);
+            F(glVertexAttribPointer)(loc,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     ctx->generic_client_arrays[i]);
+        }
+        
+        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+    }
 }
 
 static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     replay_get_back_color(ctx, cmd);
     replay_get_depth(ctx, cmd);
+    
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        if (attribs[i].enabled)
+            F(glEnableVertexAttribArray)(i);
+        else
+            F(glDisableVertexAttribArray)(i);
+        
+        GLint last_buf;
+        if (attribs[i].buffer) {
+            F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
+            
+            F(glVertexAttribPointer)(i,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        
+            F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+        } else {
+            F(glVertexAttribPointer)(i,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        }
+    }
+    
+    free(attribs);
     
     GLint count;
     GLint type;
@@ -799,6 +900,11 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     for (size_t i = 0; i < ReplayClientArr_Max; i++) {
         free(ctx->client_arrays[i]);
         ctx->client_arrays[i] = NULL;
+    }
+    
+    for (size_t i = 0; i < ctx->generic_client_array_count; i++) {
+        free(ctx->generic_client_arrays[i]);
+        ctx->generic_client_arrays[i] = NULL;
     }
 }
 

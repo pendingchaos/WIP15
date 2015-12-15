@@ -1003,3 +1003,8 @@ glClientTextureCoordDataWIP15:
 glClientVertexDataWIP15:
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
+
+glClientGenericAttribDataWIP15:
+    gl_param_GLuint(index, -1);
+    gl_param_GLsizei(size, -1);
+    gl_param_data(size, data);

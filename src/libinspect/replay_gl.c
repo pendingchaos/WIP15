@@ -3558,6 +3558,7 @@ typedef void (*glBlendFunc_t)(GLenum, GLenum);
 typedef GLuint (*glCreateProgram_t)();
 typedef void (*glVertexStream2dATI_t)(GLenum, GLdouble, GLdouble);
 typedef void (*glUniform4ui64vARB_t)(GLint, GLsizei, const  GLuint64  *);
+typedef void (*glClientGenericAttribDataWIP15_t)(GLuint, GLsizei, const GLvoid*);
 typedef void (*glGetObjectLabelKHR_t)(GLenum, GLuint, GLsizei, GLsizei  *, GLchar  *);
 typedef void (*glCoverageMaskNV_t)(GLboolean);
 typedef void (*glDebugMessageControlKHR_t)(GLenum, GLenum, GLenum, GLsizei, const  GLuint  *, GLboolean);
@@ -6832,6 +6833,7 @@ typedef struct {
     glCreateProgram_t real_glCreateProgram;
     glVertexStream2dATI_t real_glVertexStream2dATI;
     glUniform4ui64vARB_t real_glUniform4ui64vARB;
+    glClientGenericAttribDataWIP15_t real_glClientGenericAttribDataWIP15;
     glGetObjectLabelKHR_t real_glGetObjectLabelKHR;
     glCoverageMaskNV_t real_glCoverageMaskNV;
     glDebugMessageControlKHR_t real_glDebugMessageControlKHR;
@@ -13310,10 +13312,23 @@ static void client_array(replay_context_t* ctx, trace_command_t* cmd, replay_cli
     GLsizei size = gl_param_GLsizei(cmd, 0);
     void* data = malloc(size);
     memcpy(data, gl_param_data(cmd, 1), size);
+    free(ctx->client_arrays[array]);
     ctx->client_arrays[array] = data;
 }
 
 static void* old_pointers[ReplayClientArr_Max];
+
+typedef struct {
+    GLint enabled;
+    GLint count;
+    GLint type;
+    GLint normalized;
+    GLint stride;
+    GLint buffer;
+    void* pointer;
+} generic_vertex_attrib_t;
+
+static generic_vertex_attrib_t* attribs;
 
 static void begin_draw(replay_context_t* ctx) {
     GLint count;
@@ -13386,11 +13401,99 @@ static void begin_draw(replay_context_t* ctx) {
         F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_TextureCoord);
         F(glTexCoordPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_TextureCoord]);
     }
+    
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    attribs = malloc(sizeof(generic_vertex_attrib_t)*attrib_count);
+    
+    GLint prog;
+    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attribs[i].enabled);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &attribs[i].count);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &attribs[i].type);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
+        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
+    }
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        GLint loc = replay_conv_attrib_index(ctx, prog, i);
+        if (loc < 0)
+            continue;
+        
+        if (attribs[i].enabled)
+            F(glEnableVertexAttribArray)(loc);
+        else
+            F(glDisableVertexAttribArray)(loc);
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+        
+        if (attribs[i].buffer) {
+            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
+            F(glVertexAttribPointer)(loc,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        } else {
+            F(glBindBuffer)(GL_ARRAY_BUFFER, 0);
+            F(glVertexAttribPointer)(loc,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     ctx->generic_client_arrays[i]);
+        }
+        
+        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+    }
 }
 
 static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     replay_get_back_color(ctx, cmd);
     replay_get_depth(ctx, cmd);
+    
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        if (attribs[i].enabled)
+            F(glEnableVertexAttribArray)(i);
+        else
+            F(glDisableVertexAttribArray)(i);
+        
+        GLint last_buf;
+        if (attribs[i].buffer) {
+            F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
+            
+            F(glVertexAttribPointer)(i,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        
+            F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+        } else {
+            F(glVertexAttribPointer)(i,
+                                     attribs[i].count,
+                                     attribs[i].type,
+                                     attribs[i].normalized,
+                                     attribs[i].stride,
+                                     attribs[i].pointer);
+        }
+    }
+    
+    free(attribs);
     
     GLint count;
     GLint type;
@@ -13458,6 +13561,11 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     for (size_t i = 0; i < ReplayClientArr_Max; i++) {
         free(ctx->client_arrays[i]);
         ctx->client_arrays[i] = NULL;
+    }
+    
+    for (size_t i = 0; i < ctx->generic_client_array_count; i++) {
+        free(ctx->generic_client_arrays[i]);
+        ctx->generic_client_arrays[i] = NULL;
     }
 }
 
@@ -18108,6 +18216,17 @@ replay_begin_cmd(ctx, "glXMakeCurrent", inspect_command);
     if (glctx) {
         reload_gl_funcs(ctx);
         ctx->_current_context = glctx;
+        
+        free(ctx->generic_client_arrays);
+        
+        //TODO: This should use the limits.
+        GLint count;
+        F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &count);
+        
+        ctx->generic_client_array_count = count;
+        ctx->generic_client_arrays = malloc(ctx->generic_client_array_count*sizeof(void*));
+        for (GLint i = 0; i < count; i++)
+            ctx->generic_client_arrays[i] = NULL;
     } else {
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;
@@ -52294,6 +52413,27 @@ void replay_glUniform4ui64vARB(replay_context_t* ctx, trace_command_t* command, 
 replay_end_cmd(ctx, "glUniform4ui64vARB", inspect_command);
 }
 
+void replay_glClientGenericAttribDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glClientGenericAttribDataWIP15", inspect_command);
+    glClientGenericAttribDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientGenericAttribDataWIP15;
+    do {(void)sizeof((real));} while (0);
+    GLuint index = gl_param_GLuint(command, 0);
+    GLsizei size = gl_param_GLsizei(command, 1);
+    
+    if (index < ctx->generic_client_array_count) {
+        void* data = malloc(size);
+        memcpy(data, gl_param_data(command, 2), size);
+        free(ctx->generic_client_arrays[index]);
+        ctx->generic_client_arrays[index] = data;
+    }
+
+replay_end_cmd(ctx, "glClientGenericAttribDataWIP15", inspect_command);
+}
+
 void replay_glGetObjectLabelKHR(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -58142,6 +58282,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glCreateProgram = NULL;
     funcs->real_glVertexStream2dATI = NULL;
     funcs->real_glUniform4ui64vARB = NULL;
+    funcs->real_glClientGenericAttribDataWIP15 = NULL;
     funcs->real_glGetObjectLabelKHR = NULL;
     funcs->real_glCoverageMaskNV = NULL;
     funcs->real_glDebugMessageControlKHR = NULL;
@@ -61289,6 +61430,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glCreateProgram = (glCreateProgram_t)glXGetProcAddress((const GLubyte*)"glCreateProgram");
     funcs->real_glVertexStream2dATI = (glVertexStream2dATI_t)glXGetProcAddress((const GLubyte*)"glVertexStream2dATI");
     funcs->real_glUniform4ui64vARB = (glUniform4ui64vARB_t)glXGetProcAddress((const GLubyte*)"glUniform4ui64vARB");
+    funcs->real_glClientGenericAttribDataWIP15 = (glClientGenericAttribDataWIP15_t)glXGetProcAddress((const GLubyte*)"glClientGenericAttribDataWIP15");
     funcs->real_glGetObjectLabelKHR = (glGetObjectLabelKHR_t)glXGetProcAddress((const GLubyte*)"glGetObjectLabelKHR");
     funcs->real_glCoverageMaskNV = (glCoverageMaskNV_t)glXGetProcAddress((const GLubyte*)"glCoverageMaskNV");
     funcs->real_glDebugMessageControlKHR = (glDebugMessageControlKHR_t)glXGetProcAddress((const GLubyte*)"glDebugMessageControlKHR");
