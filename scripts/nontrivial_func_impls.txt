@@ -120,32 +120,6 @@ glClear:
     if (mask & GL_DEPTH_BUFFER_BIT)
         replay_get_depth(ctx, inspect_command);
 
-glDrawArrays:
-    GLenum mode = gl_param_GLenum(command, 0);
-    GLint first = gl_param_GLint(command, 1);
-    GLsizei count = gl_param_GLsizei(command, 2);
-    real(mode, first, count);
-    replay_get_back_color(ctx, inspect_command);
-    replay_get_depth(ctx, inspect_command);
-
-glMultiDrawArrays:
-    GLenum mode = gl_param_GLenum(command, 0);
-    int64_t* first64 = trace_get_int(trace_get_arg(command, 1));
-    int64_t* count64 = trace_get_int(trace_get_arg(command, 2));
-    GLsizei primcount = gl_param_GLsizei(command, 3);
-    
-    GLint first[primcount];
-    GLint count[primcount];
-    for (GLsizei i = 0; i < primcount; i++) {
-        first[i] = first64[i];
-        count[i] = count64[i];
-    }
-    
-    real(mode, first, count, primcount);
-    
-    replay_get_back_color(ctx, inspect_command);
-    replay_get_depth(ctx, inspect_command);
-
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
@@ -1606,32 +1580,55 @@ glDisableVertexAttribArray:
     
     real(idx);
 
-glVertexPointer:
-    ;
-
-glBeginClientArrayDataWIP15:
-    ;
-
 glClientColorDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_Color);
 
 glClientEdgeFlagDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_EdgeFlag);
 
 glClientFogCoordDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_FogCoord);
 
 glClientIndexDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_Index);
 
 glClientNormalDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_Normal);
 
 glClientSecondaryColorDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_SecondaryColor);
 
 glClientTextureCoordDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_TextureCoord);
 
 glClientVertexDataWIP15:
-    ;
+    client_array(ctx, command, ReplayClientArr_Vertex);
+
+glDrawArrays:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLint first = gl_param_GLint(command, 1);
+    GLsizei count = gl_param_GLsizei(command, 2);
+    real(mode, first, count);
+    
+    end_draw(ctx, inspect_command);
+
+glMultiDrawArrays:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* first64 = trace_get_int(trace_get_arg(command, 1));
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 2));
+    GLsizei primcount = gl_param_GLsizei(command, 3);
+    
+    GLint first[primcount];
+    GLint count[primcount];
+    for (GLsizei i = 0; i < primcount; i++) {
+        first[i] = first64[i];
+        count[i] = count64[i];
+    }
+    
+    real(mode, first, count, primcount);
+    
+    end_draw(ctx, inspect_command);

@@ -251,38 +251,6 @@ glBufferSubData:
     
     gl_glBufferSubData(target, offset, size, data);
 
-glVertexPointer:
-    gl_param_GLint(size, -1);
-    gl_param_GLenum(type, GROUP_VertexPointerType);
-    gl_param_GLsizei(stride, -1);
-    
-    GLint buffer;
-    gl_glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
-    
-    if (buffer) {
-        gl_param_pointer(pointer);
-    } else {
-        //TODO
-    }
-    
-    gl_glVertexPointer(size, type, stride, pointer);
-
-glTexCoordPointer:
-    gl_param_GLint(size, -1);
-    gl_param_GLenum(type, GROUP_TexCoordPointerType);
-    gl_param_GLsizei(stride, -1);
-    
-    GLint buffer;
-    gl_glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
-    
-    if (buffer) {
-        gl_param_pointer(pointer);
-    } else {
-        //TODO
-    }
-    
-    gl_glTexCoordPointer(size, type, stride, pointer);
-
 glLoadMatrixd:
     gl_param_double_array(16, m);
     gl_glLoadMatrixd(m);
@@ -1004,45 +972,34 @@ glProgramAttribWIP15:
     gl_param_string(name);
     gl_param_GLuint(index, -1);
 
-glBeginClientArrayDataWIP15:
-    gl_param_GLsizei(primcount, -1);
-
 glClientColorDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientEdgeFlagDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientFogCoordDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientIndexDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientNormalDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientSecondaryColorDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientTextureCoordDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
 
 glClientVertexDataWIP15:
-    gl_param_GLuint(prim, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);

@@ -647,6 +647,161 @@ static bool attrib(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
     return false;
 }
 
+static void client_array(replay_context_t* ctx, trace_command_t* cmd, replay_client_array_t array) {
+    GLsizei size = gl_param_GLsizei(cmd, 0);
+    void* data = malloc(size);
+    memcpy(data, gl_param_data(cmd, 1), size);
+    ctx->client_arrays[array] = data;
+}
+
+static void* old_pointers[ReplayClientArr_Max];
+
+static void begin_draw(replay_context_t* ctx) {
+    GLint count;
+    GLint type;
+    GLint stride;
+    GLint buf;
+    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_VERTEX_ARRAY_POINTER, old_pointers+ReplayClientArr_Vertex);
+        F(glVertexPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_Vertex]);
+    }
+    
+    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
+        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_COLOR_ARRAY_POINTER, old_pointers+ReplayClientArr_Color);
+        F(glColorPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_Color]);
+    }
+    
+    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
+        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_EDGE_FLAG_ARRAY_POINTER, old_pointers+ReplayClientArr_EdgeFlag);
+        F(glEdgeFlagPointer)(stride, ctx->client_arrays[ReplayClientArr_EdgeFlag]);
+    }
+    
+    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_FOG_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_FogCoord);
+        F(glFogCoordPointer)(type, stride, ctx->client_arrays[ReplayClientArr_FogCoord]);
+    }
+    
+    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
+        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_INDEX_ARRAY_POINTER, old_pointers+ReplayClientArr_Index);
+        F(glIndexPointer)(type, stride, ctx->client_arrays[ReplayClientArr_Index]);
+    }
+    
+    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_NORMAL_ARRAY_POINTER, old_pointers+ReplayClientArr_Normal);
+        F(glNormalPointer)(type, stride, ctx->client_arrays[ReplayClientArr_Normal]);
+    }
+    
+    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_SECONDARY_COLOR_ARRAY_POINTER, old_pointers+ReplayClientArr_SecondaryColor);
+        F(glSecondaryColorPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_SecondaryColor]);
+    }
+    
+    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
+        F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_TextureCoord);
+        F(glTexCoordPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_TextureCoord]);
+    }
+}
+
+static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
+    replay_get_back_color(ctx, cmd);
+    replay_get_depth(ctx, cmd);
+    
+    GLint count;
+    GLint type;
+    GLint stride;
+    GLint buf;
+    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
+        F(glVertexPointer)(count, type, stride, old_pointers+ReplayClientArr_Vertex);
+    }
+    
+    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
+        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
+        F(glColorPointer)(count, type, stride, old_pointers+ReplayClientArr_Color);
+    }
+    
+    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
+        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
+        F(glEdgeFlagPointer)(stride, old_pointers+ReplayClientArr_EdgeFlag);
+    }
+    
+    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
+        F(glFogCoordPointer)(type, stride, old_pointers+ReplayClientArr_FogCoord);
+    }
+    
+    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
+        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
+        F(glIndexPointer)(type, stride, old_pointers+ReplayClientArr_Index);
+    }
+    
+    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
+        F(glNormalPointer)(type, stride, old_pointers+ReplayClientArr_Normal);
+    }
+    
+    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
+        F(glSecondaryColorPointer)(count, type, stride, old_pointers+ReplayClientArr_SecondaryColor);
+    }
+    
+    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
+    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
+        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
+        F(glTexCoordPointer)(count, type, stride, old_pointers+ReplayClientArr_TextureCoord);
+    }
+    
+    for (size_t i = 0; i < ReplayClientArr_Max; i++) {
+        free(ctx->client_arrays[i]);
+        ctx->client_arrays[i] = NULL;
+    }
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end) {
         if (F(glDebugMessageCallback)) {

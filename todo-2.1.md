@@ -16,7 +16,7 @@
 - [x] glClear
 - [ ] glClipPlane
 - [x] glColor
-- [ ] glColorPointer
+- [x] glColorPointer
 - [ ] glColorSubTable
 - [ ] glColorTable
 - [ ] glColorTableParameter
@@ -43,13 +43,13 @@
 - [ ] glDrawPixels
 - [ ] glDrawRangeElements
 - [x] glEdgeFlagv
-- [ ] glEdgeFlagPointer
+- [x] glEdgeFlagPointer
 - [x] glEnd
 - [ ] glEvalCoord
 - [ ] glEvalPoint
 - [ ] glFeedbackBuffer
 - [x] glFogCoord
-- [ ] glFogCoordPointer
+- [x] glFogCoordPointer
 - [x] glGenBuffers
 - [x] glGenLists
 - [x] glGenQueries
@@ -96,7 +96,7 @@
 - [x] glGetVertexAttrib
 - [x] glGetVertexAttribPointerv
 - [x] glIndex
-- [ ] glIndexPointer
+- [x] glIndexPointer
 - [ ] glInterleavedArrays
 - [x] glIsBuffer
 - [x] glIsList
@@ -134,12 +134,12 @@
 - [x] glReadPixels
 - [x] glRect
 - [ ] glSecondaryColor
-- [ ] glSecondaryColorPointer
+- [x] glSecondaryColorPointer
 - [ ] glSelectBuffer
 - [ ] glSeparableFilter2D
 - [x] glShaderSource
 - [x] glTexCoord
-- [ ] glTexCoordPointer
+- [x] glTexCoordPointer
 - [ ] glTexEnv
 - [ ] glTexGen
 - [ ] glTexImage1D
@@ -169,7 +169,7 @@
 - [ ] glDisableVertexAttribArray
     - This seems to not be per-program.
         - Need to resolve actual indices at glUseProgram
-- [ ] glVertexPointer
+- [x] glVertexPointer
 - [ ] glWindowPos
 - [ ] glXChooseFBConfig
 - [x] glXChooseVisual

@@ -27,7 +27,6 @@ int main(int argc, char **argv)
     SDL_GLContext context = SDL_GL_CreateContext(window);
     
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
     
     GLuint texture;
     glGenTextures(1, &texture);
@@ -51,26 +50,33 @@ int main(int argc, char **argv)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     
-    GLuint pos_buffer;
-    glGenBuffers(1, &pos_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), NULL, GL_STATIC_DRAW);
-    void* pos_data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-    memcpy(pos_data, positions, sizeof(positions));
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-    
     GLuint tex_coord_buffer;
     glGenBuffers(1, &tex_coord_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), NULL, GL_STATIC_DRAW);
+    void* data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    memcpy(data, tex_coords, sizeof(tex_coords));
+    glUnmapBuffer(GL_ARRAY_BUFFER);
     
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    static const char* vert_source = "#version 120\n\nattribute vec3 position;\n\nvoid main() {\n    gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);\n}\n";
+    static const char* vert_source = "#version 120\n"
+                                     "attribute vec2 texCoord;\n"
+                                     "varying vec2 frag_texCoord;\n"
+                                     "void main() {\n"
+                                     "    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;"
+                                     "    frag_texCoord = texCoord;\n"
+                                     "}\n";
     glShaderSource(vertex, 1, &vert_source, NULL);
     glCompileShader(vertex);
     
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    static const char* frag_source = "#version 120\n\nuniform vec3 color;\n\nvoid main() {\n    gl_FragColor = vec4(color, 1.0);\n}\n";
+    static const char* frag_source = "#version 120\n"
+                                     "varying vec2 frag_texCoord;\n"
+                                     "uniform vec3 color;\n"
+                                     "uniform sampler2D tex;\n"
+                                     "void main() {"
+                                     "    gl_FragColor = texture2D(tex, frag_texCoord) * vec4(color, 1.0);\n"
+                                     "}\n";
     glShaderSource(fragment, 1, &frag_source, NULL);
     glCompileShader(fragment);
     
@@ -108,22 +114,22 @@ int main(int argc, char **argv)
         const GLfloat color[] = {1.0f, 0.0f, 0.0f};
         glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
-        glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-        glEnableVertexAttribArray(glGetAttribLocation(program, "position"));
-        glVertexAttribPointer(glGetAttribLocation(program, "position"),
-                              3,
+        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+        glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
+        glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
+                              2,
                               GL_FLOAT,
                               GL_FALSE,
                               0,
                               (const GLvoid*)0);
         
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
-        glTexCoordPointer(2, GL_FLOAT, 0, NULL);
-        
         glEnableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glVertexPointer(3, GL_FLOAT, 0, positions);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(glGetUniformLocation(program, "tex"), 0);
         
         GLint first = 0;
         GLsizei count = 4;
@@ -138,7 +144,6 @@ int main(int argc, char **argv)
     glDeleteShader(vertex);
     
     glDeleteBuffers(1, &tex_coord_buffer);
-    glDeleteBuffers(1, &pos_buffer);
     glDeleteTextures(1, &texture);
     
     SDL_GL_DeleteContext(context);

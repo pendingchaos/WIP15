@@ -30,6 +30,18 @@ typedef enum {
     ReplayObjType_XID
 } replay_obj_type_t;
 
+typedef enum {
+    ReplayClientArr_Vertex,
+    ReplayClientArr_Color,
+    ReplayClientArr_EdgeFlag,
+    ReplayClientArr_FogCoord,
+    ReplayClientArr_Index,
+    ReplayClientArr_Normal,
+    ReplayClientArr_SecondaryColor,
+    ReplayClientArr_TextureCoord,
+    ReplayClientArr_Max
+} replay_client_array_t;
+
 typedef struct replay_context_t replay_context_t;
 
 typedef void (*replay_func_t)(replay_context_t*, trace_command_t*, inspect_command_t*);
@@ -47,6 +59,8 @@ struct replay_context_t {
     inspection_t* inspection;
     void* _current_context;
     bool _in_begin_end;
+    
+    void* client_arrays[ReplayClientArr_Max];
 };
 
 replay_context_t* create_replay_context(inspection_t* inspection);
