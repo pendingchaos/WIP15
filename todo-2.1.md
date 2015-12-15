@@ -156,15 +156,10 @@
 - [ ] glVertexAttrib
     - Make it work with matrices.
 - [ ] glVertexAttribPointer
-
     - Make it work with matrices.
 - [ ] glBindAttribLocation
-- [ ] glEnableVertexAttribArray
-    - This seems to not be per-program.
-        - Need to resolve actual indices at glUseProgram
-- [ ] glDisableVertexAttribArray
-    - This seems to not be per-program.
-        - Need to resolve actual indices at glUseProgram
+- [x] glEnableVertexAttribArray
+- [x] glDisableVertexAttribArray
 - [x] glVertexPointer
 - [ ] glWindowPos
 - [ ] glXChooseFBConfig
