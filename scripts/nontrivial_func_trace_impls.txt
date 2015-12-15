@@ -1008,3 +1008,19 @@ glClientGenericAttribDataWIP15:
     gl_param_GLuint(index, -1);
     gl_param_GLsizei(size, -1);
     gl_param_data(size, data);
+
+glPointParameterfv:
+    gl_param_GLenum(pname, -1);
+    if (pname == GL_POINT_DISTANCE_ATTENUATION)
+        gl_param_GLfloat_array(3, params);
+    else
+        gl_param_GLfloat_array(1, params);
+    gl_glPointParameterfv(pname, params);
+
+glPointParameteriv:
+    gl_param_GLenum(pname, -1);
+    if (pname == GL_POINT_DISTANCE_ATTENUATION)
+        gl_param_GLint_array(3, params);
+    else
+        gl_param_GLint_array(1, params);
+    gl_glPointParameteriv(pname, params);

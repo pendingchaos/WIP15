@@ -22756,7 +22756,12 @@ void replay_glPointParameterfv(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glPointParameterfv", inspect_command);
     glPointParameterfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glPointParameterfv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLfloat  *)gl_param_pointer(command, 1));
+    size_t count = trace_get_arg(command, 1)->count;
+    GLfloat values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), values);
+
 replay_end_cmd(ctx, "glPointParameterfv", inspect_command);
 }
 
@@ -37342,7 +37347,12 @@ void replay_glPointParameteriv(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glPointParameteriv", inspect_command);
     glPointParameteriv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glPointParameteriv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLint  *)gl_param_pointer(command, 1));
+    size_t count = trace_get_arg(command, 1)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), values);
+
 replay_end_cmd(ctx, "glPointParameteriv", inspect_command);
 }
 

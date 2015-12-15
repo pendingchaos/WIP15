@@ -119,16 +119,12 @@
 - [ ] glMultiTexCoord
 - [x] glNewList
 - [x] glNormal
-- [ ] glNormalPointer
+- [x] glNormalPointer
 - [ ] glPixelMap
 - [ ] glPixelStore
-- [ ] glPointParameter
+- [x] glPointParameter
 - [ ] glPolygonStipple
-- [ ] glPushAttrib
-- [ ] glPushClientAttrib
 - [x] glPrioritizeTextures
-- [ ] glPopAttrib
-- [ ] glPopClientAttrib
 - [ ] glRasterPos
 - [x] glReadPixels
 - [x] glRect
@@ -198,4 +194,3 @@
 - [ ] glXSelectEvent
 - [x] glXSwapBuffers
 - [ ] glXUseXFont
-- [ ] Client-side arrays.

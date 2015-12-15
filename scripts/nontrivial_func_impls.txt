@@ -1654,3 +1654,17 @@ glMultiDrawArrays:
     real(mode, first, count, primcount);
     
     end_draw(ctx, inspect_command);
+
+glPointParameterfv:
+    size_t count = trace_get_arg(command, 1)->count;
+    GLfloat values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), values);
+
+glPointParameteriv:
+    size_t count = trace_get_arg(command, 1)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), values);
