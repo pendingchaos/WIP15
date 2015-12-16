@@ -1655,6 +1655,46 @@ glMultiDrawArrays:
     
     end_draw(ctx, inspect_command);
 
+glDrawElements:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    GLenum type = gl_param_GLenum(command, 2);
+    
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    const GLvoid* indices;
+    if (element_buf)
+        indices = (const GLvoid*)gl_param_pointer(command, 3);
+    else
+        indices = gl_param_data(command, 3);
+    
+    real(mode, count, type, indices);
+    
+    end_draw(ctx, inspect_command);
+
+glDrawRangeElements:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLuint start = gl_param_GLuint(command, 1);
+    GLuint end = gl_param_GLuint(command, 2);
+    GLsizei count = gl_param_GLsizei(command, 3);
+    GLenum type = gl_param_GLenum(command, 4);
+    
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    const GLvoid* indices;
+    if (element_buf)
+        indices = (const GLvoid*)gl_param_pointer(command, 5);
+    else
+        indices = gl_param_data(command, 5);
+    
+    real(mode, start, end, count, type, indices);
+    
+    end_draw(ctx, inspect_command);
+
 glPointParameterfv:
     size_t count = trace_get_arg(command, 1)->count;
     GLfloat values[count];

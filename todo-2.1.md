@@ -39,9 +39,9 @@
 - [x] glDeleteTextures
 - [x] glDetachShader
 - [x] glDrawArrays
-- [ ] glDrawElements
+- [x] glDrawElements
 - [ ] glDrawPixels
-- [ ] glDrawRangeElements
+- [x] glDrawRangeElements
 - [x] glEdgeFlagv
 - [x] glEdgeFlagPointer
 - [x] glEnd

@@ -132,9 +132,11 @@ int main(int argc, char **argv)
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(glGetUniformLocation(program, "tex"), 0);
         
-        GLint first = 0;
+        static const GLuint indices[] = {0, 1, 2, 3};
+        /*GLint first = 0;
         GLsizei count = 4;
-        glMultiDrawArrays(GL_QUADS, &first, &count, 1);
+        glMultiDrawArrays(GL_QUADS, &first, &count, 1);*/
+        glDrawElements(GL_QUADS, 4, GL_UNSIGNED_INT, indices);
         
         SDL_GL_SwapWindow(window);
     }

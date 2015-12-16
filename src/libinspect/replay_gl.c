@@ -23583,7 +23583,26 @@ void replay_glDrawRangeElements(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glDrawRangeElements", inspect_command);
     glDrawRangeElements_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawRangeElements;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLenum)gl_param_GLenum(command, 4), (const void *)gl_param_pointer(command, 5));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLuint start = gl_param_GLuint(command, 1);
+    GLuint end = gl_param_GLuint(command, 2);
+    GLsizei count = gl_param_GLsizei(command, 3);
+    GLenum type = gl_param_GLenum(command, 4);
+    
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    const GLvoid* indices;
+    if (element_buf)
+        indices = (const GLvoid*)gl_param_pointer(command, 5);
+    else
+        indices = gl_param_data(command, 5);
+    
+    real(mode, start, end, count, type, indices);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawRangeElements", inspect_command);
 }
 
@@ -41299,7 +41318,24 @@ void replay_glDrawElements(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glDrawElements", inspect_command);
     glDrawElements_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawElements;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *)gl_param_pointer(command, 3));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    GLenum type = gl_param_GLenum(command, 2);
+    
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    const GLvoid* indices;
+    if (element_buf)
+        indices = (const GLvoid*)gl_param_pointer(command, 3);
+    else
+        indices = gl_param_data(command, 3);
+    
+    real(mode, count, type, indices);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawElements", inspect_command);
 }
 

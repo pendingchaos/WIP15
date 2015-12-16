@@ -39,6 +39,7 @@ typedef enum {
     ReplayClientArr_Normal,
     ReplayClientArr_SecondaryColor,
     ReplayClientArr_TextureCoord,
+    ReplayClientArr_Element,
     ReplayClientArr_Max
 } replay_client_array_t;
 
@@ -59,9 +60,7 @@ struct replay_context_t {
     inspection_t* inspection;
     void* _current_context;
     bool _in_begin_end;
-    
     void* client_arrays[ReplayClientArr_Max];
-    
     size_t generic_client_array_count;
     void** generic_client_arrays;
 };

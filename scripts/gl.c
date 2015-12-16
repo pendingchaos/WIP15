@@ -1706,3 +1706,104 @@ void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primco
     F(glMultiDrawArrays)(mode, first, count, primcount);
     gl_end();
 }
+
+GLuint max_uint(GLuint a, GLuint b) {
+    return a > b ? a : b;
+}
+
+GLuint min_uint(GLuint a, GLuint b) {
+    return a < b ? a : b;
+}
+
+void get_element_info(const GLvoid* indices, GLenum type, GLsizei count, GLuint* max, GLuint* min, GLuint* size, bool* client) {
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    
+    void* index_data = (void*)indices;
+    if (element_buf) {
+        GLint size;
+        F(glGetBufferParameteriv)(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+        
+        index_data = malloc(size);
+        F(glGetBufferSubData)(GL_ELEMENT_ARRAY_BUFFER, 0, size, index_data);
+        
+        *client = false;
+    } else {
+        *client = true;
+    }
+    
+    switch (type) {
+    case GL_UNSIGNED_BYTE:
+        for (size_t i = 0; i < count; i++) {
+            *max = max_uint(*max, ((GLubyte*)index_data)[i]);
+            *min = min_uint(*min, ((GLubyte*)index_data)[i]);
+        }
+        *size = max_uint(*size, count);
+        break;
+    case GL_UNSIGNED_SHORT:
+        for (size_t i = 0; i < count; i++) {
+            *max = max_uint(*max, ((GLushort*)index_data)[i]);
+            *min = min_uint(*min, ((GLushort*)index_data)[i]);
+        }
+        *size = max_uint(*size, count * 2);
+        break;
+    case GL_UNSIGNED_INT:
+        for (size_t i = 0; i < count; i++) {
+            *max = max_uint(*max, ((GLuint*)index_data)[i]);
+            *min = min_uint(*min, ((GLuint*)index_data)[i]);
+        }
+        *size = max_uint(*size, count * 4);
+        break;
+    }
+    
+    if (element_buf)
+        free(index_data);
+}
+
+void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
+    GLuint min = 0, max = 0, size = 0;
+    bool client;
+    get_element_info(indices, type, count, &max, &min, &size, &client);
+    
+    do_arrays(max+1);
+    
+    gl_start(FUNC_glDrawElements);
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLenum(type, -1);
+    if (client)
+        gl_param_data(size, indices);
+    else
+        gl_param_pointer(indices);
+    F(glDrawRangeElements)(mode, min, max, count, type, indices);
+    gl_end();
+}
+
+void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices) {
+    do_arrays(end+1);
+    
+    GLint element_buf;
+    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
+    
+    gl_start(FUNC_glDrawRangeElements);
+    gl_param_GLuint(start, -1);
+    gl_param_GLuint(end, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLenum(type, -1);
+    if (element_buf)
+        gl_param_pointer(indices);
+    else
+        switch (type) {
+        case GL_UNSIGNED_BYTE:
+            gl_param_data(count, indices);
+            break;
+        case GL_UNSIGNED_SHORT:
+            gl_param_data(count*2, indices);
+            break;
+        case GL_UNSIGNED_INT:
+            gl_param_data(count*4, indices);
+            break;
+        }
+    F(glDrawRangeElements)(mode, start, end, count, type, indices);
+    gl_end();
+}

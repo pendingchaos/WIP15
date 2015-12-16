@@ -128,6 +128,8 @@ void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
 }
 
 void destroy_replay_context(replay_context_t* context) {
+    for (size_t i = 0; i < context->generic_client_array_count; i++)
+        free(context->generic_client_arrays[i]);
     free(context->generic_client_arrays);
     
     for (size_t i = 0; i < ReplayClientArr_Max; i++)
