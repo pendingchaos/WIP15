@@ -1,6 +1,7 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
+#include <stdbool.h>
 
 static const float positions[] = {-1.0f, -1.0f, 0.0f,
                                    1.0f, -1.0f, 0.0f,
@@ -91,11 +92,12 @@ int main(int argc, char **argv)
     GLboolean resident;
     glAreTexturesResident(1, &texture, &resident);
     
-    while (1) {
+    bool running = true;
+    while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event))
             if (event.type == SDL_QUIT)
-                goto end;
+                running = false;
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         
@@ -140,7 +142,6 @@ int main(int argc, char **argv)
         
         SDL_GL_SwapWindow(window);
     }
-    end:;
     
     glDeleteProgram(program);
     glDeleteShader(fragment);

@@ -41,6 +41,15 @@ glXMakeCurrent:
     else if (F(glXSwapIntervalSGI))
         F(glXSwapIntervalSGI)(0);
 
+glXSwapIntervalEXT:
+    ;
+
+glXSwapIntervalMESA:
+    ;
+
+glXSwapIntervalSGI:
+    ;
+
 glXGetProcAddressARB:
     void (*result)() = real((const GLubyte*)gl_param_string(command, 0));
     if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
@@ -164,6 +173,30 @@ glBindTexture:
         inspect_add_error(inspect_command, "Invalid texture being bound.");
     real(target, real_tex);
 
+glTexImage1D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint internalFormat = gl_param_GLint(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLint border = gl_param_GLint(command, 4);
+    GLenum format = gl_param_GLenum(command, 5);
+    GLenum type = gl_param_GLenum(command, 6);
+    const void* data = gl_param_data(command, 7);
+    real(target, level, internalFormat, width, border, format, type, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
+glTexSubImage1D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLenum format = gl_param_GLenum(command, 4);
+    GLenum type = gl_param_GLenum(command, 5);
+    const void* data = gl_param_data(command, 6);
+    real(target, level, xoffset, width, format, type, data);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 glTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
     GLint level = gl_param_GLint(command, 1);
@@ -176,6 +209,49 @@ glTexImage2D:
     const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
     replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
+glTexSubImage2D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLint yoffset = gl_param_GLint(command, 3);
+    GLsizei width = gl_param_GLsizei(command, 4);
+    GLsizei height = gl_param_GLsizei(command, 5);
+    GLenum format = gl_param_GLenum(command, 6);
+    GLenum type = gl_param_GLenum(command, 7);
+    const void* data = gl_param_data(command, 8);
+    real(target, level, xoffset, yoffset, width, height, format, type, data);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
+glTexImage3D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint internalFormat = gl_param_GLint(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    GLsizei depth = gl_param_GLsizei(command, 5);
+    GLint border = gl_param_GLsizei(command, 6);
+    GLenum format = gl_param_GLenum(command, 7);
+    GLenum type = gl_param_GLenum(command, 8);
+    const void* data = gl_param_data(command, 9);
+    real(target, level, internalFormat, width, height, depth, border, format, type, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
+glTexSubImage3D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLint yoffset = gl_param_GLint(command, 3);
+    GLint zoffset = gl_param_GLint(command, 4);
+    GLsizei width = gl_param_GLsizei(command, 5);
+    GLsizei height = gl_param_GLsizei(command, 6);
+    GLsizei depth = gl_param_GLsizei(command, 7);
+    GLenum format = gl_param_GLenum(command, 8);
+    GLenum type = gl_param_GLenum(command, 9);
+    const void* data = gl_param_data(command, 10);
+    real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexParameterf:

@@ -922,6 +922,104 @@ static void gl_result_GLXPbufferSGIX(GLXPbufferSGIX value) {
     gl_write_str(NULL);
 }
 
+static size_t get_texel_size(GLenum format, GLenum type) {
+    size_t components = 0;
+    
+    switch (format) {
+    case GL_COLOR_INDEX:
+    case GL_RED:
+    case GL_GREEN:
+    case GL_BLUE:
+    case GL_ALPHA:
+    case GL_LUMINANCE:
+    case GL_STENCIL_INDEX:
+    case GL_DEPTH_COMPONENT: {
+        components = 1;
+        break;
+    }
+    case GL_DEPTH_STENCIL: {
+        //TODO
+        break;
+    }
+    case GL_RG:
+    case GL_RG_INTEGER:
+    case GL_LUMINANCE_ALPHA: {
+        components = 2;
+        break;
+    }
+    case GL_RGB:
+    case GL_RGB_INTEGER:
+    case GL_BGR_INTEGER:
+    case GL_BGR: {
+        components = 3;
+        break;
+    }
+    case GL_RGBA:
+    case GL_RGBA_INTEGER:
+    case GL_BGRA_INTEGER:
+    case GL_BGRA: {
+        components = 4;
+        break;
+    }
+    }
+    
+    size_t final_size = 0;
+    switch (type) {
+    case GL_UNSIGNED_BYTE:
+    case GL_BYTE: {
+        final_size = components;
+        break;
+    }
+    case GL_BITMAP: {
+        //TODO
+        final_size = 0;
+        break;
+    }
+    case GL_UNSIGNED_SHORT:
+    case GL_SHORT: {
+        final_size = components * 2;
+        break;
+    }
+    case GL_UNSIGNED_INT:
+    case GL_INT:
+    case GL_FLOAT: {
+        final_size = components * 4;
+        break;
+    }
+    case GL_UNSIGNED_BYTE_3_3_2:
+    case GL_UNSIGNED_BYTE_2_3_3_REV: {
+        final_size = 1;
+        break;
+    }
+    case GL_UNSIGNED_SHORT_5_6_5:
+    case GL_UNSIGNED_SHORT_5_6_5_REV:
+    case GL_UNSIGNED_SHORT_5_5_5_1:
+    case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+    case GL_UNSIGNED_SHORT_4_4_4_4:
+    case GL_UNSIGNED_SHORT_4_4_4_4_REV: {
+        final_size = 2;
+        break;
+    }
+    case GL_UNSIGNED_INT_8_8_8_8_REV:
+    case GL_UNSIGNED_INT_10_10_10_2:
+    case GL_UNSIGNED_INT_2_10_10_10_REV: {
+        final_size = 4;
+        break;
+    }
+    }
+    
+    GLint alignment;
+    F(glGetIntegerv)(GL_UNPACK_ALIGNMENT, &alignment);
+    
+    if (final_size) {
+        size_t base = final_size / alignment * alignment;
+        size_t extra = final_size - base;
+        final_size = base + (extra?alignment:0);
+    }
+    
+    return final_size;
+}
+
 static void* actual_dlopen(const char* filename, int flags) {
     return ((void* (*)(const char*, int))dlsym(RTLD_NEXT, "dlopen"))(filename, flags);
 }

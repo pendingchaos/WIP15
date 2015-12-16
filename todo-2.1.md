@@ -137,13 +137,13 @@
 - [x] glTexCoordPointer
 - [x] glTexEnv
 - [x] glTexGen
-- [ ] glTexImage1D
+- [x] glTexImage1D
 - [x] glTexImage2D
-- [ ] glTexImage3D
+- [x] glTexImage3D
 - [x] glTexParameter
-- [ ] glTexSubImage1D
-- [ ] glTexSubImage2D
-- [ ] glTexSubImage3D
+- [x] glTexSubImage1D
+- [x] glTexSubImage2D
+- [x] glTexSubImage3D
 - [x] glUniform
 - [x] glUnmapBuffer
 - [x] glUseProgram

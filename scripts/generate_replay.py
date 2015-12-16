@@ -497,8 +497,17 @@ static void replay_get_tex_params(replay_context_t* ctx,
     F(glGetTexParameteriv)(target, GL_TEXTURE_SWIZZLE_RGBA, (GLint*)params.swizzle);
     F(glGetTexParameterfv)(target, GL_TEXTURE_BORDER_COLOR, params.border_color);
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, (GLint*)&params.width);
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, (GLint*)&params.height);
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, (GLint*)&params.depth);
+    
+    if (target==GL_TEXTURE_2D || target==GL_TEXTURE_3D || target==GL_TEXTURE_CUBE_MAP)
+        F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, (GLint*)&params.height);
+    else
+        params.height = 1;
+    
+    if (target==GL_TEXTURE_3D)
+        F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, (GLint*)&params.depth);
+    else
+        params.depth = 1;
+    
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&params.internal_format);
     
     inspect_act_tex_params(&cmd->state, params.texture, &params);
@@ -531,9 +540,25 @@ static void replay_get_tex_data(replay_context_t* ctx,
     }
     }
     
-    if (target == GL_TEXTURE_2D) {
+    if (target == GL_TEXTURE_1D) {
         GLint width;
-        GLint height;
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
+        
+        GLint alignment;
+        F(glGetIntegerv)(GL_PACK_ALIGNMENT, &alignment);
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, 4);
+        
+        void* data = malloc(width*4);
+        F(glGetTexImage)(target, level, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
+        
+        GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+        inspect_act_tex_data(&cmd->state, fake, level, width*4, data);
+        
+        free(data);
+    } else if (target == GL_TEXTURE_2D) {
+        GLint width, height;
         F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
         F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
         
@@ -550,7 +575,26 @@ static void replay_get_tex_data(replay_context_t* ctx,
         inspect_act_tex_data(&cmd->state, fake, level, width*height*4, data);
         
         free(data);
-    } else {
+    } else if (target == GL_TEXTURE_3D) {
+        GLint width, height, depth;
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
+        F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_DEPTH, &depth);
+        
+        GLint alignment;
+        F(glGetIntegerv)(GL_PACK_ALIGNMENT, &alignment);
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, 4);
+        
+        void* data = malloc(width*height*depth*4);
+        F(glGetTexImage)(target, level, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        
+        F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
+        
+        GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+        inspect_act_tex_data(&cmd->state, fake, level, width*height*depth*4, data);
+        
+        free(data);
+    } else if (target == GL_TEXTURE_CUBE_MAP) {
         //TODO
     }
 }
