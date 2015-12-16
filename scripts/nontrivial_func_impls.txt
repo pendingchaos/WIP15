@@ -1702,3 +1702,78 @@ glTexGendv:
     F(glTexGendv)(gl_param_GLenum(command, 0),
                   gl_param_GLenum(command, 1),
                   trace_get_double(trace_get_arg(command, 2)));
+
+glWindowPos2sv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos2s)(v[0], v[1]);
+
+glWindowPos2iv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos2i)(v[0], v[1]);
+
+glWindowPos2fv:
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glWindowPos2f)(v[0], v[1]);
+
+glWindowPos2dv:
+    F(glWindowPos2dv)(trace_get_double(trace_get_arg(command, 0)));
+
+glWindowPos3sv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos3s)(v[0], v[1], v[2]);
+
+glWindowPos3iv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos3i)(v[0], v[1], v[2]);
+
+glWindowPos3fv:
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glWindowPos3f)(v[0], v[1], v[2]);
+
+glWindowPos3dv:
+    F(glWindowPos3dv)(trace_get_double(trace_get_arg(command, 0)));
+
+glRasterPos2sv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos2s)(v[0], v[1]);
+
+glRasterPos2iv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos2i)(v[0], v[1]);
+
+glRasterPos2fv:
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos2f)(v[0], v[1]);
+
+glRasterPos2dv:
+    F(glRasterPos2dv)(trace_get_double(trace_get_arg(command, 0)));
+
+glRasterPos3sv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos3s)(v[0], v[1], v[2]);
+
+glRasterPos3iv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos3i)(v[0], v[1], v[2]);
+
+glRasterPos3fv:
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos3f)(v[0], v[1], v[2]);
+
+glRasterPos3dv:
+    F(glRasterPos3dv)(trace_get_double(trace_get_arg(command, 0)));
+
+glRasterPos4sv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos4s)(v[0], v[1], v[2], v[3]);
+
+glRasterPos4iv:
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos4i)(v[0], v[1], v[2], v[3]);
+
+glRasterPos4fv:
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos4f)(v[0], v[1], v[2], v[3]);
+
+glRasterPos4dv:
+    F(glRasterPos4dv)(trace_get_double(trace_get_arg(command, 0)));

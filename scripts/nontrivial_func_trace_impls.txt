@@ -1071,3 +1071,88 @@ glTexGendv:
         gl_param_double_array(1, params);
     else
         gl_param_double_array(4, params);
+
+glWindowPos2sv:
+    GLint arr[] = {v[0], v[1]};
+    gl_param_GLint_array(2, arr);
+    gl_glWindowPos2sv(v);
+
+glWindowPos2iv:
+    gl_param_GLint_array(2, v);
+    gl_glWindowPos2iv(v);
+
+glWindowPos2fv:
+    gl_param_GLfloat_array(2, v);
+    gl_glWindowPos2fv(v);
+
+glWindowPos2dv:
+    gl_param_double_array(2, v);
+    gl_glWindowPos2dv(v);
+
+glWindowPos3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+    gl_glWindowPos3sv(v);
+
+glWindowPos3iv:
+    gl_param_GLint_array(3, v);
+    gl_glWindowPos3iv(v);
+
+glWindowPos3fv:
+    gl_param_GLfloat_array(3, v);
+    gl_glWindowPos3fv(v);
+
+glWindowPos3dv:
+    gl_param_double_array(3, v);
+    gl_glWindowPos3dv(v);
+
+glRasterPos2sv:
+    GLint arr[] = {v[0], v[1]};
+    gl_param_GLint_array(2, arr);
+    gl_glRasterPos2sv(v);
+
+glRasterPos2iv:
+    gl_param_GLint_array(2, v);
+    gl_glRasterPos2iv(v);
+
+glRasterPos2fv:
+    gl_param_GLfloat_array(2, v);
+    gl_glRasterPos2fv(v);
+
+glRasterPos2dv:
+    gl_param_double_array(2, v);
+    gl_glRasterPos2dv(v);
+
+glRasterPos3sv:
+    GLint arr[] = {v[0], v[1], v[2]};
+    gl_param_GLint_array(3, arr);
+    gl_glRasterPos3sv(v);
+
+glRasterPos3iv:
+    gl_param_GLint_array(3, v);
+    gl_glRasterPos3iv(v);
+
+glRasterPos3fv:
+    gl_param_GLfloat_array(3, v);
+    gl_glRasterPos3fv(v);
+
+glRasterPos3dv:
+    gl_param_double_array(3, v);
+    gl_glRasterPos3dv(v);
+
+glRasterPos4sv:
+    GLint arr[] = {v[0], v[1], v[2], v[3]};
+    gl_param_GLint_array(4, arr);
+    gl_glRasterPos4sv(v);
+
+glRasterPos4iv:
+    gl_param_GLint_array(4, v);
+    gl_glRasterPos4iv(v);
+
+glRasterPos4fv:
+    gl_param_GLfloat_array(4, v);
+    gl_glRasterPos4fv(v);
+
+glRasterPos4dv:
+    gl_param_double_array(4, v);
+    gl_glRasterPos4dv(v);

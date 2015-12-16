@@ -125,7 +125,7 @@
 - [x] glPointParameter
 - [ ] glPolygonStipple
 - [x] glPrioritizeTextures
-- [ ] glRasterPos
+- [x] glRasterPos
 - [x] glReadPixels
 - [x] glRect
 - [ ] glSecondaryColor
@@ -157,7 +157,7 @@
 - [x] glEnableVertexAttribArray
 - [x] glDisableVertexAttribArray
 - [x] glVertexPointer
-- [ ] glWindowPos
+- [x] glWindowPos
 - [ ] glXChooseFBConfig
 - [x] glXChooseVisual
 - [ ] glXCopyContext
@@ -194,3 +194,4 @@
 - [ ] glXSelectEvent
 - [x] glXSwapBuffers
 - [ ] glXUseXFont
+

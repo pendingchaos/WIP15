@@ -21209,7 +21209,9 @@ void replay_glWindowPos3fv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos3fv", inspect_command);
     glWindowPos3fv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos3fv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLfloat  *)gl_param_pointer(command, 0));
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glWindowPos3f)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glWindowPos3fv", inspect_command);
 }
 
@@ -22071,7 +22073,9 @@ void replay_glRasterPos2iv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos2iv", inspect_command);
     glRasterPos2iv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos2iv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLint  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos2i)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glRasterPos2iv", inspect_command);
 }
 
@@ -25323,7 +25327,9 @@ void replay_glRasterPos2fv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos2fv", inspect_command);
     glRasterPos2fv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos2fv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLfloat  *)gl_param_pointer(command, 0));
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos2f)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glRasterPos2fv", inspect_command);
 }
 
@@ -25467,7 +25473,9 @@ void replay_glWindowPos2sv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos2sv", inspect_command);
     glWindowPos2sv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos2sv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLshort  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos2s)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glWindowPos2sv", inspect_command);
 }
 
@@ -27644,7 +27652,9 @@ void replay_glRasterPos3sv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos3sv", inspect_command);
     glRasterPos3sv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos3sv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLshort  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos3s)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glRasterPos3sv", inspect_command);
 }
 
@@ -29042,7 +29052,9 @@ void replay_glWindowPos3iv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos3iv", inspect_command);
     glWindowPos3iv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos3iv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLint  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos3i)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glWindowPos3iv", inspect_command);
 }
 
@@ -29572,7 +29584,9 @@ void replay_glRasterPos4sv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos4sv", inspect_command);
     glRasterPos4sv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos4sv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLshort  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos4s)(v[0], v[1], v[2], v[3]);
+
 replay_end_cmd(ctx, "glRasterPos4sv", inspect_command);
 }
 
@@ -31356,7 +31370,8 @@ void replay_glRasterPos2dv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos2dv", inspect_command);
     glRasterPos2dv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos2dv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLdouble  *)gl_param_pointer(command, 0));
+    F(glRasterPos2dv)(trace_get_double(trace_get_arg(command, 0)));
+
 replay_end_cmd(ctx, "glRasterPos2dv", inspect_command);
 }
 
@@ -32248,7 +32263,8 @@ void replay_glRasterPos3dv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos3dv", inspect_command);
     glRasterPos3dv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos3dv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLdouble  *)gl_param_pointer(command, 0));
+    F(glRasterPos3dv)(trace_get_double(trace_get_arg(command, 0)));
+
 replay_end_cmd(ctx, "glRasterPos3dv", inspect_command);
 }
 
@@ -34427,7 +34443,9 @@ void replay_glRasterPos2sv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos2sv", inspect_command);
     glRasterPos2sv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos2sv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLshort  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos2s)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glRasterPos2sv", inspect_command);
 }
 
@@ -35621,7 +35639,9 @@ void replay_glWindowPos2iv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos2iv", inspect_command);
     glWindowPos2iv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos2iv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLint  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos2i)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glWindowPos2iv", inspect_command);
 }
 
@@ -37772,7 +37792,9 @@ void replay_glRasterPos3fv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos3fv", inspect_command);
     glRasterPos3fv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos3fv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLfloat  *)gl_param_pointer(command, 0));
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos3f)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glRasterPos3fv", inspect_command);
 }
 
@@ -39826,7 +39848,9 @@ void replay_glRasterPos3iv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos3iv", inspect_command);
     glRasterPos3iv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos3iv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLint  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos3i)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glRasterPos3iv", inspect_command);
 }
 
@@ -43982,7 +44006,9 @@ void replay_glWindowPos2fv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos2fv", inspect_command);
     glWindowPos2fv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos2fv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLfloat  *)gl_param_pointer(command, 0));
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glWindowPos2f)(v[0], v[1]);
+
 replay_end_cmd(ctx, "glWindowPos2fv", inspect_command);
 }
 
@@ -44470,7 +44496,8 @@ void replay_glRasterPos4dv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos4dv", inspect_command);
     glRasterPos4dv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos4dv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLdouble  *)gl_param_pointer(command, 0));
+    F(glRasterPos4dv)(trace_get_double(trace_get_arg(command, 0)));
+
 replay_end_cmd(ctx, "glRasterPos4dv", inspect_command);
 }
 
@@ -45993,7 +46020,9 @@ void replay_glRasterPos4iv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos4iv", inspect_command);
     glRasterPos4iv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos4iv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLint  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glRasterPos4i)(v[0], v[1], v[2], v[3]);
+
 replay_end_cmd(ctx, "glRasterPos4iv", inspect_command);
 }
 
@@ -49605,7 +49634,9 @@ void replay_glWindowPos3sv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos3sv", inspect_command);
     glWindowPos3sv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos3sv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLshort  *)gl_param_pointer(command, 0));
+    int64_t* v = trace_get_int(trace_get_arg(command, 0));
+    F(glWindowPos3s)(v[0], v[1], v[2]);
+
 replay_end_cmd(ctx, "glWindowPos3sv", inspect_command);
 }
 
@@ -49993,7 +50024,9 @@ void replay_glRasterPos4fv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glRasterPos4fv", inspect_command);
     glRasterPos4fv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRasterPos4fv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLfloat  *)gl_param_pointer(command, 0));
+    double* v = trace_get_double(trace_get_arg(command, 0));
+    F(glRasterPos4f)(v[0], v[1], v[2], v[3]);
+
 replay_end_cmd(ctx, "glRasterPos4fv", inspect_command);
 }
 
@@ -50611,7 +50644,8 @@ void replay_glWindowPos2dv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos2dv", inspect_command);
     glWindowPos2dv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos2dv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLdouble  *)gl_param_pointer(command, 0));
+    F(glWindowPos2dv)(trace_get_double(trace_get_arg(command, 0)));
+
 replay_end_cmd(ctx, "glWindowPos2dv", inspect_command);
 }
 
@@ -54681,7 +54715,8 @@ void replay_glWindowPos3dv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glWindowPos3dv", inspect_command);
     glWindowPos3dv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWindowPos3dv;
     do {(void)sizeof((real));} while (0);
-    real((const  GLdouble  *)gl_param_pointer(command, 0));
+    F(glWindowPos3dv)(trace_get_double(trace_get_arg(command, 0)));
+
 replay_end_cmd(ctx, "glWindowPos3dv", inspect_command);
 }
 
