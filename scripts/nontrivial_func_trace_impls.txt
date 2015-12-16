@@ -1024,3 +1024,50 @@ glPointParameteriv:
     else
         gl_param_GLint_array(1, params);
     gl_glPointParameteriv(pname, params);
+
+glClipPlane:
+    gl_param_GLenum(plane, GROUP_ClipPlaneName);
+    gl_param_double_array(4, equation);
+    gl_glClipPlane(plane, equation);
+
+glTexEnvfv:
+    gl_param_GLenum(target, GROUP_TextureEnvTarget);
+    gl_param_GLenum(pname, GROUP_TextureEnvParameter);
+    if (pname == GL_TEXTURE_ENV_COLOR)
+        gl_param_GLfloat_array(4, params);
+    else
+        gl_param_GLfloat_array(1, params);
+    gl_glTexEnvfv(target, pname, params);
+
+glTexEnviv:
+    gl_param_GLenum(target, GROUP_TextureEnvTarget);
+    gl_param_GLenum(pname, GROUP_TextureEnvParameter);
+    if (pname == GL_TEXTURE_ENV_COLOR)
+        gl_param_GLint_array(4, params);
+    else
+        gl_param_GLint_array(1, params);
+    gl_glTexEnviv(target, pname, params);
+
+glTexGeniv:
+    gl_param_GLenum(coord, GROUP_TextureCoordName);
+    gl_param_GLenum(pname, GROUP_TextureGenParameter);
+    if (pname == GL_TEXTURE_GEN_MODE)
+        gl_param_GLint_array(1, params);
+    else
+        gl_param_GLint_array(4, params);
+
+glTexGenfv:
+    gl_param_GLenum(coord, GROUP_TextureCoordName);
+    gl_param_GLenum(pname, GROUP_TextureGenParameter);
+    if (pname == GL_TEXTURE_GEN_MODE)
+        gl_param_GLfloat_array(1, params);
+    else
+        gl_param_GLfloat_array(4, params);
+
+glTexGendv:
+    gl_param_GLenum(coord, GROUP_TextureCoordName);
+    gl_param_GLenum(pname, GROUP_TextureGenParameter);
+    if (pname == GL_TEXTURE_GEN_MODE)
+        gl_param_double_array(1, params);
+    else
+        gl_param_double_array(4, params);

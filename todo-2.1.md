@@ -14,7 +14,7 @@
 - [x] glCallList
 - [x] glCallLists
 - [x] glClear
-- [ ] glClipPlane
+- [x] glClipPlane
 - [x] glColor
 - [x] glColorPointer
 - [ ] glColorSubTable
@@ -135,8 +135,8 @@
 - [x] glShaderSource
 - [x] glTexCoord
 - [x] glTexCoordPointer
-- [ ] glTexEnv
-- [ ] glTexGen
+- [x] glTexEnv
+- [x] glTexGen
 - [ ] glTexImage1D
 - [x] glTexImage2D
 - [ ] glTexImage3D

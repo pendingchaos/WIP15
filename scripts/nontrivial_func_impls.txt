@@ -1668,3 +1668,37 @@ glPointParameteriv:
     for (size_t i = 0; i < count; i++)
         values[i] = trace_get_int(trace_get_arg(command, 1))[i];
     real(gl_param_GLenum(command, 0), values);
+
+glClipPlane:
+    real(gl_param_GLenum(command, 0), trace_get_double(trace_get_arg(command, 1)));
+
+glTexEnvfv:
+    size_t count = trace_get_arg(command, 2)->count;
+    GLfloat values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
+glTexEnviv:
+    size_t count = trace_get_arg(command, 2)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
+glTexGeniv:
+    size_t count = trace_get_arg(command, 2)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
+glTexGenfv:
+    F(glTexGendv)(gl_param_GLenum(command, 0),
+                  gl_param_GLenum(command, 1),
+                  trace_get_double(trace_get_arg(command, 2)));
+
+glTexGendv:
+    F(glTexGendv)(gl_param_GLenum(command, 0),
+                  gl_param_GLenum(command, 1),
+                  trace_get_double(trace_get_arg(command, 2)));

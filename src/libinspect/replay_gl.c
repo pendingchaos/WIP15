@@ -26890,7 +26890,10 @@ void replay_glTexGenfv(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glTexGenfv", inspect_command);
     glTexGenfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexGenfv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLfloat  *)gl_param_pointer(command, 2));
+    F(glTexGendv)(gl_param_GLenum(command, 0),
+                  gl_param_GLenum(command, 1),
+                  trace_get_double(trace_get_arg(command, 2)));
+
 replay_end_cmd(ctx, "glTexGenfv", inspect_command);
 }
 
@@ -32855,7 +32858,10 @@ void replay_glTexGendv(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glTexGendv", inspect_command);
     glTexGendv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexGendv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLdouble  *)gl_param_pointer(command, 2));
+    F(glTexGendv)(gl_param_GLenum(command, 0),
+                  gl_param_GLenum(command, 1),
+                  trace_get_double(trace_get_arg(command, 2)));
+
 replay_end_cmd(ctx, "glTexGendv", inspect_command);
 }
 
@@ -41252,7 +41258,12 @@ void replay_glTexGeniv(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glTexGeniv", inspect_command);
     glTexGeniv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexGeniv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLint  *)gl_param_pointer(command, 2));
+    size_t count = trace_get_arg(command, 2)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
 replay_end_cmd(ctx, "glTexGeniv", inspect_command);
 }
 
@@ -42597,7 +42608,8 @@ void replay_glClipPlane(replay_context_t* ctx, trace_command_t* command, inspect
     replay_begin_cmd(ctx, "glClipPlane", inspect_command);
     glClipPlane_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClipPlane;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLdouble  *)gl_param_pointer(command, 1));
+    real(gl_param_GLenum(command, 0), trace_get_double(trace_get_arg(command, 1)));
+
 replay_end_cmd(ctx, "glClipPlane", inspect_command);
 }
 
@@ -51950,7 +51962,12 @@ void replay_glTexEnvfv(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glTexEnvfv", inspect_command);
     glTexEnvfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexEnvfv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLfloat  *)gl_param_pointer(command, 2));
+    size_t count = trace_get_arg(command, 2)->count;
+    GLfloat values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
 replay_end_cmd(ctx, "glTexEnvfv", inspect_command);
 }
 
@@ -52284,7 +52301,12 @@ void replay_glTexEnviv(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glTexEnviv", inspect_command);
     glTexEnviv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexEnviv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLint  *)gl_param_pointer(command, 2));
+    size_t count = trace_get_arg(command, 2)->count;
+    GLint values[count];
+    for (size_t i = 0; i < count; i++)
+        values[i] = trace_get_int(trace_get_arg(command, 1))[i];
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), values);
+
 replay_end_cmd(ctx, "glTexEnviv", inspect_command);
 }
 
