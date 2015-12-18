@@ -8,7 +8,7 @@ fb_commands = ["glDrawArrays", "glDrawElements", "glMultiDrawArrays",
                "glMultiDrawElements", "glDrawRangeElements", "glEnd",
                "glClear", "glRectd", "glRectd", "glRecti", "glRects",
                "glRectdv", "glRectfv", "glRectiv", "glRectsv",
-               "glCallList", "glCallLists", "glXSwapBuffers"]
+               "glCallList", "glCallLists", "glXSwapBuffers", "glEndList"]
 
 gl = glxml.GL(False)
 
