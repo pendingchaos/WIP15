@@ -33,13 +33,15 @@ glXMakeCurrent:
         ctx->_current_context = NULL;
     }
     
-    if (F(glXSwapIntervalEXT))
+    //Seems to be messing up the front buffer.
+    //But the front buffer is still sometimes black when it should not be.
+    /*if (F(glXSwapIntervalEXT))
         F(glXSwapIntervalEXT)(ctx->_display, ctx->_glx_drawable, 0);
     //TODO
     //else if (F(glXSwapIntervalMESA))
     //    F(glXSwapIntervalMESA)(0);
     else if (F(glXSwapIntervalSGI))
-        F(glXSwapIntervalSGI)(0);
+        F(glXSwapIntervalSGI)(0);*/
 
 glXSwapIntervalEXT:
     ;
@@ -735,6 +737,9 @@ glCallList:
     }
     
     real(list);
+    
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
 
 glGetUniformfv:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -1039,6 +1044,9 @@ glCallLists:
     }
     
     real(n, GL_UNSIGNED_INT, gl_lists);
+    
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
 
 glReadPixels:
     ;
@@ -1893,3 +1901,31 @@ glRasterPos4fv:
 
 glRasterPos4dv:
     F(glRasterPos4dv)(trace_get_double(trace_get_arg(command, 0)));
+
+glTestFBWIP15:
+    F(glFinish)();
+    
+    GLint last_buf;
+    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+    
+    F(glReadBuffer)(GL_BACK);
+    uint32_t* back = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    uint32_t* depth = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    
+    F(glReadBuffer)(last_buf);
+    
+    if (memcmp(back, gl_param_data(command, 1), 100*100*4) != 0)
+        fprintf(stderr, "%s did not result in the correct back color buffer.\n", gl_param_string(command, 0));
+    
+    //TODO
+    /*for (int32_t i = 0; i < 100*100; i++)
+        if ((int64_t)depth[i] - (int64_t)((int32_t*)gl_param_data(command, 2))[i] > 16843009) {
+            fprintf(stderr, "%s did not result in the correct depth buffer.\n", gl_param_string(command, 0));
+            break;
+        }*/
+    
+    free(back);
+    free(depth);

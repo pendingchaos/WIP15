@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 import glxml
 
-dont_implement = ["glUnmapBuffer", "glLinkProgram", "glDrawArrays", "glMultiDrawArrays", "glDrawElements", "glDrawRangeElements"]
+dont_implement = ["glUnmapBuffer", "glLinkProgram", "glDrawArrays",
+                  "glMultiDrawArrays", "glDrawElements", "glDrawRangeElements"]
+fb_commands = ["glDrawArrays", "glDrawElements", "glMultiDrawArrays",
+               "glMultiDrawElements", "glDrawRangeElements", "glEnd",
+               "glClear", "glRectd", "glRectd", "glRecti", "glRects",
+               "glRectdv", "glRectfv", "glRectiv", "glRectsv",
+               "glCallList", "glCallLists", "glXSwapBuffers"]
 
 gl = glxml.GL(False)
 
@@ -162,8 +168,13 @@ for name in gl.functions:
     
     output.write("gl_end();")
     
+    output.write("if((old_limits!=current_limits)&&current_limits)glSetContextCapsWIP15();\n")
+    
+    if name in fb_commands:
+        output.write("if (test_mode && current_limits) test_fb(\"%s\");\n" % (name))
+    
     if function.returnType != "void":
-        output.write("if((old_limits!=current_limits)&&current_limits)glSetContextCapsWIP15();return result;")
+        output.write("return result;")
     
     output.write("}\n")
 
@@ -202,6 +213,8 @@ output.write("""void __attribute__ ((constructor)) gl_init() {
         fprintf(stderr, "Unable to open/create %s.", output==NULL?"output.trace":output);
         exit(1);
     }
+    
+    test_mode = getenv("WIP15_TEST") != NULL;
     
     uint8_t v = BYTE_ORDER == LITTLE_ENDIAN;
     fwrite(&v, 1, 1, trace_file);

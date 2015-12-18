@@ -1166,3 +1166,8 @@ glRasterPos4fv:
 glRasterPos4dv:
     gl_param_double_array(4, v);
     gl_glRasterPos4dv(v);
+
+glTestFBWIP15:
+    gl_param_string(name);
+    gl_param_data(100*100*4, color);
+    gl_param_data(100*100*4, depth);

@@ -115,12 +115,19 @@ class GL:
         glClientGenericAttribDataWIP15.params.append(FunctionParam("const GLvoid*", "data"))
         self.functions["glClientGenericAttribDataWIP15"] = glClientGenericAttribDataWIP15
         
+        glTestFBWIP15 = Function("void")
+        glTestFBWIP15.params.append(FunctionParam("const GLchar*", "name"))
+        glTestFBWIP15.params.append(FunctionParam("const GLvoid*", "color"))
+        glTestFBWIP15.params.append(FunctionParam("const GLvoid*", "depth"))
+        self.functions["glTestFBWIP15"] = glTestFBWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
         ext.functions.append("glMappedBufferDataWIP15")
         ext.functions.append("glProgramUniformWIP15")
         ext.functions.append("glProgramAttribWIP15")
         ext.functions.append("glClientGenericAttribDataWIP15")
+        ext.functions.append("glTestFBWIP15")
         ext.functions += names
         
         self.extensions["GL_WIP15_debug_internal"] = ext

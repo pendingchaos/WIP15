@@ -2833,6 +2833,7 @@ typedef void (*glGetProgramivNV_t)(GLuint, GLenum, GLint  *);
 typedef void (*glBeginTransformFeedback_t)(GLenum);
 typedef GLXContext (*glXCreateContextAttribsARB_t)(Display  *, GLXFBConfig, GLXContext, Bool, const int *);
 typedef void (*glTransformFeedbackAttribsNV_t)(GLsizei, const  GLint  *, GLenum);
+typedef void (*glTestFBWIP15_t)(const GLchar*, const GLvoid*, const GLvoid*);
 typedef void (*glColor3iv_t)(const  GLint  *);
 typedef void (*glVertexAttrib3sv_t)(GLuint, const  GLshort  *);
 typedef void (*glCompressedTexImage1D_t)(GLenum, GLint, GLenum, GLsizei, GLint, GLsizei, const void *);
@@ -6108,6 +6109,7 @@ typedef struct {
     glBeginTransformFeedback_t real_glBeginTransformFeedback;
     glXCreateContextAttribsARB_t real_glXCreateContextAttribsARB;
     glTransformFeedbackAttribsNV_t real_glTransformFeedbackAttribsNV;
+    glTestFBWIP15_t real_glTestFBWIP15;
     glColor3iv_t real_glColor3iv;
     glVertexAttrib3sv_t real_glVertexAttrib3sv;
     glCompressedTexImage1D_t real_glCompressedTexImage1D;
@@ -13098,11 +13100,17 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
     if (!ctx->_in_begin_end && F(glReadPixels)) {
         F(glFinish)();
         
+        GLint last_buf;
+        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+        F(glReadBuffer)(GL_BACK);
+        
         void* data = malloc(100*100*4);
         F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
         cmd->state.depth.width = 100;
         cmd->state.depth.height = 100;
         cmd->state.depth.data = data;
+        
+        F(glReadBuffer)(last_buf);
     }
 }
 
@@ -18277,13 +18285,15 @@ replay_begin_cmd(ctx, "glXMakeCurrent", inspect_command);
         ctx->_current_context = NULL;
     }
     
-    if (F(glXSwapIntervalEXT))
+    //Seems to be messing up the front buffer.
+    //But the front buffer is still sometimes black when it should not be.
+    /*if (F(glXSwapIntervalEXT))
         F(glXSwapIntervalEXT)(ctx->_display, ctx->_glx_drawable, 0);
     //TODO
     //else if (F(glXSwapIntervalMESA))
     //    F(glXSwapIntervalMESA)(0);
     else if (F(glXSwapIntervalSGI))
-        F(glXSwapIntervalSGI)(0);
+        F(glXSwapIntervalSGI)(0);*/
 
 replay_end_cmd(ctx, "glXMakeCurrent", inspect_command);
 }
@@ -18776,6 +18786,9 @@ void replay_glCallList(replay_context_t* ctx, trace_command_t* command, inspect_
     }
     
     real(list);
+    
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glCallList", inspect_command);
 }
@@ -29254,6 +29267,9 @@ void replay_glCallLists(replay_context_t* ctx, trace_command_t* command, inspect
     }
     
     real(n, GL_UNSIGNED_INT, gl_lists);
+    
+    replay_get_back_color(ctx, inspect_command);
+    replay_get_depth(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glCallLists", inspect_command);
 }
@@ -43775,6 +43791,44 @@ void replay_glTransformFeedbackAttribsNV(replay_context_t* ctx, trace_command_t*
 replay_end_cmd(ctx, "glTransformFeedbackAttribsNV", inspect_command);
 }
 
+void replay_glTestFBWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glTestFBWIP15", inspect_command);
+    glTestFBWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTestFBWIP15;
+    do {(void)sizeof((real));} while (0);
+    F(glFinish)();
+    
+    GLint last_buf;
+    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+    
+    F(glReadBuffer)(GL_BACK);
+    uint32_t* back = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    uint32_t* depth = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    
+    F(glReadBuffer)(last_buf);
+    
+    if (memcmp(back, gl_param_data(command, 1), 100*100*4) != 0)
+        fprintf(stderr, "%s did not result in the correct back color buffer.\n", gl_param_string(command, 0));
+    
+    //TODO
+    /*for (int32_t i = 0; i < 100*100; i++)
+        if ((int64_t)depth[i] - (int64_t)((int32_t*)gl_param_data(command, 2))[i] > 16843009) {
+            fprintf(stderr, "%s did not result in the correct depth buffer.\n", gl_param_string(command, 0));
+            break;
+        }*/
+    
+    free(back);
+    free(depth);
+
+replay_end_cmd(ctx, "glTestFBWIP15", inspect_command);
+}
+
 void replay_glColor3iv(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -57790,6 +57844,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetProgramivNV = NULL;
     funcs->real_glBeginTransformFeedback = NULL;
     funcs->real_glTransformFeedbackAttribsNV = NULL;
+    funcs->real_glTestFBWIP15 = NULL;
     funcs->real_glColor3iv = NULL;
     funcs->real_glVertexAttrib3sv = NULL;
     funcs->real_glCompressedTexImage1D = NULL;
@@ -60938,6 +60993,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetProgramivNV = (glGetProgramivNV_t)glXGetProcAddress((const GLubyte*)"glGetProgramivNV");
     funcs->real_glBeginTransformFeedback = (glBeginTransformFeedback_t)glXGetProcAddress((const GLubyte*)"glBeginTransformFeedback");
     funcs->real_glTransformFeedbackAttribsNV = (glTransformFeedbackAttribsNV_t)glXGetProcAddress((const GLubyte*)"glTransformFeedbackAttribsNV");
+    funcs->real_glTestFBWIP15 = (glTestFBWIP15_t)glXGetProcAddress((const GLubyte*)"glTestFBWIP15");
     funcs->real_glColor3iv = (glColor3iv_t)glXGetProcAddress((const GLubyte*)"glColor3iv");
     funcs->real_glVertexAttrib3sv = (glVertexAttrib3sv_t)glXGetProcAddress((const GLubyte*)"glVertexAttrib3sv");
     funcs->real_glCompressedTexImage1D = (glCompressedTexImage1D_t)glXGetProcAddress((const GLubyte*)"glCompressedTexImage1D");

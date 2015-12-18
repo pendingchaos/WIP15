@@ -134,6 +134,7 @@ static limits_t gl15_limits;
 static limits_t gl20_limits;
 static limits_t gl21_limits;
 static limits_t* current_limits;
+static bool test_mode;
 
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
@@ -1539,6 +1540,28 @@ void glClientNormalDataWIP15(GLsizei size, const GLvoid* data);
 void glClientSecondaryColorDataWIP15(GLsizei size, const GLvoid* data);
 void glClientTextureCoordDataWIP15(GLsizei size, const GLvoid* data);
 void glClientGenericAttribDataWIP15(GLuint index, GLsizei size, const GLvoid* data);
+void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+
+static void test_fb(const char* name) {
+    F(glFinish)();
+    
+    GLint last_buf;
+    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+    
+    F(glReadBuffer)(GL_BACK);
+    void* back = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    void* depth = malloc(100*100*4);
+    F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    
+    F(glReadBuffer)(last_buf);
+    
+    glTestFBWIP15(name, back, depth);
+    
+    free(back);
+    free(depth);
+}
 
 GLboolean glUnmapBuffer(GLenum target) {
     GLint access;
@@ -1787,6 +1810,8 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
     gl_param_GLsizei(count, -1);
     F(glDrawArrays)(mode, first, count);
     gl_end();
+    
+    test_fb("glDrawArrays");
 }
 
 void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primcount) {
@@ -1803,6 +1828,8 @@ void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primco
     gl_param_GLsizei(primcount, -1);
     F(glMultiDrawArrays)(mode, first, count, primcount);
     gl_end();
+    
+    test_fb("glMultiDrawArrays");
 }
 
 GLuint max_uint(GLuint a, GLuint b) {
@@ -1875,6 +1902,8 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
         gl_param_pointer(indices);
     F(glDrawRangeElements)(mode, min, max, count, type, indices);
     gl_end();
+    
+    test_fb("glDrawElements");
 }
 
 void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices) {
@@ -1884,6 +1913,7 @@ void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, G
     F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
     
     gl_start(FUNC_glDrawRangeElements);
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
     gl_param_GLuint(start, -1);
     gl_param_GLuint(end, -1);
     gl_param_GLsizei(count, -1);
@@ -1904,4 +1934,6 @@ void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, G
         }
     F(glDrawRangeElements)(mode, start, end, count, type, indices);
     gl_end();
+    
+    test_fb("glDrawRangeElements");
 }
