@@ -187,6 +187,7 @@ void draw_test() {
     GLfloat float_colors[] = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     GLdouble double_colors[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
     
+    //glDraw* with client side arrays and buffers.
     draw(GL_SHORT, GL_FLOAT, short_positions, float_colors, sizeof(short_positions), sizeof(float_colors));
     draw(GL_INT, GL_FLOAT, int_positions, float_colors, sizeof(int_positions), sizeof(float_colors));
     draw(GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
@@ -198,6 +199,7 @@ void draw_test() {
     draw(GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
     draw(GL_FLOAT, GL_DOUBLE, float_positions, double_colors, sizeof(float_positions), sizeof(double_colors));
     
+    //Begin/end
     glClear(GL_COLOR_BUFFER_BIT);
     glBegin(GL_TRIANGLES);
     begin_end1();
@@ -228,6 +230,7 @@ void draw_test() {
     begin_end6();
     glEnd();
     
+    //Display list
     GLuint list = glGenLists(1);
     glNewList(list, GL_COMPILE);
     glBegin(GL_TRIANGLES);
