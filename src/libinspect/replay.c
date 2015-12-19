@@ -111,6 +111,8 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     ctx->generic_client_array_count = 0;
     ctx->generic_client_arrays = NULL;
     
+    ctx->current_test_name = "Unnamed";
+    
     return ctx;
 }
 

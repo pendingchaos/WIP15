@@ -121,6 +121,10 @@ class GL:
         glTestFBWIP15.params.append(FunctionParam("const GLvoid*", "depth"))
         self.functions["glTestFBWIP15"] = glTestFBWIP15
         
+        glCurrentTestWIP15 = Function("void")
+        glCurrentTestWIP15.params.append(FunctionParam("const GLchar*", "name"))
+        self.functions["glCurrentTestWIP15"] = glCurrentTestWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
         ext.functions.append("glMappedBufferDataWIP15")
@@ -128,6 +132,7 @@ class GL:
         ext.functions.append("glProgramAttribWIP15")
         ext.functions.append("glClientGenericAttribDataWIP15")
         ext.functions.append("glTestFBWIP15")
+        ext.functions.append("glCurrentTestWIP15")
         ext.functions += names
         
         self.extensions["GL_WIP15_debug_internal"] = ext

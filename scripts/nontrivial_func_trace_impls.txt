@@ -1171,3 +1171,6 @@ glTestFBWIP15:
     gl_param_string(name);
     gl_param_data(100*100*4, color);
     gl_param_data(100*100*4, depth);
+
+glCurrentTestWIP15:
+    gl_param_string(name);

@@ -16,3 +16,4 @@
 *.pyc
 /bin/gtk3.supp
 /bin/tests
+/bin/testtrace

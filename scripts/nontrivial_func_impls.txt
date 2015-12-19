@@ -1918,14 +1918,17 @@ glTestFBWIP15:
     F(glReadBuffer)(last_buf);
     
     if (memcmp(back, gl_param_data(command, 1), 100*100*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer.\n", gl_param_string(command, 0));
+        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", gl_param_string(command, 0), ctx->current_test_name);
     
     //TODO
     /*for (int32_t i = 0; i < 100*100; i++)
         if ((int64_t)depth[i] - (int64_t)((int32_t*)gl_param_data(command, 2))[i] > 16843009) {
-            fprintf(stderr, "%s did not result in the correct depth buffer.\n", gl_param_string(command, 0));
+            fprintf(stderr, "%s did not result in the correct depth buffer (test: %s).\n", gl_param_string(command, 0), ctx->current_test_name);
             break;
         }*/
     
     free(back);
     free(depth);
+
+glCurrentTestWIP15:
+    ctx->current_test_name = gl_param_string(command, 0);

@@ -63,6 +63,7 @@ struct replay_context_t {
     void* client_arrays[ReplayClientArr_Max];
     size_t generic_client_array_count;
     void** generic_client_arrays;
+    const char* current_test_name;
 };
 
 replay_context_t* create_replay_context(inspection_t* inspection);

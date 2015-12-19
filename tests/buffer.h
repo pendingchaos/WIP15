@@ -1,4 +1,5 @@
 void buffer_test() {
+    glCurrentTestWIP15("Buffers");
     GLuint buf;
     glGenBuffers(1, &buf);
     glBindBuffer(GL_ARRAY_BUFFER, buf);

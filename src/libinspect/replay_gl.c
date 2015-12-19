@@ -2533,6 +2533,7 @@ typedef void (*glBindFragDataLocationIndexedEXT_t)(GLuint, GLuint, GLuint, const
 typedef void (*glProgramUniform3ivEXT_t)(GLuint, GLint, GLsizei, const  GLint  *);
 typedef void (*glVertexArrayVertexOffsetEXT_t)(GLuint, GLuint, GLint, GLenum, GLsizei, GLintptr);
 typedef void (*glFinishObjectAPPLE_t)(GLenum, GLint);
+typedef void (*glCurrentTestWIP15_t)(const GLchar*);
 typedef void (*glReplacementCodeuiTexCoord2fVertex3fvSUN_t)(const  GLuint  *, const  GLfloat  *, const  GLfloat  *);
 typedef void (*glUniform1uiv_t)(GLint, GLsizei, const  GLuint  *);
 typedef void (*glUniformMatrix2dv_t)(GLint, GLsizei, GLboolean, const  GLdouble  *);
@@ -5809,6 +5810,7 @@ typedef struct {
     glProgramUniform3ivEXT_t real_glProgramUniform3ivEXT;
     glVertexArrayVertexOffsetEXT_t real_glVertexArrayVertexOffsetEXT;
     glFinishObjectAPPLE_t real_glFinishObjectAPPLE;
+    glCurrentTestWIP15_t real_glCurrentTestWIP15;
     glReplacementCodeuiTexCoord2fVertex3fvSUN_t real_glReplacementCodeuiTexCoord2fVertex3fvSUN;
     glUniform1uiv_t real_glUniform1uiv;
     glUniformMatrix2dv_t real_glUniformMatrix2dv;
@@ -40133,6 +40135,19 @@ void replay_glFinishObjectAPPLE(replay_context_t* ctx, trace_command_t* command,
 replay_end_cmd(ctx, "glFinishObjectAPPLE", inspect_command);
 }
 
+void replay_glCurrentTestWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glCurrentTestWIP15", inspect_command);
+    glCurrentTestWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCurrentTestWIP15;
+    do {(void)sizeof((real));} while (0);
+    ctx->current_test_name = gl_param_string(command, 0);
+
+replay_end_cmd(ctx, "glCurrentTestWIP15", inspect_command);
+}
+
 void replay_glReplacementCodeuiTexCoord2fVertex3fvSUN(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -43814,12 +43829,12 @@ void replay_glTestFBWIP15(replay_context_t* ctx, trace_command_t* command, inspe
     F(glReadBuffer)(last_buf);
     
     if (memcmp(back, gl_param_data(command, 1), 100*100*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer.\n", gl_param_string(command, 0));
+        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", gl_param_string(command, 0), ctx->current_test_name);
     
     //TODO
     /*for (int32_t i = 0; i < 100*100; i++)
         if ((int64_t)depth[i] - (int64_t)((int32_t*)gl_param_data(command, 2))[i] > 16843009) {
-            fprintf(stderr, "%s did not result in the correct depth buffer.\n", gl_param_string(command, 0));
+            fprintf(stderr, "%s did not result in the correct depth buffer (test: %s).\n", gl_param_string(command, 0), ctx->current_test_name);
             break;
         }*/
     
@@ -57558,6 +57573,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glProgramUniform3ivEXT = NULL;
     funcs->real_glVertexArrayVertexOffsetEXT = NULL;
     funcs->real_glFinishObjectAPPLE = NULL;
+    funcs->real_glCurrentTestWIP15 = NULL;
     funcs->real_glReplacementCodeuiTexCoord2fVertex3fvSUN = NULL;
     funcs->real_glUniform1uiv = NULL;
     funcs->real_glUniformMatrix2dv = NULL;
@@ -60707,6 +60723,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glProgramUniform3ivEXT = (glProgramUniform3ivEXT_t)glXGetProcAddress((const GLubyte*)"glProgramUniform3ivEXT");
     funcs->real_glVertexArrayVertexOffsetEXT = (glVertexArrayVertexOffsetEXT_t)glXGetProcAddress((const GLubyte*)"glVertexArrayVertexOffsetEXT");
     funcs->real_glFinishObjectAPPLE = (glFinishObjectAPPLE_t)glXGetProcAddress((const GLubyte*)"glFinishObjectAPPLE");
+    funcs->real_glCurrentTestWIP15 = (glCurrentTestWIP15_t)glXGetProcAddress((const GLubyte*)"glCurrentTestWIP15");
     funcs->real_glReplacementCodeuiTexCoord2fVertex3fvSUN = (glReplacementCodeuiTexCoord2fVertex3fvSUN_t)glXGetProcAddress((const GLubyte*)"glReplacementCodeuiTexCoord2fVertex3fvSUN");
     funcs->real_glUniform1uiv = (glUniform1uiv_t)glXGetProcAddress((const GLubyte*)"glUniform1uiv");
     funcs->real_glUniformMatrix2dv = (glUniformMatrix2dv_t)glXGetProcAddress((const GLubyte*)"glUniformMatrix2dv");

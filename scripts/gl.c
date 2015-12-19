@@ -134,7 +134,7 @@ static limits_t gl15_limits;
 static limits_t gl20_limits;
 static limits_t gl21_limits;
 static limits_t* current_limits;
-static bool test_mode;
+static bool test_mode = false;
 
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
@@ -1001,6 +1001,7 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         final_size = 2;
         break;
     }
+    case GL_UNSIGNED_INT_8_8_8_8:
     case GL_UNSIGNED_INT_8_8_8_8_REV:
     case GL_UNSIGNED_INT_10_10_10_2:
     case GL_UNSIGNED_INT_2_10_10_10_REV: {
@@ -1543,24 +1544,26 @@ void glClientGenericAttribDataWIP15(GLuint index, GLsizei size, const GLvoid* da
 void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 
 static void test_fb(const char* name) {
-    F(glFinish)();
-    
-    GLint last_buf;
-    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-    
-    F(glReadBuffer)(GL_BACK);
-    void* back = malloc(100*100*4);
-    F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
-    
-    void* depth = malloc(100*100*4);
-    F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
-    
-    F(glReadBuffer)(last_buf);
-    
-    glTestFBWIP15(name, back, depth);
-    
-    free(back);
-    free(depth);
+    if (test_mode) {
+        F(glFinish)();
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+        
+        F(glReadBuffer)(GL_BACK);
+        void* back = malloc(100*100*4);
+        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+        
+        void* depth = malloc(100*100*4);
+        F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+        
+        F(glReadBuffer)(last_buf);
+        
+        glTestFBWIP15(name, back, depth);
+        
+        free(back);
+        free(depth);
+    }
 }
 
 GLboolean glUnmapBuffer(GLenum target) {

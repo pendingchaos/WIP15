@@ -29,6 +29,10 @@ inspect-gui:
 leakcheck:
 	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
 
+.PHONY: testtrace
+testtrace:
+	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/testtrace.c -std=c99 -o testtrace -Wall -g -rdynamic -D_DEFAULT_SOURCE
+
 .PHONY: clean
 clean:
 	rm bin/libtrace.so
@@ -38,14 +42,15 @@ clean:
 	rm bin/test
 	rm bin/gl.so
 	rm bin/tests
+	rm bin/testtrace
 
 .PHONY: test
 test:
-	gcc test.c -lSDL2 -lGL -o bin/test -g -std=c99
+	gcc test.c -lSDL2 -lGL -o bin/test -g -std=c99 -Wall
 
 .PHONY: tests
 tests:
-	gcc tests/main.c `sdl2-config --cflags --libs` -lGL -o bin/tests -g -std=c99
+	gcc tests/main.c `sdl2-config --cflags --libs` -lGL -o bin/tests -g -std=c99 -Wall
 
 .PHONY: all
 all:
@@ -55,3 +60,4 @@ all:
 	make trace
 	make inspect-gui
 	make leakcheck
+	make testtrace
