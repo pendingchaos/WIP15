@@ -35,10 +35,7 @@ void test_tex(GLenum internal, GLenum format, GLenum type) {
     case GL_SHORT: {
         short data[2048];
         for (size_t i = 0; i < 2048; i++) {
-            data[i] = rand()/(double)RAND_MAX*32768;
-        }
-        for (size_t i = 0; i < 1024; i++) {
-            ((uint32_t*)data)[i] = 0xDEADBEEF;
+            data[i] = 0xFFFF;
         }
         glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
         glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
@@ -49,10 +46,7 @@ void test_tex(GLenum internal, GLenum format, GLenum type) {
     case GL_INT: {
         int data[1024];
         for (size_t i = 0; i < 1024; i++) {
-            data[i] = rand()/(double)RAND_MAX*2147483648;
-        }
-        for (size_t i = 0; i < 1024; i++) {
-            ((uint32_t*)data)[i] = 0xDEADBEEF;
+            data[i] = 0xFFFFFFFF;
         }
         glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
         glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
@@ -62,10 +56,7 @@ void test_tex(GLenum internal, GLenum format, GLenum type) {
     case GL_FLOAT: {
         float data[1024];
         for (size_t i = 0; i < 1024; i++) {
-            data[i] = rand()/(double)RAND_MAX;
-        }
-        for (size_t i = 0; i < 1024; i++) {
-            ((uint32_t*)data)[i] = 0xDEADBEEF;
+            data[i] = 1.0f;
         }
         glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
         glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
@@ -75,10 +66,7 @@ void test_tex(GLenum internal, GLenum format, GLenum type) {
     default: {
         uint8_t data[4096];
         for (size_t i = 0; i < 4096; i++) {
-            data[i] = rand()%255;
-        }
-        for (size_t i = 0; i < 1024; i++) {
-            ((uint32_t*)data)[i] = 0xDEADBEEF;
+            data[i] = 0xFF;
         }
         glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
         glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
@@ -153,9 +141,10 @@ void texture_test() {
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
     GLenum formats[] = {GL_COLOR_INDEX, GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA,
-                        GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA};
+                        GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA,
+                        GL_DEPTH_COMPONENT};
     
-    GLenum internal_formats[] = {3, 1, 1, 1, 1, 3, 3, 4, 4, 1, 2};
+    GLenum internal_formats[] = {3, 1, 1, 1, 1, 3, 3, 4, 4, 1, 2, GL_DEPTH_COMPONENT};
     
     GLenum types[] = {GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_SHORT, GL_SHORT,
                       GL_UNSIGNED_INT, GL_INT, GL_FLOAT, GL_UNSIGNED_BYTE_3_3_2,
