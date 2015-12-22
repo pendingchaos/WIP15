@@ -23,8 +23,11 @@ Debugging:
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
-            Use this because it works on more hardware and drivers
+            Use this because it works on more hardware and driver combinations
     Backtraces with line numbers for function calls
+        Would significantly increase size of traces
+        Disabled by default
+        Could not implement in favor of debug markers
     Debug markers and stuff
     State inspection
         Currently have lots though more still needed.
@@ -35,6 +38,7 @@ Bugs:
     Program crashes with optimizations.
         Seems to be the glGetIntegerv calls in the state tracking code.
             Currently disabled.
+    Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
 
 Various TODOs in the source code.
 
@@ -46,7 +50,7 @@ Enum state values are not displayed as enums.
 
 Use SDL2 instead of GLX.
 
-1D, 3D, cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
+Cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 
 Enabling or disabling state depending on OpenGL version and extensions.
 
