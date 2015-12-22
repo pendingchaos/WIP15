@@ -26,8 +26,8 @@ Debugging:
             Use this because it works on more hardware and driver combinations
     Backtraces with line numbers for function calls
         Would significantly increase size of traces
-        Disabled by default
-        Could not implement in favor of debug markers
+        Should disabled by default
+        May not implement in favor of debug markers
     Debug markers and stuff
     State inspection
         Currently have lots though more still needed.
