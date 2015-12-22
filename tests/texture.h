@@ -30,51 +30,40 @@ void draw_texture3d() {
 void test_tex(GLenum internal, GLenum format, GLenum type) {
     glCurrentTestWIP15(static_format("Texture test with %u internal format, %u format and %u type", internal, format, type));
     
-    switch (type) {
-    case GL_UNSIGNED_SHORT:
-    case GL_SHORT: {
-        short data[2048];
-        for (size_t i = 0; i < 2048; i++) {
-            data[i] = 0xFFFF;
-        }
-        glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
-        glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
-        break;
-    }
-    case GL_UNSIGNED_INT:
-    case GL_INT: {
-        int data[1024];
-        for (size_t i = 0; i < 1024; i++) {
-            data[i] = 0xFFFFFFFF;
-        }
-        glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
-        glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
-        break;
-    }
-    case GL_FLOAT: {
-        float data[1024];
-        for (size_t i = 0; i < 1024; i++) {
-            data[i] = 1.0f;
-        }
-        glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
-        glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
-        break;
-    }
-    default: {
-        uint8_t data[4096];
-        for (size_t i = 0; i < 4096; i++) {
-            data[i] = 0xFF;
-        }
-        glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
-        glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
-        break;
-    }
+    uint8_t data[4096];
+    #define GEN_DATA switch (type) {\
+    case GL_UNSIGNED_SHORT:\
+    case GL_SHORT:\
+        for (size_t i = 0; i < 2048; i++)\
+            ((uint16_t*)data)[i] = rand()%2 ? 0xFFFF : 0;\
+        break;\
+    case GL_UNSIGNED_INT:\
+    case GL_INT:\
+        for (size_t i = 0; i < 1024; i++)\
+            ((uint32_t*)data)[i] = rand()%2 ? 0xFFFFFFFF : 0;\
+        break;\
+    case GL_FLOAT:\
+        for (size_t i = 0; i < 1024; i++)\
+            ((float*)data)[i] = rand()%2 ? 1.0f : 0.0f;\
+        break;\
+    default:\
+        for (size_t i = 0; i < 4096; i++)\
+            data[i] = rand()%2 ? 0xFF : 0;\
+        break;\
     }
     
+    GEN_DATA
+    glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
+    glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
+    draw_texture1d();
+    draw_texture2d();
+    draw_texture3d();
+    
+    GEN_DATA
+    glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, format, type, data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, format, type, data);
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 4, 4, 4, format, type, data);
     draw_texture1d();
     draw_texture2d();
     draw_texture3d();
@@ -197,6 +186,13 @@ void texture_test() {
             test_tex(internal_format, format, type);
         }
     }
+    
+    float priority = 0.5f;
+    glPrioritizeTextures(1, &tex1d, &priority);
+    
+    GLuint textures[] = {tex2d, tex3d};
+    float priorities[] = {0.25f, 0.75f};
+    glPrioritizeTextures(2, textures, priorities);
     
     glDeleteLists(list1d, 1);
     glDeleteLists(list2d, 1);
