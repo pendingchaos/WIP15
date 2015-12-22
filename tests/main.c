@@ -26,6 +26,7 @@ void null_current_test(const GLchar* name) {}
 #include "draw.h"
 #include "buffer.h"
 #include "texture.h"
+#include "shader.h"
 
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
                                           SDL_WINDOW_OPENGL |
                                           SDL_WINDOW_SHOWN);
     
-    void (*tests[])() = {&draw_test, &buffer_test, &texture_test};
+    void (*tests[])() = {&draw_test, &buffer_test, &texture_test, &shader_test};
     
     for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
