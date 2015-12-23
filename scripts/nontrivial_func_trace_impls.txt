@@ -24,64 +24,15 @@ glXMakeCurrent:
     if (!ctx) {
         current_limits = NULL;
     } else {
-        current_limits = &gl21_limits; //TODO
+        current_limits = &gl30_limits; //TODO
     }
 
 glSetContextCapsWIP15:
     gl_write_b(WIP15_DATA);
-    gl_write_u32(34*sizeof(uint32_t)); //TODO: Add variable sized stuff
+    gl_write_u32(0*sizeof(uint32_t)); //TODO: Add variable sized stuff
     #define LIMIT(pname) gl_write_u32(*gl_geti(GL_##pname));
     //TODO: Make LIMITF more portable
     #define LIMITF(pname) fwrite(gl_getf(GL_##pname), 4, 1, trace_file);
-    LIMIT(MAX_LIGHTS)
-    LIMIT(MAX_CLIP_PLANES)
-    LIMIT(MAX_COLOR_MATRIX_STACK_DEPTH)
-    LIMIT(MAX_MODELVIEW_STACK_DEPTH)
-    LIMIT(MAX_PROJECTION_STACK_DEPTH)
-    LIMIT(MAX_TEXTURE_STACK_DEPTH)
-    LIMIT(SUBPIXEL_BITS)
-    LIMIT(MAX_3D_TEXTURE_SIZE)
-    LIMIT(MAX_TEXTURE_SIZE)
-    LIMIT(MAX_TEXTURE_LOD_BIAS)
-    LIMIT(MAX_CUBE_MAP_TEXTURE_SIZE)
-    LIMIT(MAX_PIXEL_MAP_TABLE)
-    LIMIT(MAX_NAME_STACK_DEPTH)
-    LIMIT(MAX_LIST_NESTING)
-    LIMIT(MAX_EVAL_ORDER)
-    LIMIT(MAX_ATTRIB_STACK_DEPTH)
-    LIMIT(MAX_CLIENT_ATTRIB_STACK_DEPTH)
-    //TODO: MAX_COLOR_TABLE_SIZE
-    LIMIT(AUX_BUFFERS)
-    //TODO: rgba_mode_supported
-    //TODO: index_mode_supported
-    //TODO: doublebuffer_supported
-    //TODO: stereo_supported
-    //TODO: ALIASED_POINT_SIZE_RANGE
-    //TODO: SMOOTH_POINT_SIZE_RANGE
-    LIMITF(SMOOTH_POINT_SIZE_GRANULARITY)
-    //TODO: aliased_line_width_range
-    //TODO: smooth_line_width_range
-    LIMIT(SMOOTH_LINE_WIDTH_GRANULARITY)
-    //TODO: max_convolution_width
-    //TODO: max_convolution_height
-    LIMIT(MAX_ELEMENTS_INDICES)
-    LIMIT(MAX_ELEMENTS_VERTICES)
-    //TODO: sample_buffers
-    //TODO: samples
-    LIMIT(NUM_COMPRESSED_TEXTURE_FORMATS)
-    //TODO: compressed_texture_formats
-    LIMIT(QUERY_COUNTER_BITS)
-    //TODO: extensions
-    LIMIT(MAX_TEXTURE_UNITS)
-    LIMIT(MAX_VERTEX_ATTRIBS)
-    LIMIT(MAX_VERTEX_UNIFORM_COMPONENTS)
-    LIMIT(MAX_VARYING_FLOATS)
-    LIMIT(MAX_COMBINED_TEXTURE_IMAGE_UNITS)
-    LIMIT(MAX_VERTEX_TEXTURE_IMAGE_UNITS)
-    LIMIT(MAX_TEXTURE_IMAGE_UNITS)
-    LIMIT(MAX_TEXTURE_COORDS)
-    LIMIT(MAX_FRAGMENT_UNIFORM_COMPONENTS)
-    LIMIT(MAX_DRAW_BUFFERS)
     //TODO: *bits_supported
     #undef LIMITF
     #undef LIMIT
@@ -492,22 +443,6 @@ glProgramAttribWIP15:
     gl_param_GLuint(program, -1);
     gl_param_string(name);
     gl_param_GLuint(index, -1);
-
-glPointParameterfv:
-    gl_param_GLenum(pname, -1);
-    if (pname == GL_POINT_DISTANCE_ATTENUATION)
-        gl_param_GLfloat_array(3, params);
-    else
-        gl_param_GLfloat_array(1, params);
-    gl_glPointParameterfv(pname, params);
-
-glPointParameteriv:
-    gl_param_GLenum(pname, -1);
-    if (pname == GL_POINT_DISTANCE_ATTENUATION)
-        gl_param_GLint_array(3, params);
-    else
-        gl_param_GLint_array(1, params);
-    gl_glPointParameteriv(pname, params);
 
 glTestFBWIP15:
     gl_param_string(name);

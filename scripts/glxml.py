@@ -198,6 +198,8 @@ class GL:
             if feature.attrib["api"] == "gl":
                 version = Version()
                 
+                number = feature.attrib["number"].split(".")
+                
                 for require in feature.findall("require"):
                     for command in require.findall("command"):
                         version.new_functions.append(command.attrib["name"])
@@ -208,11 +210,12 @@ class GL:
                 for remove in feature.findall("remove"):
                     for command in remove.findall("command"):
                         version.removed_functions.append(command.attrib["name"])
+                        
+                        if (int(number[0]), int(number[1])) == (3, 2):
+                            del functions[command.attrib["name"]]
                     
                     for enum in remove.findall("enum"):
                         version.removed_enums.append(enum.attrib["name"])
-                
-                number = feature.attrib["number"].split(".")
                 
                 versions[(int(number[0]), int(number[1]))] = version
         

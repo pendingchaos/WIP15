@@ -125,14 +125,16 @@ typedef struct {
 
 static FILE *trace_file;
 static void *lib_gl;
-static limits_t gl10_limits;
-static limits_t gl11_limits;
-static limits_t gl12_limits;
-static limits_t gl13_limits;
-static limits_t gl14_limits;
-static limits_t gl15_limits;
-static limits_t gl20_limits;
-static limits_t gl21_limits;
+static limits_t gl30_limits;
+static limits_t gl31_limits;
+static limits_t gl32_limits;
+static limits_t gl33_limits;
+static limits_t gl40_limits;
+static limits_t gl41_limits;
+static limits_t gl42_limits;
+static limits_t gl43_limits;
+static limits_t gl44_limits;
+static limits_t gl45_limits;
 static limits_t* current_limits;
 static bool test_mode = false;
 
@@ -927,12 +929,10 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     size_t components = 0;
     
     switch (format) {
-    case GL_COLOR_INDEX:
     case GL_RED:
     case GL_GREEN:
     case GL_BLUE:
     case GL_ALPHA:
-    case GL_LUMINANCE:
     case GL_STENCIL_INDEX:
     case GL_DEPTH_COMPONENT: {
         components = 1;
@@ -943,8 +943,7 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         break;
     }
     case GL_RG:
-    case GL_RG_INTEGER:
-    case GL_LUMINANCE_ALPHA: {
+    case GL_RG_INTEGER: {
         components = 2;
         break;
     }
@@ -969,11 +968,6 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     case GL_UNSIGNED_BYTE:
     case GL_BYTE: {
         final_size = components;
-        break;
-    }
-    case GL_BITMAP: {
-        //TODO
-        final_size = 0;
         break;
     }
     case GL_UNSIGNED_SHORT:
@@ -1269,59 +1263,69 @@ static void handle_limits() {
     
     FILE* file = fopen(filename, "r");
     
-    init_limits(&gl10_limits);
-    init_limits(&gl11_limits);
-    init_limits(&gl12_limits);
-    init_limits(&gl13_limits);
-    init_limits(&gl14_limits);
-    init_limits(&gl15_limits);
-    init_limits(&gl20_limits);
-    init_limits(&gl21_limits);
+    init_limits(&gl30_limits);
+    init_limits(&gl31_limits);
+    init_limits(&gl32_limits);
+    init_limits(&gl33_limits);
+    init_limits(&gl40_limits);
+    init_limits(&gl41_limits);
+    init_limits(&gl42_limits);
+    init_limits(&gl43_limits);
+    init_limits(&gl44_limits);
+    init_limits(&gl45_limits);
     
-    bool gl10 = false;
-    bool gl11 = false;
-    bool gl12 = false;
-    bool gl13 = false;
-    bool gl14 = false;
-    bool gl15 = false;
-    bool gl20 = false;
-    bool gl21 = false;
+    bool gl30 = false;
+    bool gl31 = false;
+    bool gl32 = false;
+    bool gl33 = false;
+    bool gl40 = false;
+    bool gl41 = false;
+    bool gl42 = false;
+    bool gl43 = false;
+    bool gl44 = false;
+    bool gl45 = false;
     
     while (true) {
         int c = fgetc(file);
         if (c == EOF) {
             break;
         } else if (c == '@') {
-            gl10 = false;
-            gl11 = false;
-            gl12 = false;
-            gl13 = false;
-            gl14 = false;
-            gl15 = false;
-            gl20 = false;
-            gl21 = false;
+            gl30 = false;
+            gl31 = false;
+            gl32 = false;
+            gl33 = false;
+            gl40 = false;
+            gl41 = false;
+            gl42 = false;
+            gl43 = false;
+            gl44 = false;
+            gl45 = false;
             
             #define UPDATE_VERSION int major, minor;\
             if (sscanf(version, "%d.%d", &major, &minor) != 2) {\
                 fprintf(stderr, "Invalid version \"%s\".\n", version);\
                 exit(1);\
             }\
-            if ((major == 1) && (minor == 0))\
-                gl10 = true;\
-            else if ((major == 1) && (minor == 1))\
-                gl11 = true;\
-            else if ((major == 1) && (minor == 2))\
-                gl12 = true;\
-            else if ((major == 1) && (minor == 3))\
-                gl13 = true;\
-            else if ((major == 1) && (minor == 4))\
-                gl14 = true;\
-            else if ((major == 1) && (minor == 5))\
-                gl15 = true;\
-            else if ((major == 2) && (minor == 0))\
-                gl20 = true;\
-            else if ((major == 2) && (minor == 1))\
-                gl21 = true;\
+            if ((major == 3) && (minor == 0))\
+                gl30 = true;\
+            else if ((major == 3) && (minor == 1))\
+                gl31 = true;\
+            else if ((major == 3) && (minor == 2))\
+                gl32 = true;\
+            else if ((major == 3) && (minor == 3))\
+                gl33 = true;\
+            else if ((major == 4) && (minor == 0))\
+                gl40 = true;\
+            else if ((major == 4) && (minor == 1))\
+                gl41 = true;\
+            else if ((major == 4) && (minor == 2))\
+                gl42 = true;\
+            else if ((major == 4) && (minor == 3))\
+                gl43 = true;\
+            else if ((major == 4) && (minor == 4))\
+                gl44 = true;\
+            else if ((major == 4) && (minor == 5))\
+                gl45 = true;\
             else\
                 fprintf(stderr, "Unknown version \"%s\".\n", version);
             
@@ -1385,27 +1389,31 @@ static void handle_limits() {
                     value[i++] = c;
             }
             
-            if (gl10) set_limit_value(&gl10_limits, name, value);
-            if (gl11) set_limit_value(&gl11_limits, name, value);
-            if (gl12) set_limit_value(&gl12_limits, name, value);
-            if (gl13) set_limit_value(&gl13_limits, name, value);
-            if (gl14) set_limit_value(&gl14_limits, name, value);
-            if (gl15) set_limit_value(&gl15_limits, name, value);
-            if (gl20) set_limit_value(&gl20_limits, name, value);
-            if (gl21) set_limit_value(&gl21_limits, name, value);
+            if (gl30) set_limit_value(&gl30_limits, name, value);
+            if (gl31) set_limit_value(&gl31_limits, name, value);
+            if (gl32) set_limit_value(&gl32_limits, name, value);
+            if (gl33) set_limit_value(&gl33_limits, name, value);
+            if (gl40) set_limit_value(&gl40_limits, name, value);
+            if (gl41) set_limit_value(&gl41_limits, name, value);
+            if (gl42) set_limit_value(&gl42_limits, name, value);
+            if (gl43) set_limit_value(&gl43_limits, name, value);
+            if (gl44) set_limit_value(&gl44_limits, name, value);
+            if (gl45) set_limit_value(&gl45_limits, name, value);
         }
     }
     
     fclose(file);
     
-    create_extensions_str(&gl10_limits);
-    create_extensions_str(&gl11_limits);
-    create_extensions_str(&gl12_limits);
-    create_extensions_str(&gl13_limits);
-    create_extensions_str(&gl14_limits);
-    create_extensions_str(&gl15_limits);
-    create_extensions_str(&gl20_limits);
-    create_extensions_str(&gl21_limits);
+    create_extensions_str(&gl30_limits);
+    create_extensions_str(&gl31_limits);
+    create_extensions_str(&gl32_limits);
+    create_extensions_str(&gl33_limits);
+    create_extensions_str(&gl40_limits);
+    create_extensions_str(&gl41_limits);
+    create_extensions_str(&gl42_limits);
+    create_extensions_str(&gl43_limits);
+    create_extensions_str(&gl44_limits);
+    create_extensions_str(&gl45_limits);
 }
 
 static void free_limits(limits_t* limits) {
@@ -1448,48 +1456,7 @@ static void free_limits(limits_t* limits) {
     break;\
 }
 
-//TODO: GL_ALIASED_POINT_SIZE_RANGE
-//TODO: GL_SMOOTH_POINT_SIZE_RANGE
-//TODO: GL_SMOOTH_POINT_SIZE_GRANULARITY
-//TODO: GL_ALIASED_LINE_WIDTH_RANGE
-//TODO: GL_SMOOTH_LINE_WIDTH_RANGE
-//TODO: GL_SMOOTH_LINE_WIDTH_GRANULARITY
-//TODO: GL_MAX_CONVOLUTION_WIDTH
-//TODO: GL_MAX_CONVOLUTION_HEIGHT
-//TODO: GL_MAX_COLOR_TABLE_SIZE
-//TODO: GL_MAX_HISTOGRAM_TABLE_SIZE
-//TODO: GL_COMPRESSED_TEXTURE_FORMATS and GL_NUM_COMPRESSED_TEXTURE_FORMATS
 #define GL_GET(get) switch (pname) {\
-    GL_GETI(get, GL_MAX_LIGHTS, max_lights)\
-    GL_GETI(get, GL_MAX_CLIP_PLANES, max_clip_planes)\
-    GL_GETI(get, GL_MAX_COLOR_MATRIX_STACK_DEPTH, max_color_matrix_stack_depth)\
-    GL_GETI(get, GL_MAX_MODELVIEW_STACK_DEPTH, max_modelview_stack_depth)\
-    GL_GETI(get, GL_MAX_PROJECTION_STACK_DEPTH, max_projection_stack_depth)\
-    GL_GETI(get, GL_MAX_TEXTURE_STACK_DEPTH, max_texture_stack_depth)\
-    GL_GETI(get, GL_SUBPIXEL_BITS, subpixel_bits)\
-    GL_GETI(get, GL_MAX_3D_TEXTURE_SIZE, max_3d_texture_size)\
-    GL_GETI(get, GL_MAX_TEXTURE_SIZE, max_texture_size)\
-    GL_GETI(get, GL_MAX_TEXTURE_LOD_BIAS, max_texture_lod_bias)\
-    GL_GETI(get, GL_MAX_CUBE_MAP_TEXTURE_SIZE, max_cube_map_texture_size)\
-    GL_GETI(get, GL_MAX_PIXEL_MAP_TABLE, max_pixel_map_table)\
-    GL_GETI(get, GL_MAX_NAME_STACK_DEPTH, max_name_stack_depth)\
-    GL_GETI(get, GL_MAX_LIST_NESTING, max_list_nesting)\
-    GL_GETI(get, GL_MAX_EVAL_ORDER, max_eval_order)\
-    GL_GETI(get, GL_MAX_ATTRIB_STACK_DEPTH, max_attrib_stack_depth)\
-    GL_GETI(get, GL_MAX_CLIENT_ATTRIB_STACK_DEPTH, max_client_attrib_stack_depth)\
-    GL_GETI(get, GL_MAX_ELEMENTS_INDICES, max_elements_indices)\
-    GL_GETI(get, GL_MAX_ELEMENTS_VERTICES, max_elements_vertices)\
-    GL_GETI(get, GL_QUERY_COUNTER_BITS, query_counter_bits)\
-    GL_GETI(get, GL_MAX_TEXTURE_UNITS, max_texture_units)\
-    GL_GETI(get, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs)\
-    GL_GETI(get, GL_MAX_VERTEX_UNIFORM_COMPONENTS, max_vertex_uniform_components)\
-    GL_GETI(get, GL_MAX_VARYING_FLOATS, max_varying_floats)\
-    GL_GETI(get, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_combined_texture_image_units)\
-    GL_GETI(get, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, max_vertex_texture_image_units)\
-    GL_GETI(get, GL_MAX_TEXTURE_IMAGE_UNITS, max_texture_image_units)\
-    GL_GETI(get, GL_MAX_TEXTURE_COORDS, max_texture_coords)\
-    GL_GETI(get, GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, max_fragment_uniform_components)\
-    GL_GETI(get, GL_MAX_DRAW_BUFFERS, max_draw_buffers)\
     default: {\
         F(get)(pname, data);\
         break;\
@@ -1518,14 +1485,16 @@ void __attribute__ ((destructor)) gl_deinit() {
     fclose(trace_file);
     dlclose(lib_gl);
     
-    free_limits(&gl10_limits);
-    free_limits(&gl11_limits);
-    free_limits(&gl12_limits);
-    free_limits(&gl13_limits);
-    free_limits(&gl14_limits);
-    free_limits(&gl15_limits);
-    free_limits(&gl20_limits);
-    free_limits(&gl21_limits);
+    free_limits(&gl30_limits);
+    free_limits(&gl31_limits);
+    free_limits(&gl32_limits);
+    free_limits(&gl33_limits);
+    free_limits(&gl40_limits);
+    free_limits(&gl41_limits);
+    free_limits(&gl42_limits);
+    free_limits(&gl43_limits);
+    free_limits(&gl44_limits);
+    free_limits(&gl45_limits);
 }
 
 void glSetContextCapsWIP15();
