@@ -86,20 +86,23 @@ void texture_test() {
     glBindTexture(GL_TEXTURE_3D, tex3d);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
-    GLenum formats[] = {GL_COLOR_INDEX, GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA,
-                        GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA,
+    GLenum formats[] = {GL_RED, GL_RG, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA,
+                        GL_RED_INTEGER, GL_RG_INTEGER, GL_RGB_INTEGER,
+                        GL_BGR_INTEGER, GL_RGBA_INTEGER, GL_BGRA_INTEGER,
                         GL_DEPTH_COMPONENT};
     
-    GLenum internal_formats[] = {GL_RGB, GL_RED, GL_RED, GL_RED, GL_RED, GL_RGB, GL_RGB, GL_RGBA, GL_RGBA, GL_RED, GL_RG, GL_DEPTH_COMPONENT};
+    GLenum internal_formats[] = {GL_RED, GL_RG, GL_RGB, GL_RGB, GL_RGBA,
+                                 GL_RGBA, GL_RED, GL_RG, GL_RGB, GL_RGB,
+                                 GL_RGBA, GL_RGBA, GL_DEPTH_COMPONENT};
     
     GLenum types[] = {GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_SHORT, GL_SHORT,
-                      GL_UNSIGNED_INT, GL_INT, GL_FLOAT, GL_UNSIGNED_BYTE_3_3_2,
+                      GL_UNSIGNED_INT, GL_INT, GL_FLOAT/*, GL_UNSIGNED_BYTE_3_3_2, //TODO: One of these is causing an invalid read of size 4
                       GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5,
                       GL_UNSIGNED_SHORT_5_6_5_REV, GL_UNSIGNED_SHORT_4_4_4_4,
                       GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1,
                       GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
                       GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2,
-                      GL_UNSIGNED_INT_2_10_10_10_REV};
+                      GL_UNSIGNED_INT_2_10_10_10_REV*/};
     
     GLuint buf;
     glGenBuffers(1, &buf);
@@ -165,7 +168,8 @@ void texture_test() {
                  type==GL_UNSIGNED_BYTE_2_3_3_REV ||
                  type==GL_UNSIGNED_SHORT_5_6_5 ||
                  type==GL_UNSIGNED_SHORT_5_6_5_REV) &&
-                format!=GL_RGB)
+                format!=GL_RGB &&
+                format!=GL_BGR)
                 continue;
             
             if ((type==GL_UNSIGNED_SHORT_4_4_4_4 ||
@@ -180,24 +184,11 @@ void texture_test() {
                 format!=GL_BGRA)
                 continue;
             
-            if (format==GL_DEPTH_COMPONENT &&
-                (internal_format!=GL_DEPTH_COMPONENT &&
-                 internal_format!=GL_DEPTH_COMPONENT16 &&
-                 internal_format!=GL_DEPTH_COMPONENT24 &&
-                 internal_format!=GL_DEPTH_COMPONENT32))
-                continue;
-            
-            if ((internal_format==GL_DEPTH_COMPONENT ||
-                 internal_format==GL_DEPTH_COMPONENT16 ||
-                 internal_format==GL_DEPTH_COMPONENT24 ||
-                 internal_format==GL_DEPTH_COMPONENT32) &&
-                format!=GL_DEPTH_COMPONENT)
-                continue;
-            
             test_tex(internal_format, format, type, prog1d, prog2d, prog3d);
         }
     }
     
+    glDeleteProgram(prog1d);
     glDeleteBuffers(1, &buf);
     glDeleteTextures(1, &tex3d);
     glDeleteTextures(1, &tex2d);

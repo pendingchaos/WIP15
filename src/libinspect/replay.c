@@ -137,7 +137,6 @@ void destroy_replay_context(replay_context_t* context) {
     deinit_replay_gl(context);
     
     replay_internal_t* internal = context->_internal;
-    
     for (size_t i = 0; i < ReplayObjType_Max; ++i) {
         replay_obj_t* obj = internal->objects[i];
         while (obj) {
@@ -185,18 +184,16 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
     replay_obj_t* new_obj = malloc(sizeof(replay_obj_t));
     new_obj->real = real;
     new_obj->fake = fake;
-    new_obj->next = NULL;
     
-    if (objs == NULL) {
+    if (!objs) {
         new_obj->prev = NULL;
-        internal->objects[type] = new_obj;
-    } else
-    {
-        while (objs->next)
-            objs = objs->next;
-        new_obj->prev = objs;
-        objs->next = new_obj;
+        new_obj->next = NULL;
+    } else {
+        new_obj->prev = NULL;
+        new_obj->next = objs;
     }
+    
+    internal->objects[type] = new_obj;
     
     switch (type) {
     case ReplayObjType_GLProgram:
@@ -213,21 +210,19 @@ void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64
     
     replay_obj_t* obj = internal->objects[type];
     
-    if (!obj) {
-    } else if (!obj->next && obj->fake == fake) {
-        free_obj(type, obj);
-        internal->objects[type] = NULL;
-    } else {
-        while (obj) {
-            if (obj->fake == fake) {
-                if (obj->prev) obj->prev->next = obj->next;
-                if (obj->next) obj->next->prev = obj->prev;
-                free_obj(type, obj);
-                return;
-            }
+    while (obj) {
+        if (obj->fake == fake) {
+            if (obj->prev)
+                obj->prev->next = obj->next;
+            else
+                internal->objects[type] = obj->next;
             
-            obj = obj->next;
+            if (obj->next) obj->next->prev = obj->prev;
+            free_obj(type, obj);
+            return;
         }
+        
+        obj = obj->next;
     }
 }
 

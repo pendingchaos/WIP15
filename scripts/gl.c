@@ -954,7 +954,7 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         components = 4;
         break;
     }
-    
+
     size_t final_size = 0;
     switch (type) {
     case GL_UNSIGNED_BYTE:
