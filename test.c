@@ -2,6 +2,8 @@
 #include <GL/gl.h>
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 static const float positions[] = {-1.0f, -1.0f, 0.0f,
                                    1.0f, -1.0f, 0.0f,
@@ -12,6 +14,17 @@ static const float tex_coords[] = {0.0f, 0.0f,
                                    1.0f, 0.0f,
                                    1.0f, 1.0f,
                                    0.0f, 1.0f};
+
+static const uint32_t elements[] = {0, 1, 2, 0, 3, 2};
+
+void callback(GLenum _1, GLenum _2, GLuint id, GLenum _4, GLsizei _5, const GLchar* message, void* _6) {
+    if (id == 131185) //Ignore buffer detailed info with proprietary Nvidia drivers
+        return;
+    if (id == 131218) //Ignore program/shader state performance warnings with proprietary Nvidia drivers
+        return;
+    
+    printf("%s\n", message);
+}
 
 int main(int argc, char **argv)
 {
@@ -25,9 +38,14 @@ int main(int argc, char **argv)
                                           SDL_WINDOW_OPENGL |
                                           SDL_WINDOW_SHOWN);
     
+    //TODO: This causes a segmentation fault when replaying
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    
     SDL_GLContext context = SDL_GL_CreateContext(window);
     
-    glEnable(GL_DEPTH_TEST);
+    glDebugMessageCallback((GLDEBUGPROC)&callback, NULL);
     
     GLuint texture;
     glGenTextures(1, &texture);
@@ -59,24 +77,38 @@ int main(int argc, char **argv)
     memcpy(data, tex_coords, sizeof(tex_coords));
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
+    GLuint pos_buffer;
+    glGenBuffers(1, &pos_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+    
+    GLuint element_buffer;
+    glGenBuffers(1, &element_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, element_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(elements), NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(elements), elements);
+    
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    static const char* vert_source = "#version 120\n"
-                                     "attribute vec2 texCoord;\n"
-                                     "varying vec2 frag_texCoord;\n"
+    static const char* vert_source = "#version 130\n"
+                                     "in vec2 texCoord;\n"
+                                     "in vec3 position;\n"
+                                     "in mat4 mvp;\n"
+                                     "out vec2 frag_texCoord;\n"
                                      "void main() {\n"
-                                     "    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;"
+                                     "    gl_Position = vec4(position, 1.0);"
                                      "    frag_texCoord = texCoord;\n"
                                      "}\n";
     glShaderSource(vertex, 1, &vert_source, NULL);
     glCompileShader(vertex);
     
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    static const char* frag_source = "#version 120\n"
-                                     "varying vec2 frag_texCoord;\n"
+    static const char* frag_source = "#version 130\n"
+                                     "in vec2 frag_texCoord;\n"
+                                     "out vec4 out_color;\n"
                                      "uniform vec3 color;\n"
                                      "uniform sampler2D tex;\n"
-                                     "void main() {"
-                                     "    gl_FragColor = texture2D(tex, frag_texCoord) * vec4(color, 1.0);\n"
+                                     "void main() {\n"
+                                     "    out_color = texture(tex, frag_texCoord) * vec4(color, 1.0);\n"
                                      "}\n";
     glShaderSource(fragment, 1, &frag_source, NULL);
     glCompileShader(fragment);
@@ -87,11 +119,6 @@ int main(int argc, char **argv)
     glLinkProgram(program);
     glValidateProgram(program);
     
-    float priority = 0.5f;
-    glPrioritizeTextures(1, &texture, &priority);
-    GLboolean resident;
-    glAreTexturesResident(1, &texture, &resident);
-    
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -101,44 +128,35 @@ int main(int argc, char **argv)
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10.0f);
-        
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        glTranslatef(0.0f, 0.0f, -3.0f);
-        glRotatef(45.0f, 1.0f, 0.0f, 0.0f);
-        glRotatef(45.0f, 0.0f, 0.0f, 1.0f);
-        
         glUseProgram(program);
         
         const GLfloat color[] = {1.0f, 0.0f, 0.0f};
         glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
-        //glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
         glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
         glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
                               2,
                               GL_FLOAT,
                               GL_FALSE,
                               0,
-                              tex_coords/*(const GLvoid*)0*/);
+                              (const GLvoid*)0);
         
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexPointer(3, GL_FLOAT, 0, positions);
+        glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
+        glEnableVertexAttribArray(glGetAttribLocation(program, "position"));
+        glVertexAttribPointer(glGetAttribLocation(program, "position"),
+                              3,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              0,
+                              (const GLvoid*)0);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(glGetUniformLocation(program, "tex"), 0);
         
-        static const GLuint indices[] = {0, 1, 2, 3};
-        /*GLint first = 0;
-        GLsizei count = 4;
-        glMultiDrawArrays(GL_QUADS, &first, &count, 1);*/
-        glDrawElements(GL_QUADS, 4, GL_UNSIGNED_INT, indices);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (const GLvoid*)0);
         
         SDL_GL_SwapWindow(window);
     }
@@ -147,6 +165,8 @@ int main(int argc, char **argv)
     glDeleteShader(fragment);
     glDeleteShader(vertex);
     
+    glDeleteBuffers(1, &element_buffer);
+    glDeleteBuffers(1, &pos_buffer);
     glDeleteBuffers(1, &tex_coord_buffer);
     glDeleteTextures(1, &texture);
     

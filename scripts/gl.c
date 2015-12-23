@@ -1532,15 +1532,6 @@ void glSetContextCapsWIP15();
 void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
 void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
 void glProgramAttribWIP15(GLuint program, const GLchar* name, GLuint index);
-void glClientVertexDataWIP15(GLsizei size, const GLvoid* data);
-void glClientColorDataWIP15(GLsizei size, const GLvoid* data);
-void glClientEdgeFlagDataWIP15(GLsizei size, const GLvoid* data);
-void glClientFogCoordDataWIP15(GLsizei size, const GLvoid* data);
-void glClientIndexDataWIP15(GLsizei size, const GLvoid* data);
-void glClientNormalDataWIP15(GLsizei size, const GLvoid* data);
-void glClientSecondaryColorDataWIP15(GLsizei size, const GLvoid* data);
-void glClientTextureCoordDataWIP15(GLsizei size, const GLvoid* data);
-void glClientGenericAttribDataWIP15(GLuint index, GLsizei size, const GLvoid* data);
 void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 
 static void test_fb(const char* name) {
@@ -1656,157 +1647,7 @@ void glLinkProgram(GLuint program) {
     }
 }
 
-static GLint get_vertex_size(GLint count, GLint type, GLint stride) {
-    if (stride)
-        return stride;
-    else
-        switch (type) {
-        case GL_BYTE:
-        case GL_UNSIGNED_BYTE:
-            return count;
-        case GL_SHORT:
-        case GL_UNSIGNED_SHORT:
-            return count * 2;
-        case GL_INT:
-        case GL_UNSIGNED_INT:
-        case GL_FLOAT:
-            return count * 4;
-        case GL_DOUBLE:
-            return count * 8;
-        }
-}
-
-void do_arrays(GLint vertex_count) {
-    GLint count;
-    GLint type;
-    GLint stride;
-    GLint buf;
-    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(count, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_VERTEX_ARRAY_POINTER, &data);
-        
-        glClientVertexDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(count, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_COLOR_ARRAY_POINTER, &data);
-        
-        glClientColorDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
-        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
-        
-        GLint size = sizeof(GLboolean) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_EDGE_FLAG_ARRAY_POINTER, &data);
-        
-        glClientEdgeFlagDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(1, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_FOG_COORD_ARRAY_POINTER, &data);
-        
-        glClientFogCoordDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
-        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(1, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_INDEX_ARRAY_POINTER, &data);
-        
-        glClientIndexDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
-        GLint type;
-        GLint stride;
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(3, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_NORMAL_ARRAY_POINTER, &data);
-        
-        glClientNormalDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(count, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_SECONDARY_COLOR_ARRAY_POINTER, &data);
-        
-        glClientSecondaryColorDataWIP15(size, data);
-    }
-    
-    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
-        
-        GLint size = get_vertex_size(count, type, stride) * vertex_count;
-        GLvoid* data;
-        F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, &data);
-        
-        glClientTextureCoordDataWIP15(size, data);
-    }
-    
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
-    
-    for (size_t i = 0; i < attrib_count; i++) {
-        GLint enabled;
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buf);
-        
-        if (!buf && enabled) {
-            F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &count);
-            F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
-            F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
-            
-            GLint size = get_vertex_size(count, type, stride) * vertex_count;
-            GLvoid* data;
-            F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &data);
-            
-            glClientGenericAttribDataWIP15(i, size, data);
-        }
-    }
-}
-
 void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    do_arrays(count);
-    
     gl_start(FUNC_glDrawArrays);
     gl_param_GLenum(mode, GROUP_PrimitiveType);
     gl_param_GLint(first, -1);
@@ -1818,12 +1659,6 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
 }
 
 void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primcount) {
-    GLsizei max_count = 0;
-    for (GLsizei i = 0; i < primcount; i++)
-        max_count = max_count>count[i] ? max_count : count[i];
-    
-    do_arrays(max_count);
-    
     gl_start(FUNC_glMultiDrawArrays);
     gl_param_GLenum(mode, GROUP_PrimitiveType);
     gl_param_GLint_array(primcount, first);
@@ -1835,106 +1670,26 @@ void glMultiDrawArrays(GLenum mode, GLint* first, GLsizei* count, GLsizei primco
     test_fb("glMultiDrawArrays");
 }
 
-GLuint max_uint(GLuint a, GLuint b) {
-    return a > b ? a : b;
-}
-
-GLuint min_uint(GLuint a, GLuint b) {
-    return a < b ? a : b;
-}
-
-void get_element_info(const GLvoid* indices, GLenum type, GLsizei count, GLuint* max, GLuint* min, GLuint* size, bool* client) {
-    GLint element_buf;
-    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
-    
-    void* index_data = (void*)indices;
-    if (element_buf) {
-        GLint size;
-        F(glGetBufferParameteriv)(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-        
-        index_data = malloc(size);
-        F(glGetBufferSubData)(GL_ELEMENT_ARRAY_BUFFER, 0, size, index_data);
-        
-        *client = false;
-    } else {
-        *client = true;
-    }
-    
-    switch (type) {
-    case GL_UNSIGNED_BYTE:
-        for (size_t i = 0; i < count; i++) {
-            *max = max_uint(*max, ((GLubyte*)index_data)[i]);
-            *min = min_uint(*min, ((GLubyte*)index_data)[i]);
-        }
-        *size = max_uint(*size, count);
-        break;
-    case GL_UNSIGNED_SHORT:
-        for (size_t i = 0; i < count; i++) {
-            *max = max_uint(*max, ((GLushort*)index_data)[i]);
-            *min = min_uint(*min, ((GLushort*)index_data)[i]);
-        }
-        *size = max_uint(*size, count * 2);
-        break;
-    case GL_UNSIGNED_INT:
-        for (size_t i = 0; i < count; i++) {
-            *max = max_uint(*max, ((GLuint*)index_data)[i]);
-            *min = min_uint(*min, ((GLuint*)index_data)[i]);
-        }
-        *size = max_uint(*size, count * 4);
-        break;
-    }
-    
-    if (element_buf)
-        free(index_data);
-}
-
 void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
-    GLuint min = 0, max = 0, size = 0;
-    bool client;
-    get_element_info(indices, type, count, &max, &min, &size, &client);
-    
-    do_arrays(max+1);
-    
     gl_start(FUNC_glDrawElements);
     gl_param_GLenum(mode, GROUP_PrimitiveType);
     gl_param_GLsizei(count, -1);
     gl_param_GLenum(type, -1);
-    if (client)
-        gl_param_data(size, indices);
-    else
-        gl_param_pointer(indices);
-    F(glDrawRangeElements)(mode, min, max, count, type, indices);
+    gl_param_pointer(indices);
+    F(glDrawElements)(mode, count, type, indices);
     gl_end();
     
     test_fb("glDrawElements");
 }
 
 void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const GLvoid* indices) {
-    do_arrays(end+1);
-    
-    GLint element_buf;
-    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
-    
     gl_start(FUNC_glDrawRangeElements);
     gl_param_GLenum(mode, GROUP_PrimitiveType);
     gl_param_GLuint(start, -1);
     gl_param_GLuint(end, -1);
     gl_param_GLsizei(count, -1);
     gl_param_GLenum(type, -1);
-    if (element_buf)
-        gl_param_pointer(indices);
-    else
-        switch (type) {
-        case GL_UNSIGNED_BYTE:
-            gl_param_data(count, indices);
-            break;
-        case GL_UNSIGNED_SHORT:
-            gl_param_data(count*2, indices);
-            break;
-        case GL_UNSIGNED_INT:
-            gl_param_data(count*4, indices);
-            break;
-        }
+    gl_param_pointer(indices);
     F(glDrawRangeElements)(mode, start, end, count, type, indices);
     gl_end();
     

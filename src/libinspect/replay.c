@@ -106,11 +106,6 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
         }
     }
     
-    for (size_t i = 0; i < ReplayClientArr_Max; i++)
-        ctx->client_arrays[i] = NULL;
-    ctx->generic_client_array_count = 0;
-    ctx->generic_client_arrays = NULL;
-    
     ctx->current_test_name = "Unnamed";
     
     return ctx;
@@ -130,13 +125,6 @@ void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
 }
 
 void destroy_replay_context(replay_context_t* context) {
-    for (size_t i = 0; i < context->generic_client_array_count; i++)
-        free(context->generic_client_arrays[i]);
-    free(context->generic_client_arrays);
-    
-    for (size_t i = 0; i < ReplayClientArr_Max; i++)
-        free(context->client_arrays[i]);
-    
     free(context->funcs);
     
     glXDestroyWindow(context->_display, context->_glx_drawable);

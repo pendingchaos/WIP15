@@ -1,0 +1,335 @@
+# OpenGL 4.5 Support Progress
+
+- [ ] glActiveShaderProgram
+- [x] glAttachShader
+- [ ] glBeginConditionalRender
+- [ ] glBeginQuery
+- [ ] glBeginQueryIndexed
+- [x] glBindAttribLocation
+- [x] glBindBuffer
+- [ ] glBindBufferBase
+- [ ] glBindBufferRange
+- [ ] glBindBuffersBase
+- [ ] glBindBuffersRange
+- [ ] glBindFragDataLocation
+- [ ] glBindFragDataLocationIndexed
+- [ ] glBindFramebuffer
+- [ ] glBindImageTexture
+- [ ] glBindImageTextures
+- [ ] glBindProgramPipeline
+- [ ] glBindRenderbuffer
+- [ ] glBindSampler
+- [ ] glBindSamplers
+- [ ] glBindTexture
+- [ ] glBindTextures
+- [ ] glBindTextureUnit
+- [ ] glBindTransformFeedback
+- [ ] glBindVertexArray
+- [ ] glBindVertexBuffer
+- [ ] glBindVertexBuffers
+- [ ] glBlitNamedFramebuffer
+- [x] glBufferData
+- [ ] glBufferStorage
+- [ ] glBufferSubData
+- [ ] glCheckNamedFramebufferStatus
+- [ ] glClear
+- [ ] glClearBuffer
+- [ ] glClearNamedFramebuffer
+- [ ] glClearBufferData
+- [ ] glClearBufferSubData
+- [ ] glClearNamedBufferData
+- [ ] glClearBanedBufferSubData
+- [ ] glClearTexImage
+- [ ] glClearTexSubImage
+- [ ] glClientWaitSync
+- [x] glCompileShader
+- [ ] glCompressedTexImage1D
+- [ ] glCompressedTexImage2D
+- [ ] glCompressedTexImage3D
+- [ ] glCompressedTexSubImage1D
+- [ ] glCompressedTexSubImage2D
+- [ ] glCompressedTexSubImage3D
+- [ ] glCompressedTextureSubImage1D
+- [ ] glCompressedTextureSubImage2D
+- [ ] glCompressedTextureSubImage3D
+- [ ] glCopyNamedBufferSubData
+- [ ] glCopyTextureSubImage1D
+- [ ] glCopyTextureSubImage2D
+- [ ] glCopyTextureSubImage3D
+- [ ] glCreateBuffers
+- [ ] glCreateFramebuffers
+- [x] glCreateProgram
+- [ ] glCreateProgramPipelines
+- [ ] glCreateQueries
+- [ ] glCreateRenderbuffers
+- [ ] glCreateSamplers
+- [x] glCreateShader
+- [ ] glCreateShaderProgram
+- [ ] glCreateShaderProgramv
+- [ ] glCreateTextures
+- [ ] glCreateTransformFeedbacks
+- [ ] glCreateVertexArrays
+- [ ] glDebugMessageCallback
+- [ ] glDebugMessageControl
+- [ ] glDebugMessageInsert
+- [x] glDeleteBuffers
+- [ ] glDeleteFramebuffers
+- [x] glDeleteProgram
+- [ ] glDeleteProgramPipelines
+- [x] glDeleteQueries
+- [ ] glDeleteRenderbuffers
+- [ ] glDeleteSamplers
+- [x] glDeleteShader
+- [ ] glDeleteSync
+- [x] glDeleteTextures
+- [ ] glDeleteTransformFeedbacks
+- [x] glDeleteVertexArrays
+- [ ] glDepthRangeArrayv
+- [x] glDetachShader
+- [x] glDisableVertexAttribArray
+- [ ] glDisableVertexArrayAttrib
+- [ ] glDispatchCompute
+- [ ] glDispatchComputeIndirect
+- [ ] glDrawArrays
+- [ ] glDrawArraysIndirect
+- [ ] glDrawArraysInstanced
+- [ ] glDrawArraysInstancedBaseInstance
+- [ ] glDrawBuffers
+- [ ] glDrawElements
+- [ ] glDrawElementsBaseVertex
+- [ ] glDrawElementsIndirect
+- [ ] glDrawElementsInstanced
+- [ ] glDrawElementsInstancedBaseInstance
+- [ ] glDrawElementsInstancedBaseVertex
+- [ ] glDrawElementsInstancedBaseVertexBaseInstance
+- [ ] glDrawRangeElements
+- [ ] glDrawRangeElementsBaseVertex
+- [ ] glDrawTransformFeedback
+- [ ] glDrawTransformFeedbackInstances
+- [ ] glDrawTransformFeedbackStream
+- [ ] glDrawTransformFeedbackStreamInstanced
+- [x] glEnableVertexAttribArray
+- [ ] glEnableVertexArrayAttrib
+- [ ] glEndConditionalRender
+- [ ] glEndQuery
+- [ ] glEndQueryIndexed
+- [ ] glEndTransformFeedback
+- [ ] glFramebufferRenderbuffer
+- [ ] glFramebufferTexture
+- [ ] glFramebufferTexture1D
+- [ ] glFramebufferTexture2D
+- [ ] glFramebufferTexture3D
+- [ ] glFramebufferTextureLayer
+- [x] glGenBuffers
+- [ ] glGenerateMipmap
+- [ ] glGenerateTextureMipmap
+- [ ] glGenFramebuffers
+- [ ] glGenProgramPipelines
+- [ ] glGenQueries
+- [ ] glGenRenderbuffers
+- [ ] glGenSamplers
+- [x] glGenTextures
+- [ ] glGenTransformFeedbacks
+- [ ] glGenVertexArrays
+- [ ] glGet
+- [ ] glGetActiveAtomicCounterBufferiv
+- [x] glGetActiveAttrib
+- [ ] glGetActiveSubroutineName
+- [ ] glGetActiveSubroutineUNiform
+- [x] glGetActiveUniform
+- [ ] glGetActiveUniformBlock
+- [ ] glGetActiveUniformBlockName
+- [ ] glGetActiveUniformName
+- [ ] glGetActiveUniforms
+- [x] glGetAttachedShaders
+- [x] glGetAttribLocation
+- [ ] glGetBufferParameter
+- [ ] glGetBufferPointer
+- [x] glGetBufferSubData
+- [x] glGetCompressedTexImage
+- [ ] glGetCompressedTextureImage
+- [ ] glGetCompressedTextureSubImage
+- [ ] glGetDebugMessageLog
+- [ ] glGetFragDataIndex
+- [ ] glGetFramebufferAttachmentParameter
+- [ ] glGetFramebufferParameter
+- [ ] glGetGraphicsResetStatus
+- [ ] glGetInternalformat
+- [ ] glGetMultisample
+- [ ] glGetNamedBufferParameter
+- [ ] glGetNamedBufferPointer
+- [ ] glGetNamedBufferSubData
+- [ ] glGetNamedFramebufferAttachmentParam
+- [ ] glGetNamedFramebufferParameter
+- [ ] glGetnCompressedTexImage
+- [ ] glGetnTexImage
+- [ ] glGetnUniform
+- [ ] glGetObjectLabel
+- [ ] glGetObjetPtrLabel
+- [ ] glGetPointerv
+- [x] glGetProgram
+- [ ] glGetProgramBinary
+- [x] glGetProgramInfoLog
+- [ ] glGetProgramInterface
+- [ ] glGetProgramPipeline
+- [ ] glGetProgramPipelineInfoLog
+- [ ] glGetProgramResource
+- [ ] glGetProgramResourceLocation
+- [ ] glGetProgramResourceLocationIndex
+- [ ] glGetProgramResourceName
+- [ ] glGetProgramStage
+- [ ] glGetQueryIndexed
+- [x] glGetQuery
+- [x] glGetQueryObject
+- [ ] glGetRenderbufferParameter
+- [ ] glGetSamplerParameter
+- [x] glGetShader
+- [ ] glGetShaderInfoLog
+- [ ] glGetShaderPrecisionFormat
+- [x] glGetShaderSource
+- [ ] glGetString
+- [ ] glGetSubroutineIndex
+- [ ] glgetSubroutineUniformLocation
+- [ ] glGetSync
+- [x] glGetTexImage
+- [x] glGetTexLevelParameter
+- [x] glGetTexParameter
+- [ ] glGetTextureImage
+- [ ] glGetTextureLevelParameter
+- [ ] glGetTextureParameter
+- [ ] glGetTextureSubImage
+- [ ] glGetTransformFeedback
+- [ ] glGetTransformFeedbackVarying
+- [x] glGetUniform
+- [ ] glGetUniformBlockIndex
+- [ ] glGetUniformIndices
+- [x] glGetUniformLocation
+- [ ] glGetUniformSubroutine
+- [ ] glGetVertexArrayIndex
+- [ ] glGetVertexArray
+- [x] glGetVertexAttrib
+- [x] glGetVertexAttribPointer
+- [ ] glInvalidateBufferData
+- [ ] glInvalidateBufferSubData
+- [ ] glInvalidateFramebuffer
+- [ ] glInvalidateNamedFramebuffer
+- [ ] glInvalidateNamedFramebufferData
+- [ ] glInvalidateNamedFramebufferSubData
+- [ ] glInvalidateSubFramebuffer
+- [ ] glInvalidateTexImage
+- [ ] glInvalidateTexSubImage
+- [x] glIsBuffer
+- [x] glIsFramebuffer
+- [x] glIsProgram
+- [ ] glIsProgramPipeline
+- [x] glIsQuery
+- [ ] glIsRenderbuffer
+- [ ] glIsSampler
+- [x] glIsShader
+- [ ] glIsSync
+- [x] glIsTexture
+- [ ] glIsTransformFeedback
+- [ ] glIsVertexArray
+- [x] glLinkProgram
+- [x] glMapBuffer
+- [ ] glMapBufferRange
+- [ ] glMapNamedBuffer
+- [ ] glMapNamedBufferRange
+- [x] glMultiDrawArrays
+- [ ] glMultiDrawArraysIndirect
+- [ ] glMultiDrawElements
+- [ ] glMultiDrawElementsBaseVertex
+- [ ] glNamedBufferData
+- [ ] glNamedBufferStorage
+- [ ] glNamedBufferSubData
+- [ ] glNamedFramebufferDrawBuffer
+- [ ] glNamedFramebufferDrawBuffers
+- [ ] glNamedFramebufferParameter
+- [ ] glNamedFramebufferReadBuffer
+- [ ] glNamedFramebufferRenderbuffer
+- [ ] glNamedFramebufferTexture
+- [ ] glNamedFramebufferTextureLayer
+- [ ] glNamedRenderbufferStorage
+- [ ] glNamedRenderbufferStorageMultisample
+- [ ] glObjectLabel
+- [ ] glObjectPtrLabel
+- [ ] glPatchParameter
+- [ ] glPixelStore
+- [ ] glPointParameter
+- [ ] glPopDebugGroup
+- [ ] glProgramBinary
+- [ ] glProgramparameter
+- [ ] glProgramUniform
+- [ ] glPushDebugGroup
+- [ ] glQueryCounter
+- [ ] glReadnPixels
+- [ ] glReleaseShaderCompiler
+- [ ] glRenderbufferStorage
+- [ ] glRenderbufferStorageMultisample
+- [ ] glSamplerParameter
+- [ ] glScissorArray
+- [ ] glScissorIndexed
+- [ ] glShaderBinary
+- [x] glShaderSource
+- [ ] glShaderStorageBlockBinding
+- [ ] glTexBuffer
+- [ ] glTexBufferRange
+- [ ] glTexImage1D
+- [ ] glTexImage2D
+- [ ] glTexImage2DMultisample
+- [ ] glTexImage3D
+- [ ] glTexImage3DMultisample
+- [ ] glTexParameter
+- [ ] glTexStorage1D
+- [ ] glTexStorage2D
+- [ ] glTexStorage2DMultisample
+- [ ] glTexStorage3D
+- [ ] glTexStorage3DMultisample
+- [ ] glTexSubImage1D
+- [ ] glTexSubImage2D
+- [ ] glTexSubImage3D
+- [ ] glTextureBuffer
+- [ ] glTextureBufferRange
+- [ ] glTextureParameter
+- [ ] glTextureStorage1D
+- [ ] glTextureStorage2D
+- [ ] glTextureStorage2DMultisample
+- [ ] glTextureStorage3D
+- [ ] glTextureStorage3DMultisample
+- [ ] glTextureSubImage1D
+- [ ] glTextureSubImage2D
+- [ ] glTextureSubImage3D
+- [ ] glTextureView
+- [ ] glTransformFeedbackBufferBase
+- [ ] glTransformFeedbackBufferRange
+- [ ] glTransformFeedbackVaryings
+- [ ] glUniform
+- [ ] glUniformBlockBinding
+- [ ] glUniformSubroutines
+- [x] glUnmapBuffer
+- [ ] glUnmapNamedBuffer
+- [x] glUseProgram
+- [ ] glUseProgramStages
+- [x] glValidateProgram
+- [ ] glValidateProgramPipeline
+- [ ] glVertexArrayAttribBinding
+- [ ] glVertexArrayAttribFormat
+- [ ] glVertexArrayAttribIFormat
+- [ ] glVertexArrayAttribLFormat
+- [ ] glVertexArrayBindingDivisor
+- [ ] glVertexArrayElementBuffer
+- [ ] glVertexArrayVertexBuffer
+- [ ] glVertexarrayVertexBuffers
+- [ ] glVertexAttrib
+- [ ] glVertexAttribBinding
+- [ ] glVertexAttribDivisor
+- [ ] glVertexAttribFormat
+- [ ] glVertexAttribIFormat
+- [ ] glVertexAttribIPointer
+- [ ] glVertexAttribLFormat
+- [ ] glVertexAttribLPointer
+- [ ] glVertexAttribPointer
+- [ ] glVertexBindingDivisor
+- [ ] glViewportArray
+- [ ] glViewportIndexed
+- [ ] glWaitSync

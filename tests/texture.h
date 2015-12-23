@@ -187,13 +187,6 @@ void texture_test() {
         }
     }
     
-    float priority = 0.5f;
-    glPrioritizeTextures(1, &tex1d, &priority);
-    
-    GLuint textures[] = {tex2d, tex3d};
-    float priorities[] = {0.25f, 0.75f};
-    glPrioritizeTextures(2, textures, priorities);
-    
     glDeleteLists(list1d, 1);
     glDeleteLists(list2d, 1);
     glDeleteLists(list3d, 1);

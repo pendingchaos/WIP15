@@ -697,16 +697,6 @@ static bool attrib(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
     return false;
 }
 
-static void client_array(replay_context_t* ctx, trace_command_t* cmd, replay_client_array_t array) {
-    GLsizei size = gl_param_GLsizei(cmd, 0);
-    void* data = malloc(size);
-    memcpy(data, gl_param_data(cmd, 1), size);
-    free(ctx->client_arrays[array]);
-    ctx->client_arrays[array] = data;
-}
-
-static void* old_pointers[ReplayClientArr_Max];
-
 typedef struct {
     GLint enabled;
     GLint count;
@@ -720,77 +710,6 @@ typedef struct {
 static generic_vertex_attrib_t* attribs;
 
 static void begin_draw(replay_context_t* ctx) {
-    GLint count;
-    GLint type;
-    GLint stride;
-    GLint buf;
-    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_VERTEX_ARRAY_POINTER, old_pointers+ReplayClientArr_Vertex);
-        F(glVertexPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_Vertex]);
-    }
-    
-    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_COLOR_ARRAY_POINTER, old_pointers+ReplayClientArr_Color);
-        F(glColorPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_Color]);
-    }
-    
-    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
-        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_EDGE_FLAG_ARRAY_POINTER, old_pointers+ReplayClientArr_EdgeFlag);
-        F(glEdgeFlagPointer)(stride, ctx->client_arrays[ReplayClientArr_EdgeFlag]);
-    }
-    
-    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_FOG_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_FogCoord);
-        F(glFogCoordPointer)(type, stride, ctx->client_arrays[ReplayClientArr_FogCoord]);
-    }
-    
-    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
-        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_INDEX_ARRAY_POINTER, old_pointers+ReplayClientArr_Index);
-        F(glIndexPointer)(type, stride, ctx->client_arrays[ReplayClientArr_Index]);
-    }
-    
-    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_NORMAL_ARRAY_POINTER, old_pointers+ReplayClientArr_Normal);
-        F(glNormalPointer)(type, stride, ctx->client_arrays[ReplayClientArr_Normal]);
-    }
-    
-    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_SECONDARY_COLOR_ARRAY_POINTER, old_pointers+ReplayClientArr_SecondaryColor);
-        F(glSecondaryColorPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_SecondaryColor]);
-    }
-    
-    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
-        F(glGetPointerv)(GL_TEXTURE_COORD_ARRAY_POINTER, old_pointers+ReplayClientArr_TextureCoord);
-        F(glTexCoordPointer)(count, type, stride, ctx->client_arrays[ReplayClientArr_TextureCoord]);
-    }
-    
     //TODO: This should use the limits.
     GLint attrib_count;
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
@@ -823,23 +742,13 @@ static void begin_draw(replay_context_t* ctx) {
         GLint last_buf;
         F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
         
-        if (attribs[i].buffer) {
-            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
-            F(glVertexAttribPointer)(loc,
-                                     attribs[i].count,
-                                     attribs[i].type,
-                                     attribs[i].normalized,
-                                     attribs[i].stride,
-                                     attribs[i].pointer);
-        } else {
-            F(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-            F(glVertexAttribPointer)(loc,
-                                     attribs[i].count,
-                                     attribs[i].type,
-                                     attribs[i].normalized,
-                                     attribs[i].stride,
-                                     ctx->generic_client_arrays[i]);
-        }
+        F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
+        F(glVertexAttribPointer)(loc,
+                                 attribs[i].count,
+                                 attribs[i].type,
+                                 attribs[i].normalized,
+                                 attribs[i].stride,
+                                 attribs[i].pointer);
         
         F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
@@ -860,102 +769,20 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
             F(glDisableVertexAttribArray)(i);
         
         GLint last_buf;
-        if (attribs[i].buffer) {
-            F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
-            F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
-            
-            F(glVertexAttribPointer)(i,
-                                     attribs[i].count,
-                                     attribs[i].type,
-                                     attribs[i].normalized,
-                                     attribs[i].stride,
-                                     attribs[i].pointer);
+        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+        F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
         
-            F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
-        } else {
-            F(glVertexAttribPointer)(i,
-                                     attribs[i].count,
-                                     attribs[i].type,
-                                     attribs[i].normalized,
-                                     attribs[i].stride,
-                                     attribs[i].pointer);
-        }
+        F(glVertexAttribPointer)(i,
+                                 attribs[i].count,
+                                 attribs[i].type,
+                                 attribs[i].normalized,
+                                 attribs[i].stride,
+                                 attribs[i].pointer);
+        
+        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
     
     free(attribs);
-    
-    GLint count;
-    GLint type;
-    GLint stride;
-    GLint buf;
-    F(glGetIntegerv)(GL_VERTEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_VERTEX_ARRAY)) {
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_VERTEX_ARRAY_STRIDE, &stride);
-        F(glVertexPointer)(count, type, stride, old_pointers+ReplayClientArr_Vertex);
-    }
-    
-    F(glGetIntegerv)(GL_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_COLOR_ARRAY_STRIDE, &stride);
-        F(glColorPointer)(count, type, stride, old_pointers+ReplayClientArr_Color);
-    }
-    
-    F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_EDGE_FLAG_ARRAY)) {
-        F(glGetIntegerv)(GL_EDGE_FLAG_ARRAY_STRIDE, &stride);
-        F(glEdgeFlagPointer)(stride, old_pointers+ReplayClientArr_EdgeFlag);
-    }
-    
-    F(glGetIntegerv)(GL_FOG_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_FOG_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_FOG_COORD_ARRAY_STRIDE, &stride);
-        F(glFogCoordPointer)(type, stride, old_pointers+ReplayClientArr_FogCoord);
-    }
-    
-    F(glGetIntegerv)(GL_INDEX_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_INDEX_ARRAY)) {
-        F(glGetIntegerv)(GL_INDEX_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_INDEX_ARRAY_STRIDE, &stride);
-        F(glIndexPointer)(type, stride, old_pointers+ReplayClientArr_Index);
-    }
-    
-    F(glGetIntegerv)(GL_NORMAL_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_NORMAL_ARRAY)) {
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_NORMAL_ARRAY_STRIDE, &stride);
-        F(glNormalPointer)(type, stride, old_pointers+ReplayClientArr_Normal);
-    }
-    
-    F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_SECONDARY_COLOR_ARRAY)) {
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_SECONDARY_COLOR_ARRAY_STRIDE, &stride);
-        F(glSecondaryColorPointer)(count, type, stride, old_pointers+ReplayClientArr_SecondaryColor);
-    }
-    
-    F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, &buf);
-    if (!buf && F(glIsEnabled)(GL_TEXTURE_COORD_ARRAY)) {
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_SIZE, &count);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_TYPE, &type);
-        F(glGetIntegerv)(GL_TEXTURE_COORD_ARRAY_STRIDE, &stride);
-        F(glTexCoordPointer)(count, type, stride, old_pointers+ReplayClientArr_TextureCoord);
-    }
-    
-    for (size_t i = 0; i < ReplayClientArr_Max; i++) {
-        free(ctx->client_arrays[i]);
-        ctx->client_arrays[i] = NULL;
-    }
-    
-    for (size_t i = 0; i < ctx->generic_client_array_count; i++) {
-        free(ctx->generic_client_arrays[i]);
-        ctx->generic_client_arrays[i] = NULL;
-    }
 }
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {

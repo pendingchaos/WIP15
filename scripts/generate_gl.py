@@ -5,10 +5,8 @@ import glxml
 dont_implement = ["glUnmapBuffer", "glLinkProgram", "glDrawArrays",
                   "glMultiDrawArrays", "glDrawElements", "glDrawRangeElements"]
 fb_commands = ["glDrawArrays", "glDrawElements", "glMultiDrawArrays",
-               "glMultiDrawElements", "glDrawRangeElements", "glEnd",
-               "glClear", "glRectd", "glRectd", "glRecti", "glRects",
-               "glRectdv", "glRectfv", "glRectiv", "glRectsv",
-               "glCallList", "glCallLists", "glXSwapBuffers", "glEndList"]
+               "glMultiDrawElements", "glDrawRangeElements",
+               "glClear", "glXSwapBuffers"]
 
 gl = glxml.GL(False)
 
