@@ -23,10 +23,27 @@ void (*glCurrentTestWIP15)(const GLchar*);
 
 void null_current_test(const GLchar* name) {}
 
+GLuint create_program(const char* vert, const char* frag) {
+    GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex, 1, &vert, NULL);
+    glCompileShader(vertex);
+    
+    GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment, 1, &frag, NULL);
+    glCompileShader(fragment);
+    
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex);
+    glAttachShader(program, fragment);
+    glLinkProgram(program);
+    glValidateProgram(program);
+    
+    return program;
+}
+
 #include "draw.h"
 #include "buffer.h"
 #include "texture.h"
-#include "shader.h"
 
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -38,7 +55,7 @@ int main(int argc, char** argv) {
                                           SDL_WINDOW_OPENGL |
                                           SDL_WINDOW_SHOWN);
     
-    void (*tests[])() = {&draw_test, &buffer_test, &texture_test, &shader_test};
+    void (*tests[])() = {&draw_test, &buffer_test, &texture_test};
     
     for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
         SDL_GLContext context = SDL_GL_CreateContext(window);

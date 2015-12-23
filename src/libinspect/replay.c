@@ -40,7 +40,7 @@ typedef struct replay_obj_t {
 } replay_obj_t;
 
 typedef struct {
-    replay_obj_t *objects[22];
+    replay_obj_t *objects[ReplayObjType_Max];
     Window window;
 } replay_internal_t;
 
@@ -51,7 +51,7 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     ctx->inspection = inspection;
     ctx->_current_context = NULL;
     
-    for (size_t i = 0; i < 22; ++i)
+    for (size_t i = 0; i < ReplayObjType_Max; ++i)
         internal->objects[i] = NULL;
     ctx->_internal = internal;
     
@@ -138,7 +138,7 @@ void destroy_replay_context(replay_context_t* context) {
     
     replay_internal_t* internal = context->_internal;
     
-    for (size_t i = 0; i < 22; ++i) {
+    for (size_t i = 0; i < ReplayObjType_Max; ++i) {
         replay_obj_t* obj = internal->objects[i];
         while (obj) {
             replay_obj_t* next = obj->next;
@@ -269,8 +269,6 @@ void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uin
 }
 
 void replay(replay_context_t* ctx) {
-    ctx->_in_begin_end = false;
-    
     for (size_t i = 0; i < ctx->inspection->frame_count; ++i) {
         inspect_frame_t* frame = ctx->inspection->frames + i;
         for (size_t j = 0; j < frame->command_count; ++j) {

@@ -274,10 +274,10 @@
 - [ ] glShaderStorageBlockBinding
 - [ ] glTexBuffer
 - [ ] glTexBufferRange
-- [ ] glTexImage1D
-- [ ] glTexImage2D
+- [x] glTexImage1D
+- [x] glTexImage2D
 - [ ] glTexImage2DMultisample
-- [ ] glTexImage3D
+- [x] glTexImage3D
 - [ ] glTexImage3DMultisample
 - [ ] glTexParameter
 - [ ] glTexStorage1D
@@ -285,9 +285,9 @@
 - [ ] glTexStorage2DMultisample
 - [ ] glTexStorage3D
 - [ ] glTexStorage3DMultisample
-- [ ] glTexSubImage1D
-- [ ] glTexSubImage2D
-- [ ] glTexSubImage3D
+- [x] glTexSubImage1D
+- [x] glTexSubImage2D
+- [x] glTexSubImage3D
 - [ ] glTextureBuffer
 - [ ] glTextureBufferRange
 - [ ] glTextureParameter

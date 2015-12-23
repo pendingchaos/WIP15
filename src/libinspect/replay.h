@@ -17,17 +17,12 @@ typedef enum {
     ReplayObjType_GLProgramPipeline,
     ReplayObjType_GLShader,
     ReplayObjType_GLVAO,
-    ReplayObjType_GLDisplayList,
+    ReplayObjType_TransformFeedback,
     ReplayObjType_GLeglImageOES,
-    ReplayObjType_GLvdpauSurfaceNV,
-    ReplayObjType_GLXVideoDeviceNV,
     ReplayObjType_GLXFBConfig,
-    ReplayObjType_GLXVideoCaptureDeviceNV,
-    ReplayObjType_GLXFBConfigSGIX,
-    ReplayObjType_GLXPbufferSGIX,
-    ReplayObjType_GLXVideoSourceSGIX,
     ReplayObjType_GLXContext,
-    ReplayObjType_XID
+    ReplayObjType_XID,
+    ReplayObjType_Max
 } replay_obj_type_t;
 
 typedef struct replay_context_t replay_context_t;
@@ -46,7 +41,6 @@ struct replay_context_t {
     replay_func_t* funcs;
     inspection_t* inspection;
     void* _current_context;
-    bool _in_begin_end;
     const char* current_test_name;
 };
 

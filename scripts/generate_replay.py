@@ -398,7 +398,7 @@ static void debug_callback(GLenum source,
 }
 
 static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd) {
-    if (!ctx->_in_begin_end && F(glReadPixels)) {
+    if (F(glReadPixels)) {
         F(glFinish)();
         
         GLint last_buf;
@@ -416,7 +416,7 @@ static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd)
 }
 
 static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd) {
-    if (!ctx->_in_begin_end && F(glReadPixels)) {
+    if (F(glReadPixels)) {
         F(glFinish)();
         
         GLint last_buf;
@@ -434,7 +434,7 @@ static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd
 }
 
 static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
-    if (!ctx->_in_begin_end && F(glReadPixels)) {
+    if (F(glReadPixels)) {
         F(glFinish)();
         
         GLint last_buf;
@@ -786,21 +786,19 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
 }
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
-    if (!ctx->_in_begin_end) {
-        if (F(glDebugMessageCallback)) {
-            F(glEnable)(GL_DEBUG_OUTPUT);
-            F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            F(glDebugMessageCallback)(debug_callback, cmd);
-            F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-        } else if (F(glDebugMessageCallbackARB)) {
-            F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            F(glDebugMessageCallbackARB)(debug_callback, cmd);
-            //TODO: glDebugMessageControlARB
-        }
-        
-        if (F(glGetError))
-            F(glGetError)();
+    if (F(glDebugMessageCallback)) {
+        F(glEnable)(GL_DEBUG_OUTPUT);
+        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        F(glDebugMessageCallback)(debug_callback, cmd);
+        F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+    } else if (F(glDebugMessageCallbackARB)) {
+        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        F(glDebugMessageCallbackARB)(debug_callback, cmd);
+        //TODO: glDebugMessageControlARB
     }
+    
+    if (F(glGetError))
+        F(glGetError)();
 }
 """)
 
@@ -808,9 +806,8 @@ output.write("""
 static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
     
-    if (ctx->_current_context)
-        if (F(glGetError) && !ctx->_in_begin_end)
-            error = F(glGetError)();
+    if (ctx->_current_context && F(glGetError))
+        error = F(glGetError)();
     
     switch (error) {
     case GL_NO_ERROR: {
@@ -854,7 +851,7 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
     }
     }
     
-    if (!ctx->_in_begin_end && F(glGetIntegerv)) {
+    if (F(glGetIntegerv)) {
 """)
 
 
