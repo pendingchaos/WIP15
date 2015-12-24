@@ -85,6 +85,26 @@ typedef struct {
 } inspect_program_t;
 TYPED_VEC(inspect_program_t, inspect_prog)
 
+typedef struct {
+    unsigned int index;
+    bool enabled;
+    bool normalized;
+    bool integer;
+    unsigned int size;
+    unsigned int stride;
+    unsigned int offset;
+    unsigned int type;
+    unsigned int divisor;
+    unsigned int buffer;
+} inspect_vertex_attrib_t;
+
+typedef struct {
+    unsigned int fake;
+    size_t attrib_count;
+    inspect_vertex_attrib_t* attribs;
+} inspect_vao_t;
+TYPED_VEC(inspect_vao_t, inspect_vao)
+
 struct inspection_t;
 typedef struct {
     struct inspection_t* inspection;
@@ -92,6 +112,7 @@ typedef struct {
     inspect_buf_vec_t buffers;
     inspect_shdr_vec_t shaders;
     inspect_prog_vec_t programs;
+    inspect_vao_vec_t vaos;
 } inspector_t;
 
 struct inspect_action_t;
@@ -150,10 +171,12 @@ int inspect_find_tex(inspector_t* inspector, unsigned int tex);
 int inspect_find_buf(inspector_t* inspector, unsigned int buf);
 int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
 int inspect_find_prog(inspector_t* inspector, unsigned int prog);
+int inspect_find_vao(inspector_t* inspector, unsigned int vao);
 
 //NULL if it could not be found
 inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake);
 inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake);
 inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fake);
 inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake);
+inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake);
 #endif

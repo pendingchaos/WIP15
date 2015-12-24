@@ -20,4 +20,7 @@ void inspect_act_detach_shdr(inspect_gl_state_t* state, unsigned int prog, unsig
 void inspect_act_set_shdr_info_log(inspect_gl_state_t* state, unsigned int id, const char* info_log);
 void inspect_act_set_prog_info_log(inspect_gl_state_t* state, unsigned int id, const char* info_log);
 void inspect_act_add_prog_uniform(inspect_gl_state_t* state, unsigned int id, unsigned int fake, unsigned int real);
+void inspect_act_gen_vao(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_del_vao(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t count, inspect_vertex_attrib_t* attribs);
 #endif

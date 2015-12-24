@@ -299,6 +299,44 @@ static void apply_set_prog_info_log(inspector_t* inspector, inspect_action_t* ac
     memcpy(prog->info_log, info_log, len+1);
 }
 
+static void apply_gen_vao(inspector_t* inspector, inspect_action_t* action) {
+    inspect_vao_t vao;
+    vao.fake = action->obj;
+    vao.attrib_count = 0;
+    vao.attribs = NULL;
+    append_inspect_vao_vec(inspector->vaos, &vao);
+}
+
+static void apply_del_vao(inspector_t* inspector, inspect_action_t* action) {
+    inspect_vao_t* vao = inspect_find_vao_ptr(inspector, action->obj);
+    if (!vao)
+        return;
+    
+    free(vao->attribs);
+    
+    size_t index = vao - get_inspect_vao_vec_data(inspector->vaos);
+    remove_inspect_vao_vec(inspector->vaos, index, 1);
+}
+
+typedef struct {
+    unsigned int vao;
+    size_t count;
+} set_vao_t;
+
+static void apply_set_vao(inspector_t* inspector, inspect_action_t* action) {
+    set_vao_t* data = action->data;
+    inspect_vertex_attrib_t* attribs = (inspect_vertex_attrib_t*)data+1;
+    
+    inspect_vao_t* vao = inspect_find_vao_ptr(inspector, data->vao);
+    if (!vao)
+        return;
+    
+    free(vao->attribs);
+    vao->attrib_count = data->count;
+    vao->attribs = malloc(data->count*sizeof(inspect_vertex_attrib_t));
+    memcpy(vao->attribs, attribs, data->count*sizeof(inspect_vertex_attrib_t));
+}
+
 static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
@@ -488,5 +526,34 @@ void inspect_act_set_prog_info_log(inspect_gl_state_t* state, unsigned int id, c
     action.apply_func = &apply_set_prog_info_log;
     action.free_func = &simple_free;
     action.data = data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_gen_vao(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_gen_vao;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_del_vao(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_del_vao;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t count, inspect_vertex_attrib_t* attribs) {
+    set_vao_t* act_data = malloc(sizeof(set_vao_t) + count*sizeof(inspect_vertex_attrib_t));
+    act_data->vao = id;
+    act_data->count = count;
+    memcpy(act_data+1, attribs, count*sizeof(inspect_vertex_attrib_t));
+    
+    inspect_action_t action;
+    action.apply_func = &apply_set_vao;
+    action.free_func = &simple_free;
+    action.data = act_data;
     append_inspect_act_vec(state->actions, &action);
 }

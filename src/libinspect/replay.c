@@ -231,7 +231,7 @@ void replay(replay_context_t* ctx) {
                                    SDL_WINDOWPOS_UNDEFINED,
                                    100,
                                    100,
-                                   SDL_WINDOW_HIDDEN |
+                                   SDL_WINDOW_SHOWN | //TODO: For some reason SDL_WINDOW_HIDDEN messes up the viewport and framebuffer display
                                    SDL_WINDOW_OPENGL);
     if (!ctx->window) {
         fprintf(stderr, "Unable to create a window: %sn", SDL_GetError()); //TODO: Handle

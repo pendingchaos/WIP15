@@ -704,6 +704,7 @@ typedef struct {
     GLint normalized;
     GLint stride;
     GLint buffer;
+    GLint divisor;
     void* pointer;
 } generic_vertex_attrib_t;
 
@@ -726,6 +727,7 @@ static void begin_draw(replay_context_t* ctx) {
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
         F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
     }
     
@@ -749,6 +751,7 @@ static void begin_draw(replay_context_t* ctx) {
                                  attribs[i].normalized,
                                  attribs[i].stride,
                                  attribs[i].pointer);
+        F(glVertexAttribDivisor)(loc, attribs[i].divisor); //TODO: It should only do this if it's supported
         
         F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
@@ -778,6 +781,7 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
                                  attribs[i].normalized,
                                  attribs[i].stride,
                                  attribs[i].pointer);
+        F(glVertexAttribDivisor)(i, attribs[i].divisor); //TODO: It should only do this if it's supported
         
         F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
@@ -799,6 +803,52 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
     
     if (F(glGetError))
         F(glGetError)();
+}
+
+void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status)
+        inspect_add_error(inspect_command, "Program not successfully linked.");
+}
+
+void update_vao(replay_context_t* ctx, inspect_command_t* inspect_command) {
+    //TODO: This should use the limits
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    inspect_vertex_attrib_t attribs[attrib_count];
+    for (size_t i = 0; i < attrib_count; i++) {
+        GLint enabled, size, type, normalized, stride, buffer, divisor;
+        void* pointer;
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor); //TODO: It should only do this if it's supported
+        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+        attribs[i].enabled = enabled;
+        attribs[i].size = size;
+        attribs[i].type = type;
+        attribs[i].normalized = normalized;
+        attribs[i].stride = stride;
+        attribs[i].buffer = buffer;
+        attribs[i].divisor = divisor;
+        attribs[i].offset = (size_t)pointer;
+    }
+    
+    GLint vao;
+    F(glGetIntegerv)(GL_VERTEX_ARRAY_BINDING, &vao);
+    
+    inspect_act_set_vao(&inspect_command->state, vao, attrib_count, attribs);
 }
 """)
 

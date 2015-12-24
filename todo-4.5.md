@@ -32,7 +32,7 @@
 - [ ] glBufferStorage
 - [ ] glBufferSubData
 - [ ] glCheckNamedFramebufferStatus
-- [ ] glClear
+- [x] glClear
 - [ ] glClearBuffer
 - [ ] glClearNamedFramebuffer
 - [ ] glClearBufferData
@@ -155,8 +155,8 @@
 - [ ] glGetFramebufferAttachmentParameter
 - [ ] glGetFramebufferParameter
 - [ ] glGetGraphicsResetStatus
-- [ ] glGetInternalformat
-- [ ] glGetMultisample
+- [x] glGetInternalformat
+- [x] glGetMultisample
 - [ ] glGetNamedBufferParameter
 - [ ] glGetNamedBufferPointer
 - [ ] glGetNamedBufferSubData
@@ -164,7 +164,7 @@
 - [ ] glGetNamedFramebufferParameter
 - [ ] glGetnCompressedTexImage
 - [ ] glGetnTexImage
-- [ ] glGetnUniform
+- [x] glGetnUniform
 - [ ] glGetObjectLabel
 - [ ] glGetObjetPtrLabel
 - [ ] glGetPointerv
@@ -259,7 +259,7 @@
 - [ ] glPointParameter
 - [ ] glPopDebugGroup
 - [ ] glProgramBinary
-- [ ] glProgramparameter
+- [ ] glProgramParameter
 - [ ] glProgramUniform
 - [ ] glPushDebugGroup
 - [ ] glQueryCounter

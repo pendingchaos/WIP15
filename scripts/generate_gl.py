@@ -65,7 +65,17 @@ for name in gl.functions:
             params.append("%s" % (param.type_))
     
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
-    output.write("%s_t gl_%s;\n" % (name, name))
+    output.write("static %s_t gl_%s;\n" % (name, name))
+
+output.write("""
+static void reset_gl() {
+""")
+
+for name in gl.functions:
+    if not name.startswith("glX"):
+        output.write("    gl_%s=NULL;\n" % (name))
+
+output.write("}\n\n")
 
 output.write(open("gl.c", "r").read())
 

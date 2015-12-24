@@ -12653,6 +12653,7 @@ typedef struct {
     GLint normalized;
     GLint stride;
     GLint buffer;
+    GLint divisor;
     void* pointer;
 } generic_vertex_attrib_t;
 
@@ -12675,6 +12676,7 @@ static void begin_draw(replay_context_t* ctx) {
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
         F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
     }
     
@@ -12698,6 +12700,7 @@ static void begin_draw(replay_context_t* ctx) {
                                  attribs[i].normalized,
                                  attribs[i].stride,
                                  attribs[i].pointer);
+        F(glVertexAttribDivisor)(loc, attribs[i].divisor); //TODO: It should only do this if it's supported
         
         F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
@@ -12727,6 +12730,7 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
                                  attribs[i].normalized,
                                  attribs[i].stride,
                                  attribs[i].pointer);
+        F(glVertexAttribDivisor)(i, attribs[i].divisor); //TODO: It should only do this if it's supported
         
         F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     }
@@ -12748,6 +12752,52 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
     
     if (F(glGetError))
         F(glGetError)();
+}
+
+void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status)
+        inspect_add_error(inspect_command, "Program not successfully linked.");
+}
+
+void update_vao(replay_context_t* ctx, inspect_command_t* inspect_command) {
+    //TODO: This should use the limits
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    inspect_vertex_attrib_t attribs[attrib_count];
+    for (size_t i = 0; i < attrib_count; i++) {
+        GLint enabled, size, type, normalized, stride, buffer, divisor;
+        void* pointer;
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor); //TODO: It should only do this if it's supported
+        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+        attribs[i].enabled = enabled;
+        attribs[i].size = size;
+        attribs[i].type = type;
+        attribs[i].normalized = normalized;
+        attribs[i].stride = stride;
+        attribs[i].buffer = buffer;
+        attribs[i].divisor = divisor;
+        attribs[i].offset = (size_t)pointer;
+    }
+    
+    GLint vao;
+    F(glGetIntegerv)(GL_VERTEX_ARRAY_BINDING, &vao);
+    
+    inspect_act_set_vao(&inspect_command->state, vao, attrib_count, attribs);
 }
 
 static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
@@ -14122,7 +14172,8 @@ void replay_glGetMultisamplefv(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glGetMultisamplefv", inspect_command);
     glGetMultisamplefv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetMultisamplefv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLfloat  *)gl_param_pointer(command, 2));
+    ;
+
 replay_end_cmd(ctx, "glGetMultisamplefv", inspect_command);
 }
 
@@ -15035,6 +15086,8 @@ void replay_glDeleteVertexArrays(replay_context_t* ctx, trace_command_t* command
     for (size_t i = 0; i < n; ++i)
         if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i])))
             inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
+        else
+            inspect_act_del_vao(&inspect_command->state, fake[i]);
     
     real(n, arrays);
 
@@ -15321,10 +15374,7 @@ void replay_glGetUniformfv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glGetUniformfv", inspect_command);
     glGetUniformfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformfv;
     do {(void)sizeof((real));} while (0);
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program)
-        inspect_add_error(inspect_command, "Invalid program.");
+    get_uniform(ctx, inspect_command, command);
 
 replay_end_cmd(ctx, "glGetUniformfv", inspect_command);
 }
@@ -15337,7 +15387,8 @@ void replay_glGetUniformuiv(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetUniformuiv", inspect_command);
     glGetUniformuiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformuiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLuint  *)gl_param_pointer(command, 2));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetUniformuiv", inspect_command);
 }
 
@@ -19125,7 +19176,8 @@ void replay_glGetnUniformfv(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetnUniformfv", inspect_command);
     glGetnUniformfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetnUniformfv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLfloat  *)gl_param_pointer(command, 3));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetnUniformfv", inspect_command);
 }
 
@@ -20174,7 +20226,8 @@ void replay_glGetUniformdv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glGetUniformdv", inspect_command);
     glGetUniformdv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformdv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLdouble  *)gl_param_pointer(command, 2));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetUniformdv", inspect_command);
 }
 
@@ -23735,6 +23788,7 @@ void replay_glDisableVertexAttribArray(replay_context_t* ctx, trace_command_t* c
     glDisableVertexAttribArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDisableVertexAttribArray;
     do {(void)sizeof((real));} while (0);
     real(gl_param_GLint(command, 0));
+    update_vao(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glDisableVertexAttribArray", inspect_command);
 }
@@ -24068,7 +24122,8 @@ void replay_glGetnUniformdv(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetnUniformdv", inspect_command);
     glGetnUniformdv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetnUniformdv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLdouble  *)gl_param_pointer(command, 3));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetnUniformdv", inspect_command);
 }
 
@@ -27310,10 +27365,7 @@ void replay_glGetUniformiv(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glGetUniformiv", inspect_command);
     glGetUniformiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformiv;
     do {(void)sizeof((real));} while (0);
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program)
-        inspect_add_error(inspect_command, "Invalid program.");
+    get_uniform(ctx, inspect_command, command);
 
 replay_end_cmd(ctx, "glGetUniformiv", inspect_command);
 }
@@ -28440,7 +28492,8 @@ void replay_glGetnUniformuiv(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glGetnUniformuiv", inspect_command);
     glGetnUniformuiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetnUniformuiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLuint  *)gl_param_pointer(command, 3));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetnUniformuiv", inspect_command);
 }
 
@@ -39965,6 +40018,9 @@ replay_begin_cmd(ctx, "glXCreateContext", inspect_command);
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
+    
+    //TODO: This is a bit of a hack
+    inspect_act_gen_vao(&inspect_command->state, 0);
 
 replay_end_cmd(ctx, "glXCreateContext", inspect_command);
 }
@@ -40849,8 +40905,10 @@ void replay_glGenVertexArrays(replay_context_t* ctx, trace_command_t* command, i
     
     real(n, arrays);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLVAO, arrays[i], fake[i]);
+        inspect_act_gen_vao(&inspect_command->state, fake[i]);
+    }
 
 replay_end_cmd(ctx, "glGenVertexArrays", inspect_command);
 }
@@ -42741,6 +42799,7 @@ void replay_glVertexAttribPointer(replay_context_t* ctx, trace_command_t* comman
          gl_param_GLboolean(command, 3),
          gl_param_GLsizei(command, 4),
          (const GLvoid*)gl_param_pointer(command, 5));
+    update_vao(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glVertexAttribPointer", inspect_command);
 }
@@ -45843,6 +45902,7 @@ void replay_glEnableVertexAttribArray(replay_context_t* ctx, trace_command_t* co
     glEnableVertexAttribArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glEnableVertexAttribArray;
     do {(void)sizeof((real));} while (0);
     real(gl_param_GLint(command, 0));
+    update_vao(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glEnableVertexAttribArray", inspect_command);
 }
@@ -46313,7 +46373,10 @@ void replay_glDrawableSizeWIP15(replay_context_t* ctx, trace_command_t* command,
     if (h < 0)
         h = 100;
     
-    //SDL_SetWindowSize(ctx->window, w, h);
+    SDL_SetWindowSize(ctx->window, w, h);
+    
+    //TODO: This is a hack
+    F(glViewport)(0, 0, w, h);
 
 replay_end_cmd(ctx, "glDrawableSizeWIP15", inspect_command);
 }
@@ -46846,7 +46909,8 @@ void replay_glGetnUniformiv(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetnUniformiv", inspect_command);
     glGetnUniformiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetnUniformiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLint  *)gl_param_pointer(command, 3));
+    get_uniform(ctx, inspect_command, command);
+
 replay_end_cmd(ctx, "glGetnUniformiv", inspect_command);
 }
 

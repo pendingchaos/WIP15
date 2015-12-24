@@ -597,18 +597,6 @@ glDeleteQueries:
     
     real(n, queries);
 
-glGetUniformfv:
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program)
-        inspect_add_error(inspect_command, "Invalid program.");
-
-glGetUniformiv:
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program)
-        inspect_add_error(inspect_command, "Invalid program.");
-
 glGetAttribLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     const GLchar* name = gl_param_string(command, 1);
@@ -1186,12 +1174,15 @@ glVertexAttribPointer:
          gl_param_GLboolean(command, 3),
          gl_param_GLsizei(command, 4),
          (const GLvoid*)gl_param_pointer(command, 5));
+    update_vao(ctx, inspect_command);
 
 glEnableVertexAttribArray:
     real(gl_param_GLint(command, 0));
+    update_vao(ctx, inspect_command);
 
 glDisableVertexAttribArray:
     real(gl_param_GLint(command, 0));
+    update_vao(ctx, inspect_command);
 
 glDrawArrays:
     begin_draw(ctx);
@@ -1300,8 +1291,10 @@ glGenVertexArrays:
     
     real(n, arrays);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLVAO, arrays[i], fake[i]);
+        inspect_act_gen_vao(&inspect_command->state, fake[i]);
+    }
 
 glDeleteVertexArrays:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -1311,6 +1304,8 @@ glDeleteVertexArrays:
     for (size_t i = 0; i < n; ++i)
         if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i])))
             inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
+        else
+            inspect_act_del_vao(&inspect_command->state, fake[i]);
     
     real(n, arrays);
 
@@ -1350,3 +1345,49 @@ glDrawableSizeWIP15:
         h = 100;
     
     SDL_SetWindowSize(ctx->window, w, h);
+    
+    //TODO: This is a hack
+    F(glViewport)(0, 0, w, h);
+
+glGetUniformfv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetUniformiv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetUniformuiv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetUniformdv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetnUniformfv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetnUniformiv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetnUniformuiv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetnUniformdv:
+    get_uniform(ctx, inspect_command, command);
+
+glGetMultisamplefv:
+    ;
+
+glGetInternalFormativ:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum internalformat = gl_param_GLenum(command, 1);
+    GLenum pname = gl_param_Glenum(command, 2);
+    GLsizei bufSize = gl_param_GLsizei(command, 3);
+    GLubyte params[bufSize];
+    real(target, internalformat, pname, bufSize, params);
+
+glGetInternalFormati64v:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum internalformat = gl_param_GLenum(command, 1);
+    GLenum pname = gl_param_Glenum(command, 2);
+    GLsizei bufSize = gl_param_GLsizei(command, 3);
+    GLubyte params[bufSize];
+    real(target, internalformat, pname, bufSize, params);
