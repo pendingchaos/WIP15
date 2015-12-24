@@ -171,6 +171,8 @@ for name in gl.functions:
     if name in fb_commands:
         output.write("if (test_mode && current_limits) test_fb(\"%s\");\n" % (name))
     
+    output.write("update_drawable_size();")
+    
     if function.returnType != "void":
         output.write("return result;")
     

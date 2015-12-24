@@ -3210,6 +3210,7 @@ typedef void (*glGetCompressedTextureImageEXT_t)(GLuint, GLenum, GLint, void *);
 typedef void (*glXCopyBufferSubDataNV_t)(Display  *, GLXContext, GLXContext, GLenum, GLenum, GLintptr, GLintptr, GLsizeiptr);
 typedef void (*glIndexMaterialEXT_t)(GLenum, GLenum);
 typedef void (*glVertexAttribLPointerEXT_t)(GLuint, GLint, GLenum, GLsizei, const void *);
+typedef void (*glDrawableSizeWIP15_t)(GLsizei, GLsizei);
 typedef void (*glFogCoorddEXT_t)(GLdouble);
 typedef void (*glTexCoord2hvNV_t)(const  GLhalfNV  *);
 typedef void (*glFramebufferTexture2DEXT_t)(GLenum, GLenum, GLenum, GLuint, GLint);
@@ -6128,6 +6129,7 @@ typedef struct {
     glXCopyBufferSubDataNV_t real_glXCopyBufferSubDataNV;
     glIndexMaterialEXT_t real_glIndexMaterialEXT;
     glVertexAttribLPointerEXT_t real_glVertexAttribLPointerEXT;
+    glDrawableSizeWIP15_t real_glDrawableSizeWIP15;
     glFogCoorddEXT_t real_glFogCoorddEXT;
     glTexCoord2hvNV_t real_glTexCoord2hvNV;
     glFramebufferTexture2DEXT_t real_glFramebufferTexture2DEXT;
@@ -12353,10 +12355,14 @@ static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd)
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_BACK);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.back.width = 100;
-        cmd->state.back.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        fflush(stdout);
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.back.width = w;
+        cmd->state.back.height = h;
         cmd->state.back.data = data;
         
         F(glReadBuffer)(last_buf);
@@ -12371,10 +12377,13 @@ static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_FRONT);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.front.width = 100;
-        cmd->state.front.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.front.width = w;
+        cmd->state.front.height = h;
         cmd->state.front.data = data;
         
         F(glReadBuffer)(last_buf);
@@ -12389,10 +12398,13 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_BACK);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
-        cmd->state.depth.width = 100;
-        cmd->state.depth.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
+        cmd->state.depth.width = w;
+        cmd->state.depth.height = h;
         cmd->state.depth.data = data;
         
         F(glReadBuffer)(last_buf);
@@ -46285,6 +46297,27 @@ void replay_glVertexAttribLPointerEXT(replay_context_t* ctx, trace_command_t* co
 replay_end_cmd(ctx, "glVertexAttribLPointerEXT", inspect_command);
 }
 
+void replay_glDrawableSizeWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
+    if (!ctx->_current_context) {
+        inspect_add_error(inspect_command, "No current OpenGL context.");
+        return;
+    }
+    replay_begin_cmd(ctx, "glDrawableSizeWIP15", inspect_command);
+    glDrawableSizeWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawableSizeWIP15;
+    do {(void)sizeof((real));} while (0);
+    GLsizei w = gl_param_GLsizei(command, 0);
+    GLsizei h = gl_param_GLsizei(command, 1);
+    
+    if (w < 0)
+        w = 100;
+    if (h < 0)
+        h = 100;
+    
+    //SDL_SetWindowSize(ctx->window, w, h);
+
+replay_end_cmd(ctx, "glDrawableSizeWIP15", inspect_command);
+}
+
 void replay_glFogCoorddEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -51705,6 +51738,7 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetCompressedTextureImageEXT = NULL;
     funcs->real_glIndexMaterialEXT = NULL;
     funcs->real_glVertexAttribLPointerEXT = NULL;
+    funcs->real_glDrawableSizeWIP15 = NULL;
     funcs->real_glFogCoorddEXT = NULL;
     funcs->real_glTexCoord2hvNV = NULL;
     funcs->real_glFramebufferTexture2DEXT = NULL;
@@ -54496,6 +54530,7 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetCompressedTextureImageEXT = (glGetCompressedTextureImageEXT_t)glXGetProcAddress((const GLubyte*)"glGetCompressedTextureImageEXT");
     funcs->real_glIndexMaterialEXT = (glIndexMaterialEXT_t)glXGetProcAddress((const GLubyte*)"glIndexMaterialEXT");
     funcs->real_glVertexAttribLPointerEXT = (glVertexAttribLPointerEXT_t)glXGetProcAddress((const GLubyte*)"glVertexAttribLPointerEXT");
+    funcs->real_glDrawableSizeWIP15 = (glDrawableSizeWIP15_t)glXGetProcAddress((const GLubyte*)"glDrawableSizeWIP15");
     funcs->real_glFogCoorddEXT = (glFogCoorddEXT_t)glXGetProcAddress((const GLubyte*)"glFogCoorddEXT");
     funcs->real_glTexCoord2hvNV = (glTexCoord2hvNV_t)glXGetProcAddress((const GLubyte*)"glTexCoord2hvNV");
     funcs->real_glFramebufferTexture2DEXT = (glFramebufferTexture2DEXT_t)glXGetProcAddress((const GLubyte*)"glFramebufferTexture2DEXT");

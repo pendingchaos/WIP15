@@ -406,10 +406,14 @@ static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd)
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_BACK);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.back.width = 100;
-        cmd->state.back.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        fflush(stdout);
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.back.width = w;
+        cmd->state.back.height = h;
         cmd->state.back.data = data;
         
         F(glReadBuffer)(last_buf);
@@ -424,10 +428,13 @@ static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_FRONT);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.front.width = 100;
-        cmd->state.front.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        cmd->state.front.width = w;
+        cmd->state.front.height = h;
         cmd->state.front.data = data;
         
         F(glReadBuffer)(last_buf);
@@ -442,10 +449,13 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         F(glReadBuffer)(GL_BACK);
         
-        void* data = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
-        cmd->state.depth.width = 100;
-        cmd->state.depth.height = 100;
+        int w, h;
+        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+        
+        void* data = malloc(w*h*4);
+        F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
+        cmd->state.depth.width = w;
+        cmd->state.depth.height = h;
         cmd->state.depth.data = data;
         
         F(glReadBuffer)(last_buf);

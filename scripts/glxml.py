@@ -104,6 +104,11 @@ class GL:
         glCurrentTestWIP15.params.append(FunctionParam("const GLchar*", "name"))
         self.functions["glCurrentTestWIP15"] = glCurrentTestWIP15
         
+        glDrawableSizeWIP15 = Function("void");
+        glDrawableSizeWIP15.params.append(FunctionParam("GLsizei", "width"))
+        glDrawableSizeWIP15.params.append(FunctionParam("GLsizei", "height"))
+        self.functions["glDrawableSizeWIP15"] = glDrawableSizeWIP15
+        
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
         ext.functions.append("glMappedBufferDataWIP15")
@@ -111,6 +116,7 @@ class GL:
         ext.functions.append("glProgramAttribWIP15")
         ext.functions.append("glTestFBWIP15")
         ext.functions.append("glCurrentTestWIP15")
+        ext.functions.append("glDrawableSizeWIP15")
         
         self.extensions["GL_WIP15_debug_internal"] = ext
     

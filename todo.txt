@@ -39,6 +39,7 @@ Bugs:
         Seems to be the glGetIntegerv calls in the state tracking code.
             Currently disabled.
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
+    The front buffer is not read correctly.
 
 Various TODOs in the source code.
 

@@ -500,3 +500,7 @@ glPatchParameterfv:
         break;
     }
     gl_glPatchParameterfv(pname, values);
+
+glDrawableSizeWIP15:
+    gl_param_GLsizei(width, -1);
+    gl_param_GLsizei(height, -1);

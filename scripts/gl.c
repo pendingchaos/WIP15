@@ -137,6 +137,8 @@ static limits_t gl44_limits;
 static limits_t gl45_limits;
 static limits_t* current_limits;
 static bool test_mode = false;
+static GLsizei drawable_width = -1;
+static GLsizei drawable_height = -1;
 
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
@@ -1488,6 +1490,7 @@ void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
 void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
 void glProgramAttribWIP15(GLuint program, const GLchar* name, GLuint index);
 void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void glDrawableSizeWIP15(GLsizei width, GLsizei height);
 
 static void test_fb(const char* name) {
     if (test_mode) {
@@ -1497,11 +1500,11 @@ static void test_fb(const char* name) {
         F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
         
         F(glReadBuffer)(GL_BACK);
-        void* back = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+        void* back = malloc(drawable_width*drawable_height*4);
+        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_RGBA, GL_UNSIGNED_BYTE, back);
         
-        void* depth = malloc(100*100*4);
-        F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+        void* depth = malloc(drawable_width*drawable_height*4);
+        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
         
         F(glReadBuffer)(last_buf);
         
@@ -1649,4 +1652,31 @@ void glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, G
     gl_end();
     
     test_fb("glDrawRangeElements");
+}
+
+static void update_drawable_size() {
+    Display* dpy = F(glXGetCurrentDisplay)();
+    GLXDrawable drawable = F(glXGetCurrentDrawable)();
+    
+    if (!F(glXGetCurrentContext)())
+        return;
+    
+    int w, h;
+    if (dpy && drawable!=None) {
+        unsigned int w_, h_;
+        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
+        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
+        
+        w = w_;
+        h = h_;
+    } else {
+        w = -1;
+        h = -1;
+    }
+    
+    if (w!=drawable_width || h!=drawable_height) {
+        drawable_width = w;
+        drawable_height = h;
+        glDrawableSizeWIP15(w, h);
+    }
 }
