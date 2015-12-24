@@ -548,6 +548,24 @@ glIsShader:
 glIsTexture:
     ;
 
+glIsVertexArray:
+    ;
+
+glIsProgramPipeline:
+    ;
+
+glIsRenderbuffer:
+    ;
+
+glIsSampler:
+    ;
+
+glIsSync:
+    ;
+
+glIsTransformFeedback:
+    ;
+
 glBindAttribLocation:
     GLuint fake_prog = gl_param_GLuint(command, 0);
     GLuint index = gl_param_GLuint(command, 1);
@@ -760,6 +778,36 @@ glGetActiveAttrib:
     if (!real_program)
         inspect_add_error(inspect_command, "Invalid program.");
 
+glGetBooleanv:
+    ;
+
+glGetDoublev:
+    ;
+
+glGetFloatv:
+    ;
+
+glGetIntegerv:
+    ;
+
+glGetInteger64v:
+    ;
+
+glGetBooleani_v:
+    ;
+
+glGetIntegeri_v:
+    ;
+
+glGetFloati_v:
+    ;
+
+glGetDouble_v:
+    ;
+
+glGetInteger64i_v:
+    ;
+
 glReadPixels:
     ;
 
@@ -840,6 +888,37 @@ glUniform4i:
          gl_param_GLint(command, 2),
          gl_param_GLint(command, 3),
          gl_param_GLint(command, 4));
+
+glUniform1ui:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLuint(command, 1));
+
+glUniform2ui:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2));
+
+glUniform3ui:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLuint(command, 1),
+         gl_param_GLuint(command, 2),
+         gl_param_GLuint(command, 3));
+
+glUniform4ui:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLuint(command, 1),
+         gl_param_GLuint(command, 2),
+         gl_param_GLuint(command, 3),
+         gl_param_GLuint(command, 4));
 
 glUniform1fv:
     GLint loc;
@@ -934,6 +1013,54 @@ glUniform4iv:
     GLint values[count];
     for (GLsizei i = 0 ; i < count*4; i++)
         values[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform1uiv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform2uiv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*2; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform3uiv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*3; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
+glUniform4uiv:
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*4; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
     
     real(loc, count, values);
 
@@ -1186,3 +1313,50 @@ glTestFBWIP15:
 
 glCurrentTestWIP15:
     ctx->current_test_name = gl_param_string(command, 0);
+
+glGenVertexArrays:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint arrays[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, arrays);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLVAO, arrays[i], fake[i]);
+
+glDeleteVertexArrays:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint arrays[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i])))
+            inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
+    
+    real(n, arrays);
+
+glBindVertexArray:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_vao = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake);
+    if (!real_vao && fake)
+        inspect_add_error(inspect_command, "Invalid vertex array being bound.");
+    real(real_vao);
+
+glPatchParameterfv:
+    GLenum pname = gl_param_GLenum(command, 0);
+    GLfloat values[trace_get_arg(command, 1)->count];
+    for (size_t i = 0; i < trace_get_arg(command, 1)->count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(pname, values);
+
+glGetFragDataIndex:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetFragDataLocation:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");

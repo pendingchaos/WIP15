@@ -24,7 +24,7 @@
 - [ ] glBindTextures
 - [ ] glBindTextureUnit
 - [ ] glBindTransformFeedback
-- [ ] glBindVertexArray
+- [x] glBindVertexArray
 - [ ] glBindVertexBuffer
 - [ ] glBindVertexBuffers
 - [ ] glBlitNamedFramebuffer
@@ -90,12 +90,12 @@
 - [ ] glDisableVertexArrayAttrib
 - [ ] glDispatchCompute
 - [ ] glDispatchComputeIndirect
-- [ ] glDrawArrays
+- [x] glDrawArrays
 - [ ] glDrawArraysIndirect
 - [ ] glDrawArraysInstanced
 - [ ] glDrawArraysInstancedBaseInstance
 - [ ] glDrawBuffers
-- [ ] glDrawElements
+- [x] glDrawElements
 - [ ] glDrawElementsBaseVertex
 - [ ] glDrawElementsIndirect
 - [ ] glDrawElementsInstanced
@@ -130,12 +130,12 @@
 - [ ] glGenSamplers
 - [x] glGenTextures
 - [ ] glGenTransformFeedbacks
-- [ ] glGenVertexArrays
-- [ ] glGet
+- [x] glGenVertexArrays
+- [x] glGet
 - [ ] glGetActiveAtomicCounterBufferiv
 - [x] glGetActiveAttrib
 - [ ] glGetActiveSubroutineName
-- [ ] glGetActiveSubroutineUNiform
+- [ ] glGetActiveSubroutineUniform
 - [x] glGetActiveUniform
 - [ ] glGetActiveUniformBlock
 - [ ] glGetActiveUniformBlockName
@@ -150,7 +150,8 @@
 - [ ] glGetCompressedTextureImage
 - [ ] glGetCompressedTextureSubImage
 - [ ] glGetDebugMessageLog
-- [ ] glGetFragDataIndex
+- [x] glGetFragDataIndex
+- [x] glGetFragDataLocation
 - [ ] glGetFramebufferAttachmentParameter
 - [ ] glGetFramebufferParameter
 - [ ] glGetGraphicsResetStatus
@@ -184,12 +185,12 @@
 - [ ] glGetRenderbufferParameter
 - [ ] glGetSamplerParameter
 - [x] glGetShader
-- [ ] glGetShaderInfoLog
+- [x] glGetShaderInfoLog
 - [ ] glGetShaderPrecisionFormat
 - [x] glGetShaderSource
 - [ ] glGetString
 - [ ] glGetSubroutineIndex
-- [ ] glgetSubroutineUniformLocation
+- [ ] glGetSubroutineUniformLocation
 - [ ] glGetSync
 - [x] glGetTexImage
 - [x] glGetTexLevelParameter
@@ -221,15 +222,15 @@
 - [x] glIsBuffer
 - [x] glIsFramebuffer
 - [x] glIsProgram
-- [ ] glIsProgramPipeline
+- [x] glIsProgramPipeline
 - [x] glIsQuery
-- [ ] glIsRenderbuffer
-- [ ] glIsSampler
+- [x] glIsRenderbuffer
+- [x] glIsSampler
 - [x] glIsShader
-- [ ] glIsSync
+- [x] glIsSync
 - [x] glIsTexture
-- [ ] glIsTransformFeedback
-- [ ] glIsVertexArray
+- [x] glIsTransformFeedback
+- [x] glIsVertexArray
 - [x] glLinkProgram
 - [x] glMapBuffer
 - [ ] glMapBufferRange
@@ -253,7 +254,7 @@
 - [ ] glNamedRenderbufferStorageMultisample
 - [ ] glObjectLabel
 - [ ] glObjectPtrLabel
-- [ ] glPatchParameter
+- [x] glPatchParameter
 - [ ] glPixelStore
 - [ ] glPointParameter
 - [ ] glPopDebugGroup
@@ -263,7 +264,6 @@
 - [ ] glPushDebugGroup
 - [ ] glQueryCounter
 - [ ] glReadnPixels
-- [ ] glReleaseShaderCompiler
 - [ ] glRenderbufferStorage
 - [ ] glRenderbufferStorageMultisample
 - [ ] glSamplerParameter
@@ -303,7 +303,7 @@
 - [ ] glTransformFeedbackBufferBase
 - [ ] glTransformFeedbackBufferRange
 - [ ] glTransformFeedbackVaryings
-- [ ] glUniform
+- [x] glUniform
 - [ ] glUniformBlockBinding
 - [ ] glUniformSubroutines
 - [x] glUnmapBuffer
@@ -329,6 +329,7 @@
 - [ ] glVertexAttribLFormat
 - [ ] glVertexAttribLPointer
 - [ ] glVertexAttribPointer
+    - Needs to work with matrices
 - [ ] glVertexBindingDivisor
 - [ ] glViewportArray
 - [ ] glViewportIndexed

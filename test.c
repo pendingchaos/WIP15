@@ -119,6 +119,27 @@ int main(int argc, char **argv)
     glLinkProgram(program);
     glValidateProgram(program);
     
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
+    glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
+    glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
+                          2,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          0,
+                          (const GLvoid*)0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
+    glEnableVertexAttribArray(glGetAttribLocation(program, "position"));
+    glVertexAttribPointer(glGetAttribLocation(program, "position"),
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          0,
+                          (const GLvoid*)0);
+    
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -133,24 +154,6 @@ int main(int argc, char **argv)
         const GLfloat color[] = {1.0f, 0.0f, 0.0f};
         glUniform3fv(glGetUniformLocation(program, "color"), 1, color);
         
-        glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
-        glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
-        glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
-                              2,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              0,
-                              (const GLvoid*)0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
-        glEnableVertexAttribArray(glGetAttribLocation(program, "position"));
-        glVertexAttribPointer(glGetAttribLocation(program, "position"),
-                              3,
-                              GL_FLOAT,
-                              GL_FALSE,
-                              0,
-                              (const GLvoid*)0);
-        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(glGetUniformLocation(program, "tex"), 0);
@@ -161,10 +164,10 @@ int main(int argc, char **argv)
         SDL_GL_SwapWindow(window);
     }
     
+    glDeleteVertexArrays(1, &vao);
     glDeleteProgram(program);
     glDeleteShader(fragment);
     glDeleteShader(vertex);
-    
     glDeleteBuffers(1, &element_buffer);
     glDeleteBuffers(1, &pos_buffer);
     glDeleteBuffers(1, &tex_coord_buffer);

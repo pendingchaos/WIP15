@@ -15026,7 +15026,16 @@ void replay_glDeleteVertexArrays(replay_context_t* ctx, trace_command_t* command
     replay_begin_cmd(ctx, "glDeleteVertexArrays", inspect_command);
     glDeleteVertexArrays_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDeleteVertexArrays;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (const  GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint arrays[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i])))
+            inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
+    
+    real(n, arrays);
+
 replay_end_cmd(ctx, "glDeleteVertexArrays", inspect_command);
 }
 
@@ -15962,7 +15971,8 @@ void replay_glIsSync(replay_context_t* ctx, trace_command_t* command, inspect_co
     replay_begin_cmd(ctx, "glIsSync", inspect_command);
     glIsSync_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsSync;
     do {(void)sizeof((real));} while (0);
-    real((GLsync)gl_param_GLsync(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsSync", inspect_command);
 }
 
@@ -16351,7 +16361,17 @@ void replay_glUniform4uiv(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUniform4uiv", inspect_command);
     glUniform4uiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform4uiv;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*4; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
 replay_end_cmd(ctx, "glUniform4uiv", inspect_command);
 }
 
@@ -17331,7 +17351,11 @@ void replay_glUniform2ui(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glUniform2ui", inspect_command);
     glUniform2ui_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform2ui;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2));
+
 replay_end_cmd(ctx, "glUniform2ui", inspect_command);
 }
 
@@ -18944,7 +18968,8 @@ void replay_glIsTransformFeedback(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glIsTransformFeedback", inspect_command);
     glIsTransformFeedback_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsTransformFeedback;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsTransformFeedback", inspect_command);
 }
 
@@ -19003,7 +19028,8 @@ void replay_glIsProgramPipeline(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glIsProgramPipeline", inspect_command);
     glIsProgramPipeline_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsProgramPipeline;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsProgramPipeline", inspect_command);
 }
 
@@ -20608,7 +20634,8 @@ void replay_glIsSampler(replay_context_t* ctx, trace_command_t* command, inspect
     replay_begin_cmd(ctx, "glIsSampler", inspect_command);
     glIsSampler_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsSampler;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsSampler", inspect_command);
 }
 
@@ -21867,7 +21894,12 @@ void replay_glPatchParameterfv(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glPatchParameterfv", inspect_command);
     glPatchParameterfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glPatchParameterfv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLfloat  *)gl_param_pointer(command, 1));
+    GLenum pname = gl_param_GLenum(command, 0);
+    GLfloat values[trace_get_arg(command, 1)->count];
+    for (size_t i = 0; i < trace_get_arg(command, 1)->count; i++)
+        values[i] = trace_get_double(trace_get_arg(command, 1))[i];
+    real(pname, values);
+
 replay_end_cmd(ctx, "glPatchParameterfv", inspect_command);
 }
 
@@ -23650,7 +23682,8 @@ void replay_glIsRenderbuffer(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glIsRenderbuffer", inspect_command);
     glIsRenderbuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsRenderbuffer;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsRenderbuffer", inspect_command);
 }
 
@@ -23702,7 +23735,8 @@ void replay_glIsVertexArray(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glIsVertexArray", inspect_command);
     glIsVertexArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glIsVertexArray;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    ;
+
 replay_end_cmd(ctx, "glIsVertexArray", inspect_command);
 }
 
@@ -25172,7 +25206,8 @@ void replay_glGetInteger64i_v(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glGetInteger64i_v", inspect_command);
     glGetInteger64i_v_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetInteger64i_v;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLint64  *)gl_param_pointer(command, 2));
+    ;
+
 replay_end_cmd(ctx, "glGetInteger64i_v", inspect_command);
 }
 
@@ -26136,7 +26171,12 @@ void replay_glBindVertexArray(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glBindVertexArray", inspect_command);
     glBindVertexArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindVertexArray;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_vao = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake);
+    if (!real_vao && fake)
+        inspect_add_error(inspect_command, "Invalid vertex array being bound.");
+    real(real_vao);
+
 replay_end_cmd(ctx, "glBindVertexArray", inspect_command);
 }
 
@@ -27350,7 +27390,15 @@ void replay_glUniform4ui(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glUniform4ui", inspect_command);
     glUniform4ui_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform4ui;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (GLuint)gl_param_GLuint(command, 3), (GLuint)gl_param_GLuint(command, 4));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLuint(command, 1),
+         gl_param_GLuint(command, 2),
+         gl_param_GLuint(command, 3),
+         gl_param_GLuint(command, 4));
+
 replay_end_cmd(ctx, "glUniform4ui", inspect_command);
 }
 
@@ -29552,7 +29600,8 @@ void replay_glGetFloati_v(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glGetFloati_v", inspect_command);
     glGetFloati_v_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetFloati_v;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLfloat  *)gl_param_pointer(command, 2));
+    ;
+
 replay_end_cmd(ctx, "glGetFloati_v", inspect_command);
 }
 
@@ -31322,7 +31371,8 @@ void replay_glGetIntegeri_v(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetIntegeri_v", inspect_command);
     glGetIntegeri_v_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetIntegeri_v;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLint  *)gl_param_pointer(command, 2));
+    ;
+
 replay_end_cmd(ctx, "glGetIntegeri_v", inspect_command);
 }
 
@@ -35136,7 +35186,17 @@ void replay_glUniform2uiv(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUniform2uiv", inspect_command);
     glUniform2uiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform2uiv;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*2; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
 replay_end_cmd(ctx, "glUniform2uiv", inspect_command);
 }
 
@@ -35245,7 +35305,17 @@ void replay_glUniform1uiv(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUniform1uiv", inspect_command);
     glUniform1uiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform1uiv;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
 replay_end_cmd(ctx, "glUniform1uiv", inspect_command);
 }
 
@@ -37580,7 +37650,8 @@ void replay_glGetInteger64v(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetInteger64v", inspect_command);
     glGetInteger64v_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetInteger64v;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint64  *)gl_param_pointer(command, 1));
+    ;
+
 replay_end_cmd(ctx, "glGetInteger64v", inspect_command);
 }
 
@@ -40778,7 +40849,15 @@ void replay_glGenVertexArrays(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glGenVertexArrays", inspect_command);
     glGenVertexArrays_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGenVertexArrays;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint arrays[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, arrays);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLVAO, arrays[i], fake[i]);
+
 replay_end_cmd(ctx, "glGenVertexArrays", inspect_command);
 }
 
@@ -41127,7 +41206,11 @@ void replay_glUniform1ui(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glUniform1ui", inspect_command);
     glUniform1ui_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform1ui;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLuint)gl_param_GLuint(command, 1));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc, gl_param_GLuint(command, 1));
+
 replay_end_cmd(ctx, "glUniform1ui", inspect_command);
 }
 
@@ -44256,7 +44339,8 @@ void replay_glGetBooleani_v(replay_context_t* ctx, trace_command_t* command, ins
     replay_begin_cmd(ctx, "glGetBooleani_v", inspect_command);
     glGetBooleani_v_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetBooleani_v;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLboolean  *)gl_param_pointer(command, 2));
+    ;
+
 replay_end_cmd(ctx, "glGetBooleani_v", inspect_command);
 }
 
@@ -46634,7 +46718,17 @@ void replay_glUniform3uiv(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUniform3uiv", inspect_command);
     glUniform3uiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform3uiv;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    
+    GLsizei count = gl_param_GLint(command, 1);
+    GLuint values[count];
+    for (GLsizei i = 0 ; i < count*3; i++)
+        values[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(loc, count, values);
+
 replay_end_cmd(ctx, "glUniform3uiv", inspect_command);
 }
 
@@ -46766,7 +46860,14 @@ void replay_glUniform3ui(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glUniform3ui", inspect_command);
     glUniform3ui_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUniform3ui;
     do {(void)sizeof((real));} while (0);
-    real((GLint)gl_param_GLint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (GLuint)gl_param_GLuint(command, 3));
+    GLint loc;
+    if (uniform(ctx, command, &loc))
+        return;
+    real(loc,
+         gl_param_GLuint(command, 1),
+         gl_param_GLuint(command, 2),
+         gl_param_GLuint(command, 3));
+
 replay_end_cmd(ctx, "glUniform3ui", inspect_command);
 }
 

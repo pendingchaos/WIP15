@@ -85,19 +85,37 @@ void draw_test() {
     
     glUseProgram(program);
     
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    
+    //With VAO
+    glBindVertexArray(vao);
     glEnableVertexAttribArray(glGetAttribLocation(program, "pos"));
     glEnableVertexAttribArray(glGetAttribLocation(program, "col"));
-    
     draw(program, GL_SHORT, GL_FLOAT, short_positions, float_colors, sizeof(short_positions), sizeof(float_colors));
     draw(program, GL_INT, GL_FLOAT, int_positions, float_colors, sizeof(int_positions), sizeof(float_colors));
     draw(program, GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
     draw(program, GL_DOUBLE, GL_FLOAT, double_positions, float_colors, sizeof(double_positions), sizeof(float_colors));
-    
     draw(program, GL_FLOAT, GL_UNSIGNED_BYTE, float_positions, ubyte_colors, sizeof(float_positions), sizeof(ubyte_colors));
     draw(program, GL_FLOAT, GL_UNSIGNED_SHORT, float_positions, ushort_colors, sizeof(float_positions), sizeof(ushort_colors));
     draw(program, GL_FLOAT, GL_UNSIGNED_INT, float_positions, uint_colors, sizeof(float_positions), sizeof(uint_colors));
     draw(program, GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
     draw(program, GL_FLOAT, GL_DOUBLE, float_positions, double_colors, sizeof(float_positions), sizeof(double_colors));
     
+    //Without VAO
+    glBindVertexArray(0);
+    glEnableVertexAttribArray(glGetAttribLocation(program, "pos"));
+    glEnableVertexAttribArray(glGetAttribLocation(program, "col"));
+    draw(program, GL_SHORT, GL_FLOAT, short_positions, float_colors, sizeof(short_positions), sizeof(float_colors));
+    draw(program, GL_INT, GL_FLOAT, int_positions, float_colors, sizeof(int_positions), sizeof(float_colors));
+    draw(program, GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
+    draw(program, GL_DOUBLE, GL_FLOAT, double_positions, float_colors, sizeof(double_positions), sizeof(float_colors));
+    draw(program, GL_FLOAT, GL_UNSIGNED_BYTE, float_positions, ubyte_colors, sizeof(float_positions), sizeof(ubyte_colors));
+    draw(program, GL_FLOAT, GL_UNSIGNED_SHORT, float_positions, ushort_colors, sizeof(float_positions), sizeof(ushort_colors));
+    draw(program, GL_FLOAT, GL_UNSIGNED_INT, float_positions, uint_colors, sizeof(float_positions), sizeof(uint_colors));
+    draw(program, GL_FLOAT, GL_FLOAT, float_positions, float_colors, sizeof(float_positions), sizeof(float_colors));
+    draw(program, GL_FLOAT, GL_DOUBLE, float_positions, double_colors, sizeof(float_positions), sizeof(double_colors));
+    
+    glDeleteVertexArrays(1, &vao);
     glDeleteProgram(program);
 }

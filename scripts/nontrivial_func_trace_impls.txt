@@ -376,6 +376,30 @@ glUniform4iv:
     gl_param_GLint_array(count*4, value);
     gl_glUniform4iv(location, count, value);
 
+glUniform1uiv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLuint_array(count, value);
+    gl_glUniform1uiv(location, count, value);
+
+glUniform2uiv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLuint_array(count*2, value);
+    gl_glUniform2uiv(location, count, value);
+
+glUniform3uiv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLuint_array(count*3, value);
+    gl_glUniform3uiv(location, count, value);
+
+glUniform4uiv:
+    gl_param_GLint(location, -1);
+    gl_param_GLsizei(count, -1);
+    gl_param_GLuint_array(count*4, value);
+    gl_glUniform4uiv(location, count, value);
+
 glUniformMatrix2fv:
     gl_param_GLint(location, -1);
     gl_param_GLsizei(count, -1);
@@ -451,3 +475,28 @@ glTestFBWIP15:
 
 glCurrentTestWIP15:
     gl_param_string(name);
+
+glGenVertexArrays:
+    gl_param_GLsizei(n, -1);
+    gl_glGenVertexArrays(n, arrays);
+    gl_param_GLuint_array(n, arrays);
+
+glDeleteVertexArrays:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, arrays);
+    gl_glDeleteVertexArrays(n, arrays);
+
+glPatchParameterfv:
+    gl_param_GLenum(pname, -1); //TODO: The group
+    switch (pname) {
+    case GL_PATCH_VERTICES:
+        gl_param_GLfloat_array(1, values);
+        break;
+    case GL_PATCH_DEFAULT_OUTER_LEVEL:
+        gl_param_GLfloat_array(4, values);
+        break;
+    case GL_PATCH_DEFAULT_INNER_LEVEL:
+        gl_param_GLfloat_array(2, values);
+        break;
+    }
+    gl_glPatchParameterfv(pname, values);

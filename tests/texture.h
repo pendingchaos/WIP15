@@ -27,7 +27,7 @@ void draw_texture3d(GLuint prog) {
 
 //TODO: Sometimes these textures result in a black screen.
 void test_tex(GLenum internal, GLenum format, GLenum type, GLuint prog1d, GLuint prog2d, GLuint prog3d) {
-    glCurrentTestWIP15(static_format("Texture test with %u internal format, %u format and %u type", internal, format, type));
+    glCurrentTestWIP15(static_format("Texture test with 0x%x internal format, 0x%x format and 0x%x type", internal, format, type));
     
     uint8_t data[4096];
     #define GEN_DATA switch (type) {\
@@ -158,6 +158,10 @@ void texture_test() {
                                    "    color = texture(tex, tex_coord.xyy);\n"
                                    "}\n");
     
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    
     for (size_t i = 0; i < sizeof(formats)/sizeof(GLenum); i++) {
         GLenum format = formats[i];
         GLenum internal_format = internal_formats[i];
@@ -188,6 +192,7 @@ void texture_test() {
         }
     }
     
+    glDeleteVertexArrays(1, &vao);
     glDeleteProgram(prog1d);
     glDeleteBuffers(1, &buf);
     glDeleteTextures(1, &tex3d);
