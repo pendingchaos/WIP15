@@ -7,7 +7,7 @@
 #include <dlfcn.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <GL/glx.h>
+#include <SDL2/SDL.h>
 
 void init_replay_gl(replay_context_t* ctx);
 void deinit_replay_gl(replay_context_t* ctx);
@@ -41,7 +41,6 @@ typedef struct replay_obj_t {
 
 typedef struct {
     replay_obj_t *objects[ReplayObjType_Max];
-    Window window;
 } replay_internal_t;
 
 replay_context_t* create_replay_context(inspection_t* inspection) {
@@ -56,40 +55,6 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     ctx->_internal = internal;
     
     init_replay_gl(ctx);
-     
-    ctx->_display = XOpenDisplay(NULL);
-    
-    static int attribs[] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-                            GLX_RENDER_TYPE, GLX_RGBA_BIT,
-                            GLX_DOUBLEBUFFER, True,
-                            None};
-    int numConfigs;
-    GLXFBConfig* configs = glXChooseFBConfig(ctx->_display, DefaultScreen(ctx->_display), attribs, &numConfigs);
-    if (numConfigs < 1) {
-        fprintf(stderr, "Unable to choose a framebuffer configuation.");
-        fflush(stderr);
-    }
-    ctx->_fbconfig = configs[0];
-    XFree(configs);
-    
-    XVisualInfo *vis_info = glXGetVisualFromFBConfig(ctx->_display, ctx->_fbconfig);
-    ctx->_visual = vis_info;
-    
-    Window root = RootWindow(ctx->_display, vis_info->screen);
-    
-    ctx->_colormap = XCreateColormap(ctx->_display, root, vis_info->visual, AllocNone);
-    XSetWindowAttributes swa;
-    swa.border_pixel = 0;
-    swa.event_mask = 0;
-    swa.colormap = ctx->_colormap;
-    ctx->_drawable = XCreateWindow(ctx->_display, root, 0, 0, 100, 100, 0,
-                                   vis_info->depth, InputOutput, vis_info->visual,
-                                   CWBorderPixel|CWEventMask|CWColormap, &swa);
-    static char *argv = "Replay";
-    XSetStandardProperties(ctx->_display, ctx->_drawable, "Replay", "Replay", None, &argv, 1, NULL);
-    XMapWindow(ctx->_display, ctx->_drawable);
-    
-    ctx->_glx_drawable = glXCreateWindow(ctx->_display, ctx->_fbconfig, ctx->_drawable, NULL);
     
     const trace_t* trace = inspection->trace;
     
@@ -126,13 +91,6 @@ void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
 
 void destroy_replay_context(replay_context_t* context) {
     free(context->funcs);
-    
-    glXDestroyWindow(context->_display, context->_glx_drawable);
-    XDestroyWindow(context->_display, context->_drawable);
-    XFreeColormap(context->_display, context->_colormap);
-    XFree(context->_visual);
-    
-    XCloseDisplay(context->_display);
     
     deinit_replay_gl(context);
     
@@ -264,6 +222,22 @@ void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uin
 }
 
 void replay(replay_context_t* ctx) {
+    bool sdl_was_init = SDL_WasInit(SDL_INIT_VIDEO);
+    if (!sdl_was_init)
+        SDL_Init(SDL_INIT_VIDEO);
+    
+    ctx->window = SDL_CreateWindow("",
+                                   SDL_WINDOWPOS_UNDEFINED,
+                                   SDL_WINDOWPOS_UNDEFINED,
+                                   100,
+                                   100,
+                                   SDL_WINDOW_HIDDEN |
+                                   SDL_WINDOW_OPENGL);
+    if (!ctx->window) {
+        fprintf(stderr, "Unable to create a window: %sn", SDL_GetError()); //TODO: Handle
+        fflush(stderr);
+    }
+    
     for (size_t i = 0; i < ctx->inspection->frame_count; ++i) {
         inspect_frame_t* frame = ctx->inspection->frames + i;
         for (size_t j = 0; j < frame->command_count; ++j) {
@@ -271,6 +245,11 @@ void replay(replay_context_t* ctx) {
             ctx->funcs[command->trace_cmd->func_index](ctx, command->trace_cmd, command);
         }
     }
+    
+    SDL_DestroyWindow(ctx->window);
+    
+    if (!sdl_was_init)
+        SDL_Quit();
 }
 
 int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc) {

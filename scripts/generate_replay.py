@@ -10,6 +10,7 @@ output = open("../src/libinspect/replay_gl.c", "w")
 
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -680,17 +681,6 @@ static bool uniform(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
     F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
     
     *res = replay_conv_uniform_location(ctx, prog, gl_param_GLint(cmd, 0));
-    if (*res < 0)
-        return true;
-    
-    return false;
-}
-
-static bool attrib(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
-    GLint prog;
-    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
-    
-    *res = replay_conv_attrib_index(ctx, prog, gl_param_GLint(cmd, 0));
     if (*res < 0)
         return true;
     

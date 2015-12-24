@@ -25,6 +25,8 @@ typedef enum {
     ReplayObjType_Max
 } replay_obj_type_t;
 
+struct SDL_Window;
+
 typedef struct replay_context_t replay_context_t;
 
 typedef void (*replay_func_t)(replay_context_t*, trace_command_t*, inspect_command_t*);
@@ -32,16 +34,11 @@ typedef void (*replay_func_t)(replay_context_t*, trace_command_t*, inspect_comma
 struct replay_context_t {
     void* _replay_gl;
     void* _internal;
-    void* _display; //Pointer to X display
-    void* _fbconfig; //GLXFBConfig
-    uint32_t _drawable; //Drawable -> XID -> CARD32 which is a uint32_t
-    uint32_t _glx_drawable; //GLXDrawable -> XID -> CARD32 which is a uint32_t
-    uint32_t _colormap; //Colormap -> XID -> CARD32 which is a uint32_t
-    void* _visual; //Pointer to XVisualInfo
     replay_func_t* funcs;
     inspection_t* inspection;
     void* _current_context;
     const char* current_test_name;
+    struct SDL_Window* window;
 };
 
 replay_context_t* create_replay_context(inspection_t* inspection);

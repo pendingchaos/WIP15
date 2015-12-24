@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -12633,17 +12634,6 @@ static bool uniform(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
     return false;
 }
 
-static bool attrib(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
-    GLint prog;
-    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
-    
-    *res = replay_conv_attrib_index(ctx, prog, gl_param_GLint(cmd, 0));
-    if (*res < 0)
-        return true;
-    
-    return false;
-}
-
 typedef struct {
     GLint enabled;
     GLint count;
@@ -15989,17 +15979,17 @@ void replay_glXMakeCurrent(replay_context_t* ctx, trace_command_t* command, insp
 replay_begin_cmd(ctx, "glXMakeCurrent", inspect_command);
     glXMakeCurrent_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXMakeCurrent;
     do {(void)sizeof((real));} while (0);
-    GLXContext glctx = NULL;
+    SDL_GLContext glctx = NULL;
     uint64_t fake_ctx = *trace_get_uint(trace_get_arg(command, 2));
     if (fake_ctx) {
-        glctx = (GLXContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
+        glctx = (SDL_GLContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
         if (!glctx) {
             inspect_add_error(inspect_command, "Invalid GLX context.");
             return;
         }
     }
     
-    if (!real(ctx->_display, glctx ? ctx->_glx_drawable : None, glctx)) {
+    if (SDL_GL_MakeCurrent(ctx->window, glctx) < 0) {
         inspect_add_error(inspect_command, "Unable to make a context current.");
         return;
     }
@@ -16014,13 +16004,7 @@ replay_begin_cmd(ctx, "glXMakeCurrent", inspect_command);
     
     //Seems to be messing up the front buffer.
     //But the front buffer is still sometimes black when it should not be.
-    /*if (F(glXSwapIntervalEXT))
-        F(glXSwapIntervalEXT)(ctx->_display, ctx->_glx_drawable, 0);
-    //TODO
-    //else if (F(glXSwapIntervalMESA))
-    //    F(glXSwapIntervalMESA)(0);
-    else if (F(glXSwapIntervalSGI))
-        F(glXSwapIntervalSGI)(0);*/
+    /*SDL_GL_SetSwapInterval(0)*/
 
 replay_end_cmd(ctx, "glXMakeCurrent", inspect_command);
 }
@@ -16611,9 +16595,7 @@ void replay_glXQueryExtension(replay_context_t* ctx, trace_command_t* command, i
 replay_begin_cmd(ctx, "glXQueryExtension", inspect_command);
     glXQueryExtension_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXQueryExtension;
     do {(void)sizeof((real));} while (0);
-    Bool result = real(ctx->_display, NULL, NULL);
-    if (result != *trace_get_bool(&command->ret))
-        inspect_add_warning(inspect_command, "glXQueryExtension returned something different during replay.");
+    ;
 
 replay_end_cmd(ctx, "glXQueryExtension", inspect_command);
 }
@@ -17688,15 +17670,15 @@ void replay_glXDestroyContext(replay_context_t* ctx, trace_command_t* command, i
 replay_begin_cmd(ctx, "glXDestroyContext", inspect_command);
     glXDestroyContext_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXDestroyContext;
     do {(void)sizeof((real));} while (0);
-    GLXContext glctx = (GLXContext)replay_get_real_object(ctx,
-                                                          ReplayObjType_GLXContext,
-                                                          *trace_get_ptr(trace_get_arg(command, 1)));
+    SDL_GLContext glctx = (GLXContext)replay_get_real_object(ctx,
+                                                             ReplayObjType_GLXContext,
+                                                             *trace_get_ptr(trace_get_arg(command, 1)));
     if (!glctx) {
-        inspect_add_error(inspect_command, "Invalid GLX context.");
+        inspect_add_error(inspect_command, "Invalid context.");
         return;
     }
     
-    real(ctx->_display, glctx);
+    SDL_GL_DeleteContext(glctx);
     replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(trace_get_arg(command, 1)));
 
 replay_end_cmd(ctx, "glXDestroyContext", inspect_command);
@@ -18017,19 +17999,7 @@ void replay_glXChooseVisual(replay_context_t* ctx, trace_command_t* command, ins
 replay_begin_cmd(ctx, "glXChooseVisual", inspect_command);
     glXChooseVisual_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXChooseVisual;
     do {(void)sizeof((real));} while (0);
-    trace_value_t* attribs = trace_get_arg(command, 2);
-    int int_attribs[attribs->count];
-    for (size_t i = 0; i < attribs->count; ++i) {
-        union {unsigned int u; int i;} u;
-        u.u = trace_get_uint(attribs)[i];
-        int_attribs[i] = u.i;
-    }
-    XVisualInfo* vis = real(ctx->_display, gl_param_int(command, 1), int_attribs);
-    if (!vis) {
-        inspect_add_error(inspect_command, "Unable to create visual.");
-        return;
-    }
-    XFree(vis);
+    ;
 
 replay_end_cmd(ctx, "glXChooseVisual", inspect_command);
 }
@@ -23100,7 +23070,11 @@ void replay_glGetFragDataIndex(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glGetFragDataIndex", inspect_command);
     glGetFragDataIndex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetFragDataIndex;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (const  GLchar  *)gl_param_string(command, 1));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
 replay_end_cmd(ctx, "glGetFragDataIndex", inspect_command);
 }
 
@@ -23748,11 +23722,7 @@ void replay_glDisableVertexAttribArray(replay_context_t* ctx, trace_command_t* c
     replay_begin_cmd(ctx, "glDisableVertexAttribArray", inspect_command);
     glDisableVertexAttribArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDisableVertexAttribArray;
     do {(void)sizeof((real));} while (0);
-    GLint idx;
-    if (attrib(ctx, command, &idx))
-        return;
-    
-    real(idx);
+    real(gl_param_GLint(command, 0));
 
 replay_end_cmd(ctx, "glDisableVertexAttribArray", inspect_command);
 }
@@ -24535,9 +24505,7 @@ void replay_glXGetProcAddressARB(replay_context_t* ctx, trace_command_t* command
 replay_begin_cmd(ctx, "glXGetProcAddressARB", inspect_command);
     glXGetProcAddressARB_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetProcAddressARB;
     do {(void)sizeof((real));} while (0);
-    void (*result)() = real((const GLubyte*)gl_param_string(command, 0));
-    if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
-        inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
+    ;
 
 replay_end_cmd(ctx, "glXGetProcAddressARB", inspect_command);
 }
@@ -26913,9 +26881,7 @@ replay_end_cmd(ctx, "glDetachShader", inspect_command);
 void replay_glXGetProcAddress(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
 replay_begin_cmd(ctx, "glXGetProcAddress", inspect_command);
     glXGetProcAddress_t real = &glXGetProcAddress;    do {(void)sizeof((real));} while (0);
-    void (*result)() = real((const GLubyte*)gl_param_string(command, 0));
-    if ((result == NULL) != (*trace_get_ptr(&command->ret) == 0))
-        inspect_add_warning(inspect_command, "glXGetProcAddress returned NULL when the other did not.");
+    ;
 
 replay_end_cmd(ctx, "glXGetProcAddress", inspect_command);
 }
@@ -39959,18 +39925,34 @@ void replay_glXCreateContext(replay_context_t* ctx, trace_command_t* command, in
 replay_begin_cmd(ctx, "glXCreateContext", inspect_command);
     glXCreateContext_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXCreateContext;
     do {(void)sizeof((real));} while (0);
-    GLXContext shareList = NULL;
+    SDL_GLContext shareList = NULL;
     if (*trace_get_ptr(trace_get_arg(command, 2))) {
-        shareList = (GLXContext)replay_get_real_object(ctx,
-                                                       ReplayObjType_GLXContext,
-                                                       *trace_get_ptr(trace_get_arg(command, 2)));
+        shareList = (SDL_GLContext)replay_get_real_object(ctx,
+                                                          ReplayObjType_GLXContext,
+                                                          *trace_get_ptr(trace_get_arg(command, 2)));
         if (!shareList) {
             inspect_add_error(inspect_command, "Invalid share list.");
             return;
         }
     }
-    GLXContext res = F(glXCreateNewContext)(ctx->_display, ctx->_fbconfig, GLX_RGBA_TYPE, shareList, gl_param_Bool(command, 3));
+    
+    SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
+    if (shareList) {
+        SDL_GL_MakeCurrent(ctx->window, shareList);
+        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+    } else {
+        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0);
+    }
+    
+    SDL_GLContext res = SDL_GL_CreateContext(ctx->window);
+    if (!res) {
+        inspect_add_error(inspect_command, "Unable to create context: %s", SDL_GetError());
+        SDL_GL_MakeCurrent(ctx->window, last_ctx);
+        return;
+    }
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
+    
+    SDL_GL_MakeCurrent(ctx->window, last_ctx);
 
 replay_end_cmd(ctx, "glXCreateContext", inspect_command);
 }
@@ -41330,7 +41312,11 @@ void replay_glGetFragDataLocation(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glGetFragDataLocation", inspect_command);
     glGetFragDataLocation_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetFragDataLocation;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (const  GLchar  *)gl_param_string(command, 1));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
 replay_end_cmd(ctx, "glGetFragDataLocation", inspect_command);
 }
 
@@ -42737,11 +42723,7 @@ void replay_glVertexAttribPointer(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glVertexAttribPointer", inspect_command);
     glVertexAttribPointer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glVertexAttribPointer;
     do {(void)sizeof((real));} while (0);
-    GLint idx;
-    if (attrib(ctx, command, &idx))
-        return;
-    
-    real(idx,
+    real(gl_param_GLint(command, 0),
          gl_param_GLint(command, 1),
          gl_param_GLenum(command, 2),
          gl_param_GLboolean(command, 3),
@@ -45848,11 +45830,7 @@ void replay_glEnableVertexAttribArray(replay_context_t* ctx, trace_command_t* co
     replay_begin_cmd(ctx, "glEnableVertexAttribArray", inspect_command);
     glEnableVertexAttribArray_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glEnableVertexAttribArray;
     do {(void)sizeof((real));} while (0);
-    GLint idx;
-    if (attrib(ctx, command, &idx))
-        return;
-    
-    real(idx);
+    real(gl_param_GLint(command, 0));
 
 replay_end_cmd(ctx, "glEnableVertexAttribArray", inspect_command);
 }
@@ -46387,8 +46365,7 @@ replay_begin_cmd(ctx, "glXSwapBuffers", inspect_command);
         inspect_add_error(inspect_command, "No current OpenGL context.");
         return;
     }
-    real(ctx->_display, ctx->_glx_drawable);
-    replay_get_back_color(ctx, inspect_command);
+    SDL_GL_SwapWindow(ctx->window);
     replay_get_front_color(ctx, inspect_command);
 
 replay_end_cmd(ctx, "glXSwapBuffers", inspect_command);

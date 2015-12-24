@@ -12,7 +12,7 @@ libtrace:
 .PHONY: libinspect
 libinspect:
 	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
-	gcc -Isrc src/libinspect/libinspect.c src/libinspect/actions.c src/libinspect/replay.c src/libinspect/replay_gl.c src/shared/vec.c src/shared/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g
+	gcc -Isrc src/libinspect/libinspect.c src/libinspect/actions.c src/libinspect/replay.c src/libinspect/replay_gl.c src/shared/vec.c src/shared/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -lX11 -Wall -g `sdl2-config --libs --cflags`
 	rm src/shared/glapi.o
 
 .PHONY: trace

@@ -48,8 +48,6 @@ Dramatically reduce memory usage and size of trace files.
 
 Enum state values are not displayed as enums.
 
-Use SDL2 instead of GLX.
-
 Cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 
 Enabling or disabling state depending on OpenGL version and extensions.
