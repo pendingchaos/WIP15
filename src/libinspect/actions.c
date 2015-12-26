@@ -325,7 +325,7 @@ typedef struct {
 
 static void apply_set_vao(inspector_t* inspector, inspect_action_t* action) {
     set_vao_t* data = action->data;
-    inspect_vertex_attrib_t* attribs = (inspect_vertex_attrib_t*)data+1;
+    inspect_vertex_attrib_t* attribs = (inspect_vertex_attrib_t*)(data+1);
     
     inspect_vao_t* vao = inspect_find_vao_ptr(inspector, data->vao);
     if (!vao)

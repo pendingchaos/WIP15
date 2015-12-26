@@ -10,8 +10,6 @@ Debugging:
         Uninitialized buffers
         Unused uniforms
     Object viewing
-        VAOs
-        display lists
         samplers
         queries
             timer

@@ -826,6 +826,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="headers_visible">False</property>
+                            <signal name="cursor-changed" handler="vao_select_callback" swapped="no"/>
                             <child internal-child="selection">
                               <object class="GtkTreeSelection" id="treeview-selection13"/>
                             </child>
@@ -874,32 +875,43 @@
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="stride1">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Stride</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="offset1">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Offset</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="type1">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Type</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="normalized">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Normalized</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="integer">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Integer</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="divisor">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Divisor</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="buffer">
+                                <property name="title" translatable="yes">Buffer</property>
                               </object>
                             </child>
                           </object>

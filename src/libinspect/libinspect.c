@@ -363,6 +363,12 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     resize_vec(inspector->programs, 0);
     resize_vec(inspector->vaos, 0);
     
+    inspect_vao_t vao;
+    vao.fake = 0;
+    vao.attrib_count = 0;
+    vao.attribs = NULL;
+    append_inspect_vao_vec(inspector->vaos, &vao);
+    
     inspection_t* inspection = inspector->inspection;
     
     if (frame_index >= inspection->frame_count)

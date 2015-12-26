@@ -12774,20 +12774,23 @@ void update_vao(replay_context_t* ctx, inspect_command_t* inspect_command) {
     
     inspect_vertex_attrib_t attribs[attrib_count];
     for (size_t i = 0; i < attrib_count; i++) {
-        GLint enabled, size, type, normalized, stride, buffer, divisor;
+        GLint enabled, size, type, normalized, integer, stride, buffer, divisor;
         void* pointer;
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor); //TODO: It should only do this if it's supported
         F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+        attribs[i].index = i;
         attribs[i].enabled = enabled;
         attribs[i].size = size;
         attribs[i].type = type;
         attribs[i].normalized = normalized;
+        attribs[i].integer = integer;
         attribs[i].stride = stride;
         attribs[i].buffer = buffer;
         attribs[i].divisor = divisor;
@@ -40018,9 +40021,6 @@ replay_begin_cmd(ctx, "glXCreateContext", inspect_command);
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
-    
-    //TODO: This is a bit of a hack
-    inspect_act_gen_vao(&inspect_command->state, 0);
 
 replay_end_cmd(ctx, "glXCreateContext", inspect_command);
 }
