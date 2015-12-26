@@ -28,30 +28,25 @@ typedef struct {
 } inspect_image_t;
 
 typedef struct {
-    unsigned int texture;
-    unsigned int type;
-    unsigned int min_filter;
-    unsigned int mag_filter;
+    int texture;
+    int type;
+    int depth_stencil_mode;
+    int base_level;
+    int compare_func;
+    int compare_mode;
+    int max_level;
+    int wrap[3];
+    int min_filter;
+    int mag_filter;
+    float border_color[4];
     float min_lod;
     float max_lod;
-    int base_level;
-    int max_level;
-    unsigned int wrap_s;
-    unsigned int wrap_t;
-    unsigned int wrap_r;
-    float priority;
-    unsigned int compare_mode;
-    unsigned int compare_func;
-    unsigned int depth_texture_mode;
-    bool generate_mipmap;
-    unsigned int depth_stencil_mode;
     float lod_bias;
-    unsigned int swizzle[4];
-    float border_color[4];
-    unsigned int width;
-    unsigned int height;
-    unsigned int depth;
-    unsigned int internal_format;
+    int swizzle[4];
+    int width;
+    int height;
+    int depth;
+    int internal_format;
 } inspect_gl_tex_params_t;
 
 typedef struct {

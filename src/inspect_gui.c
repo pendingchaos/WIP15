@@ -497,14 +497,11 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
         VAL("Base Level", static_format("%d", params.base_level));
         VAL("Max Level", static_format("%d", params.max_level));
-        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_s)));
-        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_t)));
-        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap_r)));
-        VAL("Priority", static_format("%s", format_float(params.priority)));
+        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
+        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
+        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
         VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
         VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
-        VAL("Depth Texture Mode", static_format("%s", get_enum_str(NULL, params.depth_texture_mode)));
-        VAL("Generate Mipmap", static_format("%s", params.generate_mipmap ? "true" : "false"));
         VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
         VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
         VAL("Swizzle", static_format("[%s, %s, %s, %s]",
@@ -517,9 +514,9 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
                                          format_float(params.border_color[1]),
                                          format_float(params.border_color[2]),
                                          format_float(params.border_color[3])));
-        VAL("Width", static_format("%u", params.width));
-        VAL("Height", static_format("%u", params.height));
-        VAL("Depth", static_format("%u", params.depth));
+        VAL("Width", static_format("%d", params.width));
+        VAL("Height", static_format("%d", params.height));
+        VAL("Depth", static_format("%d", params.depth));
         VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
         #undef VAL
         

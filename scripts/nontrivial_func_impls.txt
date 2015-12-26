@@ -17,6 +17,8 @@ glXMakeCurrent:
     if (glctx) {
         reload_gl_funcs(ctx);
         ctx->_current_context = glctx;
+        //TODO: Hack to initialize VAO 0
+        update_vao(ctx, inspect_command);
     } else {
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;

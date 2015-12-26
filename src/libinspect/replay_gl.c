@@ -12440,29 +12440,22 @@ static void replay_get_tex_params(replay_context_t* ctx,
     inspect_gl_tex_params_t params;
     params.texture = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
     params.type = target;
-    F(glGetTexParameteriv)(target, GL_TEXTURE_MIN_FILTER, (GLint*)&params.min_filter);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_MAG_FILTER, (GLint*)&params.mag_filter);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MIN_FILTER, &params.min_filter);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MAG_FILTER, &params.mag_filter);
     F(glGetTexParameterfv)(target, GL_TEXTURE_MIN_LOD, &params.min_lod);
     F(glGetTexParameterfv)(target, GL_TEXTURE_MAX_LOD, &params.max_lod);
     F(glGetTexParameteriv)(target, GL_TEXTURE_BASE_LEVEL, &params.base_level);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_MAX_LEVEL, (GLint*)&params.max_level);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, (GLint*)&params.wrap_s);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, (GLint*)&params.wrap_t);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_R, (GLint*)&params.wrap_r);
-    F(glGetTexParameterfv)(target, GL_TEXTURE_PRIORITY, &params.priority);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_MODE, (GLint*)&params.compare_mode);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_FUNC, (GLint*)&params.compare_func);
-    F(glGetTexParameteriv)(target, GL_DEPTH_TEXTURE_MODE, (GLint*)&params.depth_texture_mode);
-    
-    GLint generate_mipmap;
-    F(glGetTexParameteriv)(target, GL_GENERATE_MIPMAP, &generate_mipmap);
-    params.generate_mipmap = generate_mipmap;
-    
-    F(glGetTexParameteriv)(target, GL_DEPTH_STENCIL_TEXTURE_MODE,(GLint*) &params.depth_stencil_mode);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_MAX_LEVEL, &params.max_level);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, &params.wrap[0]);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_S, &params.wrap[1]);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_WRAP_R, &params.wrap[2]);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_MODE, &params.compare_mode);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_COMPARE_FUNC, &params.compare_func);
+    F(glGetTexParameteriv)(target, GL_DEPTH_STENCIL_TEXTURE_MODE, &params.depth_stencil_mode);
     F(glGetTexParameterfv)(target, GL_TEXTURE_LOD_BIAS, &params.lod_bias);
-    F(glGetTexParameteriv)(target, GL_TEXTURE_SWIZZLE_RGBA, (GLint*)params.swizzle);
+    F(glGetTexParameteriv)(target, GL_TEXTURE_SWIZZLE_RGBA, params.swizzle);
     F(glGetTexParameterfv)(target, GL_TEXTURE_BORDER_COLOR, params.border_color);
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, (GLint*)&params.width);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, &params.width);
     
     if (target==GL_TEXTURE_2D || target==GL_TEXTURE_3D || target==GL_TEXTURE_CUBE_MAP)
         F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, (GLint*)&params.height);
@@ -16063,6 +16056,8 @@ replay_begin_cmd(ctx, "glXMakeCurrent", inspect_command);
     if (glctx) {
         reload_gl_funcs(ctx);
         ctx->_current_context = glctx;
+        //TODO: Hack to initialize VAO 0
+        update_vao(ctx, inspect_command);
     } else {
         reset_gl_funcs(ctx);
         ctx->_current_context = NULL;
