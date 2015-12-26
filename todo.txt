@@ -41,8 +41,6 @@ Bugs:
 
 Various TODOs in the source code.
 
-glIsEnabled state from OpenGL 3+.
-
 Dramatically reduce memory usage and size of trace files.
 
 Enum state values are not displayed as enums.

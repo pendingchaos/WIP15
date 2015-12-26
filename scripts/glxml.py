@@ -217,7 +217,7 @@ class GL:
                     for command in remove.findall("command"):
                         version.removed_functions.append(command.attrib["name"])
                         
-                        # TODO: Some functions were reintroduced in layer versions
+                        # TODO: Some functions were reintroduced in later versions
                         if (int(number[0]), int(number[1])) == (3, 2):
                             del functions[command.attrib["name"]]
                     
