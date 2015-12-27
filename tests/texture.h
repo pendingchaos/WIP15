@@ -162,6 +162,9 @@ void texture_test() {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     
+    GLuint sampler;
+    glGenSamplers(1, &sampler);
+    
     for (size_t i = 0; i < sizeof(formats)/sizeof(GLenum); i++) {
         GLenum format = formats[i];
         GLenum internal_format = internal_formats[i];
@@ -188,10 +191,15 @@ void texture_test() {
                 format!=GL_BGRA)
                 continue;
             
+            glBindSampler(0, 0);
+            test_tex(internal_format, format, type, prog1d, prog2d, prog3d);
+            
+            glBindSampler(0, sampler);
             test_tex(internal_format, format, type, prog1d, prog2d, prog3d);
         }
     }
     
+    glDeleteSamplers(1, &sampler);
     glDeleteVertexArrays(1, &vao);
     glDeleteProgram(prog1d);
     glDeleteBuffers(1, &buf);

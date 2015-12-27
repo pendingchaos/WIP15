@@ -14429,7 +14429,8 @@ void replay_glGetBufferParameteriv(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glGetBufferParameteriv", inspect_command);
     glGetBufferParameteriv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetBufferParameteriv;
     do {(void)sizeof((real));} while (0);
-    ;
+    GLint i;
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), &i);
 
 replay_end_cmd(ctx, "glGetBufferParameteriv", inspect_command);
 }
@@ -15808,7 +15809,15 @@ void replay_glGenSamplers(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glGenSamplers", inspect_command);
     glGenSamplers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGenSamplers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint samplers[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, samplers);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLSampler, samplers[i], fake[i]);
+
 replay_end_cmd(ctx, "glGenSamplers", inspect_command);
 }
 
@@ -31340,7 +31349,13 @@ void replay_glBindSampler(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glBindSampler", inspect_command);
     glBindSampler_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindSampler;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1));
+    GLuint unit = gl_param_GLuint(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
+    GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_tex && fake)
+        inspect_add_error(inspect_command, "Invalid sampler being bound.");
+    real(unit, real_tex);
+
 replay_end_cmd(ctx, "glBindSampler", inspect_command);
 }
 
@@ -34241,7 +34256,16 @@ void replay_glDeleteSamplers(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glDeleteSamplers", inspect_command);
     glDeleteSamplers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDeleteSamplers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (const  GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint samplers[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(samplers[i] = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake[i])))
+            inspect_add_error(inspect_command, "Invalid sampler being deleted.");
+    
+    real(n, samplers);
+
 replay_end_cmd(ctx, "glDeleteSamplers", inspect_command);
 }
 
@@ -43383,7 +43407,8 @@ void replay_glGetBufferPointerv(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glGetBufferPointerv", inspect_command);
     glGetBufferPointerv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetBufferPointerv;
     do {(void)sizeof((real));} while (0);
-    ;
+    GLvoid* p;
+    real(gl_param_GLenum(command, 1), gl_param_GLenum(command, 1), &p);
 
 replay_end_cmd(ctx, "glGetBufferPointerv", inspect_command);
 }

@@ -20,7 +20,8 @@ glXMakeCurrent:
     }
     reset_gl();
 
-glSetContextCapsWIP15: //TODO
+glSetContextCapsWIP15:
+    //TODO
     gl_write_b(WIP15_DATA);
     gl_write_u32(0*sizeof(uint32_t));
     #define LIMIT(pname) gl_write_u32(*gl_geti(GL_##pname));
@@ -497,3 +498,25 @@ glPatchParameterfv:
 glDrawableSizeWIP15:
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
+
+glGetBufferParameteriv:
+    gl_glGetBufferParameteriv(target, pname, params);
+    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLint(*params, -1);
+
+glGetBufferPointerv:
+    gl_glGetBufferPointerv(target, pname, params);
+    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_pointer(*params);
+
+glGenSamplers:
+    gl_param_GLsizei(count, -1);
+    gl_glGenSamplers(count, samplers);
+    gl_param_GLuint_array(count, samplers);
+
+glDeleteSamplers:
+    gl_param_GLsizei(count, -1);
+    gl_param_GLuint_array(count, samplers);
+    gl_glDeleteSamplers(count, samplers);

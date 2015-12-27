@@ -1393,3 +1393,40 @@ glGetInternalFormati64v:
     GLsizei bufSize = gl_param_GLsizei(command, 3);
     GLubyte params[bufSize];
     real(target, internalformat, pname, bufSize, params);
+
+glGetBufferParameteriv:
+    GLint i;
+    real(gl_param_GLenum(command, 0), gl_param_GLenum(command, 1), &i);
+
+glGetBufferPointerv:
+    GLvoid* p;
+    real(gl_param_GLenum(command, 1), gl_param_GLenum(command, 1), &p);
+
+glGenSamplers:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint samplers[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, samplers);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLSampler, samplers[i], fake[i]);
+
+glDeleteSamplers:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint samplers[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(samplers[i] = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake[i])))
+            inspect_add_error(inspect_command, "Invalid sampler being deleted.");
+    
+    real(n, samplers);
+
+glBindSampler:
+    GLuint unit = gl_param_GLuint(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
+    GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_tex && fake)
+        inspect_add_error(inspect_command, "Invalid sampler being bound.");
+    real(unit, real_tex);

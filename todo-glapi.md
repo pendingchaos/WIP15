@@ -12,11 +12,11 @@
 - [ ] glBindFragDataLocationIndexed
 - [ ] glBindFramebuffer
 - [ ] glBindRenderbuffer
-- [ ] glBindSampler
-- [ ] glBindTexture
+- [x] glBindSampler
+- [x] glBindTexture
 - [x] glBindVertexArray
 - [x] glBufferData
-- [ ] glBufferSubData
+- [x] glBufferSubData
 - [x] glClear
 - [ ] glClearBufferuiv
 - [ ] glClearBufferiv
@@ -37,7 +37,7 @@
 - [x] glDeleteProgram
 - [x] glDeleteQueries
 - [ ] glDeleteRenderbuffers
-- [ ] glDeleteSamplers
+- [x] glDeleteSamplers
 - [x] glDeleteShader
 - [ ] glDeleteSync
 - [x] glDeleteTextures
@@ -71,7 +71,7 @@
 - [ ] glGenFramebuffers
 - [ ] glGenQueries
 - [ ] glGenRenderbuffers
-- [ ] glGenSamplers
+- [x] glGenSamplers
 - [x] glGenTextures
 - [x] glGenVertexArrays
 - [x] glGetBooleanv
@@ -90,8 +90,8 @@
 - [ ] glGetActiveUniformsiv
 - [x] glGetAttachedShaders
 - [x] glGetAttribLocation
-- [ ] glGetBufferParameteriv
-- [ ] glGetBufferPointerv
+- [x] glGetBufferParameteriv
+- [x] glGetBufferPointerv
 - [x] glGetBufferSubData
 - [x] glGetCompressedTexImage
 - [x] glGetFragDataIndex
