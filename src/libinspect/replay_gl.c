@@ -15477,7 +15477,18 @@ void replay_glDrawElementsInstanced(replay_context_t* ctx, trace_command_t* comm
     replay_begin_cmd(ctx, "glDrawElementsInstanced", inspect_command);
     glDrawElementsInstanced_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawElementsInstanced;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *)gl_param_pointer(command, 3), (GLsizei)gl_param_GLsizei(command, 4));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    GLenum type = gl_param_GLenum(command, 2);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 3);
+    GLsizei primcount = gl_param_GLsizei(command, 4);
+    
+    real(mode, count, type, indices, primcount);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawElementsInstanced", inspect_command);
 }
 
@@ -20828,14 +20839,7 @@ void replay_glDrawRangeElements(replay_context_t* ctx, trace_command_t* command,
     GLuint end = gl_param_GLuint(command, 2);
     GLsizei count = gl_param_GLsizei(command, 3);
     GLenum type = gl_param_GLenum(command, 4);
-    
-    GLint element_buf;
-    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
-    const GLvoid* indices;
-    if (element_buf)
-        indices = (const GLvoid*)gl_param_pointer(command, 5);
-    else
-        indices = gl_param_data(command, 5);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 5);
     
     real(mode, start, end, count, type, indices);
     
@@ -23343,6 +23347,7 @@ void replay_glDrawArrays(replay_context_t* ctx, trace_command_t* command, inspec
     GLenum mode = gl_param_GLenum(command, 0);
     GLint first = gl_param_GLint(command, 1);
     GLsizei count = gl_param_GLsizei(command, 2);
+    
     real(mode, first, count);
     
     end_draw(ctx, inspect_command);
@@ -27196,7 +27201,18 @@ void replay_glDrawElementsBaseVertex(replay_context_t* ctx, trace_command_t* com
     replay_begin_cmd(ctx, "glDrawElementsBaseVertex", inspect_command);
     glDrawElementsBaseVertex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawElementsBaseVertex;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *)gl_param_pointer(command, 3), (GLint)gl_param_GLint(command, 4));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    GLenum type = gl_param_GLenum(command, 2);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 3);
+    GLint basevertex = gl_param_GLint(command, 4);
+    
+    real(mode, count, type, indices, basevertex);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawElementsBaseVertex", inspect_command);
 }
 
@@ -27787,7 +27803,26 @@ void replay_glGenerateMipmap(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glGenerateMipmap", inspect_command);
     glGenerateMipmap_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGenerateMipmap;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0));
+    GLenum target = gl_param_GLenum(command, 0);
+    real(target);
+    
+    GLint w, h, d;
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, &w);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, &h);
+    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, &d);
+    //TODO: Add more targets
+    switch (target) {
+    case GL_TEXTURE_1D:
+        for (GLsizei i = 0; w; i++, w/=2)
+            replay_get_tex_data(ctx, inspect_command, target, i);
+    case GL_TEXTURE_2D:
+        for (GLsizei i = 0; w && h; i++, w/=2, h/=2)
+            replay_get_tex_data(ctx, inspect_command, target, i);
+    case GL_TEXTURE_3D:
+        for (GLsizei i = 0; w && h && d; i++, w/=2, h/=2, d/=2)
+            replay_get_tex_data(ctx, inspect_command, target, i);
+    }
+
 replay_end_cmd(ctx, "glGenerateMipmap", inspect_command);
 }
 
@@ -36516,14 +36551,7 @@ void replay_glDrawElements(replay_context_t* ctx, trace_command_t* command, insp
     GLenum mode = gl_param_GLenum(command, 0);
     GLsizei count = gl_param_GLsizei(command, 1);
     GLenum type = gl_param_GLenum(command, 2);
-    
-    GLint element_buf;
-    F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_buf);
-    const GLvoid* indices;
-    if (element_buf)
-        indices = (const GLvoid*)gl_param_pointer(command, 3);
-    else
-        indices = gl_param_data(command, 3);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 3);
     
     real(mode, count, type, indices);
     
@@ -36630,7 +36658,17 @@ void replay_glDrawArraysInstanced(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glDrawArraysInstanced", inspect_command);
     glDrawArraysInstanced_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawArraysInstanced;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLsizei)gl_param_GLsizei(command, 3));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLint first = gl_param_GLint(command, 1);
+    GLsizei count = gl_param_GLsizei(command, 2);
+    GLsizei primcount = gl_param_GLsizei(command, 3);
+    
+    real(mode, first, count, primcount);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawArraysInstanced", inspect_command);
 }
 
@@ -38656,7 +38694,20 @@ void replay_glDrawRangeElementsBaseVertex(replay_context_t* ctx, trace_command_t
     replay_begin_cmd(ctx, "glDrawRangeElementsBaseVertex", inspect_command);
     glDrawRangeElementsBaseVertex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawRangeElementsBaseVertex;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLenum)gl_param_GLenum(command, 4), (const void *)gl_param_pointer(command, 5), (GLint)gl_param_GLint(command, 6));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLuint start = gl_param_GLuint(command, 1);
+    GLuint end = gl_param_GLuint(command, 2);
+    GLsizei count = gl_param_GLsizei(command, 3);
+    GLenum type = gl_param_GLenum(command, 4);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 5);
+    GLint basevertex = gl_param_GLint(command, 6);
+    
+    real(mode, start, end, count, type, indices, basevertex);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawRangeElementsBaseVertex", inspect_command);
 }
 
@@ -46027,7 +46078,19 @@ void replay_glDrawElementsInstancedBaseVertex(replay_context_t* ctx, trace_comma
     replay_begin_cmd(ctx, "glDrawElementsInstancedBaseVertex", inspect_command);
     glDrawElementsInstancedBaseVertex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDrawElementsInstancedBaseVertex;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *)gl_param_pointer(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLint)gl_param_GLint(command, 5));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    GLsizei count = gl_param_GLsizei(command, 1);
+    GLenum type = gl_param_GLenum(command, 2);
+    const GLvoid* indices = (const GLvoid*)gl_param_pointer(command, 3);
+    GLsizei primcount = gl_param_GLsizei(command, 4);
+    GLint basevertex = gl_param_GLint(command, 4);
+    
+    real(mode, count, type, indices, primcount, basevertex);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glDrawElementsInstancedBaseVertex", inspect_command);
 }
 

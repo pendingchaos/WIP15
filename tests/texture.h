@@ -53,16 +53,22 @@ void test_tex(GLenum internal, GLenum format, GLenum type, GLuint prog1d, GLuint
     
     GEN_DATA
     glTexImage1D(GL_TEXTURE_1D, 0, internal, 256, 0, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_1D);
     glTexImage2D(GL_TEXTURE_2D, 0, internal, 16, 16, 0, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
     glTexImage3D(GL_TEXTURE_3D, 0, internal, 4, 4, 4, 0, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_3D);
     draw_texture1d(prog1d);
     draw_texture2d(prog2d);
     draw_texture3d(prog3d);
     
     GEN_DATA
     glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 256, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_1D);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 16, 16, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
     glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 4, 4, 4, format, type, data);
+    glGenerateMipmap(GL_TEXTURE_3D);
     draw_texture1d(prog1d);
     draw_texture2d(prog2d);
     draw_texture3d(prog3d);

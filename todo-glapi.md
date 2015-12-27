@@ -45,14 +45,14 @@
 - [x] glDetachShader
 - [x] glDisableVertexAttribArray
 - [x] glDrawArrays
-- [ ] glDrawArraysInstanced
+- [x] glDrawArraysInstanced
 - [ ] glDrawBuffers
 - [x] glDrawElements
-- [ ] glDrawElementsBaseVertex
-- [ ] glDrawElementsInstanced
-- [ ] glDrawElementsInstancedBaseVertex
-- [ ] glDrawRangeElements
-- [ ] glDrawRangeElementsBaseVertex
+- [x] glDrawElementsBaseVertex
+- [x] glDrawElementsInstanced
+- [x] glDrawElementsInstancedBaseVertex
+- [x] glDrawRangeElements
+- [x] glDrawRangeElementsBaseVertex
 - [x] glEnableVertexAttribArray
 - [ ] glEndConditionalRender
 - [ ] glEndQuery
