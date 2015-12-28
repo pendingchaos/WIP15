@@ -18213,7 +18213,16 @@ void replay_glSamplerParameteri(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glSamplerParameteri", inspect_command);
     glSamplerParameteri_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameteri;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLint)gl_param_GLint(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLint param = gl_param_GLint(command, 2);
+    real(sampler, pname, param);
+
 replay_end_cmd(ctx, "glSamplerParameteri", inspect_command);
 }
 
@@ -18743,7 +18752,20 @@ void replay_glTexParameterIuiv(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glTexParameterIuiv", inspect_command);
     glTexParameterIuiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexParameterIuiv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    uint64_t* params64 = trace_get_uint(trace_get_arg(command, 2));
+    GLuint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(target, pname, params);
+    replay_get_tex_params(ctx, inspect_command, target);
+
 replay_end_cmd(ctx, "glTexParameterIuiv", inspect_command);
 }
 
@@ -23510,7 +23532,24 @@ void replay_glSamplerParameterIiv(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glSamplerParameterIiv", inspect_command);
     glSamplerParameterIiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameterIiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLint  *)gl_param_pointer(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    
+    GLint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);
+
 replay_end_cmd(ctx, "glSamplerParameterIiv", inspect_command);
 }
 
@@ -31388,8 +31427,10 @@ void replay_glBindSampler(replay_context_t* ctx, trace_command_t* command, inspe
     GLuint unit = gl_param_GLuint(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
-    if (!real_tex && fake)
+    if (!real_tex && fake) {
         inspect_add_error(inspect_command, "Invalid sampler being bound.");
+        return;
+    }
     real(unit, real_tex);
 
 replay_end_cmd(ctx, "glBindSampler", inspect_command);
@@ -32588,10 +32629,13 @@ void replay_glTexParameteriv(replay_context_t* ctx, trace_command_t* command, in
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = trace_get_arg(command, 2);
-    GLint params[params_val->count];
-    for (size_t i = 0; i < params_val->count; i++)
-        params[i] = trace_get_int(params_val)[i];
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    GLint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
     
     real(target, pname, params);
     replay_get_tex_params(ctx, inspect_command, target);
@@ -39563,10 +39607,13 @@ void replay_glTexParameterfv(replay_context_t* ctx, trace_command_t* command, in
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = trace_get_arg(command, 2);
-    GLfloat params[params_val->count];
-    for (size_t i = 0; i < params_val->count; i++)
-        params[i] = trace_get_double(params_val)[i];
+    double* paramsd = trace_get_double(trace_get_arg(command, 2));
+    GLfloat params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = paramsd[i];
+    else
+        params[0] = paramsd[0];
     
     real(target, pname, params);
     replay_get_tex_params(ctx, inspect_command, target);
@@ -42791,7 +42838,16 @@ void replay_glSamplerParameterf(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glSamplerParameterf", inspect_command);
     glSamplerParameterf_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameterf;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLfloat)gl_param_GLfloat(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLfloat param = gl_param_GLfloat(command, 2);
+    real(sampler, pname, param);
+
 replay_end_cmd(ctx, "glSamplerParameterf", inspect_command);
 }
 
@@ -45821,7 +45877,24 @@ void replay_glSamplerParameterIuiv(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glSamplerParameterIuiv", inspect_command);
     glSamplerParameterIuiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameterIuiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLuint  *)gl_param_pointer(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    uint64_t* params64 = trace_get_uint(trace_get_arg(command, 2));
+    
+    GLuint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);
+
 replay_end_cmd(ctx, "glSamplerParameterIuiv", inspect_command);
 }
 
@@ -46831,7 +46904,24 @@ void replay_glSamplerParameteriv(replay_context_t* ctx, trace_command_t* command
     replay_begin_cmd(ctx, "glSamplerParameteriv", inspect_command);
     glSamplerParameteriv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameteriv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLint  *)gl_param_pointer(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    
+    GLint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);
+
 replay_end_cmd(ctx, "glSamplerParameteriv", inspect_command);
 }
 
@@ -47647,7 +47737,20 @@ void replay_glTexParameterIiv(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glTexParameterIiv", inspect_command);
     glTexParameterIiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexParameterIiv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLint  *)gl_param_pointer(command, 2));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    GLint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(target, pname, params);
+    replay_get_tex_params(ctx, inspect_command, target);
+
 replay_end_cmd(ctx, "glTexParameterIiv", inspect_command);
 }
 
@@ -48778,7 +48881,24 @@ void replay_glSamplerParameterfv(replay_context_t* ctx, trace_command_t* command
     replay_begin_cmd(ctx, "glSamplerParameterfv", inspect_command);
     glSamplerParameterfv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glSamplerParameterfv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (const  GLfloat  *)gl_param_pointer(command, 2));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    double* paramsd = trace_get_double(trace_get_arg(command, 2));
+    
+    GLfloat params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = paramsd[i];
+    else
+        params[0] = paramsd[0];
+    
+    real(sampler, pname, params);
+
 replay_end_cmd(ctx, "glSamplerParameterfv", inspect_command);
 }
 

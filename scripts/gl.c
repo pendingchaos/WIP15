@@ -230,9 +230,7 @@ static void gl_param_double_array(size_t count, const double* data) {
     fwrite(&count_le, 4, 1, trace_file);
     
     for (size_t i = 0; i < count; ++i)
-    {
         fwrite(data+i, 8, 1, trace_file);
-    }
 }
 
 static void gl_param_string_array(const GLchar*const* data, size_t count) {
@@ -242,9 +240,7 @@ static void gl_param_string_array(const GLchar*const* data, size_t count) {
     fwrite(&count_le, 4, 1, trace_file);
     
     for (size_t i = 0; i < count; ++i)
-    {
         gl_write_str(data[i]);
-    }
 }
 
 static void gl_param_string(const char *value) {

@@ -266,10 +266,13 @@ glTexParameterfv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = trace_get_arg(command, 2);
-    GLfloat params[params_val->count];
-    for (size_t i = 0; i < params_val->count; i++)
-        params[i] = trace_get_double(params_val)[i];
+    double* paramsd = trace_get_double(trace_get_arg(command, 2));
+    GLfloat params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = paramsd[i];
+    else
+        params[0] = paramsd[0];
     
     real(target, pname, params);
     replay_get_tex_params(ctx, inspect_command, target);
@@ -278,10 +281,43 @@ glTexParameteriv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    trace_value_t* params_val = trace_get_arg(command, 2);
-    GLint params[params_val->count];
-    for (size_t i = 0; i < params_val->count; i++)
-        params[i] = trace_get_int(params_val)[i];
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    GLint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(target, pname, params);
+    replay_get_tex_params(ctx, inspect_command, target);
+
+glTexParameterIiv:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    GLint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(target, pname, params);
+    replay_get_tex_params(ctx, inspect_command, target);
+
+glTexParameterIuiv:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    
+    uint64_t* params64 = trace_get_uint(trace_get_arg(command, 2));
+    GLuint params[4];
+    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
     
     real(target, pname, params);
     replay_get_tex_params(ctx, inspect_command, target);
@@ -1569,8 +1605,10 @@ glBindSampler:
     GLuint unit = gl_param_GLuint(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
-    if (!real_tex && fake)
+    if (!real_tex && fake) {
         inspect_add_error(inspect_command, "Invalid sampler being bound.");
+        return;
+    }
     real(unit, real_tex);
 
 glPointParameterfv:
@@ -1584,3 +1622,101 @@ glGetSynciv:
     GLsync sync = (GLsync)replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
     if (!sync)
         inspect_add_error(inspect_command, "Invalid sync object.");
+
+glSamplerParameterf:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLfloat param = gl_param_GLfloat(command, 2);
+    real(sampler, pname, param);
+
+glSamplerParameteri:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLint param = gl_param_GLint(command, 2);
+    real(sampler, pname, param);
+
+glSamplerParameterfv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    double* paramsd = trace_get_double(trace_get_arg(command, 2));
+    
+    GLfloat params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = paramsd[i];
+    else
+        params[0] = paramsd[0];
+    
+    real(sampler, pname, params);
+
+glSamplerParameteriv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    
+    GLint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);
+
+glSamplerParameterIiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
+    
+    GLint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);
+
+glSamplerParameterIuiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!sampler) {
+        inspect_add_error(inspect_command, "Invalid sampler.");
+        return;
+    }
+    GLenum pname = gl_param_GLenum(command, 1);
+    uint64_t* params64 = trace_get_uint(trace_get_arg(command, 2));
+    
+    GLuint params[4];
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        for (size_t i = 0; i < 4; i++)
+            params[i] = params64[i];
+    else
+        params[0] = params64[0];
+    
+    real(sampler, pname, params);

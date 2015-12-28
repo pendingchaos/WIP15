@@ -564,3 +564,39 @@ glMultiDrawElementsBaseVertex:
     gl_param_GLsizei(drawcount, -1);
     gl_param_GLint_array(drawcount, basevertex);
     gl_glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
+
+glSamplerParameterfv:
+    gl_glSamplerParameterfv(sampler, pname, param);
+    gl_param_GLuint(sampler, -1);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        gl_param_GLfloat_array(4, param);
+    else
+        gl_param_GLfloat(*param, -1);
+
+glSamplerParameteriv:
+    gl_glSamplerParameteriv(sampler, pname, param);
+    gl_param_GLuint(sampler, -1);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        gl_param_GLint_array(4, param);
+    else
+        gl_param_GLint(*param, -1);
+
+glSamplerParameterIiv:
+    gl_glSamplerParameterIiv(sampler, pname, param);
+    gl_param_GLuint(sampler, -1);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        gl_param_GLint_array(4, param);
+    else
+        gl_param_GLint(*param, -1);
+
+glSamplerParameterIuiv:
+    gl_glSamplerParameterIuiv(sampler, pname, param);
+    gl_param_GLuint(sampler, -1);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        gl_param_GLuint_array(4, param);
+    else
+        gl_param_GLuint(*param, -1);

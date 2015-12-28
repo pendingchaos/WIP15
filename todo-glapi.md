@@ -155,11 +155,11 @@
 - [ ] glQueryCounter
 - [ ] glRenderbufferStorage
 - [ ] glRenderbufferStorageMultisample
-- [ ] glSamplerParameteri
-- [ ] glSamplerParameterIiv
-- [ ] glSamplerParameterf
-- [ ] glSamplerParameteriv
-- [ ] glSamplerParameterfv
+- [x] glSamplerParameteri
+- [x] glSamplerParameterIiv
+- [x] glSamplerParameterf
+- [x] glSamplerParameteriv
+- [x] glSamplerParameterfv
 - [x] glShaderSource
 - [ ] glTexBuffer
 - [x] glTexImage1D
@@ -167,11 +167,11 @@
 - [ ] glTexImage2DMultisample
 - [x] glTexImage3D
 - [ ] glTexImage3DMultisample
-- [ ] glTexParameterf
-- [ ] glTexParameteri
-- [ ] glTexParameteriv
-- [ ] glTexParameterfv
-- [ ] glTexParameterIiv
+- [x] glTexParameterf
+- [x] glTexParameteri
+- [x] glTexParameteriv
+- [x] glTexParameterfv
+- [x] glTexParameterIiv
 - [x] glTexSubImage1D
 - [x] glTexSubImage2D
 - [x] glTexSubImage3D
