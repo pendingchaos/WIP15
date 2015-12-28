@@ -520,3 +520,13 @@ glDeleteSamplers:
     gl_param_GLsizei(count, -1);
     gl_param_GLuint_array(count, samplers);
     gl_glDeleteSamplers(count, samplers);
+
+glPointParameterfv:
+    gl_param_GLenum(pname, GROUP_PointParameterNameARB);
+    gl_param_GLfloat(*params);
+    gl_glPointParameterfv(pname, params);
+
+glPointParameteriv:
+    gl_param_GLenum(pname, GROUP_PointParameterNameARB);
+    gl_param_GLint(*params);
+    gl_glPointParameteriv(pname, params);

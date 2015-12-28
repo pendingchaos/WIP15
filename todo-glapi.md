@@ -67,7 +67,7 @@
 - [ ] glFramebufferTexture3D
 - [ ] glFramebufferTextureLayer
 - [x] glGenBuffers
-- [ ] glGenerateMipmap
+- [x] glGenerateMipmap
 - [ ] glGenFramebuffers
 - [ ] glGenQueries
 - [ ] glGenRenderbuffers
@@ -104,9 +104,10 @@
 - [x] glGetQueryObjectiv
 - [x] glGetQueryObjectuiv
 - [ ] glGetRenderbufferParameteriv
-- [ ] glGetSamplerParameterfv
-- [ ] glGetSamplerParameteriv
-- [ ] glGetSamplerParameterIiv
+- [x] glGetSamplerParameterfv
+- [x] glGetSamplerParameteriv
+- [x] glGetSamplerParameterIiv
+- [x] glGetSamplerParameterIuiv
 - [x] glGetShaderiv
 - [x] glGetShaderInfoLog
 - [x] glGetShaderSource
@@ -149,10 +150,8 @@
 - [ ] glMultiDrawElementsBaseVertex
 - [ ] glPixelStorei
 - [ ] glPixelStoref
-- [ ] glPointParameterfv
-- [ ] glPointParameteri
-- [ ] glPointParameterf
-- [ ] glPointParameteriv
+- [x] glPointParameterfv
+- [x] glPointParameteriv
 - [ ] glQueryCounter
 - [ ] glRenderbufferStorage
 - [ ] glRenderbufferStorageMultisample

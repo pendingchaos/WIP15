@@ -813,6 +813,30 @@ glGetInteger64i_v:
 glReadPixels:
     ;
 
+glGetSamplerParamaterfv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_sampler)
+        inspect_add_error(inspect_command, "Invalid sampler.");
+
+glGetSamplerParamateriv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_sampler)
+        inspect_add_error(inspect_command, "Invalid sampler.");
+
+glGetSamplerParamaterIiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_sampler)
+        inspect_add_error(inspect_command, "Invalid sampler.");
+
+glGetSamplerParamaterIuiv:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
+    if (!real_sampler)
+        inspect_add_error(inspect_command, "Invalid sampler.");
+
 glProgramUniformWIP15:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
@@ -1505,3 +1529,9 @@ glBindSampler:
     if (!real_tex && fake)
         inspect_add_error(inspect_command, "Invalid sampler being bound.");
     real(unit, real_tex);
+
+glPointParameterfv:
+    F(glPointParameterf)(gl_param_GLenum(command, 0), gl_param_GLfloat(command, 1));
+
+glPointParameteriv:
+    F(glPointParameteri)(gl_param_GLenum(command, 0), gl_param_GLint(command, 1));
