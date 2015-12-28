@@ -911,7 +911,14 @@
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="buffer">
+                                <property name="resizable">True</property>
                                 <property name="title" translatable="yes">Buffer</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="value4">
+                                <property name="resizable">True</property>
+                                <property name="title" translatable="yes">Value</property>
                               </object>
                             </child>
                           </object>

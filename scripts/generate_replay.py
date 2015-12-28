@@ -698,10 +698,58 @@ typedef struct {
     GLint stride;
     GLint buffer;
     GLint divisor;
+    GLint integer;
     void* pointer;
+    double value[4];
 } generic_vertex_attrib_t;
 
 static generic_vertex_attrib_t* attribs;
+
+static void set_vertex_attrib(replay_context_t* ctx, GLuint index, const generic_vertex_attrib_t* attrib) {
+    if (attrib->enabled)
+        F(glEnableVertexAttribArray)(index);
+    else
+        F(glDisableVertexAttribArray)(index);
+    
+    if (attrib->buffer) {
+        GLint last_buf;
+        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+        
+        F(glBindBuffer)(GL_ARRAY_BUFFER, attrib->buffer);
+        if (attrib->integer)
+            F(glVertexAttribIPointer)(index,
+                                      attrib->count,
+                                      attrib->type,
+                                      attrib->stride,
+                                      attrib->pointer);
+        else
+            F(glVertexAttribPointer)(index,
+                                     attrib->count,
+                                     attrib->type,
+                                     attrib->normalized,
+                                     attrib->stride,
+                                     attrib->pointer);
+        
+        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+    } else {
+        switch (attrib->count) {
+        case 1:
+            F(glVertexAttrib1d)(index, attrib->value[0]);
+            break;
+        case 2:
+            F(glVertexAttrib2d)(index, attrib->value[0], attrib->value[1]);
+            break;
+        case 3:
+            F(glVertexAttrib3d)(index, attrib->value[0], attrib->value[1], attrib->value[2]);
+            break;
+        case 4:
+            F(glVertexAttrib4d)(index, attrib->value[0], attrib->value[1], attrib->value[2], attrib->value[3]);
+            break;
+        }
+    }
+    
+    F(glVertexAttribDivisor)(index, attrib->divisor); //TODO: It should only do this if it's supported
+}
 
 static void begin_draw(replay_context_t* ctx) {
     //TODO: This should use the limits.
@@ -721,7 +769,9 @@ static void begin_draw(replay_context_t* ctx) {
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &attribs[i].integer);
         F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
+        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
     }
     
     for (size_t i = 0; i < attrib_count; i++) {
@@ -729,24 +779,7 @@ static void begin_draw(replay_context_t* ctx) {
         if (loc < 0)
             continue;
         
-        if (attribs[i].enabled)
-            F(glEnableVertexAttribArray)(loc);
-        else
-            F(glDisableVertexAttribArray)(loc);
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
-        
-        F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
-        F(glVertexAttribPointer)(loc,
-                                 attribs[i].count,
-                                 attribs[i].type,
-                                 attribs[i].normalized,
-                                 attribs[i].stride,
-                                 attribs[i].pointer);
-        F(glVertexAttribDivisor)(loc, attribs[i].divisor); //TODO: It should only do this if it's supported
-        
-        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+        set_vertex_attrib(ctx, loc, attribs+i);
     }
 }
 
@@ -758,26 +791,8 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     GLint attrib_count;
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
     
-    for (size_t i = 0; i < attrib_count; i++) {
-        if (attribs[i].enabled)
-            F(glEnableVertexAttribArray)(i);
-        else
-            F(glDisableVertexAttribArray)(i);
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
-        F(glBindBuffer)(GL_ARRAY_BUFFER, attribs[i].buffer);
-        
-        F(glVertexAttribPointer)(i,
-                                 attribs[i].count,
-                                 attribs[i].type,
-                                 attribs[i].normalized,
-                                 attribs[i].stride,
-                                 attribs[i].pointer);
-        F(glVertexAttribDivisor)(i, attribs[i].divisor); //TODO: It should only do this if it's supported
-        
-        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
-    }
+    for (size_t i = 0; i < attrib_count; i++)
+        set_vertex_attrib(ctx, i, attribs+i);
     
     free(attribs);
 }
@@ -829,6 +844,7 @@ void update_vao(replay_context_t* ctx, inspect_command_t* inspect_command) {
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
         F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor); //TODO: It should only do this if it's supported
         F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
         attribs[i].index = i;
         attribs[i].enabled = enabled;
         attribs[i].size = size;

@@ -1,4 +1,5 @@
 - Vertex attribute indices need to work with matrices.
+- glVertexAttrib* needs testing
 
 # OpenGL 3.3 support progress
 - [x] glAttachShader
@@ -200,37 +201,36 @@
 - [x] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram
-- [ ] glVertexAttribI2i
+- [x] glVertexAttribI2i
 - [ ] glVertexAttrib1fv
 - [ ] glVertexAttrib2sv
-- [ ] glVertexAttribI3i
+- [x] glVertexAttribI3i
 - [ ] glVertexAttrib3fv
-- [ ] glVertexAttrib4f
-- [ ] glVertexAttrib4d
-- [ ] glVertexAttrib4s
-- [ ] glVertexAttribI4i
+- [x] glVertexAttrib4f
+- [x] glVertexAttrib4d
+- [x] glVertexAttrib4s
+- [x] glVertexAttribI4i
 - [ ] glVertexAttrib4sv
 - [ ] glVertexAttrib3dv
 - [ ] glVertexAttrib4iv
 - [ ] glVertexAttrib1sv
 - [ ] glVertexAttrib2dv
-- [ ] glVertexAttrib1d
-- [ ] glVertexAttribI1i
+- [x] glVertexAttrib1d
+- [x] glVertexAttribI1i
 - [ ] glVertexAttrib4fv
 - [ ] glVertexAttrib2fv
 - [ ] glVertexAttrib3sv
 - [ ] glVertexAttrib1dv
-- [ ] glVertexAttrib1f
-- [ ] glVertexAttrib1s
-- [ ] glVertexAttrib3d
+- [x] glVertexAttrib1f
+- [x] glVertexAttrib1s
+- [x] glVertexAttrib3d
 - [ ] glVertexAttrib4dv
-- [ ] glVertexAttrib3f
-- [ ] glVertexAttrib3s
+- [x] glVertexAttrib3f
+- [x] glVertexAttrib3s
 - [ ] glVertexAttrib4bv
-- [ ] glVertexAttrib2d
-- [ ] glVertexAttrib2f
-- [ ] glVertexAttrib2s
-- [ ] glVertexAttribDivisor
+- [x] glVertexAttrib2d
+- [x] glVertexAttrib2f
+- [x] glVertexAttrib2s
 - [ ] glVertexAttribIPointer
 - [ ] glVertexAttribPointer
 - [ ] glWaitSync

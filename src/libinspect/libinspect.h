@@ -91,6 +91,7 @@ typedef struct {
     unsigned int type;
     unsigned int divisor;
     unsigned int buffer;
+    double value[4];
 } inspect_vertex_attrib_t;
 
 typedef struct {

@@ -651,6 +651,45 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         memset(buffer_str, 0, 64);
         snprintf(buffer_str, 64, "%u", attr->buffer);
         
+        char value_strs[128][4];
+        for (size_t j = 0; j < 4; j++)
+            strncpy(value_strs[j], format_float(attr->value[j]), 128);
+        
+        char value_str[1024];
+        memset(value_str, 0, 1024);
+        switch (attr->size) {
+        case 1:
+            snprintf(value_str,
+                     1024,
+                     "%s",
+                     value_strs[0]);
+            break;
+        case 2:
+            snprintf(value_str,
+                     1024,
+                     "[%s %s]",
+                     value_strs[0],
+                     value_strs[1]);
+            break;
+        case 3:
+            snprintf(value_str,
+                     1024,
+                     "[%s %s %s]",
+                     value_strs[0],
+                     value_strs[1],
+                     value_strs[2]);
+            break;
+        case 4:
+            snprintf(value_str,
+                     1024,
+                     "[%s %s %s %s]",
+                     value_strs[0],
+                     value_strs[1],
+                     value_strs[2],
+                     value_strs[3]);
+            break;
+        }
+        
         GtkTreeIter row;
         gtk_tree_store_append(attr_store, &row, NULL);
         gtk_tree_store_set(attr_store, &row,
@@ -664,6 +703,7 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
                            7, attr->integer ? "true" : "false",
                            8, divisor_str,
                            9, buffer_str,
+                           10, value_str,
                            -1);
     }
 }
@@ -1278,15 +1318,15 @@ int main(int argc, char** argv) {
     
     //Initialize vao attributes list view
     GObject* vao_attr_view = gtk_builder_get_object(builder, "vao_attributes");
-    store = gtk_tree_store_new(10, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+    store = gtk_tree_store_new(11, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
                                G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
                                G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-                               G_TYPE_STRING);
+                               G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(vao_attr_view),
                             GTK_TREE_MODEL(store));
     g_object_unref(store);
     renderer = gtk_cell_renderer_text_new();
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 11; i++) {
         column = gtk_tree_view_get_column(GTK_TREE_VIEW(vao_attr_view), i);
         gtk_tree_view_column_pack_start(column, renderer, FALSE);
         gtk_tree_view_column_set_attributes(column, renderer, "text", i, NULL);
