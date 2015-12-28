@@ -111,9 +111,9 @@
 - [x] glGetShaderiv
 - [x] glGetShaderInfoLog
 - [x] glGetShaderSource
-- [ ] glGetString
+- [x] glGetString
 - [ ] glGetStringi
-- [ ] glGetSynciv
+- [x] glGetSynciv
 - [x] glGetTexImage
 - [x] glGetTexLevelParameterfv
 - [x] glGetTexLevelParameteriv
@@ -146,8 +146,8 @@
 - [x] glMapBuffer
 - [ ] glMapBufferRange
 - [x] glMultiDrawArrays
-- [ ] glMultiDrawElements
-- [ ] glMultiDrawElementsBaseVertex
+- [x] glMultiDrawElements
+- [x] glMultiDrawElementsBaseVertex
 - [ ] glPixelStorei
 - [ ] glPixelStoref
 - [x] glPointParameterfv

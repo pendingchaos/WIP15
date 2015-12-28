@@ -27,6 +27,7 @@
 #define WIP15_DATA 20
 #define WIP15_DOUBLE_ARRAY 21
 #define WIP15_S32_ARRAY 22
+#define WIP15_PTR64_ARRAY 23
 
 typedef struct {
     bool exists;
@@ -193,6 +194,19 @@ static void gl_param_GLint_array(size_t count, const GLint* data) {
     {
         int32_t item = htole32(data[i]);
         fwrite(&item, 4, 1, trace_file);
+    }
+}
+
+static void gl_param_pointer_array(size_t count, const void*const* data) {
+    gl_write_b(WIP15_PTR64_ARRAY);
+    
+    uint32_t count_le = htole32(count);
+    fwrite(&count_le, 4, 1, trace_file);
+    
+    for (size_t i = 0; i < count; ++i)
+    {
+        uint64_t item = htole64((uint64_t)(size_t)data[i]);
+        fwrite(&item, 8, 1, trace_file);
     }
 }
 

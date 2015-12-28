@@ -405,7 +405,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
     }
     case 22: {//int32_t array
         if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read double array count";
+            trace_error_desc = "Unable to read 32-bit integer array count";
             return -1;
         }
         val->count = le32toh(val->count);
@@ -413,7 +413,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
         if (val->count == 1) {
             int32_t i;
             if (!readf(&i, 4, 1, file)) {
-                trace_error_desc = "Unable to read double array element";
+                trace_error_desc = "Unable to read 32-bit integer array element";
                 return -1;
             }
             val->i64 = le32toh(i);
@@ -423,10 +423,38 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
                 int32_t iv;
                 if (!readf(&iv, 4, 1, file)) {
                     free(val->i64_array);
-                    trace_error_desc = "Unable to read double array element";
+                    trace_error_desc = "Unable to read 32-bit integer array element";
                     return -1;
                 }
                 val->i64_array[i] = le32toh(iv);
+            }
+        }
+        break;
+    }
+    case 23: {//64-bit pointer array
+        if (!readf(&val->count, 4, 1, file)) {
+            trace_error_desc = "Unable to read 64-bit pointer array count";
+            return -1;
+        }
+        val->count = le32toh(val->count);
+        val->type = Type_Ptr;
+        if (val->count == 1) {
+            uint64_t p;
+            if (!readf(&p, 8, 1, file)) {
+                trace_error_desc = "Unable to read 64-bit pointer array element";
+                return -1;
+            }
+            val->ptr = le64toh(p);
+        } else {
+            val->ptr_array = malloc(sizeof(uint64_t)*val->count);
+            for (size_t i = 0; i < val->count; ++i) {
+                uint64_t pv;
+                if (!readf(&pv, 4, 1, file)) {
+                    free(val->ptr_array);
+                    trace_error_desc = "Unable to read 64-bit pointer array element";
+                    return -1;
+                }
+                val->ptr_array[i] = le64toh(pv);
             }
         }
         break;

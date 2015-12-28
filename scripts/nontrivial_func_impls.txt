@@ -1273,6 +1273,49 @@ glMultiDrawArrays:
     
     end_draw(ctx, inspect_command);
 
+glMultiDrawElements:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 1));
+    GLenum type = gl_param_GLenum(command, 2);
+    uint64_t* indicesi = trace_get_ptr(trace_get_arg(command, 3));
+    GLsizei drawcount = gl_param_GLsizei(command, 4);
+    
+    GLint count[drawcount];
+    const GLvoid* indices[drawcount];
+    for (GLsizei i = 0; i < drawcount; i++) {
+        count[i] = count64[i];
+        indices[i] = (const GLvoid*)indicesi[i];
+    }
+    
+    real(mode, count, type, indices, drawcount);
+    
+    end_draw(ctx, inspect_command);
+
+glMultiDrawElementsBaseVertex:
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 1));
+    GLenum type = gl_param_GLenum(command, 2);
+    uint64_t* indicesi = trace_get_ptr(trace_get_arg(command, 3));
+    GLsizei drawcount = gl_param_GLsizei(command, 4);
+    int64_t* basevertex64 = trace_get_int(trace_get_arg(command, 5));
+    
+    GLint count[drawcount];
+    const GLvoid* indices[drawcount];
+    GLint basevertex[drawcount];
+    for (GLsizei i = 0; i < drawcount; i++) {
+        count[i] = count64[i];
+        indices[i] = (const GLvoid*)indicesi[i];
+        basevertex[i] = basevertex64[i];
+    }
+    
+    real(mode, count, type, indices, drawcount, basevertex);
+    
+    end_draw(ctx, inspect_command);
+
 glDrawElements:
     begin_draw(ctx);
     
@@ -1535,3 +1578,9 @@ glPointParameterfv:
 
 glPointParameteriv:
     F(glPointParameteri)(gl_param_GLenum(command, 0), gl_param_GLint(command, 1));
+
+glGetSynciv:
+    uint64_t fake = gl_param_GLsync(command, 0);
+    GLsync sync = (GLsync)replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
+    if (!sync)
+        inspect_add_error(inspect_command, "Invalid sync object.");

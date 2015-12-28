@@ -254,41 +254,36 @@ glGetString:
     gl_param_GLenum(name, GROUP_StringName);
     const GLubyte* result = "";
     switch (name) {
-    case GL_VENDOR: {
+    case GL_VENDOR:
         if (current_limits->vendor.exists)
             result = current_limits->vendor.str;
         else
             result = gl_glGetString(GL_VENDOR);
         break;
-    }
-    case GL_RENDERER: {
+    case GL_RENDERER:
         if (current_limits->renderer.exists)
             result = current_limits->renderer.str;
         else
             result = gl_glGetString(GL_RENDERER);
         break;
-    }
-    case GL_VERSION: {
+    case GL_VERSION:
         if (current_limits->version.exists)
             result = current_limits->version.str;
         else
             result = gl_glGetString(GL_VERSION);
         break;
-    }
-    case GL_SHADING_LANGUAGE_VERSION: {
+    case GL_SHADING_LANGUAGE_VERSION:
         if (current_limits->shading_language_version.exists)
             result = current_limits->shading_language_version.str;
         else
             result = gl_glGetString(GL_SHADING_LANGUAGE_VERSION);
         break;
-    }
-    case GL_EXTENSIONS: {
+    case GL_EXTENSIONS:
         if (current_limits->extensions.exists)
             result = current_limits->extensions_str;
         else
             result = gl_glGetString(GL_EXTENSIONS);
         break;
-    }
     }
     gl_param_string(result);
 
@@ -522,11 +517,50 @@ glDeleteSamplers:
     gl_glDeleteSamplers(count, samplers);
 
 glPointParameterfv:
-    gl_param_GLenum(pname, GROUP_PointParameterNameARB);
-    gl_param_GLfloat(*params);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLfloat(*params, -1);
     gl_glPointParameterfv(pname, params);
 
 glPointParameteriv:
-    gl_param_GLenum(pname, GROUP_PointParameterNameARB);
-    gl_param_GLint(*params);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLint(*params, -1);
     gl_glPointParameteriv(pname, params);
+
+glGetSynciv:
+    GLsizei len;
+    gl_glGetSynciv(sync, pname, bufSize, length?length:&len, values);
+    
+    gl_param_GLsync(sync, -1);
+    gl_param_GLenum(pname, -1);
+    gl_param_GLsizei(bufSize, -1);
+    if (length) {
+        gl_param_GLsizei(*length, -1);
+        gl_param_GLint_array(*length, values);
+    } else {
+        gl_param_GLint_array(0, NULL);
+        gl_param_GLint_array(len, values);
+    }
+
+glMultiDrawArrays:
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint_array(drawcount, first);
+    gl_param_GLint_array(drawcount, count);
+    gl_param_GLsizei(drawcount, -1);
+    gl_glMultiDrawArrays(mode, first, count, drawcount);
+
+glMultiDrawElements:
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint_array(drawcount, count);
+    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_pointer_array(drawcount, indices);
+    gl_param_GLsizei(drawcount, -1);
+    gl_glMultiDrawElements(mode, count, type, indices, drawcount);
+
+glMultiDrawElementsBaseVertex:
+    gl_param_GLenum(mode, GROUP_PrimitiveType);
+    gl_param_GLint_array(drawcount, count);
+    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_pointer_array(drawcount, indices);
+    gl_param_GLsizei(drawcount, -1);
+    gl_param_GLint_array(drawcount, basevertex);
+    gl_glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);

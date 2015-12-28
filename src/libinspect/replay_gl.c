@@ -34992,7 +34992,25 @@ void replay_glMultiDrawElements(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glMultiDrawElements", inspect_command);
     glMultiDrawElements_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glMultiDrawElements;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLsizei  *)gl_param_pointer(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *const*)gl_param_pointer(command, 3), (GLsizei)gl_param_GLsizei(command, 4));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 1));
+    GLenum type = gl_param_GLenum(command, 2);
+    uint64_t* indicesi = trace_get_ptr(trace_get_arg(command, 3));
+    GLsizei drawcount = gl_param_GLsizei(command, 4);
+    
+    GLint count[drawcount];
+    const GLvoid* indices[drawcount];
+    for (GLsizei i = 0; i < drawcount; i++) {
+        count[i] = count64[i];
+        indices[i] = (const GLvoid*)indicesi[i];
+    }
+    
+    real(mode, count, type, indices, drawcount);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glMultiDrawElements", inspect_command);
 }
 
@@ -39073,7 +39091,11 @@ void replay_glGetSynciv(replay_context_t* ctx, trace_command_t* command, inspect
     replay_begin_cmd(ctx, "glGetSynciv", inspect_command);
     glGetSynciv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetSynciv;
     do {(void)sizeof((real));} while (0);
-    real((GLsync)gl_param_GLsync(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLsizei  *)gl_param_pointer(command, 3), (GLint  *)gl_param_pointer(command, 4));
+    uint64_t fake = gl_param_GLsync(command, 0);
+    GLsync sync = (GLsync)replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
+    if (!sync)
+        inspect_add_error(inspect_command, "Invalid sync object.");
+
 replay_end_cmd(ctx, "glGetSynciv", inspect_command);
 }
 
@@ -44065,7 +44087,28 @@ void replay_glMultiDrawElementsBaseVertex(replay_context_t* ctx, trace_command_t
     replay_begin_cmd(ctx, "glMultiDrawElementsBaseVertex", inspect_command);
     glMultiDrawElementsBaseVertex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glMultiDrawElementsBaseVertex;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (const  GLsizei  *)gl_param_pointer(command, 1), (GLenum)gl_param_GLenum(command, 2), (const void *const*)gl_param_pointer(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (const  GLint  *)gl_param_pointer(command, 5));
+    begin_draw(ctx);
+    
+    GLenum mode = gl_param_GLenum(command, 0);
+    int64_t* count64 = trace_get_int(trace_get_arg(command, 1));
+    GLenum type = gl_param_GLenum(command, 2);
+    uint64_t* indicesi = trace_get_ptr(trace_get_arg(command, 3));
+    GLsizei drawcount = gl_param_GLsizei(command, 4);
+    int64_t* basevertex64 = trace_get_int(trace_get_arg(command, 5));
+    
+    GLint count[drawcount];
+    const GLvoid* indices[drawcount];
+    GLint basevertex[drawcount];
+    for (GLsizei i = 0; i < drawcount; i++) {
+        count[i] = count64[i];
+        indices[i] = (const GLvoid*)indicesi[i];
+        basevertex[i] = basevertex64[i];
+    }
+    
+    real(mode, count, type, indices, drawcount, basevertex);
+    
+    end_draw(ctx, inspect_command);
+
 replay_end_cmd(ctx, "glMultiDrawElementsBaseVertex", inspect_command);
 }
 
