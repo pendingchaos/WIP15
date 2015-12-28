@@ -401,12 +401,12 @@ static void gl_param_GLhalfNV(GLhalfNV value, int32_t group) { //TODO
 
 static void gl_param_GLintptr(GLintptr value, int32_t group) {
 #if __WORDSIZE == 64
-    gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    gl_write_b(WIP15_S64);
+    int64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
-    gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    gl_write_b(WIP15_S32);
+    int32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);

@@ -56,9 +56,8 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < 8; ++i) {
         void* data = malloc(w*h*4);
         
-        for (size_t j = 0; j < w*h; ++j) {
+        for (size_t j = 0; j < w*h; ++j)
             ((uint32_t*)data)[j] = i==0 ? (j%2 ? 0xFFFFFFFF : 0xFF000000) : 0xFF7f7f7f;
-        }
         
         glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         w /= 2;

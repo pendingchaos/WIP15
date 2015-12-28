@@ -600,3 +600,44 @@ glSamplerParameterIuiv:
         gl_param_GLuint_array(4, param);
     else
         gl_param_GLuint(*param, -1);
+
+glGenFramebuffers:
+    gl_param_GLsizei(n, -1);
+    gl_glGenFramebuffers(n, framebuffers);
+    gl_param_GLuint_array(n, framebuffers);
+
+glDeleteFramebuffers:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, framebuffers);
+    gl_glDeleteFramebuffers(n, framebuffers);
+
+glGenRenderbuffers:
+    gl_param_GLsizei(n, -1);
+    gl_glGenRenderbuffers(n, renderbuffers);
+    gl_param_GLuint_array(n, renderbuffers);
+
+glDeleteRenderbuffers:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, renderbuffers);
+    gl_glDeleteRenderbuffers(n, renderbuffers);
+
+glGetActiveUniformsiv:
+    gl_glGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
+    gl_param_GLuint(program, -1);
+    gl_param_GLsizei(uniformCount, -1);
+    gl_param_GLuint_array(uniformCount, uniformIndices);
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLint_array(uniformCount, params);
+
+glGetFramebufferAttachmentParameteriv:
+    gl_glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
+    gl_param_GLenum(target, -1); //TODO: The group
+    gl_param_GLenum(attachment, -1); //TODO: The group
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLint(*params, -1);
+
+glGetRenderbufferParameteriv:
+    gl_glGetRenderbufferParameteriv(target, pname, params);
+    gl_param_GLenum(target, 1); //TODO: The group
+    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLint(*params, -1);

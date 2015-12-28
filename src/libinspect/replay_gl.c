@@ -365,8 +365,8 @@ static GLhalfNV gl_param_GLhalfNV(trace_command_t* cmd, size_t index) { //TODO
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+static int64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
 static GLushort gl_param_GLushort(trace_command_t* cmd, size_t index) {
@@ -397,13 +397,13 @@ static GLhandleARB gl_param_GLhandleARB(trace_command_t* cmd, size_t index) {
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+static int64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
+static int64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
 static GLint gl_param_GLint(trace_command_t* cmd, size_t index)
@@ -14983,7 +14983,15 @@ void replay_glGenFramebuffers(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glGenFramebuffers", inspect_command);
     glGenFramebuffers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGenFramebuffers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint fbs[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, fbs);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLFramebuffer, fbs[i], fake[i]);
+
 replay_end_cmd(ctx, "glGenFramebuffers", inspect_command);
 }
 
@@ -15576,7 +15584,11 @@ void replay_glGetRenderbufferParameteriv(replay_context_t* ctx, trace_command_t*
     replay_begin_cmd(ctx, "glGetRenderbufferParameteriv", inspect_command);
     glGetRenderbufferParameteriv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetRenderbufferParameteriv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLint  *)gl_param_pointer(command, 2));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum pname = gl_param_GLenum(command, 1);
+    GLint params;
+    real(target, pname, &params);
+
 replay_end_cmd(ctx, "glGetRenderbufferParameteriv", inspect_command);
 }
 
@@ -20259,7 +20271,18 @@ void replay_glBindBufferRange(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glBindBufferRange", inspect_command);
     glBindBufferRange_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindBufferRange;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (GLintptr)gl_param_GLintptr(command, 3), (GLsizeiptr)gl_param_GLsizeiptr(command, 4));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLuint index = gl_param_GLuint(command, 1);
+    GLuint fake = gl_param_GLuint(command, 2);
+    GLuint buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
+    if (!buf && fake) {
+        inspect_add_error(inspect_command, "Invalid buffer being bound.");
+        return;
+    }
+    int64_t offset = gl_param_GLintptr(command, 3);
+    int64_t size = gl_param_GLsizeiptr(command, 4);
+    real(target, index, buf, offset, size);
+
 replay_end_cmd(ctx, "glBindBufferRange", inspect_command);
 }
 
@@ -20907,7 +20930,16 @@ void replay_glBindBufferBase(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glBindBufferBase", inspect_command);
     glBindBufferBase_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindBufferBase;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLuint index = gl_param_GLuint(command, 1);
+    GLuint fake = gl_param_GLuint(command, 2);
+    GLuint buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
+    if (!buf && fake) {
+        inspect_add_error(inspect_command, "Invalid buffer being bound.");
+        return;
+    }
+    real(target, index, buf);
+
 replay_end_cmd(ctx, "glBindBufferBase", inspect_command);
 }
 
@@ -21611,7 +21643,12 @@ void replay_glGetFramebufferAttachmentParameteriv(replay_context_t* ctx, trace_c
     replay_begin_cmd(ctx, "glGetFramebufferAttachmentParameteriv", inspect_command);
     glGetFramebufferAttachmentParameteriv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetFramebufferAttachmentParameteriv;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLint  *)gl_param_pointer(command, 3));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum attachment = gl_param_GLenum(command, 1);
+    GLenum pname = gl_param_GLenum(command, 2);
+    GLint params;
+    real(target, attachment, pname, &params);
+
 replay_end_cmd(ctx, "glGetFramebufferAttachmentParameteriv", inspect_command);
 }
 
@@ -22603,7 +22640,15 @@ void replay_glGenRenderbuffers(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glGenRenderbuffers", inspect_command);
     glGenRenderbuffers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGenRenderbuffers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint rbs[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, rbs);
+    
+    for (size_t i = 0; i < n; ++i)
+        replay_create_object(ctx, ReplayObjType_GLRenderbuffer, rbs[i], fake[i]);
+
 replay_end_cmd(ctx, "glGenRenderbuffers", inspect_command);
 }
 
@@ -23369,7 +23414,16 @@ void replay_glDeleteFramebuffers(replay_context_t* ctx, trace_command_t* command
     replay_begin_cmd(ctx, "glDeleteFramebuffers", inspect_command);
     glDeleteFramebuffers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDeleteFramebuffers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (const  GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint fbs[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(fbs[i] = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake[i])))
+            inspect_add_error(inspect_command, "Invalid framebuffer being deleted.");
+    
+    real(n, fbs);
+
 replay_end_cmd(ctx, "glDeleteFramebuffers", inspect_command);
 }
 
@@ -26130,7 +26184,27 @@ void replay_glGetActiveUniformBlockiv(replay_context_t* ctx, trace_command_t* co
     replay_begin_cmd(ctx, "glGetActiveUniformBlockiv", inspect_command);
     glGetActiveUniformBlockiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetActiveUniformBlockiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLint  *)gl_param_pointer(command, 3));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
+    GLenum pname = gl_param_GLenum(command, 2);
+    
+    if (pname == GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES) {
+        GLint count;
+        real(program, uniformBlockIndex,GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &count);
+        
+        GLint* vals = malloc(sizeof(GLint)*count);
+        real(program, uniformBlockIndex, pname, vals);
+        free(vals);
+    } else {
+        GLint v;
+        real(program, uniformBlockIndex, pname, &v);
+    }
+
 replay_end_cmd(ctx, "glGetActiveUniformBlockiv", inspect_command);
 }
 
@@ -27481,11 +27555,13 @@ void replay_glBindBuffer(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glBindBuffer", inspect_command);
     glBindBuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindBuffer;
     do {(void)sizeof((real));} while (0);
-    GLuint target = gl_param_GLenum(command, 0);
+    GLenum target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
-    if (!real_buf && fake)
+    if (!real_buf && fake) {
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
+        return;
+    }
     real(target, real_buf);
 
 replay_end_cmd(ctx, "glBindBuffer", inspect_command);
@@ -27519,7 +27595,15 @@ void replay_glBindFramebuffer(replay_context_t* ctx, trace_command_t* command, i
     replay_begin_cmd(ctx, "glBindFramebuffer", inspect_command);
     glBindFramebuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindFramebuffer;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
+    GLuint fb = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake);
+    if (!fb && fake) {
+        inspect_add_error(inspect_command, "Invalid framebuffer being bound.");
+        return;
+    }
+    real(target, fb);
+
 replay_end_cmd(ctx, "glBindFramebuffer", inspect_command);
 }
 
@@ -32522,7 +32606,16 @@ void replay_glGetActiveUniformName(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glGetActiveUniformName", inspect_command);
     glGetActiveUniformName_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetActiveUniformName;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLsizei  *)gl_param_pointer(command, 3), (GLchar  *)gl_param_string(command, 4));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLuint uniformIndex = gl_param_GLuint(command, 1);
+    GLchar buf[64];
+    real(program, uniformIndex, 64, NULL, buf);
+
 replay_end_cmd(ctx, "glGetActiveUniformName", inspect_command);
 }
 
@@ -35016,7 +35109,16 @@ void replay_glDeleteRenderbuffers(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glDeleteRenderbuffers", inspect_command);
     glDeleteRenderbuffers_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDeleteRenderbuffers;
     do {(void)sizeof((real));} while (0);
-    real((GLsizei)gl_param_GLsizei(command, 0), (const  GLuint  *)gl_param_pointer(command, 1));
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint rbs[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(rbs[i] = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake[i])))
+            inspect_add_error(inspect_command, "Invalid renderbuffer being deleted.");
+    
+    real(n, rbs);
+
 replay_end_cmd(ctx, "glDeleteRenderbuffers", inspect_command);
 }
 
@@ -36952,7 +37054,15 @@ void replay_glBindRenderbuffer(replay_context_t* ctx, trace_command_t* command, 
     replay_begin_cmd(ctx, "glBindRenderbuffer", inspect_command);
     glBindRenderbuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindRenderbuffer;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLuint fake = gl_param_GLuint(command, 1);
+    GLuint rb = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake);
+    if (!rb && fake) {
+        inspect_add_error(inspect_command, "Invalid renderbuffer being bound.");
+        return;
+    }
+    real(target, rb);
+
 replay_end_cmd(ctx, "glBindRenderbuffer", inspect_command);
 }
 
@@ -41912,7 +42022,27 @@ void replay_glGetActiveUniformsiv(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glGetActiveUniformsiv", inspect_command);
     glGetActiveUniformsiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetActiveUniformsiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLuint  *)gl_param_pointer(command, 2), (GLenum)gl_param_GLenum(command, 3), (GLint  *)gl_param_pointer(command, 4));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLsizei uniformCount = gl_param_GLsizei(command, 1);
+    uint64_t* uniformIndices64 = trace_get_uint(trace_get_arg(command, 2));
+    GLenum pname = gl_param_GLenum(command, 3);
+    
+    GLuint* uniformIndices = malloc(uniformCount*sizeof(GLuint));
+    for (GLsizei i = 0; i < uniformCount; i++)
+        uniformIndices[i] = uniformIndices64[i];
+    
+    GLint* params = malloc(uniformCount*sizeof(GLint));
+    
+    real(program, uniformCount, uniformIndices, pname, params);
+    
+    free(params);
+    free(uniformIndices);
+
 replay_end_cmd(ctx, "glGetActiveUniformsiv", inspect_command);
 }
 
@@ -42923,7 +43053,16 @@ void replay_glGetActiveUniformBlockName(replay_context_t* ctx, trace_command_t* 
     replay_begin_cmd(ctx, "glGetActiveUniformBlockName", inspect_command);
     glGetActiveUniformBlockName_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetActiveUniformBlockName;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLsizei  *)gl_param_pointer(command, 3), (GLchar  *)gl_param_string(command, 4));
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!program) {
+        inspect_add_error(inspect_command, "Invalid program.");
+        return;
+    }
+    GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
+    GLchar buf[64];
+    real(program, uniformBlockIndex, 64, NULL, buf);
+
 replay_end_cmd(ctx, "glGetActiveUniformBlockName", inspect_command);
 }
 

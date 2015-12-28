@@ -7,12 +7,12 @@
 - [ ] glBeginQuery
 - [x] glBindAttribLocation
 - [x] glBindBuffer
-- [ ] glBindBufferBase
-- [ ] glBindBufferRange
+- [x] glBindBufferBase
+- [x] glBindBufferRange
 - [ ] glBindFragDataLocation
 - [ ] glBindFragDataLocationIndexed
-- [ ] glBindFramebuffer
-- [ ] glBindRenderbuffer
+- [x] glBindFramebuffer
+- [x] glBindRenderbuffer
 - [x] glBindSampler
 - [x] glBindTexture
 - [x] glBindVertexArray
@@ -34,10 +34,10 @@
 - [x] glCreateProgram
 - [x] glCreateShader
 - [x] glDeleteBuffers
-- [ ] glDeleteFramebuffers
+- [x] glDeleteFramebuffers
 - [x] glDeleteProgram
 - [x] glDeleteQueries
-- [ ] glDeleteRenderbuffers
+- [x] glDeleteRenderbuffers
 - [x] glDeleteSamplers
 - [x] glDeleteShader
 - [ ] glDeleteSync
@@ -69,9 +69,9 @@
 - [ ] glFramebufferTextureLayer
 - [x] glGenBuffers
 - [x] glGenerateMipmap
-- [ ] glGenFramebuffers
-- [ ] glGenQueries
-- [ ] glGenRenderbuffers
+- [x] glGenFramebuffers
+- [x] glGenQueries
+- [x] glGenRenderbuffers
 - [x] glGenSamplers
 - [x] glGenTextures
 - [x] glGenVertexArrays
@@ -85,10 +85,10 @@
 - [x] glGetActiveAttrib
 - [x] glGetActiveUniform
 - [x] glGetActiveUniformsiv
-- [ ] glGetActiveUniformBlockiv
-- [ ] glGetActiveUniformBlockName
-- [ ] glGetActiveUniformName
-- [ ] glGetActiveUniformsiv
+- [x] glGetActiveUniformBlockiv
+- [x] glGetActiveUniformBlockName
+- [x] glGetActiveUniformName
+- [x] glGetActiveUniformsiv
 - [x] glGetAttachedShaders
 - [x] glGetAttribLocation
 - [x] glGetBufferParameteriv
@@ -97,14 +97,14 @@
 - [x] glGetCompressedTexImage
 - [x] glGetFragDataIndex
 - [x] glGetFragDataLocation
-- [ ] glGetFramebufferAttachmentParameteriv
+- [x] glGetFramebufferAttachmentParameteriv
 - [x] glGetMultisamplefv
 - [x] glGetProgramiv
 - [x] glGetProgramInfoLog
 - [x] glGetQueryiv
 - [x] glGetQueryObjectiv
 - [x] glGetQueryObjectuiv
-- [ ] glGetRenderbufferParameteriv
+- [x] glGetRenderbufferParameteriv
 - [x] glGetSamplerParameterfv
 - [x] glGetSamplerParameteriv
 - [x] glGetSamplerParameterIiv

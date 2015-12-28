@@ -126,8 +126,8 @@ static GLhalfNV gl_param_GLhalfNV(trace_command_t* cmd, size_t index) { //TODO
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+static int64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
 static GLushort gl_param_GLushort(trace_command_t* cmd, size_t index) {
@@ -158,13 +158,13 @@ static GLhandleARB gl_param_GLhandleARB(trace_command_t* cmd, size_t index) {
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+static int64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
-static uint64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
+static int64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trace_get_int(trace_get_arg(cmd, index));
 }
 
 static GLint gl_param_GLint(trace_command_t* cmd, size_t index)
