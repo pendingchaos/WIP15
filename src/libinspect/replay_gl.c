@@ -503,8 +503,8 @@ static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static GLXContext gl_param_GLXContext(trace_command_t* cmd, size_t index) {
-    return (GLXContext)*trace_get_ptr(trace_get_arg(cmd, index));
+static uint64_t gl_param_GLXContext(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(trace_get_arg(cmd, index));
 }
 
 static void reset_gl_funcs(replay_context_t* ctx);
@@ -38786,7 +38786,83 @@ void replay_glXCreateContextAttribsARB(replay_context_t* ctx, trace_command_t* c
 replay_begin_cmd(ctx, "glXCreateContextAttribsARB", inspect_command);
     glXCreateContextAttribsARB_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXCreateContextAttribsARB;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXFBConfig)gl_param_GLXFBConfig(command, 1), (GLXContext)gl_param_GLXContext(command, 2), (Bool)gl_param_Bool(command, 3), (const int *)gl_param_pointer(command, 4));
+    int last_major, last_minor, last_flags, last_profile;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &last_major);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &last_minor);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &last_flags);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &last_profile);
+    
+    int major = last_major;
+    int minor = last_minor;
+    int flags = 0;
+    int profile = 0;
+    
+    int64_t* attribs = trace_get_int(trace_get_arg(command, 4));
+    while (*attribs) {
+        int attr = *(attribs++);
+        if (attr == GLX_CONTEXT_MAJOR_VERSION_ARB) {
+            major = *(attribs++);
+        } else if (attr == GLX_CONTEXT_MINOR_VERSION_ARB) {
+            minor = *(attribs++);
+        } else if (attr == GLX_CONTEXT_FLAGS_ARB) {
+            int glx_flags = *(attribs++);
+            flags = 0;
+            if (glx_flags & GLX_CONTEXT_DEBUG_BIT_ARB)
+                flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
+            if (glx_flags & GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB)
+                flags |= SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
+        } else if (attr == GLX_CONTEXT_PROFILE_MASK_ARB) {
+            int mask = *(attribs++);
+            profile = 0;
+            if (mask & GLX_CONTEXT_CORE_PROFILE_BIT_ARB)
+                profile = SDL_GL_CONTEXT_PROFILE_CORE;
+            if (mask & GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB)
+                profile = SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+        } else {
+            inspect_add_warning(inspect_command, "Unhandled attribute: %d", attr);
+            attribs++;
+        }
+    }
+    
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, flags);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
+    
+    SDL_GLContext share_ctx = NULL;
+    if (gl_param_GLXContext(command, 2)) {
+        share_ctx = (SDL_GLContext)replay_get_real_object(ctx,
+                                                          ReplayObjType_GLXContext,
+                                                          gl_param_GLXContext(command, 2));
+        if (!share_ctx) {
+            inspect_add_error(inspect_command, "Invalid share context.");
+            return;
+        }
+    }
+    
+    SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
+    if (share_ctx) {
+        SDL_GL_MakeCurrent(ctx->window, share_ctx);
+        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+    } else {
+        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0);
+    }
+    
+    SDL_GLContext res = SDL_GL_CreateContext(ctx->window);
+    if (!res) {
+        inspect_add_error(inspect_command, "Unable to create context: %s", SDL_GetError());
+        SDL_GL_MakeCurrent(ctx->window, last_ctx);
+        return;
+    }
+    replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_uint(&command->ret));
+    
+    SDL_GL_MakeCurrent(ctx->window, last_ctx);
+    
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, last_major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, last_minor);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, last_flags);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, last_profile);
+
 replay_end_cmd(ctx, "glXCreateContextAttribsARB", inspect_command);
 }
 
@@ -41757,7 +41833,8 @@ void replay_glXChooseFBConfig(replay_context_t* ctx, trace_command_t* command, i
 replay_begin_cmd(ctx, "glXChooseFBConfig", inspect_command);
     glXChooseFBConfig_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXChooseFBConfig;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (int)gl_param_int(command, 1), (const int *)gl_param_pointer(command, 2), (int *)gl_param_pointer(command, 3));
+    ;
+
 replay_end_cmd(ctx, "glXChooseFBConfig", inspect_command);
 }
 

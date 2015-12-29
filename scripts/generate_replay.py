@@ -264,8 +264,8 @@ static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size
     return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
-static GLXContext gl_param_GLXContext(trace_command_t* cmd, size_t index) {
-    return (GLXContext)*trace_get_ptr(trace_get_arg(cmd, index));
+static uint64_t gl_param_GLXContext(trace_command_t* cmd, size_t index) {
+    return *trace_get_ptr(trace_get_arg(cmd, index));
 }
 
 static void reset_gl_funcs(replay_context_t* ctx);

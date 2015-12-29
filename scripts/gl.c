@@ -842,11 +842,11 @@ static void gl_result_pointer(void *value) {
 static void gl_result_GLXContext(GLXContext value) {
     gl_write_b(WIP15_RESULT);
 #if __WORDSIZE == 64
-    gl_write_b(WIP15_S64);
+    gl_write_b(WIP15_PTR64);
     uint64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
-    gl_write_b(WIP15_S32);
+    gl_write_b(WIP15_PTR32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif

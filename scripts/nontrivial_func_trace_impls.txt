@@ -1,9 +1,9 @@
 glXChooseVisual:
     gl_param_pointer(dpy);
     gl_param_int(screen, -1);
-    int *attribs = attribList;
-    while (*attribs != None) ++attribs;
-    gl_param_GLuint_array(attribs-attribList+1, attribList);
+    size_t count = 0;
+    while (attribList[count]) count += 2;
+    gl_param_GLuint_array(count+1, attribList);
     XVisualInfo* result = gl_glXChooseVisual(dpy, screen, attribList);
     gl_result_pointer(result);
 
@@ -19,6 +19,17 @@ glXMakeCurrent:
         current_limits = &gl30_limits; //TODO
     }
     reset_gl();
+
+glXCreateContextAttribsARB:
+    gl_param_pointer(dpy);
+    gl_param_GLXFBConfig(config, -1);
+    gl_param_GLXContext(share_context, -1);
+    gl_param_Bool(direct, -1);
+    size_t count = 0;
+    while (attrib_list[count]) count += 2;
+    gl_param_GLint_array(count+1, attrib_list);
+    GLXContext result = gl_glXCreateContextAttribsARB(dpy, config, share_context, direct, attrib_list);
+    gl_result_GLXContext(result);
 
 glSetContextCapsWIP15:
     //TODO

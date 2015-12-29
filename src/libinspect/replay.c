@@ -34,13 +34,11 @@ typedef struct replay_obj_t {
     uint64_t fake;
     
     program_data_t prog;
-    
-    struct replay_obj_t* prev;
-    struct replay_obj_t* next;
 } replay_obj_t;
+TYPED_VEC(replay_obj_t, obj)
 
 typedef struct {
-    replay_obj_t *objects[ReplayObjType_Max];
+    obj_vec_t objects[ReplayObjType_Max];
 } replay_internal_t;
 
 replay_context_t* create_replay_context(inspection_t* inspection) {
@@ -51,7 +49,7 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     ctx->_current_context = NULL;
     
     for (size_t i = 0; i < ReplayObjType_Max; ++i)
-        internal->objects[i] = NULL;
+        internal->objects[i] = alloc_obj_vec(0);
     ctx->_internal = internal;
     
     init_replay_gl(ctx);
@@ -85,8 +83,6 @@ void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
     default:
         break;
     }
-    
-    free(obj);
 }
 
 void destroy_replay_context(replay_context_t* context) {
@@ -96,12 +92,10 @@ void destroy_replay_context(replay_context_t* context) {
     
     replay_internal_t* internal = context->_internal;
     for (size_t i = 0; i < ReplayObjType_Max; ++i) {
-        replay_obj_t* obj = internal->objects[i];
-        while (obj) {
-            replay_obj_t* next = obj->next;
+        obj_vec_t objs = internal->objects[i];
+        for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
             free_obj(i, obj);
-            obj = next;
-        }
+        free_obj_vec(objs);
     }
     free(internal);
     
@@ -111,12 +105,10 @@ void destroy_replay_context(replay_context_t* context) {
 uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[type];
-    while (obj) {
+    obj_vec_t objs = internal->objects[type];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake)
             return obj->real;
-        obj = obj->next;
-    }
     
     return 0;
 }
@@ -124,12 +116,10 @@ uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, u
 uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[type];
-    while (obj) {
+    obj_vec_t objs = internal->objects[type];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->real == real)
             return obj->fake;
-        obj = obj->next;
-    }
     
     return 0;
 }
@@ -137,88 +127,56 @@ uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, u
 void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real, uint64_t fake) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* objs = internal->objects[type];
+    obj_vec_t objs = internal->objects[type];
     
-    replay_obj_t* new_obj = malloc(sizeof(replay_obj_t));
-    new_obj->real = real;
-    new_obj->fake = fake;
-    
-    if (!objs) {
-        new_obj->prev = NULL;
-        new_obj->next = NULL;
-    } else {
-        new_obj->prev = NULL;
-        new_obj->next = objs;
-    }
-    
-    internal->objects[type] = new_obj;
+    replay_obj_t new_obj;
+    new_obj.real = real;
+    new_obj.fake = fake;
     
     switch (type) {
     case ReplayObjType_GLProgram:
-        new_obj->prog.uniforms = alloc_uni_vec(0);
-        new_obj->prog.attribs = alloc_attrib_vec(0);
+        new_obj.prog.uniforms = alloc_uni_vec(0);
+        new_obj.prog.attribs = alloc_attrib_vec(0);
         break;
     default:
         break;
     }
+    
+    append_obj_vec(objs, &new_obj);
 }
 
 void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[type];
-    
-    while (obj) {
+    obj_vec_t objs = internal->objects[type];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake) {
-            if (obj->prev)
-                obj->prev->next = obj->next;
-            else
-                internal->objects[type] = obj->next;
-            
-            if (obj->next) obj->next->prev = obj->prev;
             free_obj(type, obj);
+            remove_obj_vec(objs, obj-(replay_obj_t*)objs->data, 1);
             return;
         }
-        
-        obj = obj->next;
-    }
 }
 
 size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type) {
     replay_internal_t* internal = ctx->_internal;
-    size_t result = 0;
     
-    replay_obj_t* obj = internal->objects[type];
-    while (obj) {
-        obj = obj->next;
-        result++;
-    }
-    
-    return result;
+    return get_obj_vec_count(internal->objects[type]);
 }
 
 void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* real) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[type];
-    size_t i = 0;
-    while (obj) {
-        real[i] = obj->real;
-        obj = obj->next;
-        i++;
-    }
+    obj_vec_t objs = internal->objects[type];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        real[obj-(replay_obj_t*)objs->data] = obj->real;
 }
 
 void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[type];
-    size_t i = 0;
-    while (obj) {
-        fake[i] = obj->fake;
-        obj = obj->next;
-        i++;
-    }
+    obj_vec_t objs = internal->objects[type];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        fake[obj-(replay_obj_t*)objs->data] = obj->fake;
 }
 
 void replay(replay_context_t* ctx) {
@@ -255,8 +213,8 @@ void replay(replay_context_t* ctx) {
 int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
-    while (obj) {
+    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake_prog) {
             uni_vec_t uniforms = obj->prog.uniforms;
             for (uniform_t* uni = uniforms->data; !vec_end(uniforms, uni); uni++)
@@ -265,9 +223,6 @@ int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsi
             
             return -1;
         }
-        
-        obj = obj->next;
-    }
     
     return -1;
 }
@@ -275,8 +230,8 @@ int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsi
 void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
-    while (obj) {
+    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake_prog) {
             uniform_t uni;
             uni.fake = fake;
@@ -284,16 +239,13 @@ void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int 
             append_uni_vec(obj->prog.uniforms, &uni);
             return;
         }
-        
-        obj = obj->next;
-    }
 }
 
 int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_idx) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
-    while (obj) {
+    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake_prog) {
             attrib_vec_t attribs = obj->prog.attribs;
             for (attrib_t* attrib = attribs->data; !vec_end(attribs, attrib); attrib++)
@@ -302,9 +254,6 @@ int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned
             
             return -1;
         }
-        
-        obj = obj->next;
-    }
     
     return -1;
 }
@@ -312,8 +261,8 @@ int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned
 void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
     replay_internal_t* internal = ctx->_internal;
     
-    replay_obj_t* obj = internal->objects[ReplayObjType_GLProgram];
-    while (obj) {
+    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake_prog) {
             uniform_t uni;
             uni.fake = fake;
@@ -321,7 +270,4 @@ void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int f
             append_uni_vec(obj->prog.attribs, &uni);
             return;
         }
-        
-        obj = obj->next;
-    }
 }
