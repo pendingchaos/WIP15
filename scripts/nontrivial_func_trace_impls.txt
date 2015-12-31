@@ -183,6 +183,75 @@ glTexSubImage3D:
     
     gl_glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 
+glCompressedTexImage1D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLint(border, -1);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, data);
+
+glCompressedTexSubImage1D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLint(xoffset, -1);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, data);
+
+glCompressedTexImage2D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLsizei(height, -1);
+    gl_param_GLint(border, -1);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+
+glCompressedTexSubImage2D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLint(xoffset, -1);
+    gl_param_GLint(yoffset, -1);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLsizei(height, -1);
+    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data);
+
+glCompressedTexImage3D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLsizei(height, -1);
+    gl_param_GLsizei(depth, -1);
+    gl_param_GLint(border, -1);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, data);
+
+glCompressedTexSubImage3D:
+    gl_param_GLenum(target, GROUP_TextureTarget);
+    gl_param_GLint(level, -1);
+    gl_param_GLint(xoffset, -1);
+    gl_param_GLint(yoffset, -1);
+    gl_param_GLint(zoffset, -1);
+    gl_param_GLsizei(width, -1);
+    gl_param_GLsizei(height, -1);
+    gl_param_GLsizei(depth, -1);
+    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLsizei(imageSize, -1);
+    gl_param_data(imageSize, data);
+    gl_glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
+
 glGenBuffers:
     gl_param_GLsizei(n, -1);
     gl_glGenBuffers(n, buffers);

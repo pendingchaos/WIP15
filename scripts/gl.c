@@ -330,11 +330,11 @@ static void gl_param_GLbitfield(GLbitfield value, int32_t group) {
 static void gl_param_GLsync(GLsync value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);
@@ -364,11 +364,11 @@ static void gl_param_int(int value, int32_t group) {
 static void gl_param_GLeglImageOES(GLeglImageOES value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);
@@ -614,11 +614,11 @@ static void gl_param_GLXContextID(GLXContextID value, int32_t group) {
 static void gl_param_GLXFBConfig(GLXFBConfig value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);
@@ -634,11 +634,11 @@ static void gl_param_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value, int3
 static void gl_param_GLXFBConfigSGIX(GLXFBConfig value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);
@@ -661,11 +661,11 @@ static void gl_param_GLXVideoSourceSGIX(GLXVideoSourceSGIX value, int32_t group)
 static void gl_param_GLXContext(GLXContext value, int32_t group) {
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_int32(group);
@@ -719,11 +719,11 @@ static void gl_result_GLsync(GLsync value) {
     gl_write_b(WIP15_RESULT);
 #if __WORDSIZE == 64
     gl_write_b(WIP15_U64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_str(NULL);
@@ -843,11 +843,11 @@ static void gl_result_GLXContext(GLXContext value) {
     gl_write_b(WIP15_RESULT);
 #if __WORDSIZE == 64
     gl_write_b(WIP15_PTR64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_PTR32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_str(NULL);
@@ -911,11 +911,11 @@ static void gl_result_GLXFBConfigSGIX(GLXFBConfigSGIX value) {
     gl_write_b(WIP15_RESULT);
 #if __WORDSIZE == 64
     gl_write_b(WIP15_S64);
-    uint64_t v = htole64(value);
+    uint64_t v = htole64((size_t)value);
     fwrite(&v, 8, 1, trace_file);
 #elif __WORDSIZE == 32
     gl_write_b(WIP15_S32);
-    uint32_t v = htole32(value);
+    uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
     gl_write_str(NULL);

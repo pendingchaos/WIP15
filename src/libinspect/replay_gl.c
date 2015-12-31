@@ -13808,7 +13808,21 @@ void replay_glCompressedTexSubImage3D(replay_context_t* ctx, trace_command_t* co
     replay_begin_cmd(ctx, "glCompressedTexSubImage3D", inspect_command);
     glCompressedTexSubImage3D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexSubImage3D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLint)gl_param_GLint(command, 2), (GLint)gl_param_GLint(command, 3), (GLint)gl_param_GLint(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (GLsizei)gl_param_GLsizei(command, 6), (GLsizei)gl_param_GLsizei(command, 7), (GLenum)gl_param_GLenum(command, 8), (GLsizei)gl_param_GLsizei(command, 9), (const void *)gl_param_pointer(command, 10));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLint yoffset = gl_param_GLint(command, 3);
+    GLint zoffset = gl_param_GLint(command, 4);
+    GLsizei width = gl_param_GLsizei(command, 5);
+    GLsizei height = gl_param_GLsizei(command, 6);
+    GLsizei depth = gl_param_GLsizei(command, 7);
+    GLenum format = gl_param_GLenum(command, 8);
+    GLsizei imageSize = gl_param_GLsizei(command, 9);
+    const void* data = gl_param_data(command, 10);
+    real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexSubImage3D", inspect_command);
 }
 
@@ -17326,7 +17340,19 @@ void replay_glCompressedTexImage3D(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glCompressedTexImage3D", inspect_command);
     glCompressedTexImage3D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexImage3D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (GLint)gl_param_GLint(command, 6), (GLsizei)gl_param_GLsizei(command, 7), (const void *)gl_param_pointer(command, 8));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    GLsizei depth = gl_param_GLsizei(command, 5);
+    GLint border = gl_param_GLint(command, 6);
+    GLsizei imageSize = gl_param_GLsizei(command, 7);
+    const void* data = gl_param_data(command, 8);
+    real(target, level, internalformat, width, height, depth, border, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexImage3D", inspect_command);
 }
 
@@ -34807,7 +34833,18 @@ void replay_glCompressedTexImage2D(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glCompressedTexImage2D", inspect_command);
     glCompressedTexImage2D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexImage2D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLint)gl_param_GLint(command, 5), (GLsizei)gl_param_GLsizei(command, 6), (const void *)gl_param_pointer(command, 7));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    GLint border = gl_param_GLint(command, 5);
+    GLsizei imageSize = gl_param_GLsizei(command, 6);
+    const void* data = gl_param_data(command, 7);
+    real(target, level, internalformat, width, height, border, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexImage2D", inspect_command);
 }
 
@@ -38936,7 +38973,17 @@ void replay_glCompressedTexImage1D(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glCompressedTexImage1D", inspect_command);
     glCompressedTexImage1D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexImage1D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLint)gl_param_GLint(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (const void *)gl_param_pointer(command, 6));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLint border = gl_param_GLint(command, 4);
+    GLsizei imageSize = gl_param_GLsizei(command, 5);
+    const void* data = gl_param_data(command, 6);
+    real(target, level, internalformat, width, border, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexImage1D", inspect_command);
 }
 
@@ -44476,7 +44523,17 @@ void replay_glCompressedTexSubImage1D(replay_context_t* ctx, trace_command_t* co
     replay_begin_cmd(ctx, "glCompressedTexSubImage1D", inspect_command);
     glCompressedTexSubImage1D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexSubImage1D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLint)gl_param_GLint(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLenum)gl_param_GLenum(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (const void *)gl_param_pointer(command, 6));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLenum format = gl_param_GLenum(command, 4);
+    GLsizei imageSize = gl_param_GLsizei(command, 5);
+    const void* data = gl_param_data(command, 6);
+    real(target, level, xoffset, width, format, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexSubImage1D", inspect_command);
 }
 
@@ -47765,7 +47822,19 @@ void replay_glCompressedTexSubImage2D(replay_context_t* ctx, trace_command_t* co
     replay_begin_cmd(ctx, "glCompressedTexSubImage2D", inspect_command);
     glCompressedTexSubImage2D_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glCompressedTexSubImage2D;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLint)gl_param_GLint(command, 1), (GLint)gl_param_GLint(command, 2), (GLint)gl_param_GLint(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (GLenum)gl_param_GLenum(command, 6), (GLsizei)gl_param_GLsizei(command, 7), (const void *)gl_param_pointer(command, 8));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint level = gl_param_GLint(command, 1);
+    GLint xoffset = gl_param_GLint(command, 2);
+    GLint yoffset = gl_param_GLint(command, 3);
+    GLsizei width = gl_param_GLsizei(command, 4);
+    GLsizei height = gl_param_GLsizei(command, 5);
+    GLenum format = gl_param_GLenum(command, 6);
+    GLsizei imageSize = gl_param_GLsizei(command, 7);
+    const void* data = gl_param_data(command, 8);
+    real(target, level, xoffset, yoffset, width, height, format, imageSize, data);
+    replay_get_tex_params(ctx, inspect_command, target);
+    replay_get_tex_data(ctx, inspect_command, target, level);
+
 replay_end_cmd(ctx, "glCompressedTexSubImage2D", inspect_command);
 }
 
@@ -48078,7 +48147,15 @@ void replay_glTexImage2DMultisample(replay_context_t* ctx, trace_command_t* comm
     replay_begin_cmd(ctx, "glTexImage2DMultisample", inspect_command);
     glTexImage2DMultisample_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexImage2DMultisample;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLboolean)gl_param_GLboolean(command, 5));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLsizei samples = gl_param_GLsizei(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    GLboolean fixedsamplelocations = gl_param_GLboolean(command, 5);
+    real(target, samples, internalformat, width, height, fixedsamplelocations);
+    replay_get_tex_params(ctx, inspect_command, target);
+
 replay_end_cmd(ctx, "glTexImage2DMultisample", inspect_command);
 }
 
@@ -49492,7 +49569,16 @@ void replay_glTexImage3DMultisample(replay_context_t* ctx, trace_command_t* comm
     replay_begin_cmd(ctx, "glTexImage3DMultisample", inspect_command);
     glTexImage3DMultisample_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glTexImage3DMultisample;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLsizei)gl_param_GLsizei(command, 4), (GLsizei)gl_param_GLsizei(command, 5), (GLboolean)gl_param_GLboolean(command, 6));
+    GLenum target = gl_param_GLenum(command, 0);
+    GLsizei samples = gl_param_GLsizei(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    GLsizei depth = gl_param_GLsizei(command, 5);
+    GLboolean fixedsamplelocations = gl_param_GLboolean(command, 6);
+    real(target, samples, internalformat, width, height, depth, fixedsamplelocations);
+    replay_get_tex_params(ctx, inspect_command, target);
+
 replay_end_cmd(ctx, "glTexImage3DMultisample", inspect_command);
 }
 

@@ -25,12 +25,12 @@
 - [ ] glClearBufferfi
 - [ ] glClientWaitSync
 - [x] glCompileShader
-- [ ] glCompressedTexImage1D
-- [ ] glCompressedTexImage2D
-- [ ] glCompressedTexImage3D
-- [ ] glCompressedTexSubImage1D
-- [ ] glCompressedTexSubImage2D
-- [ ] glCompressedTexSubImage3D
+- [x] glCompressedTexImage1D
+- [x] glCompressedTexImage2D
+- [x] glCompressedTexImage3D
+- [x] glCompressedTexSubImage1D
+- [x] glCompressedTexSubImage2D
+- [x] glCompressedTexSubImage3D
 - [x] glCreateProgram
 - [x] glCreateShader
 - [x] glDeleteBuffers
@@ -165,9 +165,9 @@
 - [ ] glTexBuffer
 - [x] glTexImage1D
 - [x] glTexImage2D
-- [ ] glTexImage2DMultisample
+- [x] glTexImage2DMultisample
 - [x] glTexImage3D
-- [ ] glTexImage3DMultisample
+- [x] glTexImage3DMultisample
 - [x] glTexParameterf
 - [x] glTexParameteri
 - [x] glTexParameteriv
