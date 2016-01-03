@@ -29,11 +29,28 @@ typedef struct {
     uni_vec_t attribs;
 } program_data_t;
 
+typedef struct {
+    unsigned int attachment;
+    unsigned int tex;
+    size_t level;
+} fb_attach_t;
+TYPED_VEC(fb_attach_t, attach)
+
+typedef struct {
+    attach_vec_t attachments;
+    unsigned int depth_texture;
+    unsigned int stencil_texture;
+    unsigned int depth_stencil_texture;
+} fb_data_t;
+
 typedef struct replay_obj_t {
     uint64_t real;
     uint64_t fake;
     
-    program_data_t prog;
+    union {
+        program_data_t prog;
+        fb_data_t fb;
+    };
 } replay_obj_t;
 TYPED_VEC(replay_obj_t, obj)
 
@@ -79,6 +96,9 @@ void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
     case ReplayObjType_GLProgram:
         free_uni_vec(obj->prog.uniforms);
         free_attrib_vec(obj->prog.attribs);
+        break;
+    case ReplayObjType_GLFramebuffer:
+        free_attach_vec(obj->fb.attachments);
         break;
     default:
         break;
@@ -137,6 +157,9 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
     case ReplayObjType_GLProgram:
         new_obj.prog.uniforms = alloc_uni_vec(0);
         new_obj.prog.attribs = alloc_attrib_vec(0);
+        break;
+    case ReplayObjType_GLFramebuffer:
+        new_obj.fb.attachments = alloc_attach_vec(0);
         break;
     default:
         break;
@@ -270,4 +293,99 @@ void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int f
             append_uni_vec(obj->prog.attribs, &uni);
             return;
         }
+}
+
+static fb_data_t* find_fb(replay_context_t* ctx, uint64_t fake_fb) {
+    replay_internal_t* internal = ctx->_internal;
+    obj_vec_t objs = internal->objects[ReplayObjType_GLFramebuffer];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        if (obj->fake == fake_fb)
+            return &obj->fb;
+    return NULL;
+}
+
+void replay_set_depth_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        data->depth_texture = fake_tex;
+}
+
+void replay_set_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        data->stencil_texture = fake_tex;
+}
+
+void replay_set_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        data->depth_stencil_texture = fake_tex;
+}
+
+void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, unsigned int attachment, uint64_t fake_tex, size_t level) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data) {
+        attach_vec_t v = data->attachments;
+        for (fb_attach_t* attach = v->data; !vec_end(v, attach); attach++)
+            if (attach->attachment == attachment) {
+                attach->tex = fake_tex;
+                attach->level = level;
+                return;
+            }
+        
+        fb_attach_t attach;
+        attach.attachment = attachment;
+        attach.tex = fake_tex;
+        attach.level = level;
+        append_attach_vec(v, &attach);
+    }
+}
+
+uint64_t replay_get_depth_tex(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->depth_texture;
+    return 0;
+}
+
+uint64_t replay_get_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->stencil_texture;
+    return 0;
+}
+
+uint64_t replay_get_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->depth_stencil_texture;
+    return 0;
+}
+
+size_t replay_get_color_tex_count(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return get_attach_vec_count(data->attachments);
+    return 0;
+}
+
+uint64_t replay_get_color_tex(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return get_attach_vec(data->attachments, index)->tex;
+    return 0;
+}
+
+size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return get_attach_vec(data->attachments, index)->level;
+    return 0;
+}
+
+unsigned int replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return get_attach_vec(data->attachments, index)->attachment;
+    return 0;
 }

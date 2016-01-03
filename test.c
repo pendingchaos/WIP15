@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     
     glDebugMessageCallback((GLDEBUGPROC)&callback, NULL);
     
+    //Texture
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -67,6 +68,21 @@ int main(int argc, char **argv)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     
+    //Framebuffer texture
+    GLuint fb_texture;
+    glGenTextures(1, &fb_texture);
+    glBindTexture(GL_TEXTURE_2D, fb_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 640, 640, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    
+    //Depth stencil renderbuffer
+    GLuint rb;
+    glGenRenderbuffers(1, &rb);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, 640, 640);
+    
+    //Tex coord buffer
     GLuint tex_coord_buffer;
     glGenBuffers(1, &tex_coord_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
@@ -75,17 +91,20 @@ int main(int argc, char **argv)
     memcpy(data, tex_coords, sizeof(tex_coords));
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
+    //Position buffer
     GLuint pos_buffer;
     glGenBuffers(1, &pos_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, pos_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
     
+    //Element buffer
     GLuint element_buffer;
     glGenBuffers(1, &element_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, element_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(elements), NULL, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(elements), elements);
     
+    //Vertex
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
     static const char* vert_source = "#version 130\n"
                                      "in vec2 texCoord;\n"
@@ -99,6 +118,7 @@ int main(int argc, char **argv)
     glShaderSource(vertex, 1, &vert_source, NULL);
     glCompileShader(vertex);
     
+    //Fragment
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
     static const char* frag_source = "#version 130\n"
                                      "in vec2 frag_texCoord;\n"
@@ -111,12 +131,44 @@ int main(int argc, char **argv)
     glShaderSource(fragment, 1, &frag_source, NULL);
     glCompileShader(fragment);
     
+    //Program
     GLuint program = glCreateProgram();
     glAttachShader(program, vertex);
     glAttachShader(program, fragment);
     glLinkProgram(program);
     glValidateProgram(program);
     
+    //Display vertex
+    GLuint display_vert = glCreateShader(GL_VERTEX_SHADER);
+    static const char* dpy_vert_source = "#version 130\n"
+                                         "out vec2 frag_texCoord;\n"
+                                         "void main() {\n"
+                                         "    gl_Position = vec4(vec2[](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0))[gl_VertexID], 0.0, 1.0);\n"
+                                         "    frag_texCoord = gl_Position.xy*0.5 + 0.5;\n"
+                                         "}\n";
+    glShaderSource(display_vert, 1, &dpy_vert_source, NULL);
+    glCompileShader(display_vert);
+    
+    //Display fragment
+    GLuint display_frag = glCreateShader(GL_FRAGMENT_SHADER);
+    static const char* dpy_frag_source = "#version 130\n"
+                                         "out vec4 out_color;\n"
+                                         "in vec2 frag_texCoord;\n"
+                                         "uniform sampler2D tex;\n"
+                                         "void main() {\n"
+                                         "    out_color = texture(tex, frag_texCoord).grba;\n"
+                                         "}\n";
+    glShaderSource(display_frag, 1, &dpy_frag_source, NULL);
+    glCompileShader(display_frag);
+    
+    //Display program
+    GLuint dpy_prog = glCreateProgram();
+    glAttachShader(dpy_prog, display_vert);
+    glAttachShader(dpy_prog, display_frag);
+    glLinkProgram(dpy_prog);
+    glValidateProgram(dpy_prog);
+    
+    //VAO
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -138,6 +190,17 @@ int main(int argc, char **argv)
                           0,
                           (const GLvoid*)0);
     
+    //Display vao
+    GLuint dpy_vao;
+    glGenVertexArrays(1, &dpy_vao);
+    
+    //Framebuffer
+    GLuint fb;
+    glGenFramebuffers(1, &fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb);
+    
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -145,7 +208,9 @@ int main(int argc, char **argv)
             if (event.type == SDL_QUIT)
                 running = false;
         
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        //Render to framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, fb);
+        glClear(GL_COLOR_BUFFER_BIT);
         
         glUseProgram(program);
         
@@ -157,18 +222,38 @@ int main(int argc, char **argv)
         glUniform1i(glGetUniformLocation(program, "tex"), 0);
         
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
+        glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (const GLvoid*)0);
+        
+        //Render to window
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        glUseProgram(dpy_prog);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fb_texture);
+        glUniform1i(glGetUniformLocation(dpy_prog, "tex"), 0);
+        
+        glBindVertexArray(dpy_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         
         SDL_GL_SwapWindow(window);
     }
     
+    glDeleteRenderbuffers(1, &rb);
+    glDeleteFramebuffers(1, &fb);
+    glDeleteVertexArrays(1, &dpy_vao);
     glDeleteVertexArrays(1, &vao);
+    glDeleteProgram(dpy_prog);
+    glDeleteShader(display_frag);
+    glDeleteShader(display_vert);
     glDeleteProgram(program);
     glDeleteShader(fragment);
     glDeleteShader(vertex);
     glDeleteBuffers(1, &element_buffer);
     glDeleteBuffers(1, &pos_buffer);
     glDeleteBuffers(1, &tex_coord_buffer);
+    glDeleteTextures(1, &fb_texture);
     glDeleteTextures(1, &texture);
     
     SDL_GL_DeleteContext(context);

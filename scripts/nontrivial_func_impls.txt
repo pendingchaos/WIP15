@@ -5,13 +5,13 @@ glXMakeCurrent:
         glctx = (SDL_GLContext)replay_get_real_object(ctx, ReplayObjType_GLXContext, fake_ctx);
         if (!glctx) {
             inspect_add_error(inspect_command, "Invalid GLX context.");
-            return;
+            RETURN;
         }
     }
     
     if (SDL_GL_MakeCurrent(ctx->window, glctx) < 0) {
         inspect_add_error(inspect_command, "Unable to make a context current.");
-        return;
+        RETURN;
     }
     
     if (glctx) {
@@ -60,7 +60,7 @@ glXCreateContext:
                                                           *trace_get_ptr(trace_get_arg(command, 2)));
         if (!shareList) {
             inspect_add_error(inspect_command, "Invalid share list.");
-            return;
+            RETURN;
         }
     }
     
@@ -76,7 +76,7 @@ glXCreateContext:
     if (!res) {
         inspect_add_error(inspect_command, "Unable to create context: %s", SDL_GetError());
         SDL_GL_MakeCurrent(ctx->window, last_ctx);
-        return;
+        RETURN;
     }
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_ptr(&command->ret));
     
@@ -133,7 +133,7 @@ glXCreateContextAttribsARB:
                                                           gl_param_GLXContext(command, 2));
         if (!share_ctx) {
             inspect_add_error(inspect_command, "Invalid share context.");
-            return;
+            RETURN;
         }
     }
     
@@ -149,7 +149,7 @@ glXCreateContextAttribsARB:
     if (!res) {
         inspect_add_error(inspect_command, "Unable to create context: %s", SDL_GetError());
         SDL_GL_MakeCurrent(ctx->window, last_ctx);
-        return;
+        RETURN;
     }
     replay_create_object(ctx, ReplayObjType_GLXContext, (uint64_t)res, *trace_get_uint(&command->ret));
     
@@ -169,7 +169,7 @@ glXDestroyContext:
                                                              *trace_get_ptr(trace_get_arg(command, 1)));
     if (!glctx) {
         inspect_add_error(inspect_command, "Invalid context.");
-        return;
+        RETURN;
     }
     
     SDL_GL_DeleteContext(glctx);
@@ -178,7 +178,7 @@ glXDestroyContext:
 glXSwapBuffers:
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
-        return;
+        RETURN;
     }
     SDL_GL_SwapWindow(ctx->window);
     replay_get_front_color(ctx, inspect_command);
@@ -537,7 +537,7 @@ glBindBuffer:
     GLuint real_buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
     if (!real_buf && fake) {
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
-        return;
+        RETURN;
     }
     real(target, real_buf);
 
@@ -548,7 +548,7 @@ glBindBufferBase:
     GLuint buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
     if (!buf && fake) {
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
-        return;
+        RETURN;
     }
     real(target, index, buf);
 
@@ -559,7 +559,7 @@ glBindBufferRange:
     GLuint buf = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake);
     if (!buf && fake) {
         inspect_add_error(inspect_command, "Invalid buffer being bound.");
-        return;
+        RETURN;
     }
     int64_t offset = gl_param_GLintptr(command, 3);
     int64_t size = gl_param_GLsizeiptr(command, 4);
@@ -605,7 +605,7 @@ glDeleteShader:
     GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!real_shdr) {
         inspect_add_error(inspect_command, "Invalid shader.");
-        return;
+        RETURN;
     }
     
     F(glDeleteShader)(real_shdr);
@@ -621,7 +621,7 @@ glShaderSource:
     GLuint shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!shader) {
         inspect_add_error(inspect_command, "Invalid shader.");
-        return;
+        RETURN;
     }
     
     if (trace_get_arg(command, 3)->count == 0) {
@@ -655,7 +655,7 @@ glCompileShader:
     GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!real_shdr) {
         inspect_add_error(inspect_command, "Invalid shader.");
-        return;
+        RETURN;
     }
     
     real(real_shdr);
@@ -686,7 +686,7 @@ glDeleteProgram:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     real(real_program);
@@ -699,14 +699,14 @@ glAttachShader:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
     if (!real_shader) {
         inspect_add_error(inspect_command, "Invalid shader.");
-        return;
+        RETURN;
     }
     
     real(real_program, real_shader);
@@ -718,14 +718,14 @@ glDetachShader:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_program);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = replay_get_real_object(ctx, ReplayObjType_GLShader, fake_shader);
     if (!real_shader) {
         inspect_add_error(inspect_command, "Invalid shader.");
-        return;
+        RETURN;
     }
     
     real(real_program, real_shader);
@@ -737,7 +737,7 @@ glLinkProgram:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     real(real_program);
@@ -762,7 +762,7 @@ glValidateProgram:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     real(real_program);
@@ -787,7 +787,7 @@ glUseProgram:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     real(real_program);
@@ -833,7 +833,7 @@ glBindAttribLocation:
     GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake_prog);
     if (!program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     real(program, index, name);
@@ -871,7 +871,7 @@ glGetAttribLocation:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     if (real(real_program, name) < 0)
         inspect_add_error(inspect_command, "No such attribute \"%s\".", name);
@@ -882,7 +882,7 @@ glGetUniformLocation:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     if (real(real_program, name) < 0)
         inspect_add_error(inspect_command, "No such uniform \"%s\".", name);
@@ -1087,13 +1087,13 @@ glProgramUniformWIP15:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     GLint loc = F(glGetUniformLocation)(real_program, gl_param_string(command, 1));
     if (loc < 0) {
         inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        return;
+        RETURN;
     }
     
     replay_add_uniform(ctx, fake, gl_param_GLuint(command, 2), loc);
@@ -1101,19 +1101,19 @@ glProgramUniformWIP15:
 glUniform1f:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLfloat(command, 1));
 
 glUniform2f:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLfloat(command, 1), gl_param_GLfloat(command, 2));
 
 glUniform3f:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLfloat(command, 1),
          gl_param_GLfloat(command, 2),
@@ -1122,7 +1122,7 @@ glUniform3f:
 glUniform4f:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLfloat(command, 1),
          gl_param_GLfloat(command, 2),
@@ -1132,19 +1132,19 @@ glUniform4f:
 glUniform1i:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLint(command, 1));
 
 glUniform2i:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLint(command, 1), gl_param_GLint(command, 2));
 
 glUniform3i:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLint(command, 1),
          gl_param_GLint(command, 2),
@@ -1153,7 +1153,7 @@ glUniform3i:
 glUniform4i:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLint(command, 1),
          gl_param_GLint(command, 2),
@@ -1163,19 +1163,19 @@ glUniform4i:
 glUniform1ui:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLuint(command, 1));
 
 glUniform2ui:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2));
 
 glUniform3ui:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLuint(command, 1),
          gl_param_GLuint(command, 2),
@@ -1184,7 +1184,7 @@ glUniform3ui:
 glUniform4ui:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     real(loc,
          gl_param_GLuint(command, 1),
          gl_param_GLuint(command, 2),
@@ -1194,7 +1194,7 @@ glUniform4ui:
 glUniform1fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1206,7 +1206,7 @@ glUniform1fv:
 glUniform2fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1218,7 +1218,7 @@ glUniform2fv:
 glUniform3fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1230,7 +1230,7 @@ glUniform3fv:
 glUniform4fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1242,7 +1242,7 @@ glUniform4fv:
 glUniform1iv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
@@ -1254,7 +1254,7 @@ glUniform1iv:
 glUniform2iv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
@@ -1266,7 +1266,7 @@ glUniform2iv:
 glUniform3iv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
@@ -1278,7 +1278,7 @@ glUniform3iv:
 glUniform4iv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLint values[count];
@@ -1290,7 +1290,7 @@ glUniform4iv:
 glUniform1uiv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLuint values[count];
@@ -1302,7 +1302,7 @@ glUniform1uiv:
 glUniform2uiv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLuint values[count];
@@ -1314,7 +1314,7 @@ glUniform2uiv:
 glUniform3uiv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLuint values[count];
@@ -1326,7 +1326,7 @@ glUniform3uiv:
 glUniform4uiv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLuint values[count];
@@ -1338,7 +1338,7 @@ glUniform4uiv:
 glUniformMatrix2fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1350,7 +1350,7 @@ glUniformMatrix2fv:
 glUniformMatrix3fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1362,7 +1362,7 @@ glUniformMatrix3fv:
 glUniformMatrix4fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1374,7 +1374,7 @@ glUniformMatrix4fv:
 glUniformMatrix2x3fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1386,7 +1386,7 @@ glUniformMatrix2x3fv:
 glUniformMatrix3x2fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1398,7 +1398,7 @@ glUniformMatrix3x2fv:
 glUniformMatrix2x4fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1410,7 +1410,7 @@ glUniformMatrix2x4fv:
 glUniformMatrix4x2fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1422,7 +1422,7 @@ glUniformMatrix4x2fv:
 glUniformMatrix3x4fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1434,7 +1434,7 @@ glUniformMatrix3x4fv:
 glUniformMatrix4x3fv:
     GLint loc;
     if (uniform(ctx, command, &loc))
-        return;
+        RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
     GLfloat values[count];
@@ -1448,13 +1448,13 @@ glProgramAttribWIP15:
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     
     GLint loc = F(glGetAttribLocation)(real_program, gl_param_string(command, 1));
     if (loc < 0) {
         inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        return;
+        RETURN;
     }
     
     replay_add_attrib(ctx, fake, gl_param_GLuint(command, 2), loc);
@@ -1816,7 +1816,7 @@ glBindSampler:
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!real_tex && fake) {
         inspect_add_error(inspect_command, "Invalid sampler being bound.");
-        return;
+        RETURN;
     }
     real(unit, real_tex);
 
@@ -1837,7 +1837,7 @@ glSamplerParameterf:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     GLfloat param = gl_param_GLfloat(command, 2);
@@ -1848,7 +1848,7 @@ glSamplerParameteri:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     GLint param = gl_param_GLint(command, 2);
@@ -1859,7 +1859,7 @@ glSamplerParameterfv:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     double* paramsd = trace_get_double(trace_get_arg(command, 2));
@@ -1878,7 +1878,7 @@ glSamplerParameteriv:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
@@ -1897,7 +1897,7 @@ glSamplerParameterIiv:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     int64_t* params64 = trace_get_int(trace_get_arg(command, 2));
@@ -1916,7 +1916,7 @@ glSamplerParameterIuiv:
     GLuint sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!sampler) {
         inspect_add_error(inspect_command, "Invalid sampler.");
-        return;
+        RETURN;
     }
     GLenum pname = gl_param_GLenum(command, 1);
     uint64_t* params64 = trace_get_uint(trace_get_arg(command, 2));
@@ -1957,7 +1957,7 @@ glBindFramebuffer:
     GLuint fb = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake);
     if (!fb && fake) {
         inspect_add_error(inspect_command, "Invalid framebuffer being bound.");
-        return;
+        RETURN;
     }
     real(target, fb);
 
@@ -1977,7 +1977,7 @@ glBindRenderbuffer:
     GLuint rb = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake);
     if (!rb && fake) {
         inspect_add_error(inspect_command, "Invalid renderbuffer being bound.");
-        return;
+        RETURN;
     }
     real(target, rb);
 
@@ -1997,7 +1997,7 @@ glGetActiveUniformBlockiv:
     GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
     GLenum pname = gl_param_GLenum(command, 2);
@@ -2019,7 +2019,7 @@ glGetActiveUniformBlockName:
     GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
     GLchar buf[64];
@@ -2030,7 +2030,7 @@ glGetActiveUniformName:
     GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     GLuint uniformIndex = gl_param_GLuint(command, 1);
     GLchar buf[64];
@@ -2041,7 +2041,7 @@ glGetActiveUniformsiv:
     GLuint program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!program) {
         inspect_add_error(inspect_command, "Invalid program.");
-        return;
+        RETURN;
     }
     GLsizei uniformCount = gl_param_GLsizei(command, 1);
     uint64_t* uniformIndices64 = trace_get_uint(trace_get_arg(command, 2));
@@ -2070,3 +2070,70 @@ glGetRenderbufferParameteriv:
     GLenum pname = gl_param_GLenum(command, 1);
     GLint params;
     real(target, pname, &params);
+
+glFramebufferRenderbuffer:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum attachment = gl_param_GLenum(command, 1);
+    GLenum renderbuffertarget = gl_param_GLenum(command, 2);
+    GLuint renderbuffer = gl_param_GLuint(command, 3);
+    
+    GLuint real_rb = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, renderbuffer);
+    if (!real_rb && renderbuffer) {
+        inspect_add_error(inspect_command, "Invalid renderbuffer.");
+        RETURN;
+    }
+    
+    real(target, attachment, renderbuffertarget, real_rb);
+    
+    GLint fb = get_bound_framebuffer(ctx, target);
+    if (!fb) {
+        inspect_add_error(inspect_command, "No or invalid framebuffer bound.");
+        RETURN;
+    }
+    
+    framebuffer_attachment(ctx, fb, attachment, 0, 0);
+
+glFramebufferTexture:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum attachment = gl_param_GLenum(command, 1);
+    GLuint texture = gl_param_GLuint(command, 2);
+    GLint level = gl_param_GLint(command, 3);
+    
+    GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, texture);
+    if (!real_tex && texture) {
+        inspect_add_error(inspect_command, "Invalid texture.");
+        RETURN;
+    }
+    
+    real(target, attachment, real_tex, level);
+    
+    GLint fb = get_bound_framebuffer(ctx, target);
+    if (!fb) {
+        inspect_add_error(inspect_command, "No or invalid framebuffer bound.");
+        RETURN;
+    }
+    
+    framebuffer_attachment(ctx, fb, attachment, texture, level);
+
+glFramebufferTexture2D:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum attachment = gl_param_GLenum(command, 1);
+    GLenum textarget = gl_param_GLenum(command, 2);
+    GLuint texture = gl_param_GLuint(command, 3);
+    GLint level = gl_param_GLint(command, 4);
+    
+    GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, texture);
+    if (!real_tex && texture) {
+        inspect_add_error(inspect_command, "Invalid texture.");
+        RETURN;
+    }
+    
+    real(target, attachment, textarget, real_tex, level);
+    
+    GLint fb = get_bound_framebuffer(ctx, target);
+    if (!fb) {
+        inspect_add_error(inspect_command, "No or invalid framebuffer bound.");
+        RETURN;
+    }
+    
+    framebuffer_attachment(ctx, fb, attachment, texture, level);

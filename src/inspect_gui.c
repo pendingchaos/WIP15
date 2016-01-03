@@ -526,12 +526,9 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         for (size_t level = 0; level < tex->mipmap_count; level++) {
             void* data = tex->mipmaps[level];
             
-            GtkTreeIter row;
-            gtk_tree_store_append(image_store, &row, NULL);
-            
-            if (!data) {
-                gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, NULL, -1);
-            } else {
+            if (data) {
+                GtkTreeIter row;
+                gtk_tree_store_append(image_store, &row, NULL);
                 GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
                 uint32_t* dest = (uint32_t*)gdk_pixbuf_get_pixels(pixbuf);
                 for (size_t y = 0; y < h; y++) {

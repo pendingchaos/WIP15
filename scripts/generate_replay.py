@@ -22,6 +22,8 @@ output.write("""#include <X11/Xlib.h>
 #include "shared/glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
+#define RETURN do {replay_end_cmd(ctx, FUNC, inspect_command);return;} while(0)
+#define FUNC ""
 
 typedef void (*_func)();
 
@@ -787,6 +789,31 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     replay_get_back_color(ctx, cmd);
     replay_get_depth(ctx, cmd);
     
+    GLint fb;
+    F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
+    fb = replay_get_fake_object(ctx, ReplayObjType_GLFramebuffer, fb);
+    
+    //TODO: Make depth and stencil textures work.
+    if (fb) {
+        GLint last_tex;
+        F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &last_tex);
+        
+        size_t count = replay_get_color_tex_count(ctx, fb);
+        for (size_t i = 0; i < count; i++) {
+            uint64_t tex = replay_get_color_tex(ctx, fb, i);
+            size_t level = replay_get_color_level(ctx, fb, i);
+            tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
+            if (!tex)
+                continue;
+            
+            //TODO: Make this work with non-2d textures
+            F(glBindTexture)(GL_TEXTURE_2D, tex);
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+        }
+        
+        F(glBindTexture)(GL_TEXTURE_2D, last_tex);
+    }
+    
     //TODO: This should use the limits.
     GLint attrib_count;
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
@@ -795,6 +822,39 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
         set_vertex_attrib(ctx, i, attribs+i);
     
     free(attribs);
+}
+
+static GLint get_bound_framebuffer(replay_context_t* ctx, GLenum target) {
+    GLint fb;
+    switch (target) {
+    case GL_DRAW_FRAMEBUFFER:
+        F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
+        break;
+    case GL_READ_FRAMEBUFFER:
+        F(glGetIntegerv)(GL_READ_FRAMEBUFFER_BINDING, &fb);
+        break;
+    case GL_FRAMEBUFFER:
+        F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
+        break;
+    }
+    
+    return replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fb);
+}
+
+static void framebuffer_attachment(replay_context_t* ctx, GLuint fb, GLenum attachment, GLuint tex, GLuint level) {
+    switch (attachment) {
+    case GL_DEPTH_ATTACHMENT:
+        replay_set_depth_tex(ctx, fb, tex);
+        break;
+    case GL_STENCIL_ATTACHMENT:
+        replay_set_stencil_tex(ctx, fb, tex);
+        break;
+    case GL_DEPTH_STENCIL_ATTACHMENT:
+        replay_set_depth_stencil_tex(ctx, fb, tex);
+        break;
+    default:
+        replay_set_color_tex(ctx, fb, attachment-GL_COLOR_ATTACHMENT0, tex, level);
+    }
 }
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
@@ -1023,7 +1083,7 @@ for name in gl.functions:
     
     if name in nontrivial:
         output.write(nontrivial[name])
-        output.write("replay_end_cmd(ctx, \"%s\", inspect_command);\n" % (name))
+        output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
         output.write("}\n\n")
         continue
     

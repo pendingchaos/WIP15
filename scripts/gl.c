@@ -533,12 +533,10 @@ static void gl_param_GLclampd(GLclampd value, int32_t group) {
 
 static void gl_param_GLDEBUGPROCKHR(GLDEBUGPROCKHR value, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
-    gl_write_int32(group);
 }
 
 static void gl_param_GLDEBUGPROCAMD(GLDEBUGPROCAMD value, int32_t group) {
     gl_write_b(WIP15_FUNC_PTR);
-    gl_write_int32(group);
 }
 
 static void gl_param_GLXPixmap(GLXPixmap value, int32_t group) {
@@ -850,7 +848,6 @@ static void gl_result_GLXContext(GLXContext value) {
     uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
 }
 
 static void gl_result_GLXPixmap(GLXPixmap value) {
@@ -896,7 +893,6 @@ static void gl_result_GLXContextID(GLXContextID value) {
 static void gl_result___GLXextFuncPtr(__GLXextFuncPtr value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_FUNC_PTR);
-    gl_write_str(NULL);
 }
 
 static void gl_result_Status(Status value) {

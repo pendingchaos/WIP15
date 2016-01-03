@@ -33,14 +33,14 @@ glXCreateContextAttribsARB:
 
 glSetContextCapsWIP15:
     //TODO
-    gl_write_b(WIP15_DATA);
+    /*gl_write_b(WIP15_DATA);
     gl_write_u32(0*sizeof(uint32_t));
     #define LIMIT(pname) gl_write_u32(*gl_geti(GL_##pname));
     //TODO: Make LIMITF more portable
     #define LIMITF(pname) fwrite(gl_getf(GL_##pname), 4, 1, trace_file);
     //TODO: *bits_supported
     #undef LIMITF
-    #undef LIMIT
+    #undef LIMIT*/
 
 glMappedBufferDataWIP15:
     gl_param_GLenum(target, -1);
