@@ -58,13 +58,10 @@
 - [ ] glEndConditionalRender
 - [ ] glEndQuery
 - [ ] glEndTransformFeedback
-- [ ] glFramebufferRenderbuffer
-- [ ] glFramebufferTexture
+- [x] glFramebufferRenderbuffer
+- [x] glFramebufferTexture
 - [ ] glFramebufferTexture1D
-- [ ] glFramebufferTexture2D
-- [ ] glFramebufferTexture3D
-- [ ] glFramebufferTexture1D
-- [ ] glFramebufferTexture2D
+- [x] glFramebufferTexture2D
 - [ ] glFramebufferTexture3D
 - [ ] glFramebufferTextureLayer
 - [x] glGenBuffers

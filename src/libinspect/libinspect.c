@@ -236,6 +236,7 @@ inspector_t* create_inspector(inspection_t* inspection) {
     res->shaders = alloc_vec(0);
     res->programs = alloc_vec(0);
     res->vaos = alloc_vec(0);
+    res->framebuffers = alloc_vec(0);
     res->inspection = inspection;
     
     inspect_vao_t vao;
@@ -280,9 +281,14 @@ static void free_programs(inspector_t* inspector) {
 
 static void free_vaos(inspector_t* inspector) {
     inspect_vao_vec_t vaos = inspector->vaos;
-    for (inspect_vao_t* vao = vaos->data; !vec_end(vaos, vao); vao++) {
+    for (inspect_vao_t* vao = vaos->data; !vec_end(vaos, vao); vao++)
         free(vao->attribs);
-    }
+}
+
+static void free_framebuffers(inspector_t* inspector) {
+    inspect_fb_vec_t fbs = inspector->framebuffers;
+    for (inspect_fb_t* fb = fbs->data; !vec_end(fbs, fb); fb++)
+        free_inspect_fb_attach_vec(fb->color);
 }
 
 void free_inspector(inspector_t* inspector) {
@@ -291,11 +297,13 @@ void free_inspector(inspector_t* inspector) {
     free_shaders(inspector);
     free_programs(inspector);
     free_vaos(inspector);
+    free_framebuffers(inspector);
     free_inspect_prog_vec(inspector->programs);
     free_inspect_shdr_vec(inspector->shaders);
     free_inspect_buf_vec(inspector->buffers);
     free_inspect_tex_vec(inspector->textures);
     free_inspect_vao_vec(inspector->vaos);
+    free_inspect_fb_vec(inspector->framebuffers);
     free(inspector);
 }
 
@@ -344,6 +352,15 @@ inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake) {
     return get_inspect_vao_vec_data(inspector->vaos) + vao_index;
 }
 
+inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake) {
+    int fb_index = inspect_find_fb(inspector, fake);
+    if (fb_index == -1) {
+        return NULL;
+    }
+    
+    return get_inspect_fb_vec_data(inspector->framebuffers) + fb_index;
+}
+
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
     inspect_act_vec_t actions = state->actions;
     for (inspect_action_t* action = actions->data; !vec_end(actions, action); action++)
@@ -357,11 +374,13 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     free_shaders(inspector);
     free_programs(inspector);
     free_vaos(inspector);
+    free_framebuffers(inspector);
     resize_vec(inspector->buffers, 0);
     resize_vec(inspector->textures, 0);
     resize_vec(inspector->shaders, 0);
     resize_vec(inspector->programs, 0);
     resize_vec(inspector->vaos, 0);
+    resize_vec(inspector->framebuffers, 0);
     
     inspect_vao_t vao;
     vao.fake = 0;
@@ -431,6 +450,16 @@ int inspect_find_vao(inspector_t* inspector, unsigned int prog) {
     size_t count = get_inspect_vao_vec_count(vaos);
     for (size_t i = 0; i < count; ++i)
         if (get_inspect_vao_vec(vaos, i)->fake == prog)
+            return i;
+    
+    return -1;
+}
+
+int inspect_find_fb(inspector_t* inspector, unsigned int prog) {
+    inspect_fb_vec_t fbs = inspector->framebuffers;
+    size_t count = get_inspect_fb_vec_count(fbs);
+    for (size_t i = 0; i < count; ++i)
+        if (get_inspect_fb_vec(fbs, i)->fake == prog)
             return i;
     
     return -1;

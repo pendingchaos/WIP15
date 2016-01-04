@@ -1937,8 +1937,10 @@ glGenFramebuffers:
     
     real(n, fbs);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLFramebuffer, fbs[i], fake[i]);
+        inspect_act_gen_fb(&inspect_command->state, fake[i]);
+    }
 
 glDeleteFramebuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -1948,6 +1950,8 @@ glDeleteFramebuffers:
     for (size_t i = 0; i < n; ++i)
         if (!(fbs[i] = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake[i])))
             inspect_add_error(inspect_command, "Invalid framebuffer being deleted.");
+        else
+            inspect_act_del_fb(&inspect_command->state, fake[i]);
     
     real(n, fbs);
 
@@ -2091,7 +2095,7 @@ glFramebufferRenderbuffer:
         RETURN;
     }
     
-    framebuffer_attachment(ctx, fb, attachment, 0, 0);
+    framebuffer_attachment(inspect_command, ctx, fb, attachment, 0, 0);
 
 glFramebufferTexture:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2113,7 +2117,7 @@ glFramebufferTexture:
         RETURN;
     }
     
-    framebuffer_attachment(ctx, fb, attachment, texture, level);
+    framebuffer_attachment(inspect_command, ctx, fb, attachment, texture, level);
 
 glFramebufferTexture2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2136,4 +2140,4 @@ glFramebufferTexture2D:
         RETURN;
     }
     
-    framebuffer_attachment(ctx, fb, attachment, texture, level);
+    framebuffer_attachment(inspect_command, ctx, fb, attachment, texture, level);

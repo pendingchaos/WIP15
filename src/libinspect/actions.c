@@ -337,6 +337,75 @@ static void apply_set_vao(inspector_t* inspector, inspect_action_t* action) {
     memcpy(vao->attribs, attribs, data->count*sizeof(inspect_vertex_attrib_t));
 }
 
+static void apply_gen_fb(inspector_t* inspector, inspect_action_t* action) {
+    inspect_fb_t fb;
+    fb.fake = action->obj;
+    fb.depth.tex = fb.stencil.tex = fb.depth_stencil.tex = 0;
+    fb.color = alloc_inspect_fb_attach_vec(0);
+    append_inspect_fb_vec(inspector->framebuffers, &fb);
+}
+
+static void apply_del_fb(inspector_t* inspector, inspect_action_t* action) {
+    inspect_fb_t* fb = inspect_find_fb_ptr(inspector, action->obj);
+    if (!fb)
+        return;
+    
+    free_inspect_fb_attach_vec(fb->color);
+    
+    size_t index = fb - get_inspect_fb_vec_data(inspector->framebuffers);
+    remove_inspect_fb_vec(inspector->framebuffers, index, 1);
+}
+
+typedef struct {
+    unsigned int fb;
+    unsigned int attach;
+    unsigned int tex;
+    unsigned int level;
+} fb_attach_t;
+
+static void apply_fb_attach(inspector_t* inspector, inspect_action_t* action) {
+    fb_attach_t* data = action->data;
+    inspect_fb_t* fb = inspect_find_fb_ptr(inspector, data->fb);
+    if (!fb)
+        return;
+    
+    switch (data->attach) {
+    case 0: {
+        fb->depth.tex = data->tex;
+        fb->depth.level = data->level;
+        break;
+    }
+    case 1: {
+        fb->stencil.tex = data->tex;
+        fb->stencil.level = data->level;
+        break;
+    }
+    case 2: {
+        fb->depth_stencil.tex = data->tex;
+        fb->depth_stencil.level = data->level;
+        break;
+    }
+    default: {
+        inspect_fb_attach_vec_t atts = fb->color;
+        for (inspect_fb_attach_t* att = atts->data; !vec_end(atts, att); att++) {
+            if (att->attachment == data->attach-2) {
+                att->tex = data->tex;
+                att->level = data->level;
+                break;
+            }
+        }
+        
+        inspect_fb_attach_t att;
+        att.attachment = data->attach - 2;
+        att.tex = data->tex;
+        att.level = data->level;
+        
+        append_inspect_fb_attach_vec(atts, &att);
+        break;
+    }
+    }
+}
+
 static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
@@ -556,4 +625,50 @@ void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t coun
     action.free_func = &simple_free;
     action.data = act_data;
     append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_gen_fb(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_gen_fb;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_del_fb(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_del_fb;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+static void fb_attach(inspect_gl_state_t* state, unsigned int fb, unsigned int attach, unsigned int tex, unsigned int level) {
+    fb_attach_t* act_data = malloc(sizeof(fb_attach_t));
+    act_data->fb = fb;
+    act_data->attach = attach;
+    act_data->tex = tex;
+    act_data->level = level;
+    
+    inspect_action_t action;
+    action.apply_func = &apply_fb_attach;
+    action.free_func = &simple_free;
+    action.data = act_data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_fb_depth(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+    fb_attach(state, fb, 0, tex, level);
+}
+
+void inspect_act_fb_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+    fb_attach(state, fb, 1, tex, level);
+}
+
+void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+    fb_attach(state, fb, 2, tex, level);
+}
+
+void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level) {
+    fb_attach(state, fb, attachment+2, tex, level);
 }

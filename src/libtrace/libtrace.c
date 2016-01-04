@@ -449,7 +449,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
             val->ptr_array = malloc(sizeof(uint64_t)*val->count);
             for (size_t i = 0; i < val->count; ++i) {
                 uint64_t pv;
-                if (!readf(&pv, 4, 1, file)) {
+                if (!readf(&pv, 8, 1, file)) {
                     free(val->ptr_array);
                     trace_error_desc = "Unable to read 64-bit pointer array element";
                     return -1;
@@ -549,7 +549,7 @@ trace_t *load_trace(const char* filename) {
     
     if (!readf(&trace->group_name_count, 4, 1, file)) {
         trace_error = TraceError_Invalid;
-        trace_error_desc = "Unable to read function name count";
+        trace_error_desc = "Unable to read group name count";
         free_trace(trace);
         return NULL;
     }
@@ -560,7 +560,7 @@ trace_t *load_trace(const char* filename) {
         uint32_t length;
         if (!readf(&length, 4, 1, file)) {
             trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read function name length";
+            trace_error_desc = "Unable to read group name length";
             free(trace->func_names);
             trace->func_name_count = 0;
             free_trace(trace);
@@ -571,7 +571,7 @@ trace_t *load_trace(const char* filename) {
         char *name = malloc(length+1);
         if (!readf(name, length, 1, file)) {
             trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read function name length";
+            trace_error_desc = "Unable to read group name length";
             free(name);
             free(trace->group_names);
             trace->group_name_count = 0;

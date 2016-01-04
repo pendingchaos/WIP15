@@ -793,7 +793,7 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
     fb = replay_get_fake_object(ctx, ReplayObjType_GLFramebuffer, fb);
     
-    //TODO: Make depth and stencil textures work.
+    //TODO: Make this work with non-2d textures
     if (fb) {
         GLint last_tex;
         F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &last_tex);
@@ -806,7 +806,30 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
             if (!tex)
                 continue;
             
-            //TODO: Make this work with non-2d textures
+            F(glBindTexture)(GL_TEXTURE_2D, tex);
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+        }
+        
+        uint64_t tex = replay_get_depth_tex(ctx, fb);
+        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
+        if (tex) {
+            size_t level = replay_get_depth_level(ctx, fb);
+            F(glBindTexture)(GL_TEXTURE_2D, tex);
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+        }
+        
+        tex = replay_get_stencil_tex(ctx, fb);
+        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
+        if (tex) {
+            size_t level = replay_get_stencil_level(ctx, fb);
+            F(glBindTexture)(GL_TEXTURE_2D, tex);
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+        }
+        
+        tex = replay_get_depth_stencil_tex(ctx, fb);
+        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
+        if (tex) {
+            size_t level = replay_get_depth_stencil_level(ctx, fb);
             F(glBindTexture)(GL_TEXTURE_2D, tex);
             replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
         }
@@ -841,19 +864,24 @@ static GLint get_bound_framebuffer(replay_context_t* ctx, GLenum target) {
     return replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fb);
 }
 
-static void framebuffer_attachment(replay_context_t* ctx, GLuint fb, GLenum attachment, GLuint tex, GLuint level) {
+static void framebuffer_attachment(inspect_command_t* cmd, replay_context_t* ctx, GLuint fb, GLenum attachment, GLuint tex, GLuint level) {
     switch (attachment) {
     case GL_DEPTH_ATTACHMENT:
-        replay_set_depth_tex(ctx, fb, tex);
+        replay_set_depth_tex(ctx, fb, tex, level);
+        inspect_act_fb_depth(&cmd->state, fb, tex, level);
         break;
     case GL_STENCIL_ATTACHMENT:
-        replay_set_stencil_tex(ctx, fb, tex);
+        replay_set_stencil_tex(ctx, fb, tex, level);
+        inspect_act_fb_stencil(&cmd->state, fb, tex, level);
         break;
     case GL_DEPTH_STENCIL_ATTACHMENT:
-        replay_set_depth_stencil_tex(ctx, fb, tex);
+        replay_set_depth_stencil_tex(ctx, fb, tex, level);
+        inspect_act_fb_depth_stencil(&cmd->state, fb, tex, level);
         break;
     default:
         replay_set_color_tex(ctx, fb, attachment-GL_COLOR_ATTACHMENT0, tex, level);
+        inspect_act_fb_color(&cmd->state, fb, attachment-GL_COLOR_ATTACHMENT0, tex, level);
+        break;
     }
 }
 

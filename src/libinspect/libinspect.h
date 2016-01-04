@@ -101,6 +101,23 @@ typedef struct {
 } inspect_vao_t;
 TYPED_VEC(inspect_vao_t, inspect_vao)
 
+typedef struct {
+    unsigned int attachment;
+    unsigned int tex;
+    unsigned int level;
+} inspect_fb_attach_t;
+TYPED_VEC(inspect_fb_attach_t, inspect_fb_attach)
+
+typedef struct {
+    unsigned int fake;
+    inspect_fb_attach_vec_t color;
+    //depth.attachment, stencil.attachment and depth_stencil.attachment are ignored
+    inspect_fb_attach_t depth;
+    inspect_fb_attach_t stencil;
+    inspect_fb_attach_t depth_stencil;
+} inspect_fb_t;
+TYPED_VEC(inspect_fb_t, inspect_fb)
+
 struct inspection_t;
 typedef struct {
     struct inspection_t* inspection;
@@ -109,6 +126,7 @@ typedef struct {
     inspect_shdr_vec_t shaders;
     inspect_prog_vec_t programs;
     inspect_vao_vec_t vaos;
+    inspect_fb_vec_t framebuffers;
 } inspector_t;
 
 struct inspect_action_t;
@@ -168,6 +186,7 @@ int inspect_find_buf(inspector_t* inspector, unsigned int buf);
 int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
 int inspect_find_prog(inspector_t* inspector, unsigned int prog);
 int inspect_find_vao(inspector_t* inspector, unsigned int vao);
+int inspect_find_fb(inspector_t* inspector, unsigned int fb);
 
 //NULL if it could not be found
 inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake);
@@ -175,4 +194,5 @@ inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake
 inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fake);
 inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake);
 inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake);
+inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake);
 #endif

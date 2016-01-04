@@ -38,8 +38,11 @@ TYPED_VEC(fb_attach_t, attach)
 
 typedef struct {
     attach_vec_t attachments;
+    size_t depth_level;
     unsigned int depth_texture;
+    size_t stencil_level;
     unsigned int stencil_texture;
+    size_t depth_stencil_level;
     unsigned int depth_stencil_texture;
 } fb_data_t;
 
@@ -160,6 +163,9 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
         break;
     case ReplayObjType_GLFramebuffer:
         new_obj.fb.attachments = alloc_attach_vec(0);
+        new_obj.fb.depth_level = new_obj.fb.stencil_level =
+        new_obj.fb.depth_stencil_level = new_obj.fb.depth_texture =
+        new_obj.fb.stencil_texture = new_obj.fb.depth_stencil_texture = 0;
         break;
     default:
         break;
@@ -304,22 +310,28 @@ static fb_data_t* find_fb(replay_context_t* ctx, uint64_t fake_fb) {
     return NULL;
 }
 
-void replay_set_depth_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+void replay_set_depth_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
     fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
+    if (data) {
         data->depth_texture = fake_tex;
+        data->depth_level = level;
+    }
 }
 
-void replay_set_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+void replay_set_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
     fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
+    if (data) {
         data->stencil_texture = fake_tex;
+        data->stencil_level = level;
+    }
 }
 
-void replay_set_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex) {
+void replay_set_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
     fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
+    if (data) {
         data->depth_stencil_texture = fake_tex;
+        data->depth_stencil_level = level;
+    }
 }
 
 void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, unsigned int attachment, uint64_t fake_tex, size_t level) {
@@ -348,6 +360,13 @@ uint64_t replay_get_depth_tex(replay_context_t* ctx, uint64_t fake_fb) {
     return 0;
 }
 
+size_t replay_get_depth_level(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->depth_level;
+    return 0;
+}
+
 uint64_t replay_get_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
     fb_data_t* data = find_fb(ctx, fake_fb);
     if (data)
@@ -355,10 +374,24 @@ uint64_t replay_get_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
     return 0;
 }
 
+size_t replay_get_stencil_level(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->stencil_level;
+    return 0;
+}
+
 uint64_t replay_get_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
     fb_data_t* data = find_fb(ctx, fake_fb);
     if (data)
         return data->depth_stencil_texture;
+    return 0;
+}
+
+size_t replay_get_depth_stencil_level(replay_context_t* ctx, uint64_t fake_fb) {
+    fb_data_t* data = find_fb(ctx, fake_fb);
+    if (data)
+        return data->depth_stencil_level;
     return 0;
 }
 

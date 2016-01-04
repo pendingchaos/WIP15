@@ -23,4 +23,10 @@ void inspect_act_add_prog_uniform(inspect_gl_state_t* state, unsigned int id, un
 void inspect_act_gen_vao(inspect_gl_state_t* state, unsigned int id);
 void inspect_act_del_vao(inspect_gl_state_t* state, unsigned int id);
 void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t count, inspect_vertex_attrib_t* attribs);
+void inspect_act_gen_fb(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_del_fb(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_fb_depth(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level);
+void inspect_act_fb_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level);
+void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level);
+void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level);
 #endif

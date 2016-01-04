@@ -774,29 +774,60 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow" id="scrolledwindow9">
+                  <object class="GtkPaned" id="paned2">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="shadow_type">in</property>
+                    <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkTreeView" id="framebuffer_treeview">
+                      <object class="GtkScrolledWindow" id="scrolledwindow18">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection" id="treeview-selection8"/>
-                        </child>
+                        <property name="shadow_type">in</property>
                         <child>
-                          <object class="GtkTreeViewColumn" id="name1">
-                            <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Name</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn" id="value2">
-                            <property name="title" translatable="yes">Value</property>
+                          <object class="GtkTreeView" id="framebuffers_treeview">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection" id="treeview-selection15"/>
+                            </child>
                           </object>
                         </child>
                       </object>
+                      <packing>
+                        <property name="resize">False</property>
+                        <property name="shrink">True</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolledwindow9">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTreeView" id="framebuffer_treeview">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <child internal-child="selection">
+                              <object class="GtkTreeSelection" id="treeview-selection8"/>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="name1">
+                                <property name="resizable">True</property>
+                                <property name="title" translatable="yes">Name</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="value2">
+                                <property name="title" translatable="yes">Value</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="resize">False</property>
+                        <property name="shrink">True</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
@@ -804,10 +835,10 @@
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel" id="framebuffer_tab">
+                  <object class="GtkLabel" id="framebuffers_tab">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Framebuffer</property>
+                    <property name="label" translatable="yes">Framebuffers</property>
                   </object>
                   <packing>
                     <property name="position">5</property>
