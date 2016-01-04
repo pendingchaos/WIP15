@@ -388,7 +388,7 @@ static void apply_fb_attach(inspector_t* inspector, inspect_action_t* action) {
     default: {
         inspect_fb_attach_vec_t atts = fb->color;
         for (inspect_fb_attach_t* att = atts->data; !vec_end(atts, att); att++) {
-            if (att->attachment == data->attach-2) {
+            if (att->attachment == data->attach-3) {
                 att->tex = data->tex;
                 att->level = data->level;
                 break;
@@ -396,7 +396,7 @@ static void apply_fb_attach(inspector_t* inspector, inspect_action_t* action) {
         }
         
         inspect_fb_attach_t att;
-        att.attachment = data->attach - 2;
+        att.attachment = data->attach - 3;
         att.tex = data->tex;
         att.level = data->level;
         
@@ -670,5 +670,5 @@ void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, un
 }
 
 void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level) {
-    fb_attach(state, fb, attachment+2, tex, level);
+    fb_attach(state, fb, attachment+3, tex, level);
 }

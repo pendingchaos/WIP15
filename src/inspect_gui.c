@@ -837,54 +837,48 @@ static void init_vao_list(GtkTreeView* tree) {
     }
 }
 
-static void init_framebuffer_tree(GtkTreeView* tree,
-                                  size_t frame_index,
-                                  size_t cmd_index,
-                                  inspection_t* inspection) {
-    inspect_image_t front;
-    inspect_image_t back;
-    inspect_image_t depth;
-    front.data = NULL;
-    back.data = NULL;
-    depth.data = NULL;
+static void init_framebuffers_list(GtkTreeView* tree) {
+    GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
+    gtk_tree_store_clear(store);
     
-    if (frame_index >= inspection->frame_count)
-        return;
+    content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_attachments"));
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
+    gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i <= frame_index; ++i) {
-        inspect_frame_t* frame = inspection->frames + i;
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    GtkTreeIter row;
+    gtk_tree_store_append(store, &row, NULL);
+    gtk_tree_store_set(store, &row, 0, "0", -1);
+    
+    inspect_fb_vec_t fbs = inspector->framebuffers;
+    for (inspect_fb_t* fb = fbs->data; !vec_end(fbs, fb); fb++) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", fb->fake);
         
-        if ((cmd_index >= frame->command_count) && (i == frame_index))
-            return;
-        
-        size_t count = (i == frame_index) ? cmd_index+1 : frame->command_count;
-        for (size_t j = 0; j < count; ++j) {
-            inspect_command_t* cmd = frame->commands + j;
-            
-            if (cmd->state.front.data)
-                front = cmd->state.front;
-            
-            if (cmd->state.back.data)
-                back = cmd->state.back;
-            
-            if (cmd->state.depth.data)
-                depth = cmd->state.depth;
-        }
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
     }
-    
+}
+
+static void init_framebuffer_tree(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    if (front.data) {
+    inspect_image_t* front = inspector->front_buf;
+    if (front && front->data) {
         GdkPixbuf* front_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                               TRUE,
                                               8,
-                                              front.width,
-                                              front.height);
+                                              front->width,
+                                              front->height);
         uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(front_buf);
-        for (size_t y = 0; y < front.height; y++) {
-            for (size_t x = 0; x < front.width; x++) {
-                data[(front.height-1-y)*front.width+x] = ((uint32_t*)front.data)[y*front.width+x];
+        for (size_t y = 0; y < front->height; y++) {
+            for (size_t x = 0; x < front->width; x++) {
+                data[(front->height-1-y)*front->width+x] = ((uint32_t*)front->data)[y*front->width+x];
             }
         }
         
@@ -895,16 +889,17 @@ static void init_framebuffer_tree(GtkTreeView* tree,
         g_object_unref(front_buf);
     }
     
-    if (back.data) {
+    inspect_image_t* back = inspector->back_buf;
+    if (back && back->data) {
         GdkPixbuf* back_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                              TRUE,
                                              8,
-                                             back.width,
-                                             back.height);
+                                             back->width,
+                                             back->height);
         uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(back_buf);
-        for (size_t y = 0; y < back.height; y++) {
-            for (size_t x = 0; x < back.width; x++) {
-                data[(back.height-1-y)*back.width+x] = ((uint32_t*)back.data)[y*back.width+x];
+        for (size_t y = 0; y < back->height; y++) {
+            for (size_t x = 0; x < back->width; x++) {
+                data[(back->height-1-y)*back->width+x] = ((uint32_t*)back->data)[y*back->width+x];
             }
         }
         
@@ -915,19 +910,20 @@ static void init_framebuffer_tree(GtkTreeView* tree,
         g_object_unref(back_buf);
     }
     
-    if (depth.data) {
+    inspect_image_t* depth = inspector->depth_buf;
+    if (depth && depth->data) {
         GdkPixbuf* depth_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                               FALSE,
                                               8,
-                                              depth.width,
-                                              depth.height);
+                                              depth->width,
+                                              depth->height);
         
         uint8_t* data = (uint8_t*)gdk_pixbuf_get_pixels(depth_buf);
-        for (size_t y = 0; y < depth.height; y++) {
-            for (size_t x = 0; x < depth.width; x++) {
-                size_t index = (depth.height-1-y)*depth.width + x;
+        for (size_t y = 0; y < depth->height; y++) {
+            for (size_t x = 0; x < depth->width; x++) {
+                size_t index = (depth->height-1-y)*depth->width + x;
                 
-                uint32_t val = ((uint32_t*)depth.data)[y*depth.width+x];
+                uint32_t val = ((uint32_t*)depth->data)[y*depth->width+x];
                 val = val / 4294967296.0 * 16777216.0;
                 data[index*3] = val % 256;
                 data[index*3+1] = val % 65536 / 256;
@@ -965,6 +961,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         init_shader_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "shader_list_treeview")));
         init_program_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_list_view")));
         init_vao_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "vao_treeview")));
+        init_framebuffers_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffers_treeview")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
@@ -981,11 +978,6 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         
         init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
                         &cmd->state);
-        
-        init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_treeview")),
-                              indices[0],
-                              indices[1],
-                              inspection);
     } else {
         GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview"));
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
@@ -1047,6 +1039,69 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
     
     gtk_text_buffer_set_text(info_log_buffer, prog->info_log?prog->info_log:"", -1);
+}
+
+static void add_fb_attachment(GtkTreeStore* store, const char* name, const inspect_fb_attach_t* attach) {
+    GtkTreeIter parent;
+    gtk_tree_store_append(store, &parent, NULL);
+    gtk_tree_store_set(store, &parent, 0, name, -1);
+    
+    GtkTreeIter row;
+    gtk_tree_store_append(store, &row, &parent);
+    gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", attach->tex), -1);
+    
+    gtk_tree_store_append(store, &row, &parent);
+    gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);
+}
+
+void framebuffer_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    
+    if (!path)
+        return;
+    
+    size_t index = gtk_tree_path_get_indices(path)[0];
+    
+    GValue page = G_VALUE_INIT;
+    g_value_init(&page, G_TYPE_INT);
+    
+    if (!index) { //The first one (framebuffer 0) is special
+        init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview")));
+        g_value_set_int(&page, 0);
+    } else {
+        g_value_set_int(&page, 1);
+        index -= 1;
+        inspect_fb_t* fb = get_inspect_fb_vec(inspector->framebuffers, index);
+        
+        if (!fb)
+            return;
+        
+        GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_attachments"));
+        GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+        gtk_tree_store_clear(store);
+        
+        if (fb->depth.tex)
+            add_fb_attachment(store, "GL_DEPTH_ATTACHMENT", &fb->depth);
+        
+        if (fb->stencil.tex)
+            add_fb_attachment(store, "GL_STENCIL_ATTACHMENT", &fb->stencil);
+        
+        if (fb->depth_stencil.tex)
+            add_fb_attachment(store, "GL_DEPTH_STENCIL_ATTACHMENT", &fb->depth_stencil);
+        
+        inspect_fb_attach_vec_t atts = fb->color;
+        for (inspect_fb_attach_t* att = atts->data; !vec_end(atts, att); att++) {
+            char name[256];
+            memset(name, 0, 256);
+            snprintf(name, 256, "GL_COLOR_ATTACHMENT%u", (unsigned int)(att-(inspect_fb_attach_t*)atts->data));
+            
+            add_fb_attachment(store, name, att);
+        }
+    }
+    
+    GObject* notebook = gtk_builder_get_object(builder, "framebuffer_notebook");
+    g_object_set_property(notebook, "page", &page);
 }
 
 int main(int argc, char** argv) {
@@ -1179,9 +1234,38 @@ int main(int argc, char** argv) {
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
     
-    //Initialize texture framebuffer view
-    GObject* fb_view = gtk_builder_get_object(builder, "framebuffer_treeview");
+    //Initialize framebuffer list view
+    GObject* fb_list_view = gtk_builder_get_object(builder, "framebuffers_treeview");
+    store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(fb_list_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_list_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    
+    main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
+    gtk_widget_show_all(main_window);
+    
+    //Initialize framebuffer 0 view
+    GObject* fb0_view = gtk_builder_get_object(builder, "framebuffer0_treeview");
     store = gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
+    gtk_tree_view_set_model(GTK_TREE_VIEW(fb0_view),
+                            GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb0_view), 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
+    renderer = gtk_cell_renderer_pixbuf_new();
+    column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb0_view), 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+    
+    //Initialize framebuffer attachments view
+    GObject* fb_view = gtk_builder_get_object(builder, "framebuffer_attachments");
+    store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
     gtk_tree_view_set_model(GTK_TREE_VIEW(fb_view),
                             GTK_TREE_MODEL(store));
     g_object_unref(store);
@@ -1189,10 +1273,10 @@ int main(int argc, char** argv) {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 0);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "text", 0, NULL);
-    renderer = gtk_cell_renderer_pixbuf_new();
+    renderer = gtk_cell_renderer_text_new();
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
-    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
     
     //Initialize buffer type combobox
     GObject* buf_type = gtk_builder_get_object(builder, "type_combobox");

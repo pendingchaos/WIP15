@@ -245,6 +245,8 @@ inspector_t* create_inspector(inspection_t* inspection) {
     vao.attribs = NULL;
     append_inspect_vao_vec(res->vaos, &vao);
     
+    res->back_buf = res->front_buf = res->depth_buf = NULL;
+    
     return res;
 }
 
@@ -366,6 +368,15 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
     for (inspect_action_t* action = actions->data; !vec_end(actions, action); action++)
         if (action->apply_func)
             action->apply_func(inspector, action);
+    
+    if (state->front.data)
+        inspector->front_buf = &state->front;
+    
+    if (state->back.data)
+        inspector->back_buf = &state->back;
+    
+    if (state->depth.data)
+        inspector->depth_buf = &state->depth;
 }
 
 void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index) {
@@ -387,6 +398,8 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     vao.attrib_count = 0;
     vao.attribs = NULL;
     append_inspect_vao_vec(inspector->vaos, &vao);
+    
+    inspector->back_buf = inspector->front_buf = inspector->depth_buf = NULL;
     
     inspection_t* inspection = inspector->inspection;
     

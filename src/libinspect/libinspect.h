@@ -127,6 +127,9 @@ typedef struct {
     inspect_prog_vec_t programs;
     inspect_vao_vec_t vaos;
     inspect_fb_vec_t framebuffers;
+    inspect_image_t* back_buf;
+    inspect_image_t* front_buf;
+    inspect_image_t* depth_buf;
 } inspector_t;
 
 struct inspect_action_t;
