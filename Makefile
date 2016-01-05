@@ -22,7 +22,7 @@ trace:
 .PHONY: inspect-gui
 inspect-gui:
 	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
-	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/shared/glapi.o ../src/inspect_gui.c -std=c99 -o inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
+	gcc -Isrc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so src/shared/glapi.o $(wildcard src/gui/*.c) -Isrc/gui -std=c99 -o bin/inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
 	rm src/shared/glapi.o
 
 .PHONY: leakcheck
