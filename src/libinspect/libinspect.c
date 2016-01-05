@@ -237,6 +237,7 @@ inspector_t* create_inspector(inspection_t* inspection) {
     res->programs = alloc_vec(0);
     res->vaos = alloc_vec(0);
     res->framebuffers = alloc_vec(0);
+    res->renderbuffers = alloc_vec(0);
     res->inspection = inspection;
     
     inspect_vao_t vao;
@@ -306,6 +307,7 @@ void free_inspector(inspector_t* inspector) {
     free_inspect_tex_vec(inspector->textures);
     free_inspect_vao_vec(inspector->vaos);
     free_inspect_fb_vec(inspector->framebuffers);
+    free_inspect_rb_vec(inspector->renderbuffers);
     free(inspector);
 }
 
@@ -363,6 +365,15 @@ inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake) {
     return get_inspect_fb_vec_data(inspector->framebuffers) + fb_index;
 }
 
+inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, unsigned int fake) {
+    int rb_index = inspect_find_rb(inspector, fake);
+    if (rb_index == -1) {
+        return NULL;
+    }
+    
+    return get_inspect_rb_vec_data(inspector->renderbuffers) + rb_index;
+}
+
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
     inspect_act_vec_t actions = state->actions;
     for (inspect_action_t* action = actions->data; !vec_end(actions, action); action++)
@@ -392,6 +403,7 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     resize_vec(inspector->programs, 0);
     resize_vec(inspector->vaos, 0);
     resize_vec(inspector->framebuffers, 0);
+    resize_vec(inspector->renderbuffers, 0);
     
     inspect_vao_t vao;
     vao.fake = 0;
@@ -458,21 +470,31 @@ int inspect_find_prog(inspector_t* inspector, unsigned int prog) {
     return -1;
 }
 
-int inspect_find_vao(inspector_t* inspector, unsigned int prog) {
+int inspect_find_vao(inspector_t* inspector, unsigned int vao) {
     inspect_vao_vec_t vaos = inspector->vaos;
     size_t count = get_inspect_vao_vec_count(vaos);
     for (size_t i = 0; i < count; ++i)
-        if (get_inspect_vao_vec(vaos, i)->fake == prog)
+        if (get_inspect_vao_vec(vaos, i)->fake == vao)
             return i;
     
     return -1;
 }
 
-int inspect_find_fb(inspector_t* inspector, unsigned int prog) {
+int inspect_find_fb(inspector_t* inspector, unsigned int fb) {
     inspect_fb_vec_t fbs = inspector->framebuffers;
     size_t count = get_inspect_fb_vec_count(fbs);
     for (size_t i = 0; i < count; ++i)
-        if (get_inspect_fb_vec(fbs, i)->fake == prog)
+        if (get_inspect_fb_vec(fbs, i)->fake == fb)
+            return i;
+    
+    return -1;
+}
+
+int inspect_find_rb(inspector_t* inspector, unsigned int rb) {
+    inspect_rb_vec_t rbs = inspector->renderbuffers;
+    size_t count = get_inspect_rb_vec_count(rbs);
+    for (size_t i = 0; i < count; ++i)
+        if (get_inspect_rb_vec(rbs, i)->fake == rb)
             return i;
     
     return -1;

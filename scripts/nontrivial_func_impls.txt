@@ -1972,8 +1972,10 @@ glGenRenderbuffers:
     
     real(n, rbs);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLRenderbuffer, rbs[i], fake[i]);
+        inspect_act_gen_rb(&inspect_command->state, fake[i]);
+    }
 
 glBindRenderbuffer:
     GLenum target = gl_param_GLenum(command, 0);
@@ -1993,6 +1995,8 @@ glDeleteRenderbuffers:
     for (size_t i = 0; i < n; ++i)
         if (!(rbs[i] = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake[i])))
             inspect_add_error(inspect_command, "Invalid renderbuffer being deleted.");
+        else
+            inspect_act_del_rb(&inspect_command->state, fake[i]);
     
     real(n, rbs);
 
@@ -2141,3 +2145,20 @@ glFramebufferTexture2D:
     }
     
     framebuffer_attachment(inspect_command, ctx, fb, attachment, texture, level);
+
+glRenderbufferStorage:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum internalformat = gl_param_GLenum(command, 1);
+    GLsizei width = gl_param_GLsizei(command, 2);
+    GLsizei height = gl_param_GLsizei(command, 3);
+    real(target, internalformat, width, height);
+    update_renderbuffer(ctx, inspect_command);
+
+glRenderbufferStorageMultisample:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLsizei samples = gl_param_GLsizei(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    real(target, samples, internalformat, width, height);
+    update_renderbuffer(ctx, inspect_command);

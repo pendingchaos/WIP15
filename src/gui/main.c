@@ -16,6 +16,7 @@ trace_t* trace;
 void buffer_init();
 void vao_init();
 void framebuffer_init();
+void renderbuffer_init();
 void texture_init();
 void shader_init();
 void trace_init();
@@ -98,6 +99,7 @@ int main(int argc, char** argv) {
     buffer_init();
     vao_init();
     framebuffer_init();
+    renderbuffer_init();
     texture_init();
     shader_init();
     trace_init();

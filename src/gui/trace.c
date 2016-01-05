@@ -15,6 +15,7 @@ extern inspector_t* inspector;
 void init_buffer_list(GtkTreeView* tree);
 void init_vao_list(GtkTreeView* tree);
 void init_framebuffers_list(GtkTreeView* tree);
+void init_renderbuffers_list(GtkTreeView* tree);
 void init_texture_list(GtkTreeView* tree);
 void init_shader_list(GtkTreeView* tree);
 void init_program_list(GtkTreeView* tree);
@@ -140,6 +141,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         init_program_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_list_view")));
         init_vao_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "vao_treeview")));
         init_framebuffers_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffers_treeview")));
+        init_renderbuffers_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_list")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));

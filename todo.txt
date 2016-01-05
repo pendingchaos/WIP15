@@ -16,8 +16,6 @@ Debugging:
             occlusion
         sync objects
         program pipelines
-        framebuffers
-        renderbuffers
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer

@@ -12834,6 +12834,40 @@ static void framebuffer_attachment(inspect_command_t* cmd, replay_context_t* ctx
     }
 }
 
+static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
+    GLint buf;
+    F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &buf);
+    buf = replay_get_fake_object(ctx, ReplayObjType_GLRenderbuffer, buf);
+    
+    if (buf) {
+        GLint width, height, internal_format, sample_count, red_size;
+        GLint green_size, blue_size, alpha_size, depth_size, stencil_size;
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_INTERNAL_FORMAT, &internal_format);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_SAMPLES, &sample_count);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_RED_SIZE, &red_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_GREEN_SIZE, &green_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_BLUE_SIZE, &blue_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_ALPHA_SIZE, &alpha_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_DEPTH_SIZE, &depth_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_STENCIL_SIZE, &stencil_size);
+        inspect_rb_t rb;
+        rb.fake = buf;
+        rb.width = width;
+        rb.height = height;
+        rb.internal_format = internal_format;
+        rb.sample_count = sample_count;
+        rb.red_size = red_size;
+        rb.green_size = green_size;
+        rb.blue_size = blue_size;
+        rb.alpha_size = alpha_size;
+        rb.depth_size = depth_size;
+        rb.stencil_size = stencil_size;
+        inspect_act_set_rb(&cmd->state, &rb);
+    }
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
@@ -12850,7 +12884,7 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
         F(glGetError)();
 }
 
-void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
+static void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {
@@ -22908,8 +22942,10 @@ void replay_glGenRenderbuffers(replay_context_t* ctx, trace_command_t* command, 
     
     real(n, rbs);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLRenderbuffer, rbs[i], fake[i]);
+        inspect_act_gen_rb(&inspect_command->state, fake[i]);
+    }
 
 #undef FUNC
 #define FUNC "glGenRenderbuffers"
@@ -23216,8 +23252,16 @@ void replay_glRenderbufferStorage(replay_context_t* ctx, trace_command_t* comman
     replay_begin_cmd(ctx, "glRenderbufferStorage", inspect_command);
     glRenderbufferStorage_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRenderbufferStorage;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (GLsizei)gl_param_GLsizei(command, 3));
-replay_end_cmd(ctx, "glRenderbufferStorage", inspect_command);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLenum internalformat = gl_param_GLenum(command, 1);
+    GLsizei width = gl_param_GLsizei(command, 2);
+    GLsizei height = gl_param_GLsizei(command, 3);
+    real(target, internalformat, width, height);
+    update_renderbuffer(ctx, inspect_command);
+
+#undef FUNC
+#define FUNC "glRenderbufferStorage"
+RETURN;
 }
 
 void replay_glWaitSync(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -35539,6 +35583,8 @@ void replay_glDeleteRenderbuffers(replay_context_t* ctx, trace_command_t* comman
     for (size_t i = 0; i < n; ++i)
         if (!(rbs[i] = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake[i])))
             inspect_add_error(inspect_command, "Invalid renderbuffer being deleted.");
+        else
+            inspect_act_del_rb(&inspect_command->state, fake[i]);
     
     real(n, rbs);
 
@@ -46951,8 +46997,17 @@ void replay_glRenderbufferStorageMultisample(replay_context_t* ctx, trace_comman
     replay_begin_cmd(ctx, "glRenderbufferStorageMultisample", inspect_command);
     glRenderbufferStorageMultisample_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glRenderbufferStorageMultisample;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (GLenum)gl_param_GLenum(command, 2), (GLsizei)gl_param_GLsizei(command, 3), (GLsizei)gl_param_GLsizei(command, 4));
-replay_end_cmd(ctx, "glRenderbufferStorageMultisample", inspect_command);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLsizei samples = gl_param_GLsizei(command, 1);
+    GLenum internalformat = gl_param_GLenum(command, 2);
+    GLsizei width = gl_param_GLsizei(command, 3);
+    GLsizei height = gl_param_GLsizei(command, 4);
+    real(target, samples, internalformat, width, height);
+    update_renderbuffer(ctx, inspect_command);
+
+#undef FUNC
+#define FUNC "glRenderbufferStorageMultisample"
+RETURN;
 }
 
 void replay_glCreateProgramPipelines(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {

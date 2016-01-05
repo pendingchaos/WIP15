@@ -172,6 +172,68 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
     g_object_set_property(notebook, "page", &page);
 }
 
+void init_renderbuffers_list(GtkTreeView* tree) {
+    GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
+    gtk_tree_store_clear(store);
+    
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    inspect_rb_vec_t rbs = inspector->renderbuffers;
+    for (inspect_rb_t* rb = rbs->data; !vec_end(rbs, rb); rb++) {
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", rb->fake);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    }
+}
+
+void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    
+    if (!path)
+        return;
+    
+    size_t index = gtk_tree_path_get_indices(path)[0];
+    
+    inspect_rb_t* rb = get_inspect_rb_vec(inspector->renderbuffers, index);
+    if (!rb)
+        return;
+    
+    GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_treeview"));
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    if (rb->internal_format) { //The internal format is 0 when the renderbuffer has not been initialized with glRenderbufferStorage*
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Width", 1, static_format("%zu", rb->width), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Height", 1, static_format("%zu", rb->height), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Internal Format", 1, get_enum_str(NULL, rb->internal_format), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Sample Count", 1, static_format("%zu", rb->sample_count), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Red Size", 1, static_format("%zu", rb->red_size), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Green Size", 1, static_format("%zu", rb->green_size), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Blue Size", 1, static_format("%zu", rb->blue_size), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Alpha Size", 1, static_format("%zu", rb->alpha_size), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Depth Size", 1, static_format("%zu", rb->depth_size), -1);
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, "Stencil Size", 1, static_format("%zu", rb->stencil_size), -1);
+    }
+}
+
 void framebuffer_init() {
     init_treeview(builder, "framebuffers_treeview", 1);
     init_treeview(builder, "framebuffer_attachments", 2);
@@ -190,4 +252,9 @@ void framebuffer_init() {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(fb0_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+}
+
+void renderbuffer_init() {
+    init_treeview(builder, "renderbuffer_list", 1);
+    init_treeview(builder, "renderbuffer_treeview", 2);
 }

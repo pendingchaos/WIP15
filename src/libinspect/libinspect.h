@@ -118,6 +118,21 @@ typedef struct {
 } inspect_fb_t;
 TYPED_VEC(inspect_fb_t, inspect_fb)
 
+typedef struct {
+    unsigned int fake;
+    size_t width;
+    size_t height;
+    unsigned int internal_format;
+    size_t sample_count;
+    size_t red_size;
+    size_t green_size;
+    size_t blue_size;
+    size_t alpha_size;
+    size_t depth_size;
+    size_t stencil_size;
+} inspect_rb_t;
+TYPED_VEC(inspect_rb_t, inspect_rb)
+
 struct inspection_t;
 typedef struct {
     struct inspection_t* inspection;
@@ -127,6 +142,7 @@ typedef struct {
     inspect_prog_vec_t programs;
     inspect_vao_vec_t vaos;
     inspect_fb_vec_t framebuffers;
+    inspect_rb_vec_t renderbuffers;
     inspect_image_t* back_buf;
     inspect_image_t* front_buf;
     inspect_image_t* depth_buf;
@@ -190,6 +206,7 @@ int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
 int inspect_find_prog(inspector_t* inspector, unsigned int prog);
 int inspect_find_vao(inspector_t* inspector, unsigned int vao);
 int inspect_find_fb(inspector_t* inspector, unsigned int fb);
+int inspect_find_rb(inspector_t* inspector, unsigned int rb);
 
 //NULL if it could not be found
 inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake);
@@ -198,4 +215,5 @@ inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fak
 inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake);
 inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake);
 inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake);
+inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, unsigned int fake);
 #endif

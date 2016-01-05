@@ -151,8 +151,8 @@
 - [x] glPointParameterfv
 - [x] glPointParameteriv
 - [ ] glQueryCounter
-- [ ] glRenderbufferStorage
-- [ ] glRenderbufferStorageMultisample
+- [x] glRenderbufferStorage
+- [x] glRenderbufferStorageMultisample
 - [x] glSamplerParameteri
 - [x] glSamplerParameterIiv
 - [x] glSamplerParameterf

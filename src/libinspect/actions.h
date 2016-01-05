@@ -29,4 +29,7 @@ void inspect_act_fb_depth(inspect_gl_state_t* state, unsigned int fb, unsigned i
 void inspect_act_fb_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level);
 void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level);
 void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level);
+void inspect_act_gen_rb(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_del_rb(inspect_gl_state_t* state, unsigned int id);
+void inspect_act_set_rb(inspect_gl_state_t* state, inspect_rb_t* data);
 #endif

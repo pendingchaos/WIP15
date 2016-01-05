@@ -885,6 +885,40 @@ static void framebuffer_attachment(inspect_command_t* cmd, replay_context_t* ctx
     }
 }
 
+static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
+    GLint buf;
+    F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &buf);
+    buf = replay_get_fake_object(ctx, ReplayObjType_GLRenderbuffer, buf);
+    
+    if (buf) {
+        GLint width, height, internal_format, sample_count, red_size;
+        GLint green_size, blue_size, alpha_size, depth_size, stencil_size;
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_INTERNAL_FORMAT, &internal_format);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_SAMPLES, &sample_count);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_RED_SIZE, &red_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_GREEN_SIZE, &green_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_BLUE_SIZE, &blue_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_ALPHA_SIZE, &alpha_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_DEPTH_SIZE, &depth_size);
+        F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_STENCIL_SIZE, &stencil_size);
+        inspect_rb_t rb;
+        rb.fake = buf;
+        rb.width = width;
+        rb.height = height;
+        rb.internal_format = internal_format;
+        rb.sample_count = sample_count;
+        rb.red_size = red_size;
+        rb.green_size = green_size;
+        rb.blue_size = blue_size;
+        rb.alpha_size = alpha_size;
+        rb.depth_size = depth_size;
+        rb.stencil_size = stencil_size;
+        inspect_act_set_rb(&cmd->state, &rb);
+    }
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
@@ -901,7 +935,7 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
         F(glGetError)();
 }
 
-void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
+static void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
     if (!real_program) {

@@ -406,6 +406,32 @@ static void apply_fb_attach(inspector_t* inspector, inspect_action_t* action) {
     }
 }
 
+static void apply_gen_rb(inspector_t* inspector, inspect_action_t* action) {
+    inspect_rb_t rb;
+    memset(&rb, 0, sizeof(rb));
+    rb.fake = action->obj;
+    append_inspect_rb_vec(inspector->renderbuffers, &rb);
+}
+
+static void apply_del_rb(inspector_t* inspector, inspect_action_t* action) {
+    inspect_rb_t* rb = inspect_find_rb_ptr(inspector, action->obj);
+    if (!rb)
+        return;
+    
+    size_t index = rb - get_inspect_rb_vec_data(inspector->renderbuffers);
+    remove_inspect_rb_vec(inspector->renderbuffers, index, 1);
+}
+
+static void apply_set_rb(inspector_t* inspector, inspect_action_t* action) {
+    inspect_rb_t* data = action->data;
+    
+    inspect_rb_t* rb = inspect_find_rb_ptr(inspector, data->fake);
+    if (!rb)
+        return;
+    
+    *rb = *data;
+}
+
 static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
@@ -671,4 +697,29 @@ void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, un
 
 void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level) {
     fb_attach(state, fb, attachment+3, tex, level);
+}
+
+void inspect_act_gen_rb(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_gen_rb;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_del_rb(inspect_gl_state_t* state, unsigned int id) {
+    inspect_action_t action;
+    action.apply_func = &apply_del_rb;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_set_rb(inspect_gl_state_t* state, inspect_rb_t* data) {
+    inspect_action_t action;
+    action.apply_func = &apply_set_rb;
+    action.free_func = &simple_free;
+    action.data = malloc(sizeof(inspect_rb_t));
+    *(inspect_rb_t*)action.data = *data;
+    append_inspect_act_vec(state->actions, &action);
 }
