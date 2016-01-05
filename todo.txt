@@ -36,6 +36,7 @@ Bugs:
             Currently disabled.
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The front buffer is not read correctly.
+    The state, textures, etc will not be updated when opening a trace in the GUI.
 
 Various TODOs in the source code.
 
@@ -48,3 +49,7 @@ Cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
 Enabling or disabling state depending on OpenGL version and extensions.
 
 glDel* should only flag the objects for deletion.
+
+Control over the output trace filename in the GUI.
+
+Control over the limits file in the GUI.

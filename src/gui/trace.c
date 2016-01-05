@@ -11,6 +11,7 @@ extern GdkPixbuf* warning_pixbuf;
 extern GdkPixbuf* error_pixbuf;
 extern trace_t* trace;
 extern inspector_t* inspector;
+extern inspection_t* inspection;
 
 void init_buffer_list(GtkTreeView* tree);
 void init_vao_list(GtkTreeView* tree);
@@ -20,9 +21,9 @@ void init_texture_list(GtkTreeView* tree);
 void init_shader_list(GtkTreeView* tree);
 void init_program_list(GtkTreeView* tree);
 
-static void init_trace_tree(GtkTreeView* tree,
-                            inspection_t* inspection) {
-    GtkTreeStore* store = gtk_tree_store_new(2, GDK_TYPE_PIXBUF, G_TYPE_STRING);
+static void init_trace_tree(GtkTreeView* tree) {
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
     
     for (size_t i = 0; i < inspection->frame_count; ++i) {
         inspect_frame_t* frame = inspection->frames + i;
@@ -87,18 +88,6 @@ static void init_trace_tree(GtkTreeView* tree,
             gtk_tree_store_set(store, &cmd_row, 0, pixbuf, 1, cmd_str, -1);
         }
     }
-    
-    gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
-    
-    GtkCellRenderer* renderer = gtk_cell_renderer_pixbuf_new();
-    GtkTreeViewColumn* column = gtk_tree_view_get_column(tree, 0);
-    gtk_tree_view_column_pack_start(column, renderer, FALSE);
-    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 0, NULL);
-    
-    renderer = gtk_cell_renderer_text_new();
-    column = gtk_tree_view_get_column(tree, 1);
-    gtk_tree_view_column_pack_start(column, renderer, FALSE);
-    gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
 }
 
 static void init_state_tree(GtkTreeView* tree,
@@ -128,7 +117,6 @@ void command_select_callback(GObject* obj, gpointer user_data) {
     if (gtk_tree_path_get_depth(path) == 2) {
         gint* indices = gtk_tree_path_get_indices(path);
         
-        inspection_t* inspection = user_data;
         assert(indices[0] < inspection->frame_count);
         inspect_frame_t* frame = inspection->frames + indices[0];
         assert(indices[1] < frame->command_count);
@@ -166,9 +154,27 @@ void command_select_callback(GObject* obj, gpointer user_data) {
 }
 
 void trace_init() {
-    GObject* trace_view = gtk_builder_get_object(builder, "trace_view");
-    init_trace_tree(GTK_TREE_VIEW(trace_view), inspector->inspection);
-    
     init_treeview(builder, "selected_command_attachments", 1);
     init_treeview(builder, "state_treeview", 2);
+    
+    //Initialize the command list view
+    GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "trace_view"));
+    GtkTreeStore* store = gtk_tree_store_new(2, GDK_TYPE_PIXBUF, G_TYPE_STRING);
+    
+    gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
+    
+    GtkCellRenderer* renderer = gtk_cell_renderer_pixbuf_new();
+    GtkTreeViewColumn* column = gtk_tree_view_get_column(tree, 0);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 0, NULL);
+    
+    renderer = gtk_cell_renderer_text_new();
+    column = gtk_tree_view_get_column(tree, 1);
+    gtk_tree_view_column_pack_start(column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
+}
+
+void trace_fill() {
+    GObject* trace_view = gtk_builder_get_object(builder, "trace_view");
+    init_trace_tree(GTK_TREE_VIEW(trace_view));
 }

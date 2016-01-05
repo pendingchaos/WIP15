@@ -17,6 +17,7 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkEntryBuffer" id="entrybuffer1"/>
   <object class="GtkTextBuffer" id="textbuffer1"/>
   <object class="GtkTextBuffer" id="textbuffer2"/>
   <object class="GtkTextBuffer" id="textbuffer3"/>
@@ -45,6 +46,24 @@
                   <object class="GtkMenu" id="menu1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="new">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">New</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="new_callback" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="open">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Open</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="open_callback" swapped="no"/>
+                      </object>
+                    </child>
                     <child>
                       <object class="GtkMenuItem" id="quit_menuitem">
                         <property name="visible">True</property>

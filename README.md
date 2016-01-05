@@ -23,8 +23,14 @@ For example:
 ./trace limits/this.limits output.trace ./test
 ```
 Limits are not fully implemented and ignored so it does not matter which file you specify.
+Traces can also be created with the GUI.
 
 ## Inspection
 ```shell
 ./inspect-gui <trace-file>
 ```
+or
+```shell
+./inspect-gui
+```
+and open it in the GUI.
