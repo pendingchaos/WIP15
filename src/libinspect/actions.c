@@ -432,6 +432,32 @@ static void apply_set_rb(inspector_t* inspector, inspect_action_t* action) {
     *rb = *data;
 }
 
+static void apply_gen_sync(inspector_t* inspector, inspect_action_t* action) {
+    inspect_sync_t sync;
+    memset(&sync, 0, sizeof(sync));
+    sync.fake = action->obj;
+    append_inspect_sync_vec(inspector->syncs, &sync);
+}
+
+static void apply_del_sync(inspector_t* inspector, inspect_action_t* action) {
+    inspect_sync_t* sync = inspect_find_sync_ptr(inspector, action->obj);
+    if (!sync)
+        return;
+    
+    size_t index = sync - get_inspect_sync_vec_data(inspector->syncs);
+    remove_inspect_sync_vec(inspector->syncs, index, 1);
+}
+
+static void apply_set_sync(inspector_t* inspector, inspect_action_t* action) {
+    inspect_sync_t* data = action->data;
+    
+    inspect_sync_t* sync = inspect_find_sync_ptr(inspector, data->fake);
+    if (!sync)
+        return;
+    
+    *sync = *data;
+}
+
 static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
@@ -721,5 +747,30 @@ void inspect_act_set_rb(inspect_gl_state_t* state, inspect_rb_t* data) {
     action.free_func = &simple_free;
     action.data = malloc(sizeof(inspect_rb_t));
     *(inspect_rb_t*)action.data = *data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_gen_sync(inspect_gl_state_t* state, uint64_t id) {
+    inspect_action_t action;
+    action.apply_func = &apply_gen_sync;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_del_sync(inspect_gl_state_t* state, uint64_t id) {
+    inspect_action_t action;
+    action.apply_func = &apply_del_sync;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_set_sync(inspect_gl_state_t* state, inspect_sync_t* data) {
+    inspect_action_t action;
+    action.apply_func = &apply_set_sync;
+    action.free_func = &simple_free;
+    action.data = malloc(sizeof(inspect_sync_t));
+    *(inspect_sync_t*)action.data = *data;
     append_inspect_act_vec(state->actions, &action);
 }

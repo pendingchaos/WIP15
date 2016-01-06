@@ -21,6 +21,7 @@ void framebuffer_init();
 void renderbuffer_init();
 void texture_init();
 void shader_init();
+void sync_init();
 void trace_init();
 void trace_fill();
 
@@ -66,8 +67,6 @@ static void open_trace(const char* filename) {
     inspect(inspection);
     
     inspector = create_inspector(inspection);
-    
-    trace_fill();
 }
 
 void quit_callback(GObject* obj, gpointer user_data) {
@@ -115,10 +114,12 @@ void new_callback(GObject* obj, gpointer user_data) {
         
         printf("%s\n", cmd);
         
-        if (system(cmd))
+        if (system(cmd)) {
             fprintf(stderr, "Unable to trace program\n");
-        else
+        } else {
             open_trace(static_format("%s.trace", program));
+            trace_fill();
+        }
         
         g_free(program);
     }
@@ -143,6 +144,7 @@ void open_callback(GObject* obj, gpointer user_data) {
         GtkFileChooser* chooser = GTK_FILE_CHOOSER(dialog);
         char* filename = gtk_file_chooser_get_filename(chooser);
         open_trace(filename);
+        trace_fill();
         g_free(filename);
     }
     
@@ -150,11 +152,16 @@ void open_callback(GObject* obj, gpointer user_data) {
 }
 
 int main(int argc, char** argv) {
-    if (argc >= 2) {
-        fprintf(stderr, "Expected one or two argument. Got %d.\n", argc-1);
+    if (argc > 2) {
+        fprintf(stderr, "Expected one or two arguments. Got %d.\n", argc-1);
         fprintf(stderr, "Usage: inspect-gui <trace file (optional)>\n");
         return EXIT_FAILURE;
     }
+    
+    if (argc == 2)
+        open_trace(argv[1]);
+    else
+        reset_trace();
     
     gtk_init(&argc, &argv);
     
@@ -194,15 +201,14 @@ int main(int argc, char** argv) {
     renderbuffer_init();
     texture_init();
     shader_init();
+    sync_init();
     trace_init();
+    
+    if (argc == 2)
+        trace_fill();
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);
-    
-    if (argc == 2)
-        open_trace(argv[1]);
-    else
-        reset_trace();
     
     gtk_main();
     

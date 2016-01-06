@@ -201,6 +201,11 @@ int main(int argc, char **argv)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb);
     
+    //Sync
+    GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(sync);
+    
     bool running = true;
     while (running) {
         SDL_Event event;

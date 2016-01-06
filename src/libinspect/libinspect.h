@@ -134,6 +134,14 @@ typedef struct {
 } inspect_rb_t;
 TYPED_VEC(inspect_rb_t, inspect_rb)
 
+typedef struct inspect_sync_t {
+    uint64_t fake;
+    uint type;
+    uint condition;
+    uint flags;
+} inspect_sync_t;
+TYPED_VEC(inspect_sync_t, inspect_sync)
+
 struct inspection_t;
 typedef struct {
     struct inspection_t* inspection;
@@ -144,6 +152,7 @@ typedef struct {
     inspect_vao_vec_t vaos;
     inspect_fb_vec_t framebuffers;
     inspect_rb_vec_t renderbuffers;
+    inspect_sync_vec_t syncs;
     inspect_image_t* back_buf;
     inspect_image_t* front_buf;
     inspect_image_t* depth_buf;
@@ -155,7 +164,7 @@ typedef struct inspect_action_t {
     void (*free_func)(struct inspect_action_t*);
     union {
         void* data;
-        unsigned int obj;
+        uint64_t obj;
     };
 } inspect_action_t;
 TYPED_VEC(inspect_action_t, inspect_act)
@@ -208,6 +217,7 @@ int inspect_find_prog(inspector_t* inspector, uint prog);
 int inspect_find_vao(inspector_t* inspector, uint vao);
 int inspect_find_fb(inspector_t* inspector, uint fb);
 int inspect_find_rb(inspector_t* inspector, uint rb);
+int inspect_find_sync(inspector_t* inspector, uint64_t sync);
 
 //NULL if it could not be found
 inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, uint fake);
@@ -217,4 +227,5 @@ inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, uint fake);
 inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, uint fake);
 inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, uint fake);
 inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, uint fake);
+inspect_sync_t* inspect_find_sync_ptr(inspector_t* inspector, uint64_t fake);
 #endif

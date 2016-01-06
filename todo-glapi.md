@@ -23,7 +23,7 @@
 - [ ] glClearBufferiv
 - [ ] glClearBufferfv
 - [ ] glClearBufferfi
-- [ ] glClientWaitSync
+- [x] glClientWaitSync
 - [x] glCompileShader
 - [x] glCompressedTexImage1D
 - [x] glCompressedTexImage2D
@@ -40,7 +40,7 @@
 - [x] glDeleteRenderbuffers
 - [x] glDeleteSamplers
 - [x] glDeleteShader
-- [ ] glDeleteSync
+- [x] glDeleteSync
 - [x] glDeleteTextures
 - [x] glDeleteVertexArrays
 - [x] glDetachShader
@@ -58,6 +58,7 @@
 - [ ] glEndConditionalRender
 - [ ] glEndQuery
 - [ ] glEndTransformFeedback
+- [x] glFenceSync
 - [x] glFramebufferRenderbuffer
 - [x] glFramebufferTexture
 - [ ] glFramebufferTexture1D
@@ -230,7 +231,7 @@
 - [x] glVertexAttrib2s
 - [ ] glVertexAttribIPointer
 - [ ] glVertexAttribPointer
-- [ ] glWaitSync
+- [x] glWaitSync
 
 # OpenGL 4.0 support progress
 - [ ] glBeginQueryIndexed

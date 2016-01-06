@@ -15279,10 +15279,12 @@ void replay_glDeleteVertexArrays(replay_context_t* ctx, trace_command_t* command
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
-        if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i])))
+        if (!(arrays[i] = replay_get_real_object(ctx, ReplayObjType_GLVAO, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
-        else
+        } else {
             inspect_act_del_vao(&inspect_command->state, fake[i]);
+            replay_destroy_object(ctx, ReplayObjType_GLVAO, fake[i]);
+        }
     
     real(n, arrays);
 
@@ -15828,8 +15830,26 @@ void replay_glFenceSync(replay_context_t* ctx, trace_command_t* command, inspect
     replay_begin_cmd(ctx, "glFenceSync", inspect_command);
     glFenceSync_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glFenceSync;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLbitfield)gl_param_GLbitfield(command, 1));
-replay_end_cmd(ctx, "glFenceSync", inspect_command);
+    GLenum condition = gl_param_GLenum(command, 0);
+    GLbitfield flags = gl_param_GLbitfield(command, 1);
+    GLsync real_sync = real(condition, flags);
+    
+    uint64_t fake = *trace_get_ptr(&command->ret);
+    
+    replay_create_object(ctx, ReplayObjType_GLSync, (uint64_t)real_sync, fake);
+    inspect_act_gen_sync(&inspect_command->state, fake);
+    
+    inspect_sync_t sync;
+    sync.fake = fake;
+    sync.type = GL_SYNC_FENCE;
+    sync.condition = condition;
+    sync.flags = flags;
+    
+    inspect_act_set_sync(&inspect_command->state, &sync);
+
+#undef FUNC
+#define FUNC "glFenceSync"
+RETURN;
 }
 
 void replay_glGetVertexAttribIivEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -17021,8 +17041,23 @@ void replay_glDeleteSync(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glDeleteSync", inspect_command);
     glDeleteSync_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glDeleteSync;
     do {(void)sizeof((real));} while (0);
-    real((GLsync)gl_param_GLsync(command, 0));
-replay_end_cmd(ctx, "glDeleteSync", inspect_command);
+    uint64_t fake = gl_param_GLsync(command, 0);
+    uint64_t real_sync = replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
+    if (!real_sync && fake) {
+        inspect_add_error(inspect_command, "Invalid sync object.");
+        RETURN;
+    }
+    
+    real((GLsync)real_sync);
+    
+    if (fake) {
+        replay_destroy_object(ctx, ReplayObjType_GLSync, fake);
+        inspect_act_del_sync(&inspect_command->state, fake);
+    }
+
+#undef FUNC
+#define FUNC "glDeleteSync"
+RETURN;
 }
 
 void replay_glGetProgramParameterfvNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -17302,10 +17337,12 @@ void replay_glDeleteBuffers(replay_context_t* ctx, trace_command_t* command, ins
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i) {
-        if (!(buffers[i] = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake[i])))
+        if (!(buffers[i] = replay_get_real_object(ctx, ReplayObjType_GLBuffer, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid buffer being deleted.");
-        else
+        } else {
             inspect_act_del_buf(&inspect_command->state, fake[i]);
+            replay_destroy_object(ctx, ReplayObjType_GLBuffer, fake[i]);
+        }
     }
     
     real(n, buffers);
@@ -18266,10 +18303,12 @@ void replay_glDeleteTextures(replay_context_t* ctx, trace_command_t* command, in
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
-        if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i])))
+        if (!(textures[i] = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid texture being deleted.");
-        else
+        } else {
             inspect_act_del_tex(&inspect_command->state, fake[i]);
+            replay_destroy_object(ctx, ReplayObjType_GLTexture, fake[i]);
+        }
     
     real(n, textures);
 
@@ -20781,8 +20820,18 @@ void replay_glClientWaitSync(replay_context_t* ctx, trace_command_t* command, in
     replay_begin_cmd(ctx, "glClientWaitSync", inspect_command);
     glClientWaitSync_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glClientWaitSync;
     do {(void)sizeof((real));} while (0);
-    real((GLsync)gl_param_GLsync(command, 0), (GLbitfield)gl_param_GLbitfield(command, 1), (GLuint64)gl_param_GLuint64(command, 2));
-replay_end_cmd(ctx, "glClientWaitSync", inspect_command);
+    uint64_t fake = gl_param_GLsync(command, 0);
+    uint64_t real_sync = replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
+    if (!real_sync) {
+        inspect_add_error(inspect_command, "Invalid sync object.");
+        RETURN;
+    }
+    
+    real((GLsync)real_sync, gl_param_GLbitfield(command, 1), gl_param_GLuint64(command, 2));
+
+#undef FUNC
+#define FUNC "glClientWaitSync"
+RETURN;
 }
 
 void replay_glExtGetTexSubImageQCOM(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -23272,8 +23321,18 @@ void replay_glWaitSync(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glWaitSync", inspect_command);
     glWaitSync_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glWaitSync;
     do {(void)sizeof((real));} while (0);
-    real((GLsync)gl_param_GLsync(command, 0), (GLbitfield)gl_param_GLbitfield(command, 1), (GLuint64)gl_param_GLuint64(command, 2));
-replay_end_cmd(ctx, "glWaitSync", inspect_command);
+    uint64_t fake = gl_param_GLsync(command, 0);
+    uint64_t real_sync = replay_get_real_object(ctx, ReplayObjType_GLSync, fake);
+    if (!real_sync) {
+        inspect_add_error(inspect_command, "Invalid sync object.");
+        RETURN;
+    }
+    
+    real((GLsync)real_sync, gl_param_GLbitfield(command, 1), gl_param_GLuint64(command, 2));
+
+#undef FUNC
+#define FUNC "glWaitSync"
+RETURN;
 }
 
 void replay_glFramebufferTextureMultisampleMultiviewOVR(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -23733,10 +23792,12 @@ void replay_glDeleteFramebuffers(replay_context_t* ctx, trace_command_t* command
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
-        if (!(fbs[i] = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake[i])))
+        if (!(fbs[i] = replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid framebuffer being deleted.");
-        else
+        } else {
             inspect_act_del_fb(&inspect_command->state, fake[i]);
+            replay_destroy_object(ctx, ReplayObjType_GLFramebuffer, fake[i]);
+        }
     
     real(n, fbs);
 
@@ -34903,6 +34964,8 @@ void replay_glDeleteSamplers(replay_context_t* ctx, trace_command_t* command, in
     for (size_t i = 0; i < n; ++i)
         if (!(samplers[i] = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake[i])))
             inspect_add_error(inspect_command, "Invalid sampler being deleted.");
+        else
+            replay_destroy_object(ctx, ReplayObjType_GLSampler, fake[i]);
     
     real(n, samplers);
 
@@ -35581,10 +35644,12 @@ void replay_glDeleteRenderbuffers(replay_context_t* ctx, trace_command_t* comman
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
-        if (!(rbs[i] = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake[i])))
+        if (!(rbs[i] = replay_get_real_object(ctx, ReplayObjType_GLRenderbuffer, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid renderbuffer being deleted.");
-        else
+        } else {
             inspect_act_del_rb(&inspect_command->state, fake[i]);
+            replay_destroy_object(ctx, ReplayObjType_GLRenderbuffer, fake[i]);
+        }
     
     real(n, rbs);
 
@@ -36583,6 +36648,8 @@ void replay_glDeleteQueries(replay_context_t* ctx, trace_command_t* command, ins
     for (size_t i = 0; i < n; ++i)
         if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i])))
             inspect_add_error(inspect_command, "Invalid query being deleted.");
+        else
+            replay_destroy_object(ctx, ReplayObjType_GLQuery, fake[i]);
     
     real(n, queries);
 

@@ -14,7 +14,6 @@ Debugging:
         queries
             timer
             occlusion
-        sync objects
         program pipelines
     Shader debugger
         Can use SSBOs
@@ -37,6 +36,7 @@ Bugs:
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The front buffer is not read correctly.
     The state, textures, etc will not be updated when opening a trace in the GUI.
+    Opening a trace using th GUI though the command line crashes the program. Removing "inspect(inspection);" fixes it.
 
 Various TODOs in the source code.
 
