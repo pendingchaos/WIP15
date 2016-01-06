@@ -37,6 +37,8 @@ output.write("""#include <X11/Xlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "shared/uint.h"
+
 #define _STR(...) #__VA_ARGS__
 #define STR(...) _STR(__VA_ARGS__)
 #define F(name) ((!gl_##name)?(gl_##name=(name##_t)gl_glXGetProcAddress((const GLubyte*)STR(name))):gl_##name)

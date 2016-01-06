@@ -162,7 +162,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
         for (inspect_fb_attach_t* att = atts->data; !vec_end(atts, att); att++) {
             char name[256];
             memset(name, 0, 256);
-            snprintf(name, 256, "GL_COLOR_ATTACHMENT%u", (unsigned int)(att-(inspect_fb_attach_t*)atts->data));
+            snprintf(name, 256, "GL_COLOR_ATTACHMENT%u", (uint)(att-(inspect_fb_attach_t*)atts->data));
             
             add_fb_attachment(store, name, att);
         }

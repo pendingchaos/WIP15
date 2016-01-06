@@ -81,8 +81,8 @@ static void apply_del_prog(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int obj;
-    unsigned int type;
+    uint obj;
+    uint type;
 } new_shdr_t;
 
 static void apply_new_shdr(inspector_t* inspector, inspect_action_t* action) {
@@ -96,8 +96,8 @@ static void apply_new_shdr(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int prog;
-    unsigned int shdr;
+    uint prog;
+    uint shdr;
 } prog_tach_t;
 
 static void apply_attach_shdr(inspector_t* inspector, inspect_action_t* action) {
@@ -107,12 +107,12 @@ static void apply_attach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = prog->shaders->size/sizeof(unsigned int);
+    size_t count = prog->shaders->size/sizeof(uint);
     for (size_t i = 0; i < count; i++)
-        if (((unsigned int *)prog->shaders->data)[i] == data->shdr)
+        if (((uint *)prog->shaders->data)[i] == data->shdr)
             goto end;
     
-    append_vec(prog->shaders, sizeof(unsigned int), &data->shdr);
+    append_vec(prog->shaders, sizeof(uint), &data->shdr);
     
     end:;
 }
@@ -124,18 +124,18 @@ static void apply_detach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = prog->shaders->size/sizeof(unsigned int);
+    size_t count = prog->shaders->size/sizeof(uint);
     for (size_t i = 0; i < count; i++)
-        if (((unsigned int *)prog->shaders->data)[i] == data->shdr) {
-            remove_vec(prog->shaders, i*sizeof(unsigned int), sizeof(unsigned int));
+        if (((uint *)prog->shaders->data)[i] == data->shdr) {
+            remove_vec(prog->shaders, i*sizeof(uint), sizeof(uint));
             return;
         }
 }
 
 typedef struct {
-    unsigned int buf;
+    uint buf;
     size_t size;
-    unsigned int usage;
+    uint usage;
 } buf_data_t;
 
 static void apply_set_buf_data(inspector_t* inspector, inspect_action_t* action) {
@@ -154,7 +154,7 @@ static void apply_set_buf_data(inspector_t* inspector, inspect_action_t* action)
 }
 
 typedef struct {
-    unsigned int buf;
+    uint buf;
     size_t offset;
     size_t size;
 } buf_sub_data_t;
@@ -204,7 +204,7 @@ static void apply_tex_params(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int obj;
+    uint obj;
     size_t mipmap;
     size_t data_size;
 } tex_data_t;
@@ -222,7 +222,7 @@ static void apply_tex_data(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int obj;
+    uint obj;
     size_t count;
 } shdr_source_t;
 
@@ -264,7 +264,7 @@ static void free_shdr_source(inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int obj;
+    uint obj;
 } info_log_t;
 
 static void apply_set_shdr_info_log(inspector_t* inspector, inspect_action_t* action) {
@@ -319,7 +319,7 @@ static void apply_del_vao(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int vao;
+    uint vao;
     size_t count;
 } set_vao_t;
 
@@ -357,10 +357,10 @@ static void apply_del_fb(inspector_t* inspector, inspect_action_t* action) {
 }
 
 typedef struct {
-    unsigned int fb;
-    unsigned int attach;
-    unsigned int tex;
-    unsigned int level;
+    uint fb;
+    uint attach;
+    uint tex;
+    uint level;
 } fb_attach_t;
 
 static void apply_fb_attach(inspector_t* inspector, inspect_action_t* action) {
@@ -436,7 +436,7 @@ static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
 
-void inspect_act_gen_tex(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_gen_tex(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_gen_tex;
     action.free_func = NULL;
@@ -444,7 +444,7 @@ void inspect_act_gen_tex(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_tex(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_tex(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_tex;
     action.free_func = NULL;
@@ -452,7 +452,7 @@ void inspect_act_del_tex(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_tex_params(inspect_gl_state_t* state, unsigned int id, inspect_gl_tex_params_t* params) {
+void inspect_act_tex_params(inspect_gl_state_t* state, uint id, inspect_gl_tex_params_t* params) {
     inspect_gl_tex_params_t* data = malloc(sizeof(inspect_gl_tex_params_t));
     *data = *params;
     
@@ -463,7 +463,7 @@ void inspect_act_tex_params(inspect_gl_state_t* state, unsigned int id, inspect_
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_tex_data(inspect_gl_state_t* state, unsigned int id, size_t mipmap, size_t size, const void* data) {
+void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t size, const void* data) {
     tex_data_t* act_data = malloc(sizeof(tex_data_t) + size);
     act_data->obj = id;
     act_data->mipmap = mipmap;
@@ -477,7 +477,7 @@ void inspect_act_tex_data(inspect_gl_state_t* state, unsigned int id, size_t mip
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_gen_buf(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_gen_buf(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_gen_buf;
     action.free_func = NULL;
@@ -485,7 +485,7 @@ void inspect_act_gen_buf(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_buf(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_buf(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_buf;
     action.free_func = NULL;
@@ -493,7 +493,7 @@ void inspect_act_del_buf(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_buf_data(inspect_gl_state_t* state, unsigned int id, size_t size, const void* data, unsigned int usage) {
+void inspect_act_buf_data(inspect_gl_state_t* state, uint id, size_t size, const void* data, uint usage) {
     buf_data_t* act_data = malloc(sizeof(buf_data_t) + size);
     act_data->buf = id;
     act_data->size = size;
@@ -507,7 +507,7 @@ void inspect_act_buf_data(inspect_gl_state_t* state, unsigned int id, size_t siz
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_buf_sub_data(inspect_gl_state_t* state, unsigned int id, size_t offset, size_t size, const void* data) {
+void inspect_act_buf_sub_data(inspect_gl_state_t* state, uint id, size_t offset, size_t size, const void* data) {
     buf_sub_data_t* act_data = malloc(sizeof(buf_sub_data_t) + size);
     act_data->buf = id;
     act_data->offset = offset;
@@ -521,7 +521,7 @@ void inspect_act_buf_sub_data(inspect_gl_state_t* state, unsigned int id, size_t
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_new_shdr(inspect_gl_state_t* state, unsigned int id, unsigned int type) {
+void inspect_act_new_shdr(inspect_gl_state_t* state, uint id, uint type) {
     new_shdr_t* data = malloc(sizeof(new_shdr_t));
     data->obj = id;
     data->type = type;
@@ -533,7 +533,7 @@ void inspect_act_new_shdr(inspect_gl_state_t* state, unsigned int id, unsigned i
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_shdr(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_shdr(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_shdr;
     action.free_func = NULL;
@@ -541,7 +541,7 @@ void inspect_act_del_shdr(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_shdr_source(inspect_gl_state_t* state, unsigned int id, size_t count, const char *const* sources) {
+void inspect_act_shdr_source(inspect_gl_state_t* state, uint id, size_t count, const char *const* sources) {
     shdr_source_t* data = malloc(sizeof(shdr_source_t) + count*sizeof(char*));
     data->obj = id;
     data->count = count;
@@ -560,7 +560,7 @@ void inspect_act_shdr_source(inspect_gl_state_t* state, unsigned int id, size_t 
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_new_prog(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_new_prog(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_new_prog;
     action.free_func = NULL;
@@ -568,7 +568,7 @@ void inspect_act_new_prog(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_prog(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_prog(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_prog;
     action.free_func = NULL;
@@ -576,7 +576,7 @@ void inspect_act_del_prog(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_attach_shdr(inspect_gl_state_t* state, unsigned int prog, unsigned int shdr) {
+void inspect_act_attach_shdr(inspect_gl_state_t* state, uint prog, uint shdr) {
     prog_tach_t* data = malloc(sizeof(prog_tach_t));
     data->prog = prog;
     data->shdr = shdr;
@@ -588,7 +588,7 @@ void inspect_act_attach_shdr(inspect_gl_state_t* state, unsigned int prog, unsig
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_detach_shdr(inspect_gl_state_t* state, unsigned int prog, unsigned int shdr) {
+void inspect_act_detach_shdr(inspect_gl_state_t* state, uint prog, uint shdr) {
     prog_tach_t* data = malloc(sizeof(prog_tach_t));
     data->prog = prog;
     data->shdr = shdr;
@@ -600,7 +600,7 @@ void inspect_act_detach_shdr(inspect_gl_state_t* state, unsigned int prog, unsig
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_set_shdr_info_log(inspect_gl_state_t* state, unsigned int id, const char* info_log) {
+void inspect_act_set_shdr_info_log(inspect_gl_state_t* state, uint id, const char* info_log) {
     info_log_t* data = malloc(sizeof(info_log_t) + strlen(info_log)+1);
     data->obj = id;
     memcpy(data+1, info_log, strlen(info_log)+1);
@@ -612,7 +612,7 @@ void inspect_act_set_shdr_info_log(inspect_gl_state_t* state, unsigned int id, c
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_set_prog_info_log(inspect_gl_state_t* state, unsigned int id, const char* info_log) {
+void inspect_act_set_prog_info_log(inspect_gl_state_t* state, uint id, const char* info_log) {
     info_log_t* data = malloc(sizeof(info_log_t) + strlen(info_log)+1);
     data->obj = id;
     memcpy(data+1, info_log, strlen(info_log)+1);
@@ -624,7 +624,7 @@ void inspect_act_set_prog_info_log(inspect_gl_state_t* state, unsigned int id, c
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_gen_vao(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_gen_vao(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_gen_vao;
     action.free_func = NULL;
@@ -632,7 +632,7 @@ void inspect_act_gen_vao(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_vao(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_vao(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_vao;
     action.free_func = NULL;
@@ -640,7 +640,7 @@ void inspect_act_del_vao(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t count, inspect_vertex_attrib_t* attribs) {
+void inspect_act_set_vao(inspect_gl_state_t* state, uint id, size_t count, inspect_vertex_attrib_t* attribs) {
     set_vao_t* act_data = malloc(sizeof(set_vao_t) + count*sizeof(inspect_vertex_attrib_t));
     act_data->vao = id;
     act_data->count = count;
@@ -653,7 +653,7 @@ void inspect_act_set_vao(inspect_gl_state_t* state, unsigned int id, size_t coun
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_gen_fb(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_gen_fb(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_gen_fb;
     action.free_func = NULL;
@@ -661,7 +661,7 @@ void inspect_act_gen_fb(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_fb(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_fb(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_fb;
     action.free_func = NULL;
@@ -669,7 +669,7 @@ void inspect_act_del_fb(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-static void fb_attach(inspect_gl_state_t* state, unsigned int fb, unsigned int attach, unsigned int tex, unsigned int level) {
+static void fb_attach(inspect_gl_state_t* state, uint fb, uint attach, uint tex, uint level) {
     fb_attach_t* act_data = malloc(sizeof(fb_attach_t));
     act_data->fb = fb;
     act_data->attach = attach;
@@ -683,23 +683,23 @@ static void fb_attach(inspect_gl_state_t* state, unsigned int fb, unsigned int a
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_fb_depth(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+void inspect_act_fb_depth(inspect_gl_state_t* state, uint fb, uint tex, uint level) {
     fb_attach(state, fb, 0, tex, level);
 }
 
-void inspect_act_fb_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+void inspect_act_fb_stencil(inspect_gl_state_t* state, uint fb, uint tex, uint level) {
     fb_attach(state, fb, 1, tex, level);
 }
 
-void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, unsigned int fb, unsigned int tex, unsigned int level) {
+void inspect_act_fb_depth_stencil(inspect_gl_state_t* state, uint fb, uint tex, uint level) {
     fb_attach(state, fb, 2, tex, level);
 }
 
-void inspect_act_fb_color(inspect_gl_state_t* state, unsigned int fb, unsigned int attachment, unsigned int tex, unsigned int level) {
+void inspect_act_fb_color(inspect_gl_state_t* state, uint fb, uint attachment, uint tex, uint level) {
     fb_attach(state, fb, attachment+3, tex, level);
 }
 
-void inspect_act_gen_rb(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_gen_rb(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_gen_rb;
     action.free_func = NULL;
@@ -707,7 +707,7 @@ void inspect_act_gen_rb(inspect_gl_state_t* state, unsigned int id) {
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_del_rb(inspect_gl_state_t* state, unsigned int id) {
+void inspect_act_del_rb(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_rb;
     action.free_func = NULL;

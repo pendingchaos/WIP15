@@ -1,4 +1,5 @@
 #include "libinspect/replay.h"
+#include "shared/uint.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -13,14 +14,14 @@ void init_replay_gl(replay_context_t* ctx);
 void deinit_replay_gl(replay_context_t* ctx);
 
 typedef struct {
-    unsigned int real;
-    unsigned int fake;
+    uint real;
+    uint fake;
 } uniform_t;
 TYPED_VEC(uniform_t, uni)
 
 typedef struct {
-    unsigned int real;
-    unsigned int fake;
+    uint real;
+    uint fake;
 } attrib_t;
 TYPED_VEC(attrib_t, attrib)
 
@@ -30,8 +31,8 @@ typedef struct {
 } program_data_t;
 
 typedef struct {
-    unsigned int attachment;
-    unsigned int tex;
+    uint attachment;
+    uint tex;
     size_t level;
 } fb_attach_t;
 TYPED_VEC(fb_attach_t, attach)
@@ -39,9 +40,9 @@ TYPED_VEC(fb_attach_t, attach)
 typedef struct {
     attach_vec_t attachments;
     size_t depth_level;
-    unsigned int depth_texture;
+    uint depth_texture;
     size_t stencil_level;
-    unsigned int stencil_texture;
+    uint stencil_texture;
     size_t depth_stencil_level;
     unsigned int depth_stencil_texture;
 } fb_data_t;
@@ -239,7 +240,7 @@ void replay(replay_context_t* ctx) {
         SDL_Quit();
 }
 
-int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc) {
+int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, uint fake_loc) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
@@ -256,7 +257,7 @@ int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsi
     return -1;
 }
 
-void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
+void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
@@ -270,7 +271,7 @@ void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int 
         }
 }
 
-int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_idx) {
+int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, uint fake_idx) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
@@ -287,7 +288,7 @@ int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned
     return -1;
 }
 
-void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real) {
+void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
@@ -416,7 +417,7 @@ size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t in
     return 0;
 }
 
-unsigned int replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
+uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
     fb_data_t* data = find_fb(ctx, fake_fb);
     if (data)
         return get_attach_vec(data->attachments, index)->attachment;

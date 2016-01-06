@@ -13,7 +13,7 @@ const glapi_group_t* find_group(const char* name) {
     return NULL;
 }
 
-const char* get_enum_str(const char* group_name, unsigned int val) {
+const char* get_enum_str(const char* group_name, uint val) {
     if (!group_name) {
         for (size_t i = 0; i < glapi.group_count; i++) {
             const glapi_group_t* group = glapi.groups[i];

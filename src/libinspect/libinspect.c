@@ -311,7 +311,7 @@ void free_inspector(inspector_t* inspector) {
     free(inspector);
 }
 
-inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, uint fake) {
     int tex_index = inspect_find_tex(inspector, fake);
     if (tex_index == -1) {
         return NULL;
@@ -320,7 +320,7 @@ inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fak
     return get_inspect_tex_vec_data(inspector->textures) + tex_index;
 }
 
-inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, uint fake) {
     int buf_index = inspect_find_buf(inspector, fake);
     if (buf_index == -1) {
         return NULL;
@@ -329,7 +329,7 @@ inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake
     return get_inspect_buf_vec_data(inspector->buffers) + buf_index;
 }
 
-inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, uint fake) {
     int shdr_index = inspect_find_shdr(inspector, fake);
     if (shdr_index == -1) {
         return NULL;
@@ -338,7 +338,7 @@ inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fak
     return get_inspect_shdr_vec_data(inspector->shaders) + shdr_index;
 }
 
-inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, uint fake) {
     int prog_index = inspect_find_prog(inspector, fake);
     if (prog_index == -1) {
         return NULL;
@@ -347,7 +347,7 @@ inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fa
     return get_inspect_prog_vec_data(inspector->programs) + prog_index;
 }
 
-inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, uint fake) {
     int vao_index = inspect_find_vao(inspector, fake);
     if (vao_index == -1) {
         return NULL;
@@ -356,7 +356,7 @@ inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake) {
     return get_inspect_vao_vec_data(inspector->vaos) + vao_index;
 }
 
-inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake) {
+inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, uint fake) {
     int fb_index = inspect_find_fb(inspector, fake);
     if (fb_index == -1) {
         return NULL;
@@ -430,7 +430,7 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     }
 }
 
-int inspect_find_tex(inspector_t* inspector, unsigned int tex) {
+int inspect_find_tex(inspector_t* inspector, uint tex) {
     inspect_tex_vec_t textures = inspector->textures;
     size_t count = get_inspect_tex_vec_count(textures);
     for (size_t i = 0; i < count; ++i)
@@ -440,7 +440,7 @@ int inspect_find_tex(inspector_t* inspector, unsigned int tex) {
     return -1;
 }
 
-int inspect_find_buf(inspector_t* inspector, unsigned int buf) {
+int inspect_find_buf(inspector_t* inspector, uint buf) {
     inspect_buf_vec_t buffers = inspector->buffers;
     size_t count = get_inspect_buf_vec_count(buffers);
     for (size_t i = 0; i < count; ++i)
@@ -450,7 +450,7 @@ int inspect_find_buf(inspector_t* inspector, unsigned int buf) {
     return -1;
 }
 
-int inspect_find_shdr(inspector_t* inspector, unsigned int shdr) {
+int inspect_find_shdr(inspector_t* inspector, uint shdr) {
     inspect_shdr_vec_t shaders = inspector->shaders;
     size_t count = get_inspect_shdr_vec_count(shaders);
     for (size_t i = 0; i < count; ++i)
@@ -460,7 +460,7 @@ int inspect_find_shdr(inspector_t* inspector, unsigned int shdr) {
     return -1;
 }
 
-int inspect_find_prog(inspector_t* inspector, unsigned int prog) {
+int inspect_find_prog(inspector_t* inspector, uint prog) {
     inspect_prog_vec_t programs = inspector->programs;
     size_t count = get_inspect_prog_vec_count(programs);
     for (size_t i = 0; i < count; ++i)
@@ -470,7 +470,7 @@ int inspect_find_prog(inspector_t* inspector, unsigned int prog) {
     return -1;
 }
 
-int inspect_find_vao(inspector_t* inspector, unsigned int vao) {
+int inspect_find_vao(inspector_t* inspector, uint vao) {
     inspect_vao_vec_t vaos = inspector->vaos;
     size_t count = get_inspect_vao_vec_count(vaos);
     for (size_t i = 0; i < count; ++i)
@@ -480,7 +480,7 @@ int inspect_find_vao(inspector_t* inspector, unsigned int vao) {
     return -1;
 }
 
-int inspect_find_fb(inspector_t* inspector, unsigned int fb) {
+int inspect_find_fb(inspector_t* inspector, uint fb) {
     inspect_fb_vec_t fbs = inspector->framebuffers;
     size_t count = get_inspect_fb_vec_count(fbs);
     for (size_t i = 0; i < count; ++i)
@@ -490,7 +490,7 @@ int inspect_find_fb(inspector_t* inspector, unsigned int fb) {
     return -1;
 }
 
-int inspect_find_rb(inspector_t* inspector, unsigned int rb) {
+int inspect_find_rb(inspector_t* inspector, uint rb) {
     inspect_rb_vec_t rbs = inspector->renderbuffers;
     size_t count = get_inspect_rb_vec_count(rbs);
     for (size_t i = 0; i < count; ++i)

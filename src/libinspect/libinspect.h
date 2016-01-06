@@ -1,6 +1,7 @@
 #ifndef LIB_INSPECT_H
 #define LIB_INSPECT_H
 #include "libtrace/libtrace.h"
+#include "shared/uint.h"
 #include <stdbool.h>
 
 typedef enum {
@@ -50,7 +51,7 @@ typedef struct {
 } inspect_gl_tex_params_t;
 
 typedef struct {
-    unsigned int fake;
+    uint fake;
     inspect_gl_tex_params_t params;
     size_t mipmap_count;
     void** mipmaps;
@@ -58,23 +59,23 @@ typedef struct {
 TYPED_VEC(inspect_texture_t, inspect_tex)
 
 typedef struct {
-    unsigned int fake;
-    unsigned int usage;
+    uint fake;
+    uint usage;
     size_t size;
     void* data;
 } inspect_buffer_t;
 TYPED_VEC(inspect_buffer_t, inspect_buf)
 
 typedef struct {
-    unsigned int fake;
-    unsigned int type;
+    uint fake;
+    uint type;
     char* source;
     char* info_log;
 } inspect_shader_t;
 TYPED_VEC(inspect_shader_t, inspect_shdr)
 
 typedef struct {
-    unsigned int fake;
+    uint fake;
     vec_t shaders; //vec_t of unsigned int
     char* info_log;
 } inspect_program_t;
@@ -85,12 +86,12 @@ typedef struct {
     bool enabled;
     bool normalized;
     bool integer;
-    unsigned int size;
-    unsigned int stride;
-    unsigned int offset;
-    unsigned int type;
-    unsigned int divisor;
-    unsigned int buffer;
+    uint size;
+    uint stride;
+    uint offset;
+    uint type;
+    uint divisor;
+    uint buffer;
     double value[4];
 } inspect_vertex_attrib_t;
 
@@ -200,20 +201,20 @@ void free_inspector(inspector_t* inspector);
 void seek_inspector(inspector_t* inspector, size_t frame, size_t cmd);
 
 //Negative if it could not be found
-int inspect_find_tex(inspector_t* inspector, unsigned int tex);
-int inspect_find_buf(inspector_t* inspector, unsigned int buf);
-int inspect_find_shdr(inspector_t* inspector, unsigned int shdr);
-int inspect_find_prog(inspector_t* inspector, unsigned int prog);
-int inspect_find_vao(inspector_t* inspector, unsigned int vao);
-int inspect_find_fb(inspector_t* inspector, unsigned int fb);
-int inspect_find_rb(inspector_t* inspector, unsigned int rb);
+int inspect_find_tex(inspector_t* inspector, uint tex);
+int inspect_find_buf(inspector_t* inspector, uint buf);
+int inspect_find_shdr(inspector_t* inspector, uint shdr);
+int inspect_find_prog(inspector_t* inspector, uint prog);
+int inspect_find_vao(inspector_t* inspector, uint vao);
+int inspect_find_fb(inspector_t* inspector, uint fb);
+int inspect_find_rb(inspector_t* inspector, uint rb);
 
 //NULL if it could not be found
-inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, unsigned int fake);
-inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, unsigned int fake);
-inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, unsigned int fake);
-inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, unsigned int fake);
-inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, unsigned int fake);
-inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, unsigned int fake);
-inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, unsigned int fake);
+inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, uint fake);
+inspect_buffer_t* inspect_find_buf_ptr(inspector_t* inspector, uint fake);
+inspect_shader_t* inspect_find_shdr_ptr(inspector_t* inspector, uint fake);
+inspect_program_t* inspect_find_prog_ptr(inspector_t* inspector, uint fake);
+inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, uint fake);
+inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, uint fake);
+inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, uint fake);
 #endif

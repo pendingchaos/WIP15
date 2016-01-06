@@ -1,5 +1,6 @@
 #include "libinspect/libinspect.h"
 #include "utils.h"
+#include "shared/uint.h"
 
 #include <GL/gl.h>
 #include <gtk/gtk.h>
@@ -123,11 +124,11 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
     
-    size_t count = prog->shaders->size / sizeof(unsigned int);
+    size_t count = prog->shaders->size / sizeof(uint);
     for (size_t i = 0; i < count; i++) {
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", ((unsigned int*)prog->shaders->data)[i]);
+        snprintf(str, 64, "%u", ((uint*)prog->shaders->data)[i]);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

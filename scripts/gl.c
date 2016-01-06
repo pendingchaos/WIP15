@@ -426,7 +426,7 @@ static void gl_param_GLenum(GLenum value, int32_t group) {
     gl_write_int32(group);
 }
 
-static void gl_param_unsigned_int(unsigned int value, int32_t group) {
+static void gl_param_unsigned_int(uint value, int32_t group) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
@@ -772,7 +772,7 @@ static void gl_result_int64_t(GLuint value) {
     gl_write_str(NULL);
 }
 
-static void gl_result_unsigned_int(unsigned int value) {
+static void gl_result_unsigned_int(uint value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
@@ -1669,7 +1669,7 @@ static void update_drawable_size() {
     
     int w, h;
     if (dpy && drawable!=None) {
-        unsigned int w_, h_;
+        uint w_, h_;
         F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
         F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
         

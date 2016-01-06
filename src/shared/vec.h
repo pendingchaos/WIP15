@@ -1,5 +1,5 @@
-#ifndef VEC_H
-#define VEC_H
+#ifndef SHARED_VEC_H
+#define SHARED_VEC_H
 
 #include <stddef.h>
 #include <stdbool.h>

@@ -2,6 +2,7 @@
 #define REPLAY_H
 #include "libtrace/libtrace.h"
 #include "libinspect/libinspect.h"
+#include "shared/uint.h"
 
 #include <stdint.h>
 
@@ -54,17 +55,17 @@ void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uin
 void replay(replay_context_t* context);
 
 //Negative on failure.
-int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_loc);
-void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real);
+int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, uint fake_loc);
+void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real);
 //Negative on failure.
-int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake_idx);
-void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, unsigned int fake, unsigned int real);
+int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, uint fake_idx);
+void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real);
 
 //TODO: Levels for non-color textures
 void replay_set_depth_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level);
 void replay_set_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level);
 void replay_set_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level);
-void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, unsigned int attachment, uint64_t fake_tex, size_t level);
+void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, uint attachment, uint64_t fake_tex, size_t level);
 uint64_t replay_get_depth_tex(replay_context_t* ctx, uint64_t fake_fb);
 size_t replay_get_depth_level(replay_context_t* ctx, uint64_t fake_fb);
 uint64_t replay_get_stencil_tex(replay_context_t* ctx, uint64_t fake_fb);
@@ -74,5 +75,5 @@ size_t replay_get_depth_stencil_level(replay_context_t* ctx, uint64_t fake_fb);
 size_t replay_get_color_tex_count(replay_context_t* ctx, uint64_t fake_fb);
 uint64_t replay_get_color_tex(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t index);
-unsigned int replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index);
+uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 #endif

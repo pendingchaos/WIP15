@@ -2,7 +2,7 @@
 .PHONY: gl
 gl:
 	cd scripts; python generate_gl.py
-	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -g -std=c99
+	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -g -std=c99 -Isrc
 	rm src/gl.c
 
 .PHONY: libtrace
