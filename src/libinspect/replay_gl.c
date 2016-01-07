@@ -12868,6 +12868,42 @@ static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
     }
 }
 
+static void update_query_type(replay_context_t* ctx, inspect_command_t* cmd, GLenum target) {
+    GLint id;
+    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
+    if (!id)
+        return;
+    
+    inspect_query_t query;
+    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
+    query.type = target;
+    query.result = 0;
+    
+    inspect_act_set_query(&cmd->state, &query);
+}
+
+static void update_query(replay_context_t* ctx, inspect_command_t* cmd, GLenum target, GLuint id) {
+    if (!id)
+        return;
+    
+    GLint res = 0;
+    if (target!=GL_TIME_ELAPSED && target!=GL_TIMESTAMP) {
+        F(glFinish)();
+        
+        while (!res) F(glGetQueryObjectiv)(id, GL_QUERY_RESULT_AVAILABLE, &res);
+        
+        //TODO: Use glGetQueryObjecti64v when available
+        F(glGetQueryObjectiv)(id, GL_QUERY_RESULT, &res);
+    }
+    
+    inspect_query_t query;
+    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
+    query.type = target;
+    query.result = res;
+    
+    inspect_act_set_query(&cmd->state, &query);
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
@@ -18166,8 +18202,17 @@ void replay_glEndQuery(replay_context_t* ctx, trace_command_t* command, inspect_
     replay_begin_cmd(ctx, "glEndQuery", inspect_command);
     glEndQuery_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glEndQuery;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0));
-replay_end_cmd(ctx, "glEndQuery", inspect_command);
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint id;
+    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
+    real(target);
+    //TODO: This clears any errors
+    if (F(glGetError)() == GL_NO_ERROR)
+        update_query(ctx, inspect_command, target, id);
+
+#undef FUNC
+#define FUNC "glEndQuery"
+RETURN;
 }
 
 void replay_glGetCommandHeaderNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -18921,8 +18966,22 @@ void replay_glQueryCounter(replay_context_t* ctx, trace_command_t* command, insp
     replay_begin_cmd(ctx, "glQueryCounter", inspect_command);
     glQueryCounter_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glQueryCounter;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1));
-replay_end_cmd(ctx, "glQueryCounter", inspect_command);
+    GLuint id = gl_param_GLuint(command, 0);
+    GLuint real_id = replay_get_real_object(ctx, ReplayObjType_GLQuery, id);
+    if (!real_id) {
+        inspect_add_error(inspect_command, "Invalid query object.");
+        RETURN;
+
+    }
+    GLenum target = gl_param_GLenum(command, 1);
+    real(real_id, target);
+    //TODO: This clears any errors
+    if (F(glGetError)() == GL_NO_ERROR)
+        update_query(ctx, inspect_command, target, real_id);
+
+#undef FUNC
+#define FUNC "glQueryCounter"
+RETURN;
 }
 
 void replay_glGetFogFuncSGIS(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -21601,10 +21660,18 @@ void replay_glBeginQuery(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glBeginQuery", inspect_command);
     glBeginQuery_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBeginQuery;
     do {(void)sizeof((real));} while (0);
+    GLuint id = gl_param_GLuint(command, 1);
+    GLuint real_id = replay_get_real_object(ctx, ReplayObjType_GLQuery, id);
+    if (!real_id) {
+        inspect_add_error(inspect_command, "Invalid query object.");
+        RETURN;
+    }
+    
     GLenum target = gl_param_GLenum(command, 0);
-    GLuint fake = gl_param_GLuint(command, 1);
-    GLuint id = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
-    real(target, id);
+    
+    real(target, real_id);
+    
+    update_query_type(ctx, inspect_command, target);
 
 #undef FUNC
 #define FUNC "glBeginQuery"
@@ -34833,8 +34900,10 @@ void replay_glGenQueries(replay_context_t* ctx, trace_command_t* command, inspec
     
     real(n, queries);
     
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
         replay_create_object(ctx, ReplayObjType_GLQuery, queries[i], fake[i]);
+        inspect_act_gen_query(&inspect_command->state, fake[i]);
+    }
 
 #undef FUNC
 #define FUNC "glGenQueries"
@@ -36646,10 +36715,12 @@ void replay_glDeleteQueries(replay_context_t* ctx, trace_command_t* command, ins
     uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
-        if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i])))
+        if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid query being deleted.");
-        else
+        } else {
             replay_destroy_object(ctx, ReplayObjType_GLQuery, fake[i]);
+            inspect_act_del_query(&inspect_command->state, fake[i]);
+        }
     
     real(n, queries);
 

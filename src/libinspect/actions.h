@@ -36,4 +36,7 @@ void inspect_act_set_rb(inspect_gl_state_t* state, inspect_rb_t* data);
 void inspect_act_gen_sync(inspect_gl_state_t* state, uint64_t id);
 void inspect_act_del_sync(inspect_gl_state_t* state, uint64_t id);
 void inspect_act_set_sync(inspect_gl_state_t* state, inspect_sync_t* data);
+void inspect_act_gen_query(inspect_gl_state_t* state, uint id);
+void inspect_act_del_query(inspect_gl_state_t* state, uint id);
+void inspect_act_set_query(inspect_gl_state_t* state, inspect_query_t* data);
 #endif

@@ -19,6 +19,7 @@ Debugging:
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
             Use this because it works on more hardware and driver combinations
+            http://facweb.cti.depaul.edu/research/techreports/TR06-015.pdf
     Backtraces with line numbers for function calls
         Would significantly increase size of traces
         Should disable by default

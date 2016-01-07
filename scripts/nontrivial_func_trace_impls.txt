@@ -721,3 +721,13 @@ glGetRenderbufferParameteriv:
     gl_param_GLenum(target, 1); //TODO: The group
     gl_param_GLenum(pname, -1); //TODO: The group
     gl_param_GLint(*params, -1);
+
+glGenQueries:
+    gl_param_GLsizei(n, -1);
+    gl_glGenQueries(n, ids);
+    gl_param_GLuint_array(n, ids);
+
+glDeleteQueries:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, ids);
+    gl_glDeleteQueries(n, ids);

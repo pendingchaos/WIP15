@@ -458,6 +458,32 @@ static void apply_set_sync(inspector_t* inspector, inspect_action_t* action) {
     *sync = *data;
 }
 
+static void apply_gen_query(inspector_t* inspector, inspect_action_t* action) {
+    inspect_query_t query;
+    memset(&query, 0, sizeof(query));
+    query.fake = action->obj;
+    append_inspect_query_vec(inspector->queries, &query);
+}
+
+static void apply_del_query(inspector_t* inspector, inspect_action_t* action) {
+    inspect_query_t* query = inspect_find_query_ptr(inspector, action->obj);
+    if (!query)
+        return;
+    
+    size_t index = query - get_inspect_query_vec_data(inspector->queries);
+    remove_inspect_query_vec(inspector->queries, index, 1);
+}
+
+static void apply_set_query(inspector_t* inspector, inspect_action_t* action) {
+    inspect_query_t* data = action->data;
+    
+    inspect_query_t* query = inspect_find_query_ptr(inspector, data->fake);
+    if (!query)
+        return;
+    
+    *query = *data;
+}
+
 static void simple_free(inspect_action_t* action) {
     free(action->data);
 }
@@ -772,5 +798,30 @@ void inspect_act_set_sync(inspect_gl_state_t* state, inspect_sync_t* data) {
     action.free_func = &simple_free;
     action.data = malloc(sizeof(inspect_sync_t));
     *(inspect_sync_t*)action.data = *data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_gen_query(inspect_gl_state_t* state, uint id) {
+    inspect_action_t action;
+    action.apply_func = &apply_gen_query;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_del_query(inspect_gl_state_t* state, uint id) {
+    inspect_action_t action;
+    action.apply_func = &apply_del_query;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_set_query(inspect_gl_state_t* state, inspect_query_t* data) {
+    inspect_action_t action;
+    action.apply_func = &apply_set_query;
+    action.free_func = &simple_free;
+    action.data = malloc(sizeof(inspect_query_t));
+    *(inspect_query_t*)action.data = *data;
     append_inspect_act_vec(state->actions, &action);
 }

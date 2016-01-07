@@ -239,6 +239,7 @@ inspector_t* create_inspector(inspection_t* inspection) {
     res->framebuffers = alloc_vec(0);
     res->renderbuffers = alloc_vec(0);
     res->syncs = alloc_vec(0);
+    res->queries = alloc_vec(0);
     res->inspection = inspection;
     
     inspect_vao_t vao;
@@ -310,6 +311,7 @@ void free_inspector(inspector_t* inspector) {
     free_inspect_fb_vec(inspector->framebuffers);
     free_inspect_rb_vec(inspector->renderbuffers);
     free_inspect_sync_vec(inspector->syncs);
+    free_inspect_query_vec(inspector->queries);
     free(inspector);
 }
 
@@ -377,6 +379,14 @@ inspect_sync_t* inspect_find_sync_ptr(inspector_t* inspector, uint64_t fake) {
     return get_inspect_sync_vec_data(inspector->syncs) + sync_index;
 }
 
+inspect_query_t* inspect_find_query_ptr(inspector_t* inspector, uint fake) {
+    int query_index = inspect_find_query(inspector, fake);
+    if (query_index == -1)
+        return NULL;
+    
+    return get_inspect_query_vec_data(inspector->queries) + query_index;
+}
+
 static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state) {
     inspect_act_vec_t actions = state->actions;
     for (inspect_action_t* action = actions->data; !vec_end(actions, action); action++)
@@ -408,6 +418,7 @@ void seek_inspector(inspector_t* inspector, size_t frame_index, size_t cmd_index
     resize_vec(inspector->framebuffers, 0);
     resize_vec(inspector->renderbuffers, 0);
     resize_vec(inspector->syncs, 0);
+    resize_vec(inspector->queries, 0);
     
     inspect_vao_t vao;
     vao.fake = 0;
@@ -509,6 +520,16 @@ int inspect_find_sync(inspector_t* inspector, uint64_t sync) {
     size_t count = get_inspect_sync_vec_count(syncs);
     for (size_t i = 0; i < count; ++i)
         if (get_inspect_sync_vec(syncs, i)->fake == sync)
+            return i;
+    
+    return -1;
+}
+
+int inspect_find_query(inspector_t* inspector, uint query) {
+    inspect_query_vec_t queries = inspector->queries;
+    size_t count = get_inspect_query_vec_count(queries);
+    for (size_t i = 0; i < count; ++i)
+        if (get_inspect_query_vec(queries, i)->fake == query)
             return i;
     
     return -1;

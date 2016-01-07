@@ -919,6 +919,42 @@ static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
     }
 }
 
+static void update_query_type(replay_context_t* ctx, inspect_command_t* cmd, GLenum target) {
+    GLint id;
+    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
+    if (!id)
+        return;
+    
+    inspect_query_t query;
+    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
+    query.type = target;
+    query.result = 0;
+    
+    inspect_act_set_query(&cmd->state, &query);
+}
+
+static void update_query(replay_context_t* ctx, inspect_command_t* cmd, GLenum target, GLuint id) {
+    if (!id)
+        return;
+    
+    GLint res = 0;
+    if (target!=GL_TIME_ELAPSED && target!=GL_TIMESTAMP) {
+        F(glFinish)();
+        
+        while (!res) F(glGetQueryObjectiv)(id, GL_QUERY_RESULT_AVAILABLE, &res);
+        
+        //TODO: Use glGetQueryObjecti64v when available
+        F(glGetQueryObjectiv)(id, GL_QUERY_RESULT, &res);
+    }
+    
+    inspect_query_t query;
+    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
+    query.type = target;
+    query.result = res;
+    
+    inspect_act_set_query(&cmd->state, &query);
+}
+
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);

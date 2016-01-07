@@ -142,6 +142,13 @@ typedef struct inspect_sync_t {
 } inspect_sync_t;
 TYPED_VEC(inspect_sync_t, inspect_sync)
 
+typedef struct inspect_query_t {
+    uint fake;
+    uint type;
+    int64_t result;
+} inspect_query_t;
+TYPED_VEC(inspect_query_t, inspect_query)
+
 struct inspection_t;
 typedef struct {
     struct inspection_t* inspection;
@@ -153,6 +160,7 @@ typedef struct {
     inspect_fb_vec_t framebuffers;
     inspect_rb_vec_t renderbuffers;
     inspect_sync_vec_t syncs;
+    inspect_query_vec_t queries;
     inspect_image_t* back_buf;
     inspect_image_t* front_buf;
     inspect_image_t* depth_buf;
@@ -218,6 +226,7 @@ int inspect_find_vao(inspector_t* inspector, uint vao);
 int inspect_find_fb(inspector_t* inspector, uint fb);
 int inspect_find_rb(inspector_t* inspector, uint rb);
 int inspect_find_sync(inspector_t* inspector, uint64_t sync);
+int inspect_find_query(inspector_t* inspector, uint query);
 
 //NULL if it could not be found
 inspect_texture_t* inspect_find_tex_ptr(inspector_t* inspector, uint fake);
@@ -228,4 +237,5 @@ inspect_vao_t* inspect_find_vao_ptr(inspector_t* inspector, uint fake);
 inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, uint fake);
 inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, uint fake);
 inspect_sync_t* inspect_find_sync_ptr(inspector_t* inspector, uint64_t fake);
+inspect_query_t* inspect_find_query_ptr(inspector_t* inspector, uint fake);
 #endif

@@ -206,6 +206,10 @@ int main(int argc, char **argv)
     glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
     glDeleteSync(sync);
     
+    //Query
+    GLuint query;
+    glGenQueries(1, &query);
+    
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -214,6 +218,7 @@ int main(int argc, char **argv)
                 running = false;
         
         //Render to framebuffer
+        glBeginQuery(GL_SAMPLES_PASSED, query);
         glBindFramebuffer(GL_FRAMEBUFFER, fb);
         glClear(GL_COLOR_BUFFER_BIT);
         
@@ -241,10 +246,12 @@ int main(int argc, char **argv)
         
         glBindVertexArray(dpy_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glEndQuery(GL_SAMPLES_PASSED);
         
         SDL_GL_SwapWindow(window);
     }
     
+    glDeleteQueries(1, &query);
     glDeleteRenderbuffers(1, &rb);
     glDeleteFramebuffers(1, &fb);
     glDeleteVertexArrays(1, &dpy_vao);

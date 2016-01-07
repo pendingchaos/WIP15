@@ -4,7 +4,7 @@
 # OpenGL 3.3 support progress
 - [x] glAttachShader
 - [ ] glBeginConditionalRender
-- [ ] glBeginQuery
+- [x] glBeginQuery
 - [x] glBindAttribLocation
 - [x] glBindBuffer
 - [x] glBindBufferBase
@@ -56,7 +56,7 @@
 - [x] glDrawRangeElementsBaseVertex
 - [x] glEnableVertexAttribArray
 - [ ] glEndConditionalRender
-- [ ] glEndQuery
+- [x] glEndQuery
 - [ ] glEndTransformFeedback
 - [x] glFenceSync
 - [x] glFramebufferRenderbuffer
@@ -151,7 +151,7 @@
 - [ ] glPixelStoref
 - [x] glPointParameterfv
 - [x] glPointParameteriv
-- [ ] glQueryCounter
+- [x] glQueryCounter
 - [x] glRenderbufferStorage
 - [x] glRenderbufferStorageMultisample
 - [x] glSamplerParameteri
@@ -393,6 +393,7 @@
 - [ ] glBufferStorage
 - [ ] glClearTexImage
 - [ ] glClearTexSubImage
+- GL_QUERY_RESULT_BUFFER
 
 # OpenGL 4.5 support progress
 - [ ] glBindTextureUnit

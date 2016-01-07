@@ -842,35 +842,6 @@ glBindAttribLocation:
     
     real(program, index, name);
 
-glBeginQuery:
-    GLenum target = gl_param_GLenum(command, 0);
-    GLuint fake = gl_param_GLuint(command, 1);
-    GLuint id = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake);
-    real(target, id);
-
-glGenQueries:
-    GLsizei n = gl_param_GLsizei(command, 0);
-    GLuint queries[n];
-    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
-    
-    real(n, queries);
-    
-    for (size_t i = 0; i < n; ++i)
-        replay_create_object(ctx, ReplayObjType_GLQuery, queries[i], fake[i]);
-
-glDeleteQueries:
-    GLsizei n = gl_param_GLsizei(command, 0);
-    GLuint queries[n];
-    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
-    
-    for (size_t i = 0; i < n; ++i)
-        if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i])))
-            inspect_add_error(inspect_command, "Invalid query being deleted.");
-        else
-            replay_destroy_object(ctx, ReplayObjType_GLQuery, fake[i]);
-    
-    real(n, queries);
-
 glGetAttribLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     const GLchar* name = gl_param_string(command, 1);
@@ -2229,3 +2200,67 @@ glClientWaitSync:
     }
     
     real((GLsync)real_sync, gl_param_GLbitfield(command, 1), gl_param_GLuint64(command, 2));
+
+glGenQueries:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint queries[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    real(n, queries);
+    
+    for (size_t i = 0; i < n; ++i) {
+        replay_create_object(ctx, ReplayObjType_GLQuery, queries[i], fake[i]);
+        inspect_act_gen_query(&inspect_command->state, fake[i]);
+    }
+
+glDeleteQueries:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    GLuint queries[n];
+    uint64_t* fake = trace_get_uint(trace_get_arg(command, 1));
+    
+    for (size_t i = 0; i < n; ++i)
+        if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i]))) {
+            inspect_add_error(inspect_command, "Invalid query being deleted.");
+        } else {
+            replay_destroy_object(ctx, ReplayObjType_GLQuery, fake[i]);
+            inspect_act_del_query(&inspect_command->state, fake[i]);
+        }
+    
+    real(n, queries);
+
+glBeginQuery:
+    GLuint id = gl_param_GLuint(command, 1);
+    GLuint real_id = replay_get_real_object(ctx, ReplayObjType_GLQuery, id);
+    if (!real_id) {
+        inspect_add_error(inspect_command, "Invalid query object.");
+        RETURN;
+    }
+    
+    GLenum target = gl_param_GLenum(command, 0);
+    
+    real(target, real_id);
+    
+    update_query_type(ctx, inspect_command, target);
+
+glEndQuery:
+    GLenum target = gl_param_GLenum(command, 0);
+    GLint id;
+    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
+    real(target);
+    //TODO: This clears any errors
+    if (F(glGetError)() == GL_NO_ERROR)
+        update_query(ctx, inspect_command, target, id);
+
+glQueryCounter:
+    GLuint id = gl_param_GLuint(command, 0);
+    GLuint real_id = replay_get_real_object(ctx, ReplayObjType_GLQuery, id);
+    if (!real_id) {
+        inspect_add_error(inspect_command, "Invalid query object.");
+        RETURN;
+
+    }
+    GLenum target = gl_param_GLenum(command, 1);
+    real(real_id, target);
+    //TODO: This clears any errors
+    if (F(glGetError)() == GL_NO_ERROR)
+        update_query(ctx, inspect_command, target, real_id);

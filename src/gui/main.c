@@ -22,6 +22,7 @@ void renderbuffer_init();
 void texture_init();
 void shader_init();
 void sync_init();
+void query_init();
 void trace_init();
 void trace_fill();
 
@@ -36,8 +37,6 @@ static void reset_trace() {
     
     inspection = create_inspection(trace);
     inspector = create_inspector(inspection);
-    
-    trace_fill();
 }
 
 static void free_open_trace() {
@@ -56,10 +55,12 @@ static void open_trace(const char* filename) {
     if (error == TraceError_Invalid) {
         fprintf(stderr, "Invalid trace file: %s\n", get_trace_error_desc());
         reset_trace();
+        trace_fill();
         return;
     } else if (error == TraceError_UnableToOpen) {
         fprintf(stderr, "Unable to open trace file.\n");
         reset_trace();
+        trace_fill();
         return;
     }
     
@@ -202,10 +203,10 @@ int main(int argc, char** argv) {
     texture_init();
     shader_init();
     sync_init();
+    query_init();
     trace_init();
     
-    if (argc == 2)
-        trace_fill();
+    trace_fill();
     
     main_window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_widget_show_all(main_window);

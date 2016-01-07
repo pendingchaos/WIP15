@@ -21,6 +21,7 @@ void init_texture_list(GtkTreeView* tree);
 void init_shader_list(GtkTreeView* tree);
 void init_program_list(GtkTreeView* tree);
 void init_syncs_list(GtkTreeView* tree);
+void init_queries_list(GtkTreeView* tree);
 
 static void init_trace_tree(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
@@ -132,6 +133,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         init_framebuffers_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffers_treeview")));
         init_renderbuffers_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_list")));
         init_syncs_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "sync_list")));
+        init_queries_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "query_list")));
         
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
