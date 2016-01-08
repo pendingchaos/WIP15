@@ -107,6 +107,15 @@ glTexImage2D:
     gl_param_GLenum(type, GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
+    //TODO: Hack that does not make sense
+    //Without it: "Invalid trace file: Invalid value type" with learnopengl.com's model loading tutorial
+    #if 1
+    void* data = malloc(width*height*texel_size);
+    if (pixels)
+        memcpy(data, pixels, width*height*texel_size);
+    gl_param_data(width*height*texel_size, data);
+    free(data);
+    #else
     if (pixels) {
         gl_param_data(width*height*texel_size, pixels);
     } else {
@@ -114,6 +123,7 @@ glTexImage2D:
         gl_param_data(width*height*texel_size, data);
         free(data);
     }
+    #endif
     
     gl_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 

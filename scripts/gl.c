@@ -674,7 +674,7 @@ static void gl_result_GLenum(GLenum value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLintptr(GLintptr value) {
@@ -688,7 +688,7 @@ static void gl_result_GLintptr(GLintptr value) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLint(GLint value) {
@@ -696,21 +696,21 @@ static void gl_result_GLint(GLint value) {
     gl_write_b(WIP15_S32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLboolean(GLboolean value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_BOOLEAN);
     fwrite(&value, 1, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLbitfield(GLbitfield value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_BITFIELD);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLsync(GLsync value) {
@@ -724,7 +724,7 @@ static void gl_result_GLsync(GLsync value) {
     uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLuint64(GLuint64 value) {
@@ -732,7 +732,7 @@ static void gl_result_GLuint64(GLuint64 value) {
     gl_write_b(WIP15_U64);
     uint64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLvdpauSurfaceNV(GLvdpauSurfaceNV value) {
@@ -746,14 +746,14 @@ static void gl_result_GLvdpauSurfaceNV(GLvdpauSurfaceNV value) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLfloat(GLfloat value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_FLOAT);
     fwrite(&value, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLuint(GLuint value) {
@@ -761,7 +761,7 @@ static void gl_result_GLuint(GLuint value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_int64_t(GLuint value) {
@@ -769,7 +769,7 @@ static void gl_result_int64_t(GLuint value) {
     gl_write_b(WIP15_S64);
     int64_t v = htole64(value);
     fwrite(&v, 8, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_unsigned_int(uint value) {
@@ -777,7 +777,7 @@ static void gl_result_unsigned_int(uint value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLhandleARB(GLhandleARB value) {
@@ -797,7 +797,7 @@ static void gl_result_GLhandleARB(GLhandleARB value) {
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLushort(GLushort value) {
@@ -805,7 +805,7 @@ static void gl_result_GLushort(GLushort value) {
     gl_write_b(WIP15_U16);
     uint16_t v = htole16(value);
     fwrite(&v, 2, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_int(int value) {
@@ -813,7 +813,7 @@ static void gl_result_int(int value) {
     gl_write_b(WIP15_S32);
     int v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_Bool(int value) {
@@ -821,7 +821,7 @@ static void gl_result_Bool(int value) {
     gl_write_b(WIP15_BOOLEAN);
     uint8_t v = value ? 1 : 0;
     fwrite(&v, 1, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_pointer(void *value) {
@@ -855,7 +855,7 @@ static void gl_result_GLXPixmap(GLXPixmap value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXWindow(GLXWindow value) {
@@ -863,7 +863,7 @@ static void gl_result_GLXWindow(GLXWindow value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXPbuffer(GLXPbuffer value) {
@@ -871,7 +871,7 @@ static void gl_result_GLXPbuffer(GLXPbuffer value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXDrawable(GLXDrawable value) {
@@ -879,7 +879,7 @@ static void gl_result_GLXDrawable(GLXDrawable value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXContextID(GLXContextID value) {
@@ -887,7 +887,7 @@ static void gl_result_GLXContextID(GLXContextID value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result___GLXextFuncPtr(__GLXextFuncPtr value) {
@@ -900,7 +900,7 @@ static void gl_result_Status(Status value) {
     gl_write_b(WIP15_S32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXFBConfigSGIX(GLXFBConfigSGIX value) {
@@ -914,7 +914,7 @@ static void gl_result_GLXFBConfigSGIX(GLXFBConfigSGIX value) {
     uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value) {
@@ -922,7 +922,7 @@ static void gl_result_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static void gl_result_GLXPbufferSGIX(GLXPbufferSGIX value) {
@@ -930,7 +930,7 @@ static void gl_result_GLXPbufferSGIX(GLXPbufferSGIX value) {
     gl_write_b(WIP15_U32);
     uint32_t v = htole32(value);
     fwrite(&v, 4, 1, trace_file);
-    gl_write_str(NULL);
+    gl_write_int32(-1);
 }
 
 static size_t get_texel_size(GLenum format, GLenum type) {

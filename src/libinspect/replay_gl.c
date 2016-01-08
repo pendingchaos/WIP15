@@ -15507,8 +15507,11 @@ void replay_glXGetFBConfigs(replay_context_t* ctx, trace_command_t* command, ins
 replay_begin_cmd(ctx, "glXGetFBConfigs", inspect_command);
     glXGetFBConfigs_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetFBConfigs;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (int)gl_param_int(command, 1), (int *)gl_param_pointer(command, 2));
-replay_end_cmd(ctx, "glXGetFBConfigs", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetFBConfigs"
+RETURN;
 }
 
 void replay_glConvolutionFilter2D(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -34468,8 +34471,11 @@ void replay_glXGetFBConfigAttrib(replay_context_t* ctx, trace_command_t* command
 replay_begin_cmd(ctx, "glXGetFBConfigAttrib", inspect_command);
     glXGetFBConfigAttrib_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetFBConfigAttrib;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXFBConfig)gl_param_GLXFBConfig(command, 1), (int)gl_param_int(command, 2), (int *)gl_param_pointer(command, 3));
-replay_end_cmd(ctx, "glXGetFBConfigAttrib", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetFBConfigAttrib"
+RETURN;
 }
 
 void replay_glPrimitiveBoundingBoxEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -50505,8 +50511,11 @@ void replay_glXGetVisualFromFBConfig(replay_context_t* ctx, trace_command_t* com
 replay_begin_cmd(ctx, "glXGetVisualFromFBConfig", inspect_command);
     glXGetVisualFromFBConfig_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetVisualFromFBConfig;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXFBConfig)gl_param_GLXFBConfig(command, 1));
-replay_end_cmd(ctx, "glXGetVisualFromFBConfig", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetVisualFromFBConfig"
+RETURN;
 }
 
 void replay_glIsPointInStrokePathNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {

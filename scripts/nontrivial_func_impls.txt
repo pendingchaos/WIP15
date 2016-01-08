@@ -55,6 +55,15 @@ glXChooseVisual:
 glXChooseFBConfig:
     ;
 
+glXGetFBConfigs:
+    ;
+
+glXGetFBConfigAttrib:
+    ;
+
+glXGetVisualFromFBConfig:
+    ;
+
 glXChooseFBConfigSGIX:
     ;
 
