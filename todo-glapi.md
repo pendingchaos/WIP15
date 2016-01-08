@@ -19,10 +19,10 @@
 - [x] glBufferData
 - [x] glBufferSubData
 - [x] glClear
-- [ ] glClearBufferuiv
-- [ ] glClearBufferiv
-- [ ] glClearBufferfv
-- [ ] glClearBufferfi
+- [x] glClearBufferuiv
+- [x] glClearBufferiv
+- [x] glClearBufferfv
+- [x] glClearBufferfi
 - [x] glClientWaitSync
 - [x] glCompileShader
 - [x] glCompressedTexImage1D
