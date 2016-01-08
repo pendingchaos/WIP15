@@ -44,6 +44,8 @@ int main(int argc, char** argv) {
         command_length += strlen(argv[i]);
     }
     
+    printf("%s\n", command);
+    
     if (system(command) != 0) {
         fprintf(stderr, "Unable to execute command.\n");
         free(output_path);

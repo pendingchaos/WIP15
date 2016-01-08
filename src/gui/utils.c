@@ -76,7 +76,7 @@ char* format_float(double val) {
     return data;
 }
 
-void format_value(trace_t* trace, char* str, trace_value_t value) {
+void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         
@@ -91,83 +91,83 @@ void format_value(trace_t* trace, char* str, trace_value_t value) {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
                 if (entry->value == val) {
-                    strcat(str, static_format("%s(%zu)", entry->name, val));
+                    strncat(str, static_format("%s(%zu)", entry->name, val), n);
                     return;
                 }
             }
         }
     }
     
-    if (value.count > 1) strcat(str, static_format("["));
+    if (value.count > 1) strncat(str, "[", n);
     for (size_t i = 0; i < value.count; ++i) {
         switch (value.type) {
         case Type_Void: {
-            strcat(str, static_format("void"));
+            strncat(str, "void", n);
             break;
         }
         case Type_UInt: {
-            strcat(str, static_format("%"PRIu64, trace_get_uint(&value)[i]));
+            strncat(str, static_format("%"PRIu64, trace_get_uint(&value)[i]), n);
             break;
         }
         case Type_Int: {
-            strcat(str, static_format("%"PRId64, trace_get_int(&value)[i]));
+            strncat(str, static_format("%"PRId64, trace_get_int(&value)[i]), n);
             break;
         }
         case Type_Double: {
-            strcat(str, static_format("%s", format_float(trace_get_double(&value)[i])));
+            strncat(str, static_format("%s", format_float(trace_get_double(&value)[i])), n);
             break;
         }
         case Type_Boolean: {
-            strcat(str, static_format(trace_get_bool(&value)[i] ? "true" : "false"));
+            strncat(str, static_format(trace_get_bool(&value)[i] ? "true" : "false"), n);
             break;
         }
         case Type_Str: {
-            strcat(str, static_format("'%s'", trace_get_str(&value)[i]));
+            strncat(str, static_format("'%s'", trace_get_str(&value)[i]), n);
             break;
         }
         case Type_Bitfield: {
-            strcat(str, static_format("%u", trace_get_bitfield(&value)[i]));
+            strncat(str, static_format("%u", trace_get_bitfield(&value)[i]), n);
             break;
         }
         case Type_FunctionPtr: {
-            strcat(str, static_format("<function pointer>"));
+            strncat(str, static_format("<function pointer>"), n);
             break;
         }
         case Type_Ptr: {
-            strcat(str, static_format("0x%"PRIx64, trace_get_ptr(&value)[i]));
+            strncat(str, static_format("0x%"PRIx64, trace_get_ptr(&value)[i]), n);
             break;
         }
         case Type_Data: {
-            strcat(str, static_format("<data>"));
+            strncat(str, static_format("<data>"), n);
             break;
         }
         }
         
         if (i != value.count-1)
-            strcat(str, static_format(", "));
+            strncat(str, ", ", n);
     }
-    if (value.count > 1) strcat(str, static_format("]"));
+    if (value.count > 1) strncat(str, "]", n);
 }
 
-void format_command(trace_t* trace, char* str, inspect_command_t* command) {
+void format_command(trace_t* trace, char* str, inspect_command_t* command, size_t n) {
     trace_command_t* trace_cmd = command->trace_cmd;
     
-    strcat(str, static_format("%s(", command->name));
+    strncat(str, static_format("%s(", command->name), n);
     
     trace_val_vec_t args = command->trace_cmd->args;
     size_t count = get_trace_val_vec_count(args);
     for (size_t i = 0; i < count; i++) {
-        format_value(trace, str, *get_trace_val_vec(args, i));
+        format_value(trace, str, *get_trace_val_vec(args, i), n);
         if (i != count-1) {
-            strcat(str, static_format(", "));
+            strncat(str, static_format(", "), n);
         }
     }
     
-    strcat(str, static_format(")"));
+    strncat(str, ")", n);
     
     if (trace_cmd->ret.type != Type_Void) {
-        strcat(str, static_format(" = "));
-        format_value(trace, str, trace_cmd->ret);
+        strncat(str, " = ", n);
+        format_value(trace, str, trace_cmd->ret, n);
     }
 }
 

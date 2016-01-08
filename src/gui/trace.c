@@ -30,9 +30,9 @@ static void init_trace_tree(GtkTreeView* tree) {
     for (size_t i = 0; i < inspection->frame_count; ++i) {
         inspect_frame_t* frame = inspection->frames + i;
         
-        char frame_str[1024];
-        memset(frame_str, 0, 1024);
-        snprintf(frame_str, 1024, "Frame %zu", i);
+        char frame_str[4096];
+        memset(frame_str, 0, 4096);
+        snprintf(frame_str, 4096, "Frame %zu", i);
         
         bool error = false;
         bool warning = false;
@@ -66,7 +66,7 @@ static void init_trace_tree(GtkTreeView* tree) {
             inspect_command_t* cmd = frame->commands + j;
             char cmd_str[1024];
             memset(cmd_str, 0, 1024);
-            format_command(trace, cmd_str, cmd);
+            format_command(trace, cmd_str, cmd, 1024);
             
             bool error = false;
             bool warning = false;
@@ -101,7 +101,7 @@ static void init_state_tree(GtkTreeView* tree,
     for (inspect_gl_state_entry_t* entry = entries->data; !vec_end(entries, entry); entry++) {
         char val_str[1024];
         memset(val_str, 0, 1024);
-        format_value(trace, val_str, entry->val);
+        format_value(trace, val_str, entry->val, 1024);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

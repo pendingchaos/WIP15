@@ -63,7 +63,7 @@ glTexImage1D:
     gl_param_GLint(internalformat, -1); //TODO: The grouop
     gl_param_GLsizei(width, -1);
     gl_param_GLint(border, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLenum(type, GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
@@ -82,7 +82,7 @@ glTexSubImage1D:
     gl_param_GLint(level, -1);
     gl_param_GLint(xoffset, -1);
     gl_param_GLsizei(width, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLenum(type, GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
@@ -103,7 +103,7 @@ glTexImage2D:
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLint(border, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat); 
+    gl_param_GLenum(format, -1); //TODO: The group 
     gl_param_GLenum(type, GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
@@ -124,7 +124,7 @@ glTexSubImage2D:
     gl_param_GLint(yoffset, -1);
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLenum(type, GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
@@ -186,7 +186,7 @@ glTexSubImage3D:
 glCompressedTexImage1D:
     gl_param_GLenum(target, GROUP_TextureTarget);
     gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLenum(internalformat, -1); //TODO: The group
     gl_param_GLsizei(width, -1);
     gl_param_GLint(border, -1);
     gl_param_GLsizei(imageSize, -1);
@@ -198,7 +198,7 @@ glCompressedTexSubImage1D:
     gl_param_GLint(level, -1);
     gl_param_GLint(xoffset, -1);
     gl_param_GLsizei(width, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLsizei(imageSize, -1);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, data);
@@ -206,7 +206,7 @@ glCompressedTexSubImage1D:
 glCompressedTexImage2D:
     gl_param_GLenum(target, GROUP_TextureTarget);
     gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLenum(internalformat, -1); //TODO: The group
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLint(border, -1);
@@ -221,7 +221,7 @@ glCompressedTexSubImage2D:
     gl_param_GLint(yoffset, -1);
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLsizei(imageSize, -1);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data);
@@ -229,7 +229,7 @@ glCompressedTexSubImage2D:
 glCompressedTexImage3D:
     gl_param_GLenum(target, GROUP_TextureTarget);
     gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, GROUP_PixelFormat);
+    gl_param_GLenum(internalformat, -1); //TODO: The group
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLsizei(depth, -1);
@@ -247,7 +247,7 @@ glCompressedTexSubImage3D:
     gl_param_GLsizei(width, -1);
     gl_param_GLsizei(height, -1);
     gl_param_GLsizei(depth, -1);
-    gl_param_GLenum(format, GROUP_PixelFormat);
+    gl_param_GLenum(format, -1); //TODO: The group
     gl_param_GLsizei(imageSize, -1);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
@@ -333,6 +333,8 @@ glGetIntegerv:
 glGetString:
     gl_param_GLenum(name, GROUP_StringName);
     const GLubyte* result = "";
+    //TODO: Hack to get glfw 3.0.3 working
+    #if 0
     switch (name) {
     case GL_VENDOR:
         if (current_limits->vendor.exists)
@@ -365,6 +367,9 @@ glGetString:
             result = gl_glGetString(GL_EXTENSIONS);
         break;
     }
+    #else
+    result = gl_glGetString(name);
+    #endif
     gl_param_string(result);
 
 glTexParameterfv:

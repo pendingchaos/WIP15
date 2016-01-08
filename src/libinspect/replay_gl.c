@@ -16448,8 +16448,11 @@ void replay_glXGetVisualFromFBConfigSGIX(replay_context_t* ctx, trace_command_t*
 replay_begin_cmd(ctx, "glXGetVisualFromFBConfigSGIX", inspect_command);
     glXGetVisualFromFBConfigSGIX_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetVisualFromFBConfigSGIX;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXFBConfigSGIX)gl_param_GLXFBConfigSGIX(command, 1));
-replay_end_cmd(ctx, "glXGetVisualFromFBConfigSGIX", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetVisualFromFBConfigSGIX"
+RETURN;
 }
 
 void replay_glUniformMatrix2x3dv(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -17312,7 +17315,7 @@ void replay_glUseProgram(replay_context_t* ctx, trace_command_t* command, inspec
     do {(void)sizeof((real));} while (0);
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
+    if (!real_program && fake) {
         inspect_add_error(inspect_command, "Invalid program.");
         RETURN;
     }
@@ -18184,8 +18187,11 @@ void replay_glGetString(replay_context_t* ctx, trace_command_t* command, inspect
     replay_begin_cmd(ctx, "glGetString", inspect_command);
     glGetString_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetString;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0));
-replay_end_cmd(ctx, "glGetString", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glGetString"
+RETURN;
 }
 
 void replay_glGetPathParameterfvNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -19591,8 +19597,8 @@ void replay_glUniformMatrix3fv(replay_context_t* ctx, trace_command_t* command, 
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*9];
+    for (GLsizei i = 0 ; i < count*9; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -20482,8 +20488,11 @@ void replay_glGetStringi(replay_context_t* ctx, trace_command_t* command, inspec
     replay_begin_cmd(ctx, "glGetStringi", inspect_command);
     glGetStringi_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetStringi;
     do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLuint)gl_param_GLuint(command, 1));
-replay_end_cmd(ctx, "glGetStringi", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glGetStringi"
+RETURN;
 }
 
 void replay_glGetTexParameterIivOES(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -21598,8 +21607,11 @@ void replay_glXGetFBConfigAttribSGIX(replay_context_t* ctx, trace_command_t* com
 replay_begin_cmd(ctx, "glXGetFBConfigAttribSGIX", inspect_command);
     glXGetFBConfigAttribSGIX_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetFBConfigAttribSGIX;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXFBConfigSGIX)gl_param_GLXFBConfigSGIX(command, 1), (int)gl_param_int(command, 2), (int *)gl_param_pointer(command, 3));
-replay_end_cmd(ctx, "glXGetFBConfigAttribSGIX", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetFBConfigAttribSGIX"
+RETURN;
 }
 
 void replay_glNormalStream3dvATI(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -21757,8 +21769,8 @@ void replay_glUniformMatrix2x4fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*8];
+    for (GLsizei i = 0 ; i < count*8; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -32592,8 +32604,8 @@ void replay_glUniformMatrix3x2fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*6];
+    for (GLsizei i = 0 ; i < count*6; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -32995,8 +33007,8 @@ void replay_glUniformMatrix3x4fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*12];
+    for (GLsizei i = 0 ; i < count*12; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -33516,8 +33528,11 @@ void replay_glXGetClientString(replay_context_t* ctx, trace_command_t* command, 
 replay_begin_cmd(ctx, "glXGetClientString", inspect_command);
     glXGetClientString_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXGetClientString;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (int)gl_param_int(command, 1));
-replay_end_cmd(ctx, "glXGetClientString", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXGetClientString"
+RETURN;
 }
 
 void replay_glMultiTexGenfvEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -35409,8 +35424,11 @@ void replay_glXQueryVersion(replay_context_t* ctx, trace_command_t* command, ins
 replay_begin_cmd(ctx, "glXQueryVersion", inspect_command);
     glXQueryVersion_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXQueryVersion;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (int *)gl_param_pointer(command, 1), (int *)gl_param_pointer(command, 2));
-replay_end_cmd(ctx, "glXQueryVersion", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXQueryVersion"
+RETURN;
 }
 
 void replay_glBindBufferRangeEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -36811,8 +36829,11 @@ void replay_glXChooseFBConfigSGIX(replay_context_t* ctx, trace_command_t* comman
 replay_begin_cmd(ctx, "glXChooseFBConfigSGIX", inspect_command);
     glXChooseFBConfigSGIX_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXChooseFBConfigSGIX;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (int)gl_param_int(command, 1), (int *)gl_param_pointer(command, 2), (int *)gl_param_pointer(command, 3));
-replay_end_cmd(ctx, "glXChooseFBConfigSGIX", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXChooseFBConfigSGIX"
+RETURN;
 }
 
 void replay_glVertexArrayVertexAttribDivisorEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -38772,8 +38793,8 @@ void replay_glUniformMatrix2x3fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*6];
+    for (GLsizei i = 0 ; i < count*6; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -40890,8 +40911,8 @@ void replay_glUniformMatrix4fv(replay_context_t* ctx, trace_command_t* command, 
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*16];
+    for (GLsizei i = 0 ; i < count*16; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -41798,8 +41819,8 @@ void replay_glUniformMatrix4x3fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*12];
+    for (GLsizei i = 0 ; i < count*12; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -44497,8 +44518,14 @@ void replay_glGetShaderiv(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glGetShaderiv", inspect_command);
     glGetShaderiv_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetShaderiv;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLenum)gl_param_GLenum(command, 1), (GLint  *)gl_param_pointer(command, 2));
-replay_end_cmd(ctx, "glGetShaderiv", inspect_command);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
+    if (!real_shdr)
+        inspect_add_error(inspect_command, "Invalid shader.");
+
+#undef FUNC
+#define FUNC "glGetShaderiv"
+RETURN;
 }
 
 void replay_glMatrixLoadTransposedEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -45017,8 +45044,8 @@ void replay_glUniformMatrix2fv(replay_context_t* ctx, trace_command_t* command, 
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*4];
+    for (GLsizei i = 0 ; i < count*4; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -49135,8 +49162,8 @@ void replay_glUniformMatrix4x2fv(replay_context_t* ctx, trace_command_t* command
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*8];
+    for (GLsizei i = 0 ; i < count*8; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);

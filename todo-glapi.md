@@ -111,7 +111,7 @@
 - [x] glGetShaderInfoLog
 - [x] glGetShaderSource
 - [x] glGetString
-- [ ] glGetStringi
+- [x] glGetStringi
 - [x] glGetSynciv
 - [x] glGetTexImage
 - [x] glGetTexLevelParameterfv

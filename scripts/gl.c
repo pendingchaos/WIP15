@@ -124,8 +124,8 @@ typedef struct {
     char* extensions_str;
 } limits_t;
 
-static FILE *trace_file;
-static void *lib_gl;
+static FILE *trace_file = NULL;
+static void *lib_gl = NULL;
 static limits_t gl30_limits;
 static limits_t gl31_limits;
 static limits_t gl32_limits;
@@ -136,7 +136,7 @@ static limits_t gl42_limits;
 static limits_t gl43_limits;
 static limits_t gl44_limits;
 static limits_t gl45_limits;
-static limits_t* current_limits;
+static limits_t* current_limits = NULL;
 static bool test_mode = false;
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;

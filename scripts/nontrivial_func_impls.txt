@@ -46,10 +46,25 @@ glXGetProcAddress:
 glXQueryExtension:
     ;
 
+glXQueryVersion:
+    ;
+
 glXChooseVisual:
     ;
 
 glXChooseFBConfig:
+    ;
+
+glXChooseFBConfigSGIX:
+    ;
+
+glXGetFBConfigAttribSGIX:
+    ;
+
+glXGetVisualFromFBConfigSGIX:
+    ;
+
+glXGetClientString:
     ;
 
 glXCreateContext:
@@ -789,7 +804,7 @@ glValidateProgram:
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
+    if (!real_program && fake) {
         inspect_add_error(inspect_command, "Invalid program.");
         RETURN;
     }
@@ -864,7 +879,7 @@ glGetUniformLocation:
     if (real(real_program, name) < 0)
         inspect_add_error(inspect_command, "No such uniform \"%s\".", name);
 
-glGetShader:
+glGetShaderiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = replay_get_real_object(ctx, ReplayObjType_GLShader, fake);
     if (!real_shdr)
@@ -970,6 +985,12 @@ glGetFloatv:
     ;
 
 glGetIntegerv:
+    ;
+
+glGetString:
+    ;
+
+glGetStringi:
     ;
 
 glGetVertexAttribdv:
@@ -1318,8 +1339,8 @@ glUniformMatrix2fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*4];
+    for (GLsizei i = 0 ; i < count*4; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1330,8 +1351,8 @@ glUniformMatrix3fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*9];
+    for (GLsizei i = 0 ; i < count*9; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1342,8 +1363,8 @@ glUniformMatrix4fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*16];
+    for (GLsizei i = 0 ; i < count*16; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1354,8 +1375,8 @@ glUniformMatrix2x3fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*6];
+    for (GLsizei i = 0 ; i < count*6; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1366,8 +1387,8 @@ glUniformMatrix3x2fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*6];
+    for (GLsizei i = 0 ; i < count*6; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1378,8 +1399,8 @@ glUniformMatrix2x4fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*8];
+    for (GLsizei i = 0 ; i < count*8; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1390,8 +1411,8 @@ glUniformMatrix4x2fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*8];
+    for (GLsizei i = 0 ; i < count*8; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1402,8 +1423,8 @@ glUniformMatrix3x4fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*12];
+    for (GLsizei i = 0 ; i < count*12; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
@@ -1414,8 +1435,8 @@ glUniformMatrix4x3fv:
         RETURN;
     
     GLsizei count = gl_param_GLint(command, 1);
-    GLfloat values[count];
-    for (GLsizei i = 0 ; i < count; i++)
+    GLfloat values[count*12];
+    for (GLsizei i = 0 ; i < count*12; i++)
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
