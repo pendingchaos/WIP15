@@ -190,9 +190,9 @@ glClear:
     GLbitfield mask = gl_param_GLbitfield(command, 0);
     real(mask);
     if (mask & GL_COLOR_BUFFER_BIT)
-        replay_get_back_color(ctx, inspect_command);
+        update_drawbuffer(ctx, inspect_command, GL_COLOR, 0);
     if (mask & GL_DEPTH_BUFFER_BIT)
-        replay_get_depth(ctx, inspect_command);
+        update_drawbuffer(ctx, inspect_command, GL_DEPTH, 0);
 
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -2264,3 +2264,59 @@ glQueryCounter:
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR)
         update_query(ctx, inspect_command, target, real_id);
+
+glDrawBuffers:
+    GLsizei n = gl_param_GLsizei(command, 0);
+    
+    GLuint* bufs = malloc(sizeof(GLuint)*n);
+    for (GLsizei i = 0; i < n; i++)
+        bufs[i] = trace_get_uint(trace_get_arg(command, 1))[i];
+    
+    real(n, bufs);
+    free(bufs);
+
+glClearBufferiv:
+    GLenum buffer = gl_param_GLenum(command, 0);
+    GLint drawbuffer = gl_param_GLint(command, 1);
+    size_t count = buffer == GL_COLOR ? 4 : 1;
+    GLint value[count];
+    for (size_t i = 0; i < count; i++)
+        value[i] = trace_get_int(trace_get_arg(command, 2))[i];
+    
+    real(buffer, drawbuffer, value);
+    
+    update_drawbuffer(ctx, inspect_command, buffer, drawbuffer);
+
+glClearBufferuiv:
+    GLenum buffer = gl_param_GLenum(command, 0);
+    GLint drawbuffer = gl_param_GLint(command, 1);
+    size_t count = buffer == GL_COLOR ? 4 : 1;
+    GLuint value[count];
+    for (size_t i = 0; i < count; i++)
+        value[i] = trace_get_uint(trace_get_arg(command, 2))[i];
+    
+    real(buffer, drawbuffer, value);
+    
+    update_drawbuffer(ctx, inspect_command, buffer, drawbuffer);
+
+glClearBufferfv:
+    GLenum buffer = gl_param_GLenum(command, 0);
+    GLint drawbuffer = gl_param_GLint(command, 1);
+    size_t count = buffer == GL_COLOR ? 4 : 1;
+    GLfloat value[count];
+    for (size_t i = 0; i < count; i++)
+        value[i] = trace_get_double(trace_get_arg(command, 2))[i];
+    
+    real(buffer, drawbuffer, value);
+    
+    update_drawbuffer(ctx, inspect_command, buffer, drawbuffer);
+
+glClearBufferfi:
+    GLenum buffer = gl_param_GLenum(command, 0);
+    GLint drawbuffer = gl_param_GLint(command, 1);
+    GLfloat depth = gl_param_GLfloat(command, 2);
+    GLint stencil = gl_param_GLint(command, 3);
+    real(buffer, drawbuffer, depth, stencil);
+    
+    update_drawbuffer(ctx, inspect_command, GL_DEPTH, 0);
+    update_drawbuffer(ctx, inspect_command, GL_STENCIL, 0);

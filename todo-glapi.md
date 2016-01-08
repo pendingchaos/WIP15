@@ -47,7 +47,7 @@
 - [x] glDisableVertexAttribArray
 - [x] glDrawArrays
 - [x] glDrawArraysInstanced
-- [ ] glDrawBuffers
+- [x] glDrawBuffers
 - [x] glDrawElements
 - [x] glDrawElementsBaseVertex
 - [x] glDrawElementsInstanced

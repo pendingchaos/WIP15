@@ -210,6 +210,8 @@ int main(int argc, char **argv)
     GLuint query;
     glGenQueries(1, &query);
     
+    GLenum bufs[1] = {GL_COLOR_ATTACHMENT0};
+    
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -220,7 +222,9 @@ int main(int argc, char **argv)
         //Render to framebuffer
         glBeginQuery(GL_SAMPLES_PASSED, query);
         glBindFramebuffer(GL_FRAMEBUFFER, fb);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glDrawBuffers(1, bufs);
+        static const GLfloat ccolor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+        glClearBufferfv(GL_COLOR, 0, ccolor);
         
         glUseProgram(program);
         
@@ -237,6 +241,7 @@ int main(int argc, char **argv)
         
         //Render to window
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
         
         glUseProgram(dpy_prog);
         

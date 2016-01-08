@@ -731,3 +731,23 @@ glDeleteQueries:
     gl_param_GLsizei(n, -1);
     gl_param_GLuint_array(n, ids);
     gl_glDeleteQueries(n, ids);
+
+glDrawBuffers:
+    gl_param_GLsizei(n, -1);
+    gl_param_GLuint_array(n, bufs);
+    gl_glDrawBuffers(n, bufs);
+
+glClearBufferiv:
+    gl_param_GLenum(buffer, -1); //TODO: The group
+    gl_param_GLint(drawbuffer, -1); //TODO: The group
+    gl_param_GLint_array(buffer==GL_COLOR?4:1, value);
+
+glClearBufferuiv:
+    gl_param_GLenum(buffer, -1); //TODO: The group
+    gl_param_GLint(drawbuffer, -1); //TODO: The group
+    gl_param_GLuint_array(buffer==GL_COLOR?4:1, value);
+
+glClearBufferfv:
+    gl_param_GLenum(buffer, -1); //TODO: The group
+    gl_param_GLint(drawbuffer, -1); //TODO: The group
+    gl_param_GLfloat_array(buffer==GL_COLOR?4:1, value);

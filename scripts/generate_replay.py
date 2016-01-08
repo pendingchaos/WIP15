@@ -753,100 +753,6 @@ static void set_vertex_attrib(replay_context_t* ctx, GLuint index, const generic
     F(glVertexAttribDivisor)(index, attrib->divisor); //TODO: It should only do this if it's supported
 }
 
-static void begin_draw(replay_context_t* ctx) {
-    //TODO: This should use the limits.
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
-    
-    attribs = malloc(sizeof(generic_vertex_attrib_t)*attrib_count);
-    
-    GLint prog;
-    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
-    
-    for (size_t i = 0; i < attrib_count; i++) {
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attribs[i].enabled);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &attribs[i].count);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &attribs[i].type);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &attribs[i].integer);
-        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
-        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
-    }
-    
-    for (size_t i = 0; i < attrib_count; i++) {
-        GLint loc = replay_conv_attrib_index(ctx, prog, i);
-        if (loc < 0)
-            continue;
-        
-        set_vertex_attrib(ctx, loc, attribs+i);
-    }
-}
-
-static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
-    replay_get_back_color(ctx, cmd);
-    replay_get_depth(ctx, cmd);
-    
-    GLint fb;
-    F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
-    fb = replay_get_fake_object(ctx, ReplayObjType_GLFramebuffer, fb);
-    
-    //TODO: Make this work with non-2d textures
-    if (fb) {
-        GLint last_tex;
-        F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &last_tex);
-        
-        size_t count = replay_get_color_tex_count(ctx, fb);
-        for (size_t i = 0; i < count; i++) {
-            uint64_t tex = replay_get_color_tex(ctx, fb, i);
-            size_t level = replay_get_color_level(ctx, fb, i);
-            tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
-            if (!tex)
-                continue;
-            
-            F(glBindTexture)(GL_TEXTURE_2D, tex);
-            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
-        }
-        
-        uint64_t tex = replay_get_depth_tex(ctx, fb);
-        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
-        if (tex) {
-            size_t level = replay_get_depth_level(ctx, fb);
-            F(glBindTexture)(GL_TEXTURE_2D, tex);
-            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
-        }
-        
-        tex = replay_get_stencil_tex(ctx, fb);
-        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
-        if (tex) {
-            size_t level = replay_get_stencil_level(ctx, fb);
-            F(glBindTexture)(GL_TEXTURE_2D, tex);
-            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
-        }
-        
-        tex = replay_get_depth_stencil_tex(ctx, fb);
-        tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, tex);
-        if (tex) {
-            size_t level = replay_get_depth_stencil_level(ctx, fb);
-            F(glBindTexture)(GL_TEXTURE_2D, tex);
-            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
-        }
-        
-        F(glBindTexture)(GL_TEXTURE_2D, last_tex);
-    }
-    
-    //TODO: This should use the limits.
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
-    
-    for (size_t i = 0; i < attrib_count; i++)
-        set_vertex_attrib(ctx, i, attribs+i);
-    
-    free(attribs);
-}
-
 static GLint get_bound_framebuffer(replay_context_t* ctx, GLenum target) {
     GLint fb;
     switch (target) {
@@ -953,6 +859,130 @@ static void update_query(replay_context_t* ctx, inspect_command_t* cmd, GLenum t
     query.result = res;
     
     inspect_act_set_query(&cmd->state, &query);
+}
+
+static void update_drawbuffer(replay_context_t* ctx, inspect_command_t* cmd, GLenum buffer, GLint drawbuffer) {
+    GLint fb;
+    F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
+    
+    //TODO: Support depth stencil attachments
+    if (fb) {
+        GLint attach;
+        
+        switch (buffer) {
+        case GL_COLOR: {
+            GLint maxattach;
+            F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &maxattach);
+            
+            F(glGetIntegerv)(GL_DRAW_BUFFER0+drawbuffer, &attach);
+            
+            if (attach < GL_COLOR_ATTACHMENT0 ||
+                attach>=GL_COLOR_ATTACHMENT0+maxattach)
+                return;
+            break;
+        }
+        case GL_DEPTH: {
+            attach = GL_DEPTH_ATTACHMENT;
+            break;
+        }
+        case GL_STENCIL: {
+            attach = GL_STENCIL_ATTACHMENT;
+            break;
+        }
+        }
+        
+        GLint type;
+        F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER,
+                                                 attach,
+                                                 GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 &type);
+        
+        if (type == GL_TEXTURE) {
+            //TODO: Support non-2d textures
+            GLint tex;
+            F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER,
+                                                     attach,
+                                                     GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                     &tex);
+            
+            GLint level;
+            F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER,
+                                                     attach,
+                                                     GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+                                                     &level);
+            
+            GLint last;
+            F(glGetIntegerv)(GL_TEXTURE_BINDING_2D, &last);
+            F(glBindTexture)(GL_TEXTURE_2D, tex);
+            
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+            
+            F(glBindTexture)(GL_TEXTURE_2D, last);
+        }
+    } else if (drawbuffer == 0) {
+        switch (buffer) {
+        case GL_COLOR:
+            replay_get_back_color(ctx, cmd);
+            break;
+        case GL_DEPTH:
+            replay_get_depth(ctx, cmd);
+            break;
+        case GL_STENCIL:
+            break;
+        }
+    }
+}
+
+static void begin_draw(replay_context_t* ctx) {
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    attribs = malloc(sizeof(generic_vertex_attrib_t)*attrib_count);
+    
+    GLint prog;
+    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attribs[i].enabled);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &attribs[i].count);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &attribs[i].type);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
+        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &attribs[i].integer);
+        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
+        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
+    }
+    
+    for (size_t i = 0; i < attrib_count; i++) {
+        GLint loc = replay_conv_attrib_index(ctx, prog, i);
+        if (loc < 0)
+            continue;
+        
+        set_vertex_attrib(ctx, loc, attribs+i);
+    }
+}
+
+static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
+    GLint maxbuf;
+    F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &maxbuf);
+    
+    for (GLint i = 0; i < maxbuf; i++)
+        update_drawbuffer(ctx, cmd, GL_COLOR, i);
+    
+    update_drawbuffer(ctx, cmd, GL_DEPTH, 0);
+    update_drawbuffer(ctx, cmd, GL_STENCIL, 0);
+    
+    //TODO: This should use the limits.
+    GLint attrib_count;
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    
+    for (size_t i = 0; i < attrib_count; i++)
+        set_vertex_attrib(ctx, i, attribs+i);
+    
+    free(attribs);
 }
 
 static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
