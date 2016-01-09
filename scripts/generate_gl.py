@@ -39,9 +39,11 @@ output.write("""#include <X11/Xlib.h>
 
 #include "shared/uint.h"
 
+typedef void (*func_t)();
+
 #define _STR(...) #__VA_ARGS__
 #define STR(...) _STR(__VA_ARGS__)
-#define F(name) ((!gl_##name)?(gl_##name=(name##_t)gl_glXGetProcAddress((const GLubyte*)STR(name))):gl_##name)
+#define F(name) ((name##_t)get_func((func_t*)&gl_##name, STR(name)))
 """)
 
 for group in gl.groups.keys():
@@ -70,6 +72,13 @@ for name in gl.functions:
     output.write("static %s_t gl_%s;\n" % (name, name))
 
 output.write("""
+static func_t get_func(func_t* f, const char* name) {
+    if (*f)
+        return *f;
+    else
+        return *f = gl_glXGetProcAddress((const GLubyte*)name);
+}
+
 static void reset_gl() {
 """)
 
@@ -195,16 +204,16 @@ for n in names:
     output.write("""
     __GLXextFuncPtr %s(const GLubyte *name) {
         gl_start(%d);
-        gl_param_string(name);
+        gl_param_string((const char*)name);
         
         void (*result)() = NULL;
     """ % (n, nameToID[n]))
     
     for name in gl.functions:
         if name in names:
-            output.write("if(strcmp(name, \"%s\") == 0) {result=(void (*)())dlsym(lib_gl, \"%s\");};" % (name, name))
+            output.write("if(strcmp((const char*)name, \"%s\") == 0) {result=(void (*)())dlsym(lib_gl, \"%s\");};" % (name, name))
         else:
-            output.write("if(strcmp(name, \"%s\") == 0) {result=(void (*)())%s;}\n" % (name, name))
+            output.write("if(strcmp((const char*)name, \"%s\") == 0) {result=(void (*)())%s;}\n" % (name, name))
     
     output.write("""
         if (result==NULL)

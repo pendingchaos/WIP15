@@ -145,11 +145,6 @@ static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
 }
 
-static void gl_write_u32(uint32_t v) {
-    uint32_t le = htole32(v);
-    fwrite(&le, 4, 1, trace_file);
-}
-
 static void gl_write_str(const char* s) {
     uint32_t length = s == NULL ? 0 : strlen(s);
     uint32_t len_le = htole32(length);
@@ -890,11 +885,6 @@ static void gl_result_GLXContextID(GLXContextID value) {
     gl_write_int32(-1);
 }
 
-static void gl_result___GLXextFuncPtr(__GLXextFuncPtr value) {
-    gl_write_b(WIP15_RESULT);
-    gl_write_b(WIP15_FUNC_PTR);
-}
-
 static void gl_result_Status(Status value) {
     gl_write_b(WIP15_RESULT);
     gl_write_b(WIP15_S32);
@@ -914,14 +904,6 @@ static void gl_result_GLXFBConfigSGIX(GLXFBConfigSGIX value) {
     uint32_t v = htole32((size_t)value);
     fwrite(&v, 4, 1, trace_file);
 #endif
-    gl_write_int32(-1);
-}
-
-static void gl_result_GLXVideoCaptureDeviceNV(GLXVideoCaptureDeviceNV value) {
-    gl_write_b(WIP15_RESULT);
-    gl_write_b(WIP15_U32);
-    uint32_t v = htole32(value);
-    fwrite(&v, 4, 1, trace_file);
     gl_write_int32(-1);
 }
 

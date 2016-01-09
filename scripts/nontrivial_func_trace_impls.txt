@@ -3,7 +3,7 @@ glXChooseVisual:
     gl_param_int(screen, -1);
     size_t count = 0;
     while (attribList[count]) count += 2;
-    gl_param_GLuint_array(count+1, attribList);
+    gl_param_GLint_array(count+1, attribList);
     XVisualInfo* result = gl_glXChooseVisual(dpy, screen, attribList);
     gl_result_pointer(result);
 
@@ -313,10 +313,10 @@ glShaderSource:
         for (GLsizei i = 0; i < count; i++)
             free(sources[i]);
         
-        gl_param_GLuint_array(count, (GLint*)length);
+        gl_param_GLint_array(count, (GLint*)length);
     } else {
         gl_param_string_array(string, count);
-        gl_param_GLuint_array(0, NULL);
+        gl_param_GLint_array(0, NULL);
     }
     gl_glShaderSource(shader, count, string, length);
 
@@ -342,7 +342,7 @@ glGetIntegerv:
 
 glGetString:
     gl_param_GLenum(name, GROUP_StringName);
-    const GLubyte* result = "";
+    const GLubyte* result = (const GLubyte*)"";
     //TODO: Hack to get glfw 3.0.3 working
     #if 0
     switch (name) {
@@ -380,7 +380,6 @@ glGetString:
     #else
     result = gl_glGetString(name);
     #endif
-    gl_param_string(result);
 
 glTexParameterfv:
     gl_param_GLenum(target, GROUP_TextureTarget);

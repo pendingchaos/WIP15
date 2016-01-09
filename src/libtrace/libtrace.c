@@ -80,6 +80,8 @@ static void set_uint(trace_value_t* val, uint64_t i) {
 //2 = Result
 static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
     uint8_t type;
+    printf("Off: %ld\n", ftell(file));
+    
     if (!readf(&type, 1, 1, file)) {
         trace_error_desc = "Unable to read type";
         return -1;
@@ -89,7 +91,7 @@ static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
     val->group_index = -1;
     
     bool group = false;
-    
+    printf("%u\n", (unsigned int)type);
     switch (type) {
     case 0: { //end
         return 0;
@@ -618,7 +620,7 @@ trace_t *load_trace(const char* filename) {
             free_trace(trace);
             return NULL;
         }
-        
+        printf("%s\n", trace->func_names[command.func_index]);
         int res;
         trace_value_t val;
         while ((res = read_val(file, &val, trace)) != 0) {
