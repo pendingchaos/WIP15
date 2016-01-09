@@ -6,7 +6,7 @@
 void inspect_act_gen_tex(inspect_gl_state_t* state, uint id);
 void inspect_act_del_tex(inspect_gl_state_t* state, uint id);
 void inspect_act_tex_params(inspect_gl_state_t* state, uint id, inspect_gl_tex_params_t* params);
-void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t size, const void* data);
+void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t w, size_t h, const void* data);
 void inspect_act_gen_buf(inspect_gl_state_t* state, uint id);
 void inspect_act_del_buf(inspect_gl_state_t* state, uint id);
 void inspect_act_buf_data(inspect_gl_state_t* state, uint id, size_t size, const void* data, uint usage);

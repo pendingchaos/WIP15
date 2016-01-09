@@ -3,6 +3,7 @@
 #include "libtrace/libtrace.h"
 #include "shared/uint.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef enum {
     AttachType_Info,
@@ -25,7 +26,7 @@ TYPED_VEC(inspect_gl_state_entry_t, inspect_gl_state)
 typedef struct {
     uint32_t width;
     uint32_t height;
-    uint8_t* data;
+    char* filename;
 } inspect_image_t;
 
 typedef struct {
@@ -54,7 +55,7 @@ typedef struct {
     uint fake;
     inspect_gl_tex_params_t params;
     size_t mipmap_count;
-    void** mipmaps;
+    inspect_image_t* mipmaps;
 } inspect_texture_t;
 TYPED_VEC(inspect_texture_t, inspect_tex)
 
@@ -238,4 +239,8 @@ inspect_fb_t* inspect_find_fb_ptr(inspector_t* inspector, uint fake);
 inspect_rb_t* inspect_find_rb_ptr(inspector_t* inspector, uint fake);
 inspect_sync_t* inspect_find_sync_ptr(inspector_t* inspector, uint64_t fake);
 inspect_query_t* inspect_find_query_ptr(inspector_t* inspector, uint fake);
+
+bool inspect_replace_image(inspect_image_t* img, size_t w, size_t h, const void* data);
+void inspect_destroy_image(inspect_image_t* img);
+bool inspect_get_image_data(inspect_image_t* img, void* data);
 #endif

@@ -3,6 +3,7 @@
 
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdlib.h>
 
 extern GtkBuilder* builder;
 extern inspector_t* inspector;
@@ -39,7 +40,10 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     gtk_tree_store_clear(store);
     
     inspect_image_t* front = inspector->front_buf;
-    if (front && front->data) {
+    if (front && front->filename) {
+        uint32_t* img = (uint32_t*)malloc(front->width*front->height*4);
+        inspect_get_image_data(front, img);
+        
         GdkPixbuf* front_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                               TRUE,
                                               8,
@@ -48,9 +52,11 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
         uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(front_buf);
         for (size_t y = 0; y < front->height; y++) {
             for (size_t x = 0; x < front->width; x++) {
-                data[(front->height-1-y)*front->width+x] = ((uint32_t*)front->data)[y*front->width+x];
+                data[(front->height-1-y)*front->width+x] = img[y*front->width+x];
             }
         }
+        
+        free(img);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -60,7 +66,10 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     }
     
     inspect_image_t* back = inspector->back_buf;
-    if (back && back->data) {
+    if (back && back->filename) {
+        uint32_t* img = (uint32_t*)malloc(back->width*back->height*4);
+        inspect_get_image_data(back, img);
+        
         GdkPixbuf* back_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                              TRUE,
                                              8,
@@ -69,9 +78,11 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
         uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(back_buf);
         for (size_t y = 0; y < back->height; y++) {
             for (size_t x = 0; x < back->width; x++) {
-                data[(back->height-1-y)*back->width+x] = ((uint32_t*)back->data)[y*back->width+x];
+                data[(back->height-1-y)*back->width+x] = img[y*back->width+x];
             }
         }
+        
+        free(img);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -81,7 +92,10 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     }
     
     inspect_image_t* depth = inspector->depth_buf;
-    if (depth && depth->data) {
+    if (depth && depth->filename) {
+        uint32_t* img = (uint32_t*)malloc(depth->width*depth->height*4);
+        inspect_get_image_data(depth, img);
+        
         GdkPixbuf* depth_buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB,
                                               FALSE,
                                               8,
@@ -93,13 +107,15 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
             for (size_t x = 0; x < depth->width; x++) {
                 size_t index = (depth->height-1-y)*depth->width + x;
                 
-                uint32_t val = ((uint32_t*)depth->data)[y*depth->width+x];
+                uint32_t val = img[y*depth->width+x];
                 val = val / 4294967296.0 * 16777216.0;
                 data[index*3] = val % 256;
                 data[index*3+1] = val % 65536 / 256;
                 data[index*3+2] = val / 65536;
             }
         }
+        
+        free(img);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

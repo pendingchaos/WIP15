@@ -3,6 +3,7 @@
 
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdlib.h>
 
 extern GtkBuilder* builder;
 extern inspector_t* inspector;
@@ -73,20 +74,23 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         size_t w = params.width;
         size_t h = params.height;
         for (size_t level = 0; level < tex->mipmap_count; level++) {
-            void* data = tex->mipmaps[level];
-            
-            if (data) {
+            if (tex->mipmaps[level].filename) {
+                uint32_t* data = (uint32_t*)malloc(w*h*4);
+                inspect_get_image_data(tex->mipmaps+level, data);
+                
                 GtkTreeIter row;
                 gtk_tree_store_append(image_store, &row, NULL);
                 GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
                 uint32_t* dest = (uint32_t*)gdk_pixbuf_get_pixels(pixbuf);
                 for (size_t y = 0; y < h; y++) {
                     for (size_t x = 0; x < w; x++) {
-                        dest[(h-1-y)*w+x] = ((uint32_t*)data)[y*w+x];
+                        dest[(h-1-y)*w+x] = data[y*w+x];
                     }
                 }
                 gtk_tree_store_set(image_store, &row, 0, static_format("%u", level), 1, pixbuf, -1);
                 g_object_unref(pixbuf);
+                
+                free(data);
             }
             
             w /= 2;

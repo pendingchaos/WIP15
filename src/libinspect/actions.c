@@ -21,7 +21,7 @@ static void apply_del_tex(inspector_t* inspector, inspect_action_t* action) {
         return;
     
     for (size_t j = 0; j < tex->mipmap_count; ++j)
-        free(tex->mipmaps[j]);
+        inspect_destroy_image(tex->mipmaps+j);
     free(tex->mipmaps);
     
     size_t index = tex - get_inspect_tex_vec_data(inspector->textures);
@@ -191,13 +191,13 @@ static void apply_tex_params(inspector_t* inspector, inspect_action_t* action) {
         }
         
         for (size_t j = 0; j < tex->mipmap_count; ++j)
-            free(tex->mipmaps[j]);
+            inspect_destroy_image(tex->mipmaps+j);
         free(tex->mipmaps);
         
         tex->mipmap_count = mipmap_count;
-        tex->mipmaps = malloc(tex->mipmap_count*sizeof(void*));
+        tex->mipmaps = malloc(tex->mipmap_count*sizeof(inspect_image_t));
         for (size_t j = 0; j < mipmap_count; ++j)
-            tex->mipmaps[j] = NULL;
+            tex->mipmaps[j].filename = NULL;
     }
     
     tex->params = *params;
@@ -206,7 +206,7 @@ static void apply_tex_params(inspector_t* inspector, inspect_action_t* action) {
 typedef struct {
     uint obj;
     size_t mipmap;
-    size_t data_size;
+    inspect_image_t image;
 } tex_data_t;
 
 static void apply_tex_data(inspector_t* inspector, inspect_action_t* action) {
@@ -215,10 +215,19 @@ static void apply_tex_data(inspector_t* inspector, inspect_action_t* action) {
     inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
     if (!tex)
         return;
-    if (!tex->mipmaps[data->mipmap])
-        tex->mipmaps[data->mipmap] = malloc(data->data_size);
     
-    memcpy(tex->mipmaps[data->mipmap], data+1, data->data_size);
+    //TODO: Make this work with non-2d textures
+    void* idata = malloc(data->image.width*data->image.height*4);
+    inspect_get_image_data(&data->image, idata);
+    
+    inspect_replace_image(tex->mipmaps+data->mipmap, data->image.width, data->image.height, idata);
+    
+    free(idata);
+}
+
+static void tex_data_free(inspect_action_t* action) {
+    inspect_destroy_image(&((tex_data_t*)action->data)->image);
+    free(action->data);
 }
 
 typedef struct {
@@ -515,16 +524,16 @@ void inspect_act_tex_params(inspect_gl_state_t* state, uint id, inspect_gl_tex_p
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t size, const void* data) {
-    tex_data_t* act_data = malloc(sizeof(tex_data_t) + size);
+void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t w, size_t h, const void* data) {
+    tex_data_t* act_data = malloc(sizeof(tex_data_t));
     act_data->obj = id;
     act_data->mipmap = mipmap;
-    act_data->data_size = size;
-    memcpy(act_data+1, data, size);
+    act_data->image.filename = NULL;
+    inspect_replace_image(&act_data->image, w, h, data);
     
     inspect_action_t action;
     action.apply_func = &apply_tex_data;
-    action.free_func = &simple_free;
+    action.free_func = &tex_data_free;
     action.data = act_data;
     append_inspect_act_vec(state->actions, &action);
 }

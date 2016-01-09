@@ -12360,12 +12360,10 @@ static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd)
         int w, h;
         SDL_GL_GetDrawableSize(ctx->window, &w, &h);
         
-        fflush(stdout);
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.back.width = w;
-        cmd->state.back.height = h;
-        cmd->state.back.data = data;
+        inspect_replace_image(&cmd->state.back, w, h, data);
+        free(data);
         
         F(glReadBuffer)(last_buf);
     }
@@ -12384,9 +12382,8 @@ static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd
         
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        cmd->state.front.width = w;
-        cmd->state.front.height = h;
-        cmd->state.front.data = data;
+        inspect_replace_image(&cmd->state.front, w, h, data);
+        free(data);
         
         F(glReadBuffer)(last_buf);
     }
@@ -12405,9 +12402,8 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
         
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
-        cmd->state.depth.width = w;
-        cmd->state.depth.height = h;
-        cmd->state.depth.data = data;
+        inspect_replace_image(&cmd->state.depth, w, h, data);
+        free(data);
         
         F(glReadBuffer)(last_buf);
     }
@@ -12515,7 +12511,7 @@ static void replay_get_tex_data(replay_context_t* ctx,
         F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
         GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
-        inspect_act_tex_data(&cmd->state, fake, level, width*4, data);
+        inspect_act_tex_data(&cmd->state, fake, level, width, 1, data);
         
         free(data);
     } else if (target == GL_TEXTURE_2D) {
@@ -12533,7 +12529,7 @@ static void replay_get_tex_data(replay_context_t* ctx,
         F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
         GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
-        inspect_act_tex_data(&cmd->state, fake, level, width*height*4, data);
+        inspect_act_tex_data(&cmd->state, fake, level, width, height, data);
         
         free(data);
     } else if (target == GL_TEXTURE_3D) {
@@ -12552,7 +12548,7 @@ static void replay_get_tex_data(replay_context_t* ctx,
         F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
         
         GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
-        inspect_act_tex_data(&cmd->state, fake, level, width*height*depth*4, data);
+        inspect_act_tex_data(&cmd->state, fake, level, width, height, data);
         
         free(data);
     } else if (target == GL_TEXTURE_CUBE_MAP) {

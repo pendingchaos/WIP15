@@ -47,7 +47,7 @@ Dramatically reduce memory usage and size of trace files.
 
 Enum state values are not displayed as enums.
 
-Cube map, 1D array, 2D array, rectangle, buffer and multisample textures.
+Cube map, 1D array, 2D array, rectangle, buffer, multisample, 1D and 3D textures.
 
 Enabling or disabling state depending on OpenGL version and extensions.
 
@@ -58,5 +58,4 @@ Control over the output trace filename in the GUI.
 Control over the limits file in the GUI.
 
 Reduce memory usage during replaying.
-    Replay as late as possible (like in apitrace)
-    Store images in files
+    Reduce amount of memory needed to store state

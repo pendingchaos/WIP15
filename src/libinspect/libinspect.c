@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 static void update_context(uint64_t *context,
                            const trace_t* trace,
@@ -49,13 +50,13 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.entries = alloc_inspect_gl_state_vec(0);
             new_command->state.back.width = 0;
             new_command->state.back.height = 0;
-            new_command->state.back.data = NULL;
+            new_command->state.back.filename = NULL;
             new_command->state.front.width = 0;
             new_command->state.front.height = 0;
-            new_command->state.front.data = NULL;
+            new_command->state.front.filename = NULL;
             new_command->state.depth.width = 0;
             new_command->state.depth.height = 0;
-            new_command->state.depth.data = NULL;
+            new_command->state.depth.filename = NULL;
             new_command->state.actions = alloc_inspect_act_vec(0);
         }
     }
@@ -84,9 +85,9 @@ void free_inspection(inspection_t* inspection) {
                 trace_free_value(entry->val);
             free_inspect_gl_state_vec(entries);
             
-            free(command->state.back.data);
-            free(command->state.front.data);
-            free(command->state.depth.data);
+            inspect_destroy_image(&command->state.back);
+            inspect_destroy_image(&command->state.front);
+            inspect_destroy_image(&command->state.depth);
             
             inspect_act_vec_t actions = command->state.actions;
             for (inspect_action_t* act = actions->data; !vec_end(actions, act); act++)
@@ -257,7 +258,7 @@ static void free_textures(inspector_t* inspector) {
     inspect_tex_vec_t textures = inspector->textures;
     for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++) {
         for (size_t j = 0; j < tex->mipmap_count; j++)
-            free(tex->mipmaps[j]);
+            inspect_destroy_image(tex->mipmaps+j);
         free(tex->mipmaps);
     }
 }
@@ -393,13 +394,13 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         if (action->apply_func)
             action->apply_func(inspector, action);
     
-    if (state->front.data)
+    if (state->front.filename)
         inspector->front_buf = &state->front;
     
-    if (state->back.data)
+    if (state->back.filename)
         inspector->back_buf = &state->back;
     
-    if (state->depth.data)
+    if (state->depth.filename)
         inspector->depth_buf = &state->depth;
 }
 
@@ -533,4 +534,54 @@ int inspect_find_query(inspector_t* inspector, uint query) {
             return i;
     
     return -1;
+}
+
+bool inspect_replace_image(inspect_image_t* img, size_t w, size_t h, const void* data) {
+    inspect_destroy_image(img);
+    
+    char dummy;
+    size_t len = snprintf(&dummy, 1, ".WIP15_img_%"PRId64"_%p", (int64_t)getpid(), img);
+    
+    img->filename = malloc(len+1);
+    snprintf(img->filename, len, ".WIP15_img_%" PRId64 "_%p", (int64_t)getpid(), img);
+    
+    FILE* file = fopen(img->filename, "wb");
+    if (!file) {
+        free(img->filename);
+        img->filename = NULL;
+        return false;
+    }
+    fwrite(data, w*h*4, 1, file);
+    fclose(file);
+    
+    char* new_fname = canonicalize_file_name(img->filename);
+    free(img->filename);
+    img->filename = new_fname;
+    
+    img->width = w;
+    img->height = h;
+    
+    return true;
+}
+
+void inspect_destroy_image(inspect_image_t* img) {
+    if (img->filename) {
+        remove(img->filename);
+        free(img->filename);
+        img->filename = NULL;
+    }
+}
+
+bool inspect_get_image_data(inspect_image_t* img, void* data) {
+    if (!img->filename)
+        return false;
+    
+    FILE* file = fopen(img->filename, "rb");
+    if (!file)
+        return false;
+    
+    fread(data, img->width*img->height*4, 1, file);
+    fclose(file);
+    
+    return true;
 }
