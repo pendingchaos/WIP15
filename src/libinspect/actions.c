@@ -74,10 +74,27 @@ static void apply_del_prog(inspector_t* inspector, inspect_action_t* action) {
         return;
     
     free(prog->info_log);
-    free_vec(prog->shaders);
+    free_inspect_prog_shdr_vec(prog->shaders);
     
     size_t index = prog - get_inspect_prog_vec_data(inspector->programs);
     remove_inspect_prog_vec(inspector->programs, index, 1);
+}
+
+static void apply_link_prog(inspector_t* inspector, inspect_action_t* action) {
+    inspect_program_t* prog = inspect_find_prog_ptr(inspector, action->obj);
+    if (!prog)
+        return;
+    
+    inspect_prog_shdr_vec_t shaders = prog->shaders;
+    for (inspect_prog_shdr_t* attach = shaders->data; !vec_end(shaders, attach); attach++) {
+        inspect_shader_t* shdr = inspect_find_shdr_ptr(inspector, attach->shader);
+        if (!shdr)
+            continue;
+        
+        attach->type = shdr->type;
+        attach->source = malloc(strlen(shdr->source)+1);
+        strcpy(attach->source, shdr->source);
+    }
 }
 
 typedef struct {
@@ -107,14 +124,20 @@ static void apply_attach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = prog->shaders->size/sizeof(uint);
-    for (size_t i = 0; i < count; i++)
-        if (((uint *)prog->shaders->data)[i] == data->shdr)
-            goto end;
+    inspect_prog_shdr_vec_t shaders = prog->shaders;
+    for (inspect_prog_shdr_t* shdr = shaders->data; !vec_end(shaders, shdr); shdr++)
+        if (shdr->shader == data->shdr) {
+            shdr->type = 0;
+            shdr->source = NULL;
+            return;
+        }
     
-    append_vec(prog->shaders, sizeof(uint), &data->shdr);
+    inspect_prog_shdr_t shdr;
+    shdr.shader = data->shdr;
+    shdr.type = 0;
+    shdr.source = NULL;
     
-    end:;
+    append_inspect_prog_shdr_vec(prog->shaders, &shdr);
 }
 
 static void apply_detach_shdr(inspector_t* inspector, inspect_action_t* action) {
@@ -124,10 +147,11 @@ static void apply_detach_shdr(inspector_t* inspector, inspect_action_t* action) 
     if (!prog)
         return;
     
-    size_t count = prog->shaders->size/sizeof(uint);
-    for (size_t i = 0; i < count; i++)
-        if (((uint *)prog->shaders->data)[i] == data->shdr) {
-            remove_vec(prog->shaders, i*sizeof(uint), sizeof(uint));
+    inspect_prog_shdr_vec_t shaders = prog->shaders;
+    for (inspect_prog_shdr_t* shdr = shaders->data; !vec_end(shaders, shdr); shdr++)
+        if (shdr->shader == data->shdr) {
+            free(shdr->source);
+            remove_inspect_prog_shdr_vec(shaders, shdr-(inspect_prog_shdr_t*)shaders->data, 1);
             return;
         }
 }
@@ -632,6 +656,14 @@ void inspect_act_new_prog(inspect_gl_state_t* state, uint id) {
 void inspect_act_del_prog(inspect_gl_state_t* state, uint id) {
     inspect_action_t action;
     action.apply_func = &apply_del_prog;
+    action.free_func = NULL;
+    action.obj = id;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_link_prog(inspect_gl_state_t* state, uint id) {
+    inspect_action_t action;
+    action.apply_func = &apply_link_prog;
     action.free_func = NULL;
     action.obj = id;
     append_inspect_act_vec(state->actions, &action);

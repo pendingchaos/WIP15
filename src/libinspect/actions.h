@@ -16,6 +16,7 @@ void inspect_act_del_shdr(inspect_gl_state_t* state, uint id);
 void inspect_act_shdr_source(inspect_gl_state_t* state, uint id, size_t count, const char *const* sources);
 void inspect_act_new_prog(inspect_gl_state_t* state, uint id);
 void inspect_act_del_prog(inspect_gl_state_t* state, uint id);
+void inspect_act_link_prog(inspect_gl_state_t* state, uint id);
 void inspect_act_attach_shdr(inspect_gl_state_t* state, uint prog, uint shdr);
 void inspect_act_detach_shdr(inspect_gl_state_t* state, uint prog, uint shdr);
 void inspect_act_set_shdr_info_log(inspect_gl_state_t* state, uint id, const char* info_log);

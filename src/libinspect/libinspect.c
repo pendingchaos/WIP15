@@ -280,7 +280,11 @@ static void free_shaders(inspector_t* inspector) {
 static void free_programs(inspector_t* inspector) {
     inspect_prog_vec_t programs = inspector->programs;
     for (inspect_program_t* prog = programs->data; !vec_end(programs, prog); prog++) {
-        free_vec(prog->shaders);
+        inspect_prog_shdr_vec_t shaders = prog->shaders;
+        for (inspect_prog_shdr_t* shdr = shaders->data; !vec_end(shaders, shdr); shdr++)
+            free(shdr->source);
+        
+        free_inspect_prog_shdr_vec(prog->shaders);
         free(prog->info_log);
     }
 }

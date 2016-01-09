@@ -30,7 +30,6 @@ Debugging:
         Currently have lots though more still needed.
         Some duplicated state (glGetBooleanv and glIsEnabled calls getting the same state)
     Replay should check to see if the user supplied limits have been reached.
-    View program attachment source
 
 Bugs:
     Program crashes with optimizations.

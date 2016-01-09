@@ -18104,6 +18104,8 @@ void replay_glLinkProgram(replay_context_t* ctx, trace_command_t* command, inspe
     inspect_act_set_prog_info_log(&inspect_command->state, fake, info_log);
     
     free(info_log);
+    
+    inspect_act_link_prog(&inspect_command->state, fake);
 
 #undef FUNC
 #define FUNC "glLinkProgram"

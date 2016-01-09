@@ -21,6 +21,7 @@
   <object class="GtkTextBuffer" id="textbuffer1"/>
   <object class="GtkTextBuffer" id="textbuffer2"/>
   <object class="GtkTextBuffer" id="textbuffer3"/>
+  <object class="GtkTextBuffer" id="textbuffer4"/>
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">WIP15 Inspector</property>
@@ -524,13 +525,19 @@
                               <object class="GtkTreeView" id="program_shaders_view">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="headers_visible">False</property>
+                                <signal name="cursor-changed" handler="prog_shdr_select_callback" swapped="no"/>
                                 <child internal-child="selection">
                                   <object class="GtkTreeSelection" id="treeview-selection11"/>
                                 </child>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="id3">
+                                    <property name="resizable">True</property>
                                     <property name="title" translatable="yes">ID</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkTreeViewColumn" id="type3">
+                                    <property name="title" translatable="yes">Type</property>
                                   </object>
                                 </child>
                               </object>
@@ -572,6 +579,35 @@
                           </object>
                           <packing>
                             <property name="position">1</property>
+                            <property name="tab_fill">False</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkScrolledWindow" id="scrolledwindow26">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="shadow_type">in</property>
+                            <child>
+                              <object class="GtkTextView" id="shdr_src_textview">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="editable">False</property>
+                                <property name="buffer">textbuffer4</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child type="tab">
+                          <object class="GtkLabel" id="shdr_src_tab">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Shader Source</property>
+                          </object>
+                          <packing>
+                            <property name="position">2</property>
                             <property name="tab_fill">False</property>
                           </packing>
                         </child>

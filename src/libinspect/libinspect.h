@@ -76,8 +76,15 @@ typedef struct {
 TYPED_VEC(inspect_shader_t, inspect_shdr)
 
 typedef struct {
+    unsigned int shader;
+    unsigned int type; //May be 0
+    char* source; //May be NULL
+} inspect_prog_shdr_t;
+TYPED_VEC(inspect_prog_shdr_t, inspect_prog_shdr)
+
+typedef struct {
     uint fake;
-    vec_t shaders; //vec_t of unsigned int
+    inspect_prog_shdr_vec_t shaders;
     char* info_log;
 } inspect_program_t;
 TYPED_VEC(inspect_program_t, inspect_prog)
