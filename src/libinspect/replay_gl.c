@@ -328,7 +328,7 @@ static Bool gl_param_Bool(trace_command_t* cmd, size_t index) {
 }
 
 static GLbitfield gl_param_GLbitfield(trace_command_t* cmd, size_t index) {
-    return *trace_get_bitfield(trace_get_arg(cmd, index));
+    return *trace_get_uint(trace_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLsync(trace_command_t* cmd, size_t index) {

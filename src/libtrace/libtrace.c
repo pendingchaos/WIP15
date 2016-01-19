@@ -5,6 +5,38 @@
 #include <string.h>
 #include <endian.h>
 
+typedef enum {
+    BaseType_Void = 0,
+    BaseType_UnsignedInt = 1,
+    BaseType_Int = 2,
+    BaseType_Ptr = 3,
+    BaseType_Bool = 4,
+    BaseType_Float = 5,
+    BaseType_Double = 6,
+    BaseType_String = 7,
+    BaseType_Data = 8,
+    BaseType_FunctionPtr = 9
+} base_type_t;
+
+typedef enum {
+    Op_DeclFunc = 0,
+    Op_DeclGroup = 1,
+    Op_Call = 2
+} opcode_t;
+
+typedef struct {
+    base_type_t base;
+    bool has_group;
+    bool is_array;
+} type_t;
+
+typedef struct {
+    char* name;
+    type_t result;
+    uint32_t arg_count;
+    type_t* args;
+} func_decl_t;
+
 static trace_error_t trace_error = TraceError_None;
 static const char *trace_error_desc = "";
 
@@ -24,7 +56,6 @@ void trace_free_value(trace_value_t value) {
         case Type_Int:
         case Type_Double:
         case Type_Boolean:
-        case Type_Bitfield:
         case Type_Ptr:
             free(value.u64_array);
             break;
@@ -62,430 +93,232 @@ static void free_frame(trace_frame_t* frame) {
     free_trace_cmd_vec(commands);
 }
 
-static void set_int(trace_value_t* val, int64_t i) {
-    val->type = Type_Int;
-    val->i64 = i;
-    val->count = 1;
+static char* read_str(FILE* file) {
+    uint32_t length;
+    if (!readf(&length, 4, 1, file))
+        return NULL;
+    length = le32toh(length);
+    
+    char* str = (char*)malloc(length+1);
+    if (!readf(str, length, 1, file)) {
+        free(str);
+        return NULL;
+    }
+    str[length] = 0;
+    
+    return str;
 }
 
-static void set_uint(trace_value_t* val, uint64_t i) {
-    val->type = Type_UInt;
-    val->u64 = i;
-    val->count = 1;
+static void* read_data(FILE* file) {
+    uint32_t size;
+    if (!readf(&size, 4, 1, file))
+        return NULL;
+    size = le32toh(size);
+    
+    void* data = malloc(size);
+    if (!readf(data, size, 1, file)) {
+        free(data);
+        return NULL;
+    }
+    
+    return data;
 }
 
-//-1 == Error
-//0 = End
-//1 = Arg
-//2 = Result
-static int read_val(FILE* file, trace_value_t* val, trace_t* trace) {
-    uint8_t type;
-    
-    if (!readf(&type, 1, 1, file)) {
-        trace_error_desc = "Unable to read type";
-        return -1;
-    }
-    
-    val->type = Type_Void;
-    val->group_index = -1;
-    
-    bool group = false;
-    
-    switch (type) {
-    case 0: { //end
-        return 0;
-    }
-    case 1: {//uint32_t array
-        if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read uint32_t array count";
-            return -1;
-        }
+//Returns true on success
+static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trace) {
+    if (type->is_array) {
+        if (!readf(&val->count, 4, 1, file))
+            return false;
         val->count = le32toh(val->count);
-        val->type = Type_UInt;
-        if (val->count == 1) {
-            uint32_t v;
-            if (!readf(&v, 4, 1, file)) {
-                trace_error_desc = "Unable to read uint32_t array element";
-                return -1;
-            }
-            val->u64 = le32toh(v);
-        } else {
-            val->u64_array = malloc(sizeof(uint64_t)*val->count);
-            
-            for (size_t i = 0; i < val->count; ++i) {
-                uint32_t v;
-                if (!readf(&v, 4, 1, file)) {
-                    free(val->u64_array);
-                    trace_error_desc = "Unable to read uint32_t array element";
-                    return -1;
-                }
-                val->u64_array[i] = le32toh(v);
-            }
-        }
-        break;
-    }
-    case 2: { //string
-        uint32_t length;
-        if (!readf(&length, 4, 1, file)) {
-            trace_error_desc = "Unable to read string length";
-            return -1;
-        }
-        length = le32toh(length);
-        
-        val->type = Type_Str;
+    } else {
         val->count = 1;
-        val->str = malloc(length+1);
-        if (!readf(val->str, length, 1, file)) {
-            free(val->str);
-            trace_error_desc = "Unable to read string data";
-            return -1;
-        }
-        val->str[length] = 0;
-        break;
     }
-    case 3: { //32-bit pointer
-        uint32_t v;
-        if (!readf(&v, 4, 1, file)) {
-            trace_error_desc = "Unable to read 32-bit pointer";
-            return -1;
+    
+    switch (type->base) {
+        case BaseType_Void: {
+            val->type = Type_Void;
+            break;
         }
-        val->type = Type_Ptr;
-        val->count = 1;
-        val->ptr = le32toh(v);
-        break;
-    }
-    case 4: { //64-bit pointer
-        uint64_t v;
-        if (!readf(&v, 8, 1, file)) {
-            trace_error_desc = "Unable to read 64-bit pointer";
-            return -1;
-        }
-        val->type = Type_Ptr;
-        val->count = 1;
-        val->ptr = le64toh(v);
-        break;
-    }
-    case 5: { //function pointer
-        break;
-    }
-    case 6: { //uint8_t
-        uint8_t v;
-        if (!readf(&v, 1, 1, file)) {
-            trace_error_desc = "Unable to read 8-bit unsigned integer";
-            return -1;
-        }
-        set_uint(val, v);
-        group = true;
-        break;
-    }
-    case 7: { //int8_t
-        int8_t v;
-        if (!readf(&v, 1, 1, file)) {
-            trace_error_desc = "Unable to read 8-bit signed integer";
-            return -1;
-        }
-        set_int(val, v);
-        group = true;
-        break;
-    }
-    case 8: { //uint16_t
-        uint16_t v;
-        if (!readf(&v, 2, 1, file)) {
-            trace_error_desc = "Unable to read 16-bit unsigned integer";
-            return -1;
-        }
-        set_uint(val, le16toh(v));
-        group = true;
-        break;
-    }
-    case 9: { //int16_t
-        int16_t v;
-        if (!readf(&v, 2, 1, file)) {
-            trace_error_desc = "Unable to read 16-bit signed integer";
-            return -1;
-        }
-        set_int(val, le16toh(v));
-        group = true;
-        break;
-    }
-    case 10: { //uint32_t
-        uint32_t v;
-        if (!readf(&v, 4, 1, file)) {
-            trace_error_desc = "Unable to read 32-bit unsigned integer";
-            return -1;
-        }
-        set_uint(val, le32toh(v));
-        group = true;
-        break;
-    }
-    case 11: { //int32_t
-        int32_t v;
-        if (!readf(&v, 4, 1, file)) {
-            trace_error_desc = "Unable to read 32-bit signed integer";
-            return -1;
-        }
-        set_int(val, le16toh(v));
-        group = true;
-        break;
-    }
-    case 12: { //uint64_t
-        uint64_t v;
-        if (!readf(&v, 8, 1, file)) {
-            trace_error_desc = "Unable to read 64-bit unsigned integer";
-            return -1;
-        }
-        set_uint(val, le64toh(v));
-        group = true;
-        break;
-    }
-    case 13: { //int64_t
-        int64_t v;
-        if (!readf(&v, 8, 1, file)) {
-            trace_error_desc = "Unable to read 64-bit signed integer";
-            return -1;
-        }
-        set_int(val, le64toh(v));
-        group = true;
-        break;
-    }
-    case 14: { //boolean
-        uint8_t v;
-        if (!readf(&v, 1, 1, file)) {
-            trace_error_desc = "Unable to read boolean";
-            return -1;
-        }
-        val->type = Type_Boolean;
-        val->count = 1;
-        val->bl = v;
-        group = true;
-        break;
-    }
-    case 15: { //bitfield
-        uint32_t v;
-        if (!readf(&v, 4, 1, file)) {
-            trace_error_desc = "Unable to read bitfield";
-            return -1;
-        }
-        val->type = Type_Bitfield;
-        val->count = 1;
-        val->bitfield = v;
-        group = true;
-        break;
-    }
-    case 16: { //float
-        //TODO: Make this more portable.
-        float v;
-        if (!readf(&v, 4, 1, file)) {
-            trace_error_desc = "Unable to read float";
-            return -1;
-        }
-        val->type = Type_Double;
-        val->count = 1;
-        val->dbl = v;
-        group = true;
-        break;
-    }
-    case 17: { //double
-        //TODO: Make this more portable.
-        double v;
-        if (!readf(&v, 8, 1, file)) {
-            trace_error_desc = "Unable to read double";
-            return -1;
-        }
-        val->type = Type_Double;
-        val->count = 1;
-        val->dbl = v;
-        group = true;
-        break;
-    }
-    case 18: { //result
-        int res = read_val(file, val, trace);
-        if (res == -1) {
-            return -1;
-        } else if (res == 0) {
-            trace_error_desc = "Result value is End";
-            return -1;
-        } else if (res == 2) {
-            trace_error_desc = "Result value is a result";
-            return -1;
-        }
-        return 2;
-    }
-    case 19: { //string array
-        if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read count for string array";
-            return -1;
-        }
-        val->count = le32toh(val->count);
-        val->type = Type_Str;
-        
-        if (val->count == 1) {
-            uint32_t length;
-            if (!readf(&length, 4, 1, file)) {
-                trace_free_value(*val);
-                trace_error_desc = "Unable to read length for string array element";
-                return -1;
-            }
-            length = le32toh(length);
-            
-            val->str = malloc(length+1);
-            if (!readf(val->str, length, 1, file)) {
-                trace_free_value(*val);
-                trace_error_desc = "Unable to read data for string array element";
-                return -1;
-            }
-            val->str[length] = 0;
-        } else {
-            val->str_array = malloc(sizeof(char *)*val->count);
-            
-            for (size_t i = 0; i < val->count; ++i) val->str_array[i] = NULL;
-            
-            for (size_t i = 0; i < val->count; ++i) {
-                uint32_t length;
-                if (!readf(&length, 4, 1, file)) {
-                    trace_free_value(*val);
-                    trace_error_desc = "Unable to read length for string array element";
-                    return -1;
-                }
-                length = le32toh(length);
+        case BaseType_UnsignedInt: { //TODO: LEB128
+            val->type = Type_UInt;
+            if (val->count == 1) {
+                uint64_t v;
+                if (!readf(&v, 8, 1, file))
+                    return false;
+                val->u64 = le64toh(v);
+            } else {
+                val->u64_array = malloc(sizeof(uint64_t)*val->count);
                 
-                char *str = malloc(length+1);
-                if (!readf(str, length, 1, file)) {
-                    trace_free_value(*val);
-                    trace_error_desc = "Unable to read data for string array element";
-                    return -1;
+                for (size_t i = 0; i < val->count; ++i) {
+                    if (!readf(val->u64_array+i, 8, 1, file)) {
+                        free(val->u64_array);
+                        return false;
+                    }
+                    val->u64_array[i] = le32toh(val->u64_array[i]);
                 }
-                str[length] = 0;
+            }
+            break;
+        }
+        case BaseType_Int: { //TODO: LEB128
+            val->type = Type_Int;
+            if (val->count == 1) {
+                int64_t v;
+                if (!readf(&v, 8, 1, file))
+                    return false;
+                val->i64 = le64toh(v);
+            } else {
+                val->i64_array = malloc(sizeof(int64_t)*val->count);
                 
-                val->str_array[i] = str;
-            }
-        }
-        break;
-    }
-    case 20: { //data
-        uint32_t size;
-        if (!readf(&size, 4, 1, file)) {
-            trace_error_desc = "Unable to read data size";
-            return -1;
-        }
-        size = le32toh(size);
-        
-        val->type = Type_Data;
-        val->count = 1;
-        val->data = malloc(size);
-        if (!readf(val->data, size, 1, file)) {
-            free(val->data);
-            trace_error_desc = "Unable to read data";
-            return -1;
-        }
-        break;
-    }
-    case 21: {//double array
-        if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read double array count";
-            return -1;
-        }
-        val->count = le32toh(val->count);
-        val->type = Type_Double;
-        if (val->count == 1) {
-            if (!readf(&val->dbl, 8, 1, file)) {
-                trace_error_desc = "Unable to read double array element";
-                return -1;
-            }
-        } else {
-            val->dbl_array = malloc(sizeof(double)*val->count);
-            for (size_t i = 0; i < val->count; ++i) {
-                if (!readf(val->dbl_array+i, 8, 1, file)) {
-                    free(val->dbl_array);
-                    trace_error_desc = "Unable to read double array element";
-                    return -1;
+                for (size_t i = 0; i < val->count; i++) {
+                    if (!readf(val->i64_array+i, 8, 1, file)) {
+                        free(val->i64_array);
+                        return false;
+                    }
+                    val->i64_array[i] = le64toh(val->i64_array[i]);
                 }
             }
+            break;
         }
-        break;
-    }
-    case 22: {//int32_t array
-        if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read 32-bit integer array count";
-            return -1;
-        }
-        val->count = le32toh(val->count);
-        val->type = Type_Int;
-        if (val->count == 1) {
-            int32_t i;
-            if (!readf(&i, 4, 1, file)) {
-                trace_error_desc = "Unable to read 32-bit integer array element";
-                return -1;
-            }
-            val->i64 = le32toh(i);
-        } else {
-            val->i64_array = malloc(sizeof(int64_t)*val->count);
-            for (size_t i = 0; i < val->count; ++i) {
-                int32_t iv;
-                if (!readf(&iv, 4, 1, file)) {
-                    free(val->i64_array);
-                    trace_error_desc = "Unable to read 32-bit integer array element";
-                    return -1;
+        case BaseType_Ptr: { //TODO: LEB128
+            val->type = Type_Ptr;
+            if (val->count == 1) {
+                uint64_t v;
+                if (!readf(&v, 8, 1, file))
+                    return false;
+                val->ptr = le64toh(v);
+            } else {
+                val->ptr_array = malloc(sizeof(uint64_t)*val->count);
+                
+                for (size_t i = 0; i < val->count; i++) {
+                    if (!readf(val->ptr_array+i, 8, 1, file)) {
+                        free(val->ptr_array);
+                        return false;
+                    }
+                    val->ptr_array[i] = le32toh(val->ptr_array[i]);
                 }
-                val->i64_array[i] = le32toh(iv);
             }
+            break;
         }
-        break;
-    }
-    case 23: {//64-bit pointer array
-        if (!readf(&val->count, 4, 1, file)) {
-            trace_error_desc = "Unable to read 64-bit pointer array count";
-            return -1;
-        }
-        val->count = le32toh(val->count);
-        val->type = Type_Ptr;
-        if (val->count == 1) {
-            uint64_t p;
-            if (!readf(&p, 8, 1, file)) {
-                trace_error_desc = "Unable to read 64-bit pointer array element";
-                return -1;
-            }
-            val->ptr = le64toh(p);
-        } else {
-            val->ptr_array = malloc(sizeof(uint64_t)*val->count);
-            for (size_t i = 0; i < val->count; ++i) {
-                uint64_t pv;
-                if (!readf(&pv, 8, 1, file)) {
-                    free(val->ptr_array);
-                    trace_error_desc = "Unable to read 64-bit pointer array element";
-                    return -1;
+        case BaseType_Bool: {
+            val->type = Type_Boolean;
+            if (val->count == 1) {
+                uint8_t v;
+                if (!readf(&v, 1, 1, file))
+                    return false;
+                val->bl = v;
+            } else {
+                val->bl_array = malloc(val->count);
+                
+                for (size_t i = 0; i < val->count; i++) {
+                    uint8_t v;
+                    if (!readf(&v, 1, 1, file)) {
+                        free(val->bl_array);
+                        return false;
+                    }
+                    val->bl_array[i] = v;
                 }
-                val->ptr_array[i] = le64toh(pv);
             }
+            break;
         }
-        break;
-    }
-    default: {
-        trace_error_desc = "Invalid value type";
-        return -1;
-    }
+        case BaseType_Float: { //TODO: Make this more portable.
+            val->type = Type_Double;
+            if (val->count == 1) {
+                float v;
+                if (!readf(&v, 4, 1, file))
+                    return false;
+                val->dbl = v;
+            } else {
+                val->dbl_array = malloc(sizeof(double)*val->count);
+                
+                for (size_t i = 0; i < val->count; i++) {
+                    float v;
+                    if (!readf(&v, 4, 1, file)) {
+                        free(val->dbl_array);
+                        return false;
+                    }
+                    val->dbl_array[i] = v;
+                }
+            }
+            break;
+        }
+        case BaseType_Double: { //TODO: Make this more portable.
+            val->type = Type_Double;
+            if (val->count == 1) {
+                if (!readf(&val->dbl, 8, 1, file))
+                    return false;
+            } else {
+                val->dbl_array = malloc(sizeof(double)*val->count);
+                
+                for (size_t i = 0; i < val->count; i++)
+                    if (!readf(val->dbl_array+i, 8, 1, file))
+                        return false;
+            }
+            break;
+        }
+        case BaseType_String: {
+            val->type = Type_Str;
+            if (val->count == 1) {
+                val->str = read_str(file);
+                if (!val->str)
+                    return false;
+            } else {
+                val->str_array = malloc(sizeof(char*)*val->count);
+                
+                for (size_t i = 0; i < val->count; i++) {
+                    val->str_array[i] = read_str(file);
+                    if (!val->str_array[i]) {
+                        for (size_t j = 0; j < i; j++)
+                            free(val->str_array[i]);
+                        free(val->str_array);
+                        return false;
+                    }
+                }
+            }
+            break;
+        }
+        case BaseType_Data: {
+            val->type = Type_Data;
+            if (val->count == 1) {
+                val->data = read_data(file);
+                if (!val->data)
+                    return false;
+            } else {
+                val->data_array = malloc(sizeof(void*)*val->count);
+                
+                for (size_t i = 0; i < val->count; i++) {
+                    val->data_array[i] = read_data(file);
+                    if (!val->data_array[i]) {
+                        for (size_t j = 0; j < i; j++)
+                            free(val->data_array[i]);
+                        free(val->data_array);
+                        return false;
+                    }
+                }
+            }
+            break;
+        }
+        case BaseType_FunctionPtr: {
+            val->type = Type_FunctionPtr;
+            break;
+        }
     }
     
-    if (group) {
+    if (type->has_group) {
         if (!readf(&val->group_index, 4, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read group index";
             trace_free_value(*val);
-            return -1;
+            return false;
         }
         val->group_index = le32toh(val->group_index);
         
-        if (val->group_index >= trace->group_name_count && !(val->group_index<0)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Invalid group index";
+        if ((val->group_index>=trace->group_name_count) || (val->group_index<0)) {
             trace_free_value(*val);
-            return -1;
+            return false;
         }
     } else {
         val->group_index = -1;
     }
     
-    return 1;
+    return true;
 }
 
 trace_t *load_trace(const char* filename) {
@@ -503,14 +336,46 @@ trace_t *load_trace(const char* filename) {
     trace->group_name_count = 0;
     trace->frames = NULL;
     
-    uint8_t little_endian;
-    if (!readf(&little_endian, 1, 1, file)) {
+    char magic[6];
+    magic[5] = 0;
+    if (!readf(magic, 5, 1, file)) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Unable to read magic";
+        free_trace(trace);
+        return NULL;
+    }
+    
+    if (strcmp(magic, "WIP15")) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Invalid magic";
+        free_trace(trace);
+        return NULL;
+    }
+    
+    char endian;
+    if (!readf(&endian, 1, 1, file)) {
         trace_error = TraceError_Invalid;
         trace_error_desc = "Unable to read endian";
         free_trace(trace);
         return NULL;
     }
-    trace->little_endian = little_endian;
+    trace->little_endian = endian == '_';
+    
+    char version[17];
+    version[16] = 0;
+    if (!readf(version, 16, 1, file)) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Unable to read version";
+        free_trace(trace);
+        return NULL;
+    }
+    
+    if (strcmp(version, "0.0a            ")) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Unknown version";
+        free_trace(trace);
+        return NULL;
+    }
     
     if (!readf(&trace->func_name_count, 4, 1, file)) {
         trace_error = TraceError_Invalid;
@@ -519,34 +384,7 @@ trace_t *load_trace(const char* filename) {
         return NULL;
     }
     trace->func_name_count = le32toh(trace->func_name_count);
-    trace->func_names = malloc(sizeof(char *)*trace->func_name_count);
-    
-    for (size_t i = 0; i < trace->func_name_count; ++i) {
-        uint32_t length;
-        if (!readf(&length, 4, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read function name length";
-            free(trace->func_names);
-            trace->func_name_count = 0;
-            free_trace(trace);
-            return NULL;
-        }
-        length = le32toh(length);
-        
-        char *name = malloc(length+1);
-        if (!readf(name, length, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read function name length";
-            free(name);
-            free(trace->func_names);
-            trace->func_name_count = 0;
-            free_trace(trace);
-            return NULL;
-        }
-        name[length] = 0;
-        
-        trace->func_names[i] = name;
-    }
+    trace->func_names = calloc(1, sizeof(char*)*trace->func_name_count);
     
     if (!readf(&trace->group_name_count, 4, 1, file)) {
         trace_error = TraceError_Invalid;
@@ -555,111 +393,157 @@ trace_t *load_trace(const char* filename) {
         return NULL;
     }
     trace->group_name_count = le32toh(trace->group_name_count);
-    trace->group_names = malloc(sizeof(char *)*trace->group_name_count);
-    
-    for (size_t i = 0; i < trace->group_name_count; ++i) {
-        uint32_t length;
-        if (!readf(&length, 4, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read group name length";
-            free(trace->func_names);
-            trace->func_name_count = 0;
-            free_trace(trace);
-            return NULL;
-        }
-        length = le32toh(length);
-        
-        char *name = malloc(length+1);
-        if (!readf(name, length, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read group name length";
-            free(name);
-            free(trace->group_names);
-            trace->group_name_count = 0;
-            free_trace(trace);
-            return NULL;
-        }
-        name[length] = 0;
-        
-        trace->group_names[i] = name;
-    }
+    trace->group_names = calloc(1, sizeof(char *)*trace->group_name_count);
     
     trace->frames = alloc_trace_frame_vec(1);
     trace_frame_t *frame = get_trace_frame_vec(trace->frames, 0);
     frame->commands = alloc_trace_cmd_vec(0);
     
+    func_decl_t* func_decls = calloc(1, sizeof(func_decl_t)*trace->func_name_count);
+    memset(func_decls, 0, trace->func_name_count*sizeof(func_decl_t));
+    
+    #define ERROR(desc) do {\
+    trace_error = TraceError_Invalid;\
+    trace_error_desc = desc;\
+    goto error;\
+    } while (0)
+    
+    #define READ_TYPE(dest_) do {\
+        type_t* dest = &(dest_);\
+        uint8_t base, has_group, is_array;\
+        if (!readf(&base, 1, 1, file))\
+            ERROR("Unable to read base type");\
+        if (!readf(&has_group, 1, 1, file))\
+            ERROR("Unable to read whenever a type has a group or not");\
+        if (!readf(&is_array, 1, 1, file))\
+            ERROR("Unable to read whenever a type is an array or not");\
+        dest->base = base;\
+        dest->has_group = has_group;\
+        dest->is_array = is_array;\
+    } while (0)
+    
     while (true) {
-        if (fgetc(file) == EOF) {
+        uint8_t op_;
+        if (!readf(&op_, 1, 1, file))
+            break;
+        opcode_t op = (opcode_t)op_;
+        
+        switch (op) {
+        case Op_DeclFunc: {
+            uint32_t index;
+            if (!readf(&index, 4, 1, file))
+                ERROR("Unable to read function index");
+            index = le32toh(index);
+            
+            trace->func_names[index] = read_str(file);
+            if (!trace->func_names[index])
+                ERROR("Unable to read function name");
+            
+            func_decl_t* decl = func_decls+index;
+            
+            free(decl->args);
+            decl->args = NULL;
+            
+            decl->name = trace->func_names[index];
+            READ_TYPE(decl->result);
+            
+            if (!readf(&decl->arg_count, 4, 1, file))
+                ERROR("Unable to read argument count");
+            decl->arg_count = le32toh(decl->arg_count);
+            
+            decl->args = malloc(sizeof(type_t)*decl->arg_count);
+            for (uint32_t i = 0; i < decl->arg_count; i++)
+                READ_TYPE(decl->args[i]);
             break;
         }
-        
-        fseek(file, -1, SEEK_CUR);
-        
-        trace_command_t command;
-        command.func_index = 0;
-        command.args = NULL;
-        command.ret.type = Type_Void;
-        command.ret.group_index = -1;
-        command.ret.count = 0;
-        command.args = alloc_vec(0);
-        
-        if (!readf(&command.func_index, 4, 1, file)) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Unable to read function index";
-            free_vec(command.args);
-            free_trace(trace);
-            return NULL;
-        }
-        command.func_index = le32toh(command.func_index);
-        
-        if (command.func_index >= trace->func_name_count) {
-            trace_error = TraceError_Invalid;
-            trace_error_desc = "Invalid function index";
-            free_vec(command.args);
-            free_trace(trace);
-            return NULL;
-        }
-        
-        int res;
-        trace_value_t val;
-        while ((res = read_val(file, &val, trace)) != 0) {
-            if (res == -1) {
-                free_vec(command.args);
-                free_trace(trace);
-                trace_error = TraceError_Invalid;
-                return NULL;
-            } else if (res == 1) {
-                append_vec(command.args, sizeof(trace_value_t), &val);
-            } else if (res == 2) {
-                trace_free_value(command.ret);
-                command.ret = val;
-            }
-        }
-        
-        append_trace_cmd_vec(frame->commands, &command);
-        
-        if (strcmp(trace->func_names[command.func_index], "glXSwapBuffers") == 0) {
-            size_t index = get_trace_frame_vec_count(trace->frames);
-            resize_trace_frame_vec(trace->frames, index+1);
+        case Op_DeclGroup: {
+            uint32_t index;
+            if (!readf(&index, 4, 1, file))
+                ERROR("Unable to read group index");
+            index = le32toh(index);
             
-            frame = get_trace_frame_vec(trace->frames, index);
-            frame->commands = alloc_trace_cmd_vec(0);
+            trace->group_names[index] = read_str(file);
+            if (!trace->group_names[index])
+                ERROR("Unable to read group name");
+            break;
+        }
+        case Op_Call: {
+            trace_command_t command;
+            if (!readf(&command.func_index, 4, 1, file))
+                ERROR("Unable to read function index");
+            command.func_index = le32toh(command.func_index);
+            
+            if (command.func_index >= trace->func_name_count)
+                ERROR("Invalid function index");
+            
+            func_decl_t* decl = func_decls + command.func_index;
+            
+            if (!decl->name)
+                ERROR("Undeclared function used");
+            
+            command.args = alloc_trace_val_vec(decl->arg_count);
+            for (trace_value_t* a = command.args->data; !vec_end(command.args, a); a++)
+                a->type = Type_Void;
+            command.ret.type = Type_Void;
+            
+            for (size_t i = 0; i < decl->arg_count; i++)
+                if (!read_val(file, get_trace_val_vec(command.args, i), decl->args+i, trace)) {
+                    free_command(&command);
+                    goto error;
+                }
+            
+            if (!read_val(file, &command.ret, &decl->result, trace)) {
+                free_command(&command);
+                goto error;
+            }
+            
+            uint32_t extra_count;
+            if (!readf(&extra_count, 4, 1, file))
+                ERROR("Unable to read function extra count");
+            
+            //TODO
+            for (size_t i = 0; i < extra_count; i++) {
+                free(read_str(file));
+                free(read_data(file));
+            }
+            
+            append_trace_cmd_vec(frame->commands, &command);
+            
+            if (strcmp(trace->func_names[command.func_index], "glXSwapBuffers") == 0) {
+                size_t index = get_trace_frame_vec_count(trace->frames);
+                resize_trace_frame_vec(trace->frames, index+1);
+                
+                frame = get_trace_frame_vec(trace->frames, index);
+                frame->commands = alloc_trace_cmd_vec(0);
+            }
+            break;
+        }
         }
     }
+    
+    for (size_t i = 0; i < trace->func_name_count; i++)
+        free(func_decls[i].args);
+    free(func_decls);
     
     fclose(file);
     
     return trace;
+    
+    error:
+        for (size_t i = 0; i < trace->func_name_count; i++)
+            free(func_decls[i].args);
+        free(func_decls);
+        free_trace(trace);
+        fclose(file);
+        return NULL;
 }
 
 void free_trace(trace_t* trace) {
-    for (size_t i = 0; i < trace->func_name_count; ++i) {
+    for (size_t i = 0; i < trace->func_name_count; ++i)
         free(trace->func_names[i]);
-    }
     
-    for (size_t i = 0; i < trace->group_name_count; ++i) {
+    for (size_t i = 0; i < trace->group_name_count; ++i)
         free(trace->group_names[i]);
-    }
     
     free(trace->func_names);
     free(trace->group_names);
@@ -748,20 +632,6 @@ trace_value_t trace_create_bool(uint32_t count, bool* vals) {
     return val;
 }
 
-trace_value_t trace_create_bitfield(uint32_t count, uint32_t* vals) {
-    trace_value_t val;
-    val.type = Type_Bitfield;
-    val.count = count;
-    val.group_index = -1;
-    if (count == 1) {
-        val.bitfield = *vals;
-    } else {
-        val.bitfield_array = malloc(count*sizeof(uint32_t));
-        memcpy(val.bitfield_array, vals, count*sizeof(uint32_t));
-    }
-    return val;
-}
-
 trace_value_t trace_create_ptr(uint32_t count, uint64_t* vals) {
     trace_value_t val;
     val.type = Type_Ptr;
@@ -782,14 +652,14 @@ trace_value_t trace_create_str(uint32_t count, const char*const* vals) {
     val.count = count;
     val.group_index = -1;
     if (count == 1) {
-        size_t len = strlen(*vals);
+        size_t len = *vals ? strlen(*vals) : 0;
         val.str = malloc(len+1);
         memcpy(val.str, *vals, len);
         val.str[len] = 0;
     } else {
         val.str_array = malloc(sizeof(char*)*count);
         for (size_t i = 0; i < count; ++i) {
-            size_t len = strlen(vals[i]);
+            size_t len = vals[i] ? strlen(vals[i]) : 0;
             val.str_array[i] = malloc(len+1);
             memcpy(val.str_array[i], vals[i], len);
             val.str_array[i][len] = 0;
@@ -812,10 +682,6 @@ double* trace_get_double(trace_value_t* val) {
 
 bool* trace_get_bool(trace_value_t* val) {
     return val->count==1 ? &val->bl : val->bl_array;
-}
-
-uint32_t* trace_get_bitfield(trace_value_t* val) {
-    return val->count==1 ? &val->bitfield : val->bitfield_array;
 }
 
 uint64_t* trace_get_ptr(trace_value_t* val) {

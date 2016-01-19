@@ -125,10 +125,6 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             strncat(str, static_format("'%s'", trace_get_str(&value)[i]), n);
             break;
         }
-        case Type_Bitfield: {
-            strncat(str, static_format("%u", trace_get_bitfield(&value)[i]), n);
-            break;
-        }
         case Type_FunctionPtr: {
             strncat(str, static_format("<function pointer>"), n);
             break;

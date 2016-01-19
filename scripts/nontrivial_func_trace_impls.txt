@@ -1,16 +1,16 @@
-glXChooseVisual:
+glXChooseVisual: pointer, pointer, int, GLint+array
     gl_param_pointer(dpy);
-    gl_param_int(screen, -1);
+    gl_param_int(screen);
     size_t count = 0;
     while (attribList[count]) count += 2;
     gl_param_GLint_array(count+1, attribList);
     XVisualInfo* result = gl_glXChooseVisual(dpy, screen, attribList);
     gl_result_pointer(result);
 
-glXMakeCurrent:
+glXMakeCurrent: Bool, pointer, GLXDrawable, GLXContext
     gl_param_pointer(dpy);
-    gl_param_GLXDrawable(drawable, -1);
-    gl_param_GLXContext(ctx, -1);
+    gl_param_GLXDrawable(drawable);
+    gl_param_GLXContext(ctx);
     Bool result = gl_glXMakeCurrent(dpy, drawable, ctx);
     gl_result_Bool(result);
     if (!ctx) {
@@ -20,18 +20,18 @@ glXMakeCurrent:
     }
     reset_gl();
 
-glXCreateContextAttribsARB:
+glXCreateContextAttribsARB: GLXContext, pointer, GLXFBConfig, GLXContext, Bool, GLint+array
     gl_param_pointer(dpy);
-    gl_param_GLXFBConfig(config, -1);
-    gl_param_GLXContext(share_context, -1);
-    gl_param_Bool(direct, -1);
+    gl_param_GLXFBConfig(config);
+    gl_param_GLXContext(share_context);
+    gl_param_Bool(direct);
     size_t count = 0;
     while (attrib_list[count]) count += 2;
     gl_param_GLint_array(count+1, attrib_list);
     GLXContext result = gl_glXCreateContextAttribsARB(dpy, config, share_context, direct, attrib_list);
     gl_result_GLXContext(result);
 
-glSetContextCapsWIP15:
+glSetContextCapsWIP15: void
     //TODO
     /*gl_write_b(WIP15_DATA);
     gl_write_u32(0*sizeof(uint32_t));
@@ -42,29 +42,31 @@ glSetContextCapsWIP15:
     #undef LIMITF
     #undef LIMIT*/
 
-glMappedBufferDataWIP15:
-    gl_param_GLenum(target, -1);
-    gl_param_GLsizei(size, -1);
+glMappedBufferDataWIP15: void, GLenum, GLsizei, data
+    gl_param_GLenum(target);
+    gl_param_GLsizei(size);
     gl_param_data(size, data);
 
-glGenTextures:
-    gl_param_GLsizei(n, -1);
+glGenTextures: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenTextures(n, textures);
     gl_param_GLuint_array(n, textures);
 
-glDeleteTextures:
-    gl_param_GLsizei(n, -1);
+glDeleteTextures: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, textures);
     gl_glDeleteTextures(n, textures);
 
-glTexImage1D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(internalformat, -1); //TODO: The grouop
-    gl_param_GLsizei(width, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLenum(type, GROUP_PixelType);
+glTexImage1D: void, GLenum+group, GLint, GLint, GLsizei, GLint, GLenum, GLenum+group, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(internalformat); //TODO: The group
+    gl_param_GLsizei(width);
+    gl_param_GLint(border);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLenum(type);
+    gl_write_group(GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
     if (pixels) {
@@ -77,13 +79,15 @@ glTexImage1D:
     
     gl_glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
 
-glTexSubImage1D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLenum(type, GROUP_PixelType);
+glTexSubImage1D: void, GLenum+group, GLint, GLint, GLsizei, GLenum, GLenum+group, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLenum(type);
+    gl_write_group(GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
     if (pixels) {
@@ -96,15 +100,17 @@ glTexSubImage1D:
     
     gl_glTexSubImage1D(target, level, xoffset, width, format, type, pixels);
 
-glTexImage2D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(internalformat, -1); //TODO: The group
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLenum(format, -1); //TODO: The group 
-    gl_param_GLenum(type, GROUP_PixelType);
+glTexImage2D: void, GLenum+group, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum+group, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(internalformat); //TODO: The group
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLint(border);
+    gl_param_GLenum(format);
+    gl_param_GLenum(type);
+    gl_write_group(GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
     //TODO: Hack that does not make sense
@@ -127,15 +133,17 @@ glTexImage2D:
     
     gl_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 
-glTexSubImage2D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLint(yoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLenum(type, GROUP_PixelType);
+glTexSubImage2D: void, GLenum+group, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum+group, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLint(yoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLenum(type);
+    gl_write_group(GROUP_PixelType);
     
     size_t texel_size = get_texel_size(format, type);
     if (pixels) {
@@ -148,16 +156,17 @@ glTexSubImage2D:
     
     gl_glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 
-glTexImage3D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(internalformat, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLsizei(depth, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLenum(format, -1);
-    gl_param_GLenum(type, -1);
+glTexImage3D: void, GLenum+group, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(internalformat);
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLsizei(depth);
+    gl_param_GLint(border);
+    gl_param_GLenum(format);
+    gl_param_GLenum(type);
     
     size_t texel_size = get_texel_size(format, type);
     if (pixels) {
@@ -170,17 +179,18 @@ glTexImage3D:
     
     gl_glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
 
-glTexSubImage3D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLint(yoffset, -1);
-    gl_param_GLint(zoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLsizei(depth, -1);
-    gl_param_GLenum(format, -1);
-    gl_param_GLenum(type, -1);
+glTexSubImage3D: void, GLenum+group, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLint(yoffset);
+    gl_param_GLint(zoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLsizei(depth);
+    gl_param_GLenum(format);
+    gl_param_GLenum(type);
     
     size_t texel_size = get_texel_size(format, type);
     if (pixels) {
@@ -193,88 +203,94 @@ glTexSubImage3D:
     
     gl_glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 
-glCompressedTexImage1D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, -1); //TODO: The group
-    gl_param_GLsizei(width, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexImage1D: void, GLenum+group, GLint, GLenum, GLsizei, GLint, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLenum(internalformat); //TODO: The group
+    gl_param_GLsizei(width);
+    gl_param_GLint(border);
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, data);
 
-glCompressedTexSubImage1D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexSubImage1D: void, GLenum+group, GLint, GLint, GLsizei, GLenum, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, data);
 
-glCompressedTexImage2D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, -1); //TODO: The group
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexImage2D: void, GLenum+group, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLenum(internalformat); //TODO: The group
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLint(border);
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
 
-glCompressedTexSubImage2D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLint(yoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexSubImage2D: void, GLenum+group, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLint(yoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data);
 
-glCompressedTexImage3D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLenum(internalformat, -1); //TODO: The group
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLsizei(depth, -1);
-    gl_param_GLint(border, -1);
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexImage3D: void, GLenum+group, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLint, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLenum(internalformat); //TODO: The group
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLsizei(depth);
+    gl_param_GLint(border);
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, data);
 
-glCompressedTexSubImage3D:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLint(level, -1);
-    gl_param_GLint(xoffset, -1);
-    gl_param_GLint(yoffset, -1);
-    gl_param_GLint(zoffset, -1);
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
-    gl_param_GLsizei(depth, -1);
-    gl_param_GLenum(format, -1); //TODO: The group
-    gl_param_GLsizei(imageSize, -1);
+glCompressedTexSubImage3D: void, GLenum+group, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLsizei, data
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLint(level);
+    gl_param_GLint(xoffset);
+    gl_param_GLint(yoffset);
+    gl_param_GLint(zoffset);
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
+    gl_param_GLsizei(depth);
+    gl_param_GLenum(format); //TODO: The group
+    gl_param_GLsizei(imageSize);
     gl_param_data(imageSize, data);
     gl_glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
 
-glGenBuffers:
-    gl_param_GLsizei(n, -1);
+glGenBuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenBuffers(n, buffers);
     gl_param_GLuint_array(n, buffers);
 
-glDeleteBuffers:
-    gl_param_GLsizei(n, -1);
+glDeleteBuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, buffers);
     gl_glDeleteBuffers(n, buffers);
 
-glBufferData:
-    gl_param_GLenum(target, -1); //TODO: The group
-    gl_param_GLsizeiptr(size, -1);
+glBufferData: void, GLenum, GLsizeiptr, data, GLenum
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLsizeiptr(size);
     
     if (data) {
         gl_param_data(size, data);
@@ -284,21 +300,21 @@ glBufferData:
         free(ptr);
     }
     
-    gl_param_GLenum(usage, -1); //TODO: The group
+    gl_param_GLenum(usage); //TODO: The group
     
     gl_glBufferData(target, size, data, usage);
 
-glBufferSubData:
-    gl_param_GLenum(target, -1); //TODO: The group
-    gl_param_GLintptr(offset, -1);
-    gl_param_GLsizeiptr(size, -1);
+glBufferSubData: void, GLenum, GLintptr, GLsizeiptr, data
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLintptr(offset);
+    gl_param_GLsizeiptr(size);
     gl_param_data(size, data);
     
     gl_glBufferSubData(target, offset, size, data);
 
-glShaderSource:
-    gl_param_GLuint(shader, -1);
-    gl_param_GLsizei(count, -1);
+glShaderSource: void, GLuint, GLsizei, string+array, GLint+array
+    gl_param_GLuint(shader);
+    gl_param_GLsizei(count);
     if (length) {
         GLchar* sources[count];
         
@@ -320,28 +336,33 @@ glShaderSource:
     }
     gl_glShaderSource(shader, count, string, length);
 
-glGetBooleanv:
-    gl_param_GLenum(pname, GROUP_GetPName);
+glGetBooleanv: void, GLenum, pointer
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetBooleanv)
 
-glGetDoublev:
-    gl_param_GLenum(pname, GROUP_GetPName);
+glGetDoublev: void, GLenum, pointer
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetDoublev)
 
-glGetFloatv:
-    gl_param_GLenum(pname, GROUP_GetPName);
+glGetFloatv: void, GLenum, pointer
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetFloatv)
 
-glGetIntegerv:
-    gl_param_GLenum(pname, GROUP_GetPName);
+glGetIntegerv: void, GLenum, pointer
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetIntegerv)
 
-glGetString:
-    gl_param_GLenum(name, GROUP_StringName);
+glGetString: string, GLenum
+    gl_param_GLenum(name);
+    gl_write_group(GROUP_StringName);
     const GLubyte* result = (const GLubyte*)"";
     //TODO: Hack to get glfw 3.0.3 working
     #if 0
@@ -381,196 +402,197 @@ glGetString:
     result = gl_glGetString(name);
     #endif
 
-glTexParameterfv:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLenum(pname, GROUP_TextureParameterName);
+glTexParameterfv: void, GLenum+group, GLenum+group, GLfloat+array
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_TextureParameterName);
     
-    if (pname == GL_TEXTURE_BORDER_COLOR) {
-        double arr[] = {params[0], params[1], params[2], params[3]};
-        gl_param_double_array(4, arr);
-    } else {
-        gl_param_GLfloat(*params, -1);
-    }
+    if (pname == GL_TEXTURE_BORDER_COLOR)
+        gl_param_GLfloat_array(4, params);
+    else
+        gl_param_GLfloat_array(1, params);
     
     gl_glTexParameterfv(target, pname, params);
 
-glTexParameteriv:
-    gl_param_GLenum(target, GROUP_TextureTarget);
-    gl_param_GLenum(pname, GROUP_TextureParameterName);
+glTexParameteriv: void, GLenum+group, GLenum+group, GLint+array
+    gl_param_GLenum(target);
+    gl_write_group(GROUP_TextureTarget);
+    gl_param_GLenum(pname);
+    gl_write_group(GROUP_TextureParameterName);
     
-    if (pname == GL_TEXTURE_BORDER_COLOR) {
+    if (pname == GL_TEXTURE_BORDER_COLOR)
         gl_param_GLint_array(4, params);
-    } else {
-        gl_param_GLint(*params, -1);
-    }
+    else
+        gl_param_GLint_array(1, params);
     
     gl_glTexParameteriv(target, pname, params);
 
-glProgramUniformWIP15:
-    gl_param_GLuint(program, -1);
+glProgramUniformWIP15: void, GLuint, string, GLuint
+    gl_param_GLuint(program);
     gl_param_string(name);
-    gl_param_GLuint(location, -1);
+    gl_param_GLuint(location);
 
-glUniform1fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform1fv: void, GLint, GLsizei, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLfloat_array(count, value);
     gl_glUniform1fv(location, count, value);
 
-glUniform2fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform2fv: void, GLint, GLsizei, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLfloat_array(count*2, value);
     gl_glUniform2fv(location, count, value);
 
-glUniform3fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform3fv: void, GLint, GLsizei, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLfloat_array(count*3, value);
     gl_glUniform3fv(location, count, value);
 
-glUniform4fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform4fv: void, GLint, GLsizei, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLfloat_array(count*4, value);
     gl_glUniform4fv(location, count, value);
 
-glUniform1iv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform1iv: void, GLint, GLsizei, GLint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLint_array(count, value);
     gl_glUniform1iv(location, count, value);
 
-glUniform2iv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform2iv: void, GLint, GLsizei, GLint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLint_array(count*2, value);
     gl_glUniform2iv(location, count, value);
 
-glUniform3iv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform3iv: void, GLint, GLsizei, GLint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLint_array(count*3, value);
     gl_glUniform3iv(location, count, value);
 
-glUniform4iv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform4iv: void, GLint, GLsizei, GLint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLint_array(count*4, value);
     gl_glUniform4iv(location, count, value);
 
-glUniform1uiv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform1uiv: void, GLint, GLsizei, GLuint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLuint_array(count, value);
     gl_glUniform1uiv(location, count, value);
 
-glUniform2uiv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform2uiv: void, GLint, GLsizei, GLuint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLuint_array(count*2, value);
     gl_glUniform2uiv(location, count, value);
 
-glUniform3uiv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform3uiv: void, GLint, GLsizei, GLuint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLuint_array(count*3, value);
     gl_glUniform3uiv(location, count, value);
 
-glUniform4uiv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
+glUniform4uiv: void, GLint, GLsizei, GLuint+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
     gl_param_GLuint_array(count*4, value);
     gl_glUniform4uiv(location, count, value);
 
-glUniformMatrix2fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose,-1);
+glUniformMatrix2fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*4, value);
     gl_glUniformMatrix2fv(location, count, transpose, value);
 
-glUniformMatrix3fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix3fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*9, value);
     gl_glUniformMatrix3fv(location, count, transpose, value);
 
-glUniformMatrix4fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix4fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*16, value);
     gl_glUniformMatrix4fv(location, count, transpose, value);
 
-glUniformMatrix2x3fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix2x3fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*6, value);
     gl_glUniformMatrix2x3fv(location, count, transpose, value);
 
-glUniformMatrix3x2fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix3x2fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*6, value);
     gl_glUniformMatrix3x2fv(location, count, transpose, value);
 
-glUniformMatrix2x4fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix2x4fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*8, value);
     gl_glUniformMatrix2x4fv(location, count, transpose, value);
 
-glUniformMatrix4x2fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix4x2fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*8, value);
     gl_glUniformMatrix4x2fv(location, count, transpose, value);
 
-glUniformMatrix3x4fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix3x4fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*12, value);
     gl_glUniformMatrix3x4fv(location, count, transpose, value);
 
-glUniformMatrix4x3fv:
-    gl_param_GLint(location, -1);
-    gl_param_GLsizei(count, -1);
-    gl_param_GLboolean(transpose, -1);
+glUniformMatrix4x3fv: void, GLint, GLsizei, GLboolean, GLfloat+array
+    gl_param_GLint(location);
+    gl_param_GLsizei(count);
+    gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*12, value);
     gl_glUniformMatrix4x3fv(location, count, transpose, value);
 
-glProgramAttribWIP15:
-    gl_param_GLuint(program, -1);
+glProgramAttribWIP15: void, GLuint, string, GLuint
+    gl_param_GLuint(program);
     gl_param_string(name);
-    gl_param_GLuint(index, -1);
+    gl_param_GLuint(index);
 
-glTestFBWIP15:
+glTestFBWIP15: void, string, data, data
     gl_param_string(name);
     gl_param_data(100*100*4, color);
     gl_param_data(100*100*4, depth);
 
-glCurrentTestWIP15:
+glCurrentTestWIP15: void, string
     gl_param_string(name);
 
-glGenVertexArrays:
-    gl_param_GLsizei(n, -1);
+glGenVertexArrays: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenVertexArrays(n, arrays);
     gl_param_GLuint_array(n, arrays);
 
-glDeleteVertexArrays:
-    gl_param_GLsizei(n, -1);
+glDeleteVertexArrays: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, arrays);
     gl_glDeleteVertexArrays(n, arrays);
 
-glPatchParameterfv:
-    gl_param_GLenum(pname, -1); //TODO: The group
+glPatchParameterfv: void, GLenum, GLfloat+array
+    gl_param_GLenum(pname); //TODO: The group
     switch (pname) {
     case GL_PATCH_VERTICES:
         gl_param_GLfloat_array(1, values);
@@ -584,184 +606,187 @@ glPatchParameterfv:
     }
     gl_glPatchParameterfv(pname, values);
 
-glDrawableSizeWIP15:
-    gl_param_GLsizei(width, -1);
-    gl_param_GLsizei(height, -1);
+glDrawableSizeWIP15: void, GLsizei, GLsizei
+    gl_param_GLsizei(width);
+    gl_param_GLsizei(height);
 
-glGetBufferParameteriv:
+glGetBufferParameteriv: void, GLenum, GLenum, GLint
     gl_glGetBufferParameteriv(target, pname, params);
-    gl_param_GLenum(target, -1); //TODO: The group
-    gl_param_GLenum(pname, -1); //TODO: The group
-    gl_param_GLint(*params, -1);
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLenum(pname); //TODO: The group
+    gl_param_GLint(*params);
 
-glGetBufferPointerv:
+glGetBufferPointerv: void, GLenum, GLenum, pointer
     gl_glGetBufferPointerv(target, pname, params);
-    gl_param_GLenum(target, -1); //TODO: The group
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLenum(pname); //TODO: The group
     gl_param_pointer(*params);
 
-glGenSamplers:
-    gl_param_GLsizei(count, -1);
+glGenSamplers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(count);
     gl_glGenSamplers(count, samplers);
     gl_param_GLuint_array(count, samplers);
 
-glDeleteSamplers:
-    gl_param_GLsizei(count, -1);
+glDeleteSamplers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(count);
     gl_param_GLuint_array(count, samplers);
     gl_glDeleteSamplers(count, samplers);
 
-glPointParameterfv:
-    gl_param_GLenum(pname, -1); //TODO: The group
-    gl_param_GLfloat(*params, -1);
+glPointParameterfv: void, GLenum, GLfloat
+    gl_param_GLenum(pname); //TODO: The group
+    gl_param_GLfloat(*params);
     gl_glPointParameterfv(pname, params);
 
-glPointParameteriv:
-    gl_param_GLenum(pname, -1); //TODO: The group
-    gl_param_GLint(*params, -1);
+glPointParameteriv: void, GLenum, GLint
+    gl_param_GLenum(pname); //TODO: The group
+    gl_param_GLint(*params);
     gl_glPointParameteriv(pname, params);
 
-glGetSynciv:
+glGetSynciv: void, GLsync, GLenum, GLsizei, GLsizei, GLint+array
     GLsizei len;
     gl_glGetSynciv(sync, pname, bufSize, length?length:&len, values);
     
-    gl_param_GLsync(sync, -1);
-    gl_param_GLenum(pname, -1);
-    gl_param_GLsizei(bufSize, -1);
+    gl_param_GLsync(sync);
+    gl_param_GLenum(pname);
+    gl_param_GLsizei(bufSize);
     if (length) {
-        gl_param_GLsizei(*length, -1);
+        gl_param_GLsizei(*length);
         gl_param_GLint_array(*length, values);
     } else {
-        gl_param_GLint_array(0, NULL);
+        gl_param_GLsizei(len);
         gl_param_GLint_array(len, values);
     }
 
-glMultiDrawArrays:
-    gl_param_GLenum(mode, GROUP_PrimitiveType);
+glMultiDrawArrays: void, GLenum+group, GLint+array, GLint+array, GLsizei
+    gl_param_GLenum(mode);
+    gl_write_group(GROUP_PrimitiveType);
     gl_param_GLint_array(drawcount, first);
     gl_param_GLint_array(drawcount, count);
-    gl_param_GLsizei(drawcount, -1);
+    gl_param_GLsizei(drawcount);
     gl_glMultiDrawArrays(mode, first, count, drawcount);
 
-glMultiDrawElements:
-    gl_param_GLenum(mode, GROUP_PrimitiveType);
+glMultiDrawElements: void, GLenum+group, GLint+array, GLenum, pointer+array, GLsizei
+    gl_param_GLenum(mode);
+    gl_write_group(GROUP_PrimitiveType);
     gl_param_GLint_array(drawcount, count);
-    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLenum(type); //TODO: The group
     gl_param_pointer_array(drawcount, indices);
-    gl_param_GLsizei(drawcount, -1);
+    gl_param_GLsizei(drawcount);
     gl_glMultiDrawElements(mode, count, type, indices, drawcount);
 
-glMultiDrawElementsBaseVertex:
-    gl_param_GLenum(mode, GROUP_PrimitiveType);
+glMultiDrawElementsBaseVertex: void, GLenum+group, GLint+array, GLenum, pointer+array, GLsizei, GLint+array
+    gl_param_GLenum(mode);
+    gl_write_group(GROUP_PrimitiveType);
     gl_param_GLint_array(drawcount, count);
-    gl_param_GLenum(type, -1); //TODO: The group
+    gl_param_GLenum(type); //TODO: The group
     gl_param_pointer_array(drawcount, indices);
-    gl_param_GLsizei(drawcount, -1);
+    gl_param_GLsizei(drawcount);
     gl_param_GLint_array(drawcount, basevertex);
     gl_glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
 
-glSamplerParameterfv:
+glSamplerParameterfv: void, GLuint, GLenum, GLfloat+array
     gl_glSamplerParameterfv(sampler, pname, param);
-    gl_param_GLuint(sampler, -1);
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLuint(sampler);
+    gl_param_GLenum(pname); //TODO: The group
     if (pname == GL_TEXTURE_BORDER_COLOR)
         gl_param_GLfloat_array(4, param);
     else
-        gl_param_GLfloat(*param, -1);
+        gl_param_GLfloat_array(1, param);
 
-glSamplerParameteriv:
+glSamplerParameteriv: void, GLuint, GLenum, GLint+array
     gl_glSamplerParameteriv(sampler, pname, param);
-    gl_param_GLuint(sampler, -1);
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLuint(sampler);
+    gl_param_GLenum(pname); //TODO: The group
     if (pname == GL_TEXTURE_BORDER_COLOR)
         gl_param_GLint_array(4, param);
     else
-        gl_param_GLint(*param, -1);
+        gl_param_GLint_array(1, param);
 
-glSamplerParameterIiv:
+glSamplerParameterIiv: void, GLuint, GLenum, GLint+array
     gl_glSamplerParameterIiv(sampler, pname, param);
-    gl_param_GLuint(sampler, -1);
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLuint(sampler);
+    gl_param_GLenum(pname); //TODO: The group
     if (pname == GL_TEXTURE_BORDER_COLOR)
         gl_param_GLint_array(4, param);
     else
-        gl_param_GLint(*param, -1);
+        gl_param_GLint_array(1, param);
 
-glSamplerParameterIuiv:
+glSamplerParameterIuiv: void, GLuint, GLenum, GLuint+array
     gl_glSamplerParameterIuiv(sampler, pname, param);
-    gl_param_GLuint(sampler, -1);
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLuint(sampler);
+    gl_param_GLenum(pname); //TODO: The group
     if (pname == GL_TEXTURE_BORDER_COLOR)
         gl_param_GLuint_array(4, param);
     else
-        gl_param_GLuint(*param, -1);
+        gl_param_GLuint_array(1, param);
 
-glGenFramebuffers:
-    gl_param_GLsizei(n, -1);
+glGenFramebuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenFramebuffers(n, framebuffers);
     gl_param_GLuint_array(n, framebuffers);
 
-glDeleteFramebuffers:
-    gl_param_GLsizei(n, -1);
+glDeleteFramebuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, framebuffers);
     gl_glDeleteFramebuffers(n, framebuffers);
 
-glGenRenderbuffers:
-    gl_param_GLsizei(n, -1);
+glGenRenderbuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenRenderbuffers(n, renderbuffers);
     gl_param_GLuint_array(n, renderbuffers);
 
-glDeleteRenderbuffers:
-    gl_param_GLsizei(n, -1);
+glDeleteRenderbuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, renderbuffers);
     gl_glDeleteRenderbuffers(n, renderbuffers);
 
-glGetActiveUniformsiv:
+glGetActiveUniformsiv: void, GLuint, GLsizei, GLuint+array, GLenum, GLint+array
     gl_glGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
-    gl_param_GLuint(program, -1);
-    gl_param_GLsizei(uniformCount, -1);
+    gl_param_GLuint(program);
+    gl_param_GLsizei(uniformCount);
     gl_param_GLuint_array(uniformCount, uniformIndices);
-    gl_param_GLenum(pname, -1); //TODO: The group
+    gl_param_GLenum(pname); //TODO: The group
     gl_param_GLint_array(uniformCount, params);
 
-glGetFramebufferAttachmentParameteriv:
+glGetFramebufferAttachmentParameteriv: void, GLenum, GLenum, GLenum, GLint
     gl_glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
-    gl_param_GLenum(target, -1); //TODO: The group
-    gl_param_GLenum(attachment, -1); //TODO: The group
-    gl_param_GLenum(pname, -1); //TODO: The group
-    gl_param_GLint(*params, -1);
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLenum(attachment); //TODO: The group
+    gl_param_GLenum(pname); //TODO: The group
+    gl_param_GLint(*params);
 
-glGetRenderbufferParameteriv:
+glGetRenderbufferParameteriv: void, GLenum, GLenum, GLint
     gl_glGetRenderbufferParameteriv(target, pname, params);
-    gl_param_GLenum(target, 1); //TODO: The group
-    gl_param_GLenum(pname, -1); //TODO: The group
-    gl_param_GLint(*params, -1);
+    gl_param_GLenum(target); //TODO: The group
+    gl_param_GLenum(pname); //TODO: The group
+    gl_param_GLint(*params);
 
-glGenQueries:
-    gl_param_GLsizei(n, -1);
+glGenQueries: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_glGenQueries(n, ids);
     gl_param_GLuint_array(n, ids);
 
-glDeleteQueries:
-    gl_param_GLsizei(n, -1);
+glDeleteQueries: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, ids);
     gl_glDeleteQueries(n, ids);
 
-glDrawBuffers:
-    gl_param_GLsizei(n, -1);
+glDrawBuffers: void, GLsizei, GLuint+array
+    gl_param_GLsizei(n);
     gl_param_GLuint_array(n, bufs);
     gl_glDrawBuffers(n, bufs);
 
-glClearBufferiv:
-    gl_param_GLenum(buffer, -1); //TODO: The group
-    gl_param_GLint(drawbuffer, -1); //TODO: The group
+glClearBufferiv: void, GLenum, GLint, GLint+array
+    gl_param_GLenum(buffer); //TODO: The group
+    gl_param_GLint(drawbuffer); //TODO: The group
     gl_param_GLint_array(buffer==GL_COLOR?4:1, value);
 
-glClearBufferuiv:
-    gl_param_GLenum(buffer, -1); //TODO: The group
-    gl_param_GLint(drawbuffer, -1); //TODO: The group
+glClearBufferuiv: void, GLenum, GLint, GLuint+array
+    gl_param_GLenum(buffer); //TODO: The group
+    gl_param_GLint(drawbuffer); //TODO: The group
     gl_param_GLuint_array(buffer==GL_COLOR?4:1, value);
 
-glClearBufferfv:
-    gl_param_GLenum(buffer, -1); //TODO: The group
-    gl_param_GLint(drawbuffer, -1); //TODO: The group
+glClearBufferfv: void, GLenum, GLint, GLfloat+array
+    gl_param_GLenum(buffer); //TODO: The group
+    gl_param_GLint(drawbuffer); //TODO: The group
     gl_param_GLfloat_array(buffer==GL_COLOR?4:1, value);

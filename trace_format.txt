@@ -1,0 +1,115 @@
+All integers are little endian.
+float is a IEEE binary32.
+double is a IEEE binary64.
+bool is a unsigned 8-bit integer where 0 is false and anything else is true.
+uchar8 is a unsigned 8-bit ASCII character
+uint32 is a unsigned 32-bit integer.
+uint8 is a unsigned 8-bit integer.
+uvari is a unsigned integer encoded using unsigned LEB128 resulting in a integer requiring less than 65 bits.
+svari is a signed integer encoded using signed LEB128 resulting in a integer requiring less than 65 bits.
+
+Type
+    BaseType base
+    bool has_group
+    bool is_array
+
+BaseType (uint8)
+    Void = 0
+    UnsignedInt = 1
+    Int = 2
+    Ptr = 3
+    Bool = 4
+    Float = 5
+    Double = 6
+    String = 7
+    Data = 8
+    FunctionPtr = 9
+
+ValueElement<Void>
+    (nothing)
+
+ValueElement<UnsignedInt>
+    uvari
+
+ValueElement<Int>
+    svari
+
+ValueElement<Ptr>
+    uvari
+
+ValueElement<Bool>
+    bool val
+
+ValueElement<Float>
+    float val
+
+ValueElement<Double>
+    double val
+
+ValueElement<String>
+    uint32 len;
+    uchar8 data[len]
+
+ValueElement<Data>
+    uint32 size;
+    uint8 data[size]
+
+ValueElement<FunctionPtr>
+    (nothing)
+
+Value<type>
+    if type.is_array
+        uint32 count
+        ValueElement<type.base> elements[count]
+    else
+        ValueElement<type.base> element
+    if type.has_group
+        uint32 group_index
+
+Function
+    uint32 name_len
+    uchar8 name[name_len]
+    Type result
+    uint32 arg_count
+    Type args[arg_count]
+
+Opcode (uint8)
+    OpDeclFunc = 0
+    OpDeclGroup = 1
+    OpCall = 2
+
+Operation
+    Opcode opcode
+    OpData<opcode> data
+
+OpData<OpDeclFunc>
+    uint32 index
+    Function func
+
+OpData<OpDeclGroup>
+    uint32 index
+    uint32 name_len
+    uchar8 name[name_len]
+
+OpData<OpCall>
+    uint32 func_index
+    function = functions[func_index]
+    for i in 0...function.arg_count
+        Value<function.args[i]>
+    if function.result.base != Void
+        Value<function.result>
+    uint32 extra_count
+    for i in 0...extra_count
+        uint32 extra_name_len
+        uchar8 extra_name[extra_name_len]
+        uint32 extra_data_size
+        uint8 extra_data[extra_data_size]
+
+Content
+    uchar8 magic[5] = "WIP15"
+    uchar8 endian #Endian of machine this trace was created from. "_"=little "-"=big
+    uchar8 version[16] = "0.0a            "
+    uint32 max_functions
+    uint32 max_groups
+    Operation ops[]
+    (end of file)

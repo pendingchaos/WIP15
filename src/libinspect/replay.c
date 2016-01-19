@@ -80,6 +80,9 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     ctx->funcs = malloc(trace->func_name_count * sizeof(replay_func_t));
     
     for (size_t i = 0; i < trace->func_name_count; ++i) {
+        if (!trace->func_names[i] || !strlen(trace->func_names[i]))
+            continue;
+        
         char name[strlen(trace->func_names[i])+8];
         strcpy(name, "replay_");
         strcat(name, trace->func_names[i]);
