@@ -9,8 +9,8 @@
 - [x] glBindBuffer
 - [x] glBindBufferBase
 - [x] glBindBufferRange
-- [ ] glBindFragDataLocation
-- [ ] glBindFragDataLocationIndexed
+- [x] glBindFragDataLocation
+- [x] glBindFragDataLocationIndexed
 - [x] glBindFramebuffer
 - [x] glBindRenderbuffer
 - [x] glBindSampler
@@ -55,7 +55,6 @@
 - [x] glDrawRangeElements
 - [x] glDrawRangeElementsBaseVertex
 - [x] glEnableVertexAttribArray
-- [ ] glEndConditionalRender
 - [x] glEndQuery
 - [ ] glEndTransformFeedback
 - [x] glFenceSync
@@ -123,8 +122,8 @@
 - [x] glGetUniformfv
 - [x] glGetUniformuiv
 - [x] glGetUniformiv
-- [ ] glGetUniformBlockIndex
-- [ ] glGetUniformIndices
+- [x] glGetUniformBlockIndex
+- [x] glGetUniformIndices
 - [x] glGetUniformLocation
 - [x] glGetVertexAttribIiv
 - [x] glGetVertexAttribfv
@@ -143,12 +142,10 @@
 - [x] glIsVertexArray
 - [x] glLinkProgram
 - [x] glMapBuffer
-- [ ] glMapBufferRange
+- [x] glMapBufferRange
 - [x] glMultiDrawArrays
 - [x] glMultiDrawElements
 - [x] glMultiDrawElementsBaseVertex
-- [ ] glPixelStorei
-- [ ] glPixelStoref
 - [x] glPointParameterfv
 - [x] glPointParameteriv
 - [x] glQueryCounter
@@ -334,6 +331,7 @@
 - [ ] glDrawTransformFeedbackStreamInstanced
 - [ ] glGetActiveAtomicCounterBufferiv
 - [x] glGetInternalformativ
+- [ ] glMemoryBarrier
 - [ ] glTexStorage1D
 - [ ] glTexStorage2D
 - [ ] glTexStorage3D
@@ -391,6 +389,7 @@
 - [ ] glBindVertexBuffers
 - [ ] glBindVertexBuffers
 - [ ] glBufferStorage
+- [ ] GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
 - [ ] glClearTexImage
 - [ ] glClearTexSubImage
 - GL_QUERY_RESULT_BUFFER
@@ -423,6 +422,8 @@
 - [ ] glCreateVertexArrays
 - [ ] glDisableVertexArrayAttrib
 - [ ] glEnableVertexArrayAttrib
+- [ ] glFlushMappedBufferRange
+- [ ] glFlushMappedNamedBufferRange
 - [ ] glGenerateTextureMipmap
 - [ ] glGetCompressedTextureImage
 - [ ] glGetCompressedTextureSubImage
@@ -453,6 +454,7 @@
 - [ ] glInvalidateNamedFramebufferSubData
 - [ ] glMapNamedBuffer
 - [ ] glMapNamedBufferRange
+- [ ] glMemoryBarrierByRegion
 - [ ] glNamedBufferData
 - [ ] glNamedBufferStorage
 - [ ] glNamedBufferSubData

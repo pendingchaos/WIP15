@@ -12,4 +12,8 @@ void buffer_test() {
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
     glBufferSubData(GL_ARRAY_BUFFER, 0, 5, "Hello");
+    
+    data = glMapBufferRange(GL_ARRAY_BUFFER, 0, 5, GL_MAP_WRITE_BIT);
+    memcpy(data, "World", 5);
+    glUnmapBuffer(GL_ARRAY_BUFFER);
 }

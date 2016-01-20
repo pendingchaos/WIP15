@@ -1735,6 +1735,18 @@ glGetFragDataLocation:
     if (!real_program)
         inspect_add_error(inspect_command, "Invalid program.");
 
+glGetUniformBlockIndex:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+glGetUniformIndices:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
 glDrawableSizeWIP15:
     GLsizei w = gl_param_GLsizei(command, 0);
     GLsizei h = gl_param_GLsizei(command, 1);
@@ -2352,3 +2364,17 @@ glClearBufferfi:
     
     update_drawbuffer(ctx, inspect_command, GL_DEPTH, 0);
     update_drawbuffer(ctx, inspect_command, GL_STENCIL, 0);
+
+glBindFragDataLocation:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+    real(real_program, gl_param_GLuint(command, 1), gl_param_string(command, 2));
+
+glBindFragDataLocationIndexed:
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+    real(real_program, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2), gl_param_string(command, 3));

@@ -17263,8 +17263,15 @@ void replay_glBindFragDataLocation(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glBindFragDataLocation", inspect_command);
     glBindFragDataLocation_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindFragDataLocation;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1), (const  GLchar  *)gl_param_string(command, 2));
-replay_end_cmd(ctx, "glBindFragDataLocation", inspect_command);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+    real(real_program, gl_param_GLuint(command, 1), gl_param_string(command, 2));
+
+#undef FUNC
+#define FUNC "glBindFragDataLocation"
+RETURN;
 }
 
 void replay_glFogCoordPointerListIBM(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -35107,8 +35114,14 @@ void replay_glGetUniformIndices(replay_context_t* ctx, trace_command_t* command,
     replay_begin_cmd(ctx, "glGetUniformIndices", inspect_command);
     glGetUniformIndices_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformIndices;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const  GLchar  *const*)gl_param_pointer(command, 2), (GLuint  *)gl_param_pointer(command, 3));
-replay_end_cmd(ctx, "glGetUniformIndices", inspect_command);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+#undef FUNC
+#define FUNC "glGetUniformIndices"
+RETURN;
 }
 
 void replay_glFrustumf(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -45770,8 +45783,15 @@ void replay_glBindFragDataLocationIndexed(replay_context_t* ctx, trace_command_t
     replay_begin_cmd(ctx, "glBindFragDataLocationIndexed", inspect_command);
     glBindFragDataLocationIndexed_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glBindFragDataLocationIndexed;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (GLuint)gl_param_GLuint(command, 1), (GLuint)gl_param_GLuint(command, 2), (const  GLchar  *)gl_param_string(command, 3));
-replay_end_cmd(ctx, "glBindFragDataLocationIndexed", inspect_command);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+    real(real_program, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2), gl_param_string(command, 3));
+
+#undef FUNC
+#define FUNC "glBindFragDataLocationIndexed"
+RETURN;
 }
 
 void replay_glUniform2iv(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -51857,8 +51877,14 @@ void replay_glGetUniformBlockIndex(replay_context_t* ctx, trace_command_t* comma
     replay_begin_cmd(ctx, "glGetUniformBlockIndex", inspect_command);
     glGetUniformBlockIndex_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glGetUniformBlockIndex;
     do {(void)sizeof((real));} while (0);
-    real((GLuint)gl_param_GLuint(command, 0), (const  GLchar  *)gl_param_string(command, 1));
-replay_end_cmd(ctx, "glGetUniformBlockIndex", inspect_command);
+    GLuint fake = gl_param_GLuint(command, 0);
+    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    if (!real_program)
+        inspect_add_error(inspect_command, "Invalid program.");
+
+#undef FUNC
+#define FUNC "glGetUniformBlockIndex"
+RETURN;
 }
 
 void replay_glFrontFace(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {

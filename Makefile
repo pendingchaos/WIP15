@@ -61,3 +61,5 @@ all:
 	make inspect-gui
 	make leakcheck
 	make testtrace
+	make test
+	make tests
