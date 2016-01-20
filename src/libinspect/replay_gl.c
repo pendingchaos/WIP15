@@ -13088,6 +13088,12 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_LINE_WIDTH_GRANULARITY", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[2];
+            F(glGetIntegerv)(GL_POLYGON_MODE, v);
+            set_state_int(&cmd->state, "GL_POLYGON_MODE", 2, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_POLYGON_SMOOTH, v);
@@ -13098,6 +13104,18 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             GLboolean v[1];
             F(glGetBooleanv)(GL_CULL_FACE, v);
             set_state_bool(&cmd->state, "GL_CULL_FACE", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CULL_FACE_MODE, v);
+            set_state_int(&cmd->state, "GL_CULL_FACE_MODE", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_FRONT_FACE, v);
+            set_state_int(&cmd->state, "GL_FRONT_FACE", 1, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
@@ -13124,10 +13142,70 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_DEPTH_CLEAR_VALUE", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DEPTH_FUNC, v);
+            set_state_int(&cmd->state, "GL_DEPTH_FUNC", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_STENCIL_TEST, v);
             set_state_bool(&cmd->state, "GL_STENCIL_TEST", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_CLEAR_VALUE, v);
+            set_state_int(&cmd->state, "GL_STENCIL_CLEAR_VALUE", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_FUNC, v);
+            set_state_int(&cmd->state, "GL_STENCIL_FUNC", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_VALUE_MASK, v);
+            set_state_int(&cmd->state, "GL_STENCIL_VALUE_MASK", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_FAIL, v);
+            set_state_int(&cmd->state, "GL_STENCIL_FAIL", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_PASS_DEPTH_FAIL, v);
+            set_state_int(&cmd->state, "GL_STENCIL_PASS_DEPTH_FAIL", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_PASS_DEPTH_PASS, v);
+            set_state_int(&cmd->state, "GL_STENCIL_PASS_DEPTH_PASS", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_REF, v);
+            set_state_int(&cmd->state, "GL_STENCIL_REF", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_WRITEMASK, v);
+            set_state_int(&cmd->state, "GL_STENCIL_WRITEMASK", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[4];
+            F(glGetIntegerv)(GL_VIEWPORT, v);
+            set_state_int(&cmd->state, "GL_VIEWPORT", 4, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
@@ -13136,16 +13214,52 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_DITHER", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_DST, v);
+            set_state_int(&cmd->state, "GL_BLEND_DST", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_SRC, v);
+            set_state_int(&cmd->state, "GL_BLEND_SRC", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_BLEND, v);
             set_state_bool(&cmd->state, "GL_BLEND", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_LOGIC_OP_MODE, v);
+            set_state_int(&cmd->state, "GL_LOGIC_OP_MODE", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_COLOR_LOGIC_OP, v);
             set_state_bool(&cmd->state, "GL_COLOR_LOGIC_OP", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_READ_BUFFER, v);
+            set_state_int(&cmd->state, "GL_READ_BUFFER", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[4];
+            F(glGetIntegerv)(GL_SCISSOR_BOX, v);
+            set_state_int(&cmd->state, "GL_SCISSOR_BOX", 4, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
@@ -13178,6 +13292,18 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_STEREO", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_LINE_SMOOTH_HINT, v);
+            set_state_int(&cmd->state, "GL_LINE_SMOOTH_HINT", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_POLYGON_SMOOTH_HINT, v);
+            set_state_int(&cmd->state, "GL_POLYGON_SMOOTH_HINT", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_UNPACK_SWAP_BYTES, v);
@@ -13188,6 +13314,30 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             GLboolean v[1];
             F(glGetBooleanv)(GL_UNPACK_LSB_FIRST, v);
             set_state_bool(&cmd->state, "GL_UNPACK_LSB_FIRST", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_ROW_LENGTH, v);
+            set_state_int(&cmd->state, "GL_UNPACK_ROW_LENGTH", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_SKIP_ROWS, v);
+            set_state_int(&cmd->state, "GL_UNPACK_SKIP_ROWS", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_SKIP_PIXELS, v);
+            set_state_int(&cmd->state, "GL_UNPACK_SKIP_PIXELS", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_ALIGNMENT, v);
+            set_state_int(&cmd->state, "GL_UNPACK_ALIGNMENT", 1, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
@@ -13202,10 +13352,52 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_PACK_LSB_FIRST", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_ROW_LENGTH, v);
+            set_state_int(&cmd->state, "GL_PACK_ROW_LENGTH", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_SKIP_ROWS, v);
+            set_state_int(&cmd->state, "GL_PACK_SKIP_ROWS", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_SKIP_PIXELS, v);
+            set_state_int(&cmd->state, "GL_PACK_SKIP_PIXELS", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_ALIGNMENT, v);
+            set_state_int(&cmd->state, "GL_PACK_ALIGNMENT", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, v);
+            set_state_int(&cmd->state, "GL_MAX_CLIP_DISTANCES", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TEXTURE_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_TEXTURE_SIZE", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[2];
             F(glGetFloatv)(GL_MAX_VIEWPORT_DIMS, v);
             set_state_float(&cmd->state, "GL_MAX_VIEWPORT_DIMS", 2, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SUBPIXEL_BITS, v);
+            set_state_int(&cmd->state, "GL_SUBPIXEL_BITS", 1, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl4_2|gl4_1|gl1_1|gl4_0) & gl3_0) && F(glGetString))
@@ -13292,10 +13484,22 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_POLYGON_OFFSET_FACTOR", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_SKIP_IMAGES, v);
+            set_state_int(&cmd->state, "GL_PACK_SKIP_IMAGES", 1, v);
+        }
+            
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[1];
             F(glGetFloatv)(GL_PACK_IMAGE_HEIGHT, v);
             set_state_float(&cmd->state, "GL_PACK_IMAGE_HEIGHT", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_SKIP_IMAGES, v);
+            set_state_int(&cmd->state, "GL_UNPACK_SKIP_IMAGES", 1, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
@@ -13304,10 +13508,52 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_UNPACK_IMAGE_HEIGHT", 1, v);
         }
             
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_3D_TEXTURE_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_3D_TEXTURE_SIZE", 1, v);
+        }
+            
         if (((gl1_2|gl1_3|gl2_0|gl3_0|gl3_1|gl4_4|gl1_4|gl1_5|gl2_1|gl4_3|gl4_5|gl1_1) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_VERTEX_ARRAY, v);
             set_state_bool(&cmd->state, "GL_VERTEX_ARRAY", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MULTISAMPLE, v);
+            set_state_int(&cmd->state, "GL_MULTISAMPLE", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_ALPHA_TO_COVERAGE, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_ALPHA_TO_COVERAGE", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_ALPHA_TO_ONE, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_ALPHA_TO_ONE", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_COVERAGE, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_COVERAGE", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_BUFFERS", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_SAMPLES", 1, v);
         }
             
         if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
@@ -13316,10 +13562,76 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_SAMPLE_COVERAGE_VALUE", 1, v);
         }
             
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_COVERAGE_INVERT, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_COVERAGE_INVERT", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_DST_RGB, v);
+            set_state_int(&cmd->state, "GL_BLEND_DST_RGB", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_SRC_RGB, v);
+            set_state_int(&cmd->state, "GL_BLEND_SRC_RGB", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_DST_ALPHA, v);
+            set_state_int(&cmd->state, "GL_BLEND_DST_ALPHA", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_SRC_ALPHA, v);
+            set_state_int(&cmd->state, "GL_BLEND_SRC_ALPHA", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ELEMENTS_VERTICES, v);
+            set_state_int(&cmd->state, "GL_MAX_ELEMENTS_VERTICES", 1, v);
+        }
+            
+        if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ELEMENTS_INDICES, v);
+            set_state_int(&cmd->state, "GL_MAX_ELEMENTS_INDICES", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[1];
             F(glGetFloatv)(GL_POINT_FADE_THRESHOLD_SIZE, v);
             set_state_float(&cmd->state, "GL_POINT_FADE_THRESHOLD_SIZE", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAJOR_VERSION, v);
+            set_state_int(&cmd->state, "GL_MAJOR_VERSION", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MINOR_VERSION, v);
+            set_state_int(&cmd->state, "GL_MINOR_VERSION", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_NUM_EXTENSIONS, v);
+            set_state_int(&cmd->state, "GL_NUM_EXTENSIONS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CONTEXT_FLAGS, v);
+            set_state_int(&cmd->state, "GL_CONTEXT_FLAGS", 1, v);
         }
             
         if (((gl4_5|gl4_4) & gl2_1) && F(glGetBooleanv)) {
@@ -13334,10 +13646,142 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_DEBUG_OUTPUT_SYNCHRONOUS", 1, v);
         }
             
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH, v);
+            set_state_int(&cmd->state, "GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_ACTIVE_PROGRAM, v);
+            set_state_int(&cmd->state, "GL_ACTIVE_PROGRAM", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PROGRAM_PIPELINE_BINDING, v);
+            set_state_int(&cmd->state, "GL_PROGRAM_PIPELINE_BINDING", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VIEWPORTS, v);
+            set_state_int(&cmd->state, "GL_MAX_VIEWPORTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_VIEWPORT_SUBPIXEL_BITS, v);
+            set_state_int(&cmd->state, "GL_VIEWPORT_SUBPIXEL_BITS", 1, v);
+        }
+            
         if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[2];
             F(glGetFloatv)(GL_VIEWPORT_BOUNDS_RANGE, v);
             set_state_float(&cmd->state, "GL_VIEWPORT_BOUNDS_RANGE", 2, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_LAYER_PROVOKING_VERTEX, v);
+            set_state_int(&cmd->state, "GL_LAYER_PROVOKING_VERTEX", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_VIEWPORT_INDEX_PROVOKING_VERTEX, v);
+            set_state_int(&cmd->state, "GL_VIEWPORT_INDEX_PROVOKING_VERTEX", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_SHARED_MEMORY_SIZE", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_COMPUTE_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_COMPUTE_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DEBUG_GROUP_STACK_DEPTH, v);
+            set_state_int(&cmd->state, "GL_MAX_DEBUG_GROUP_STACK_DEPTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DEBUG_GROUP_STACK_DEPTH, v);
+            set_state_int(&cmd->state, "GL_DEBUG_GROUP_STACK_DEPTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_UNIFORM_LOCATIONS, v);
+            set_state_int(&cmd->state, "GL_MAX_UNIFORM_LOCATIONS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIB_BINDINGS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_ATTRIB_BINDINGS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_LABEL_LENGTH, v);
+            set_state_int(&cmd->state, "GL_MAX_LABEL_LENGTH", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_CULL_DISTANCES, v);
+            set_state_int(&cmd->state, "GL_MAX_CULL_DISTANCES", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CONTEXT_RELEASE_BEHAVIOR, v);
+            set_state_int(&cmd->state, "GL_CONTEXT_RELEASE_BEHAVIOR", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH, v);
+            set_state_int(&cmd->state, "GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH", 1, v);
         }
             
         if (((gl1_2|gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
@@ -13346,10 +13790,46 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_ALIASED_LINE_WIDTH_RANGE", 2, v);
         }
             
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_ACTIVE_TEXTURE, v);
+            set_state_int(&cmd->state, "GL_ACTIVE_TEXTURE", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_RENDERBUFFER_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_RENDERBUFFER_SIZE", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_TEXTURE_COMPRESSION_HINT, v);
+            set_state_int(&cmd->state, "GL_TEXTURE_COMPRESSION_HINT", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_RECTANGLE_TEXTURE_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_RECTANGLE_TEXTURE_SIZE", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[1];
             F(glGetFloatv)(GL_MAX_TEXTURE_LOD_BIAS, v);
             set_state_float(&cmd->state, "GL_MAX_TEXTURE_LOD_BIAS", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_CUBE_MAP_TEXTURE_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_CUBE_MAP_TEXTURE_SIZE", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_VERTEX_ARRAY_BINDING, v);
+            set_state_int(&cmd->state, "GL_VERTEX_ARRAY_BINDING", 1, v);
         }
             
         if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
@@ -13364,6 +13844,174 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_DEPTH_CLAMP", 1, v);
         }
             
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_NUM_COMPRESSED_TEXTURE_FORMATS, v);
+            set_state_int(&cmd->state, "GL_NUM_COMPRESSED_TEXTURE_FORMATS", 1, v);
+        }
+            
+        if (((gl3_2|gl1_3|gl3_3|gl2_0|gl3_0|gl3_1|gl4_4|gl2_1|gl1_5|gl1_4|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_COMPRESSED_TEXTURE_FORMATS, v);
+            set_state_int(&cmd->state, "GL_COMPRESSED_TEXTURE_FORMATS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_NUM_PROGRAM_BINARY_FORMATS, v);
+            set_state_int(&cmd->state, "GL_NUM_PROGRAM_BINARY_FORMATS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PROGRAM_BINARY_FORMATS, v);
+            set_state_int(&cmd->state, "GL_PROGRAM_BINARY_FORMATS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_BACK_FUNC, v);
+            set_state_int(&cmd->state, "GL_STENCIL_BACK_FUNC", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_BACK_FAIL, v);
+            set_state_int(&cmd->state, "GL_STENCIL_BACK_FAIL", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_BACK_PASS_DEPTH_FAIL, v);
+            set_state_int(&cmd->state, "GL_STENCIL_BACK_PASS_DEPTH_FAIL", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_STENCIL_BACK_PASS_DEPTH_PASS, v);
+            set_state_int(&cmd->state, "GL_STENCIL_BACK_PASS_DEPTH_PASS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_DRAW_BUFFERS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER0, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER0", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER1, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER1", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER2, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER2", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER3, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER3", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER4, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER4", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER5, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER5", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER6, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER6", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_BUFFER7, v);
+            set_state_int(&cmd->state, "GL_DRAW_BUFFER7", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_BLEND_EQUATION_ALPHA, v);
+            set_state_int(&cmd->state, "GL_BLEND_EQUATION_ALPHA", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_ATTRIBS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_INPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_INPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_ARRAY_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl2_0|gl3_0|gl3_1|gl2_1|gl1_5|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_ELEMENT_ARRAY_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_ELEMENT_ARRAY_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PIXEL_PACK_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_PIXEL_PACK_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PIXEL_UNPACK_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_PIXEL_UNPACK_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DUAL_SOURCE_DRAW_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_DUAL_SOURCE_DRAW_BUFFERS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ARRAY_TEXTURE_LAYERS, v);
+            set_state_int(&cmd->state, "GL_MAX_ARRAY_TEXTURE_LAYERS", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[1];
             F(glGetFloatv)(GL_MIN_PROGRAM_TEXEL_OFFSET, v);
@@ -13376,8 +14024,134 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_MAX_PROGRAM_TEXEL_OFFSET", 1, v);
         }
             
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CLAMP_READ_COLOR, v);
+            set_state_int(&cmd->state, "GL_CLAMP_READ_COLOR", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, v);
+            set_state_int(&cmd->state, "GL_MAX_UNIFORM_BUFFER_BINDINGS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_UNIFORM_BLOCK_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_UNIFORM_BLOCK_SIZE", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, v);
+            set_state_int(&cmd->state, "GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VARYING_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_VARYING_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl3_0) && F(glGetString))
             set_state_str(&cmd->state, "GL_SHADING_LANGUAGE_VERSION", F(glGetString)(GL_SHADING_LANGUAGE_VERSION));
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CURRENT_PROGRAM, v);
+            set_state_int(&cmd->state, "GL_CURRENT_PROGRAM", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_IMPLEMENTATION_COLOR_READ_TYPE, v);
+            set_state_int(&cmd->state, "GL_IMPLEMENTATION_COLOR_READ_TYPE", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_IMPLEMENTATION_COLOR_READ_FORMAT, v);
+            set_state_int(&cmd->state, "GL_IMPLEMENTATION_COLOR_READ_FORMAT", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TEXTURE_BUFFER_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_TEXTURE_BUFFER_SIZE", 1, v);
+        }
+            
         if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_SAMPLE_SHADING, v);
@@ -13390,10 +14164,64 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_MIN_SAMPLE_SHADING_VALUE", 1, v);
         }
             
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_RASTERIZER_DISCARD, v);
             set_state_bool(&cmd->state, "GL_RASTERIZER_DISCARD", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, v);
+            set_state_int(&cmd->state, "GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl2_1|gl2_0|gl4_3|gl4_5|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_POINT_SPRITE_COORD_ORIGIN, v);
+            set_state_int(&cmd->state, "GL_POINT_SPRITE_COORD_ORIGIN", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_DRAW_FRAMEBUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_RENDERBUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_READ_FRAMEBUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_READ_FRAMEBUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COLOR_ATTACHMENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_MAX_SAMPLES", 1, v);
         }
             
         if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetBooleanv)) {
@@ -13402,16 +14230,88 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_PRIMITIVE_RESTART_FIXED_INDEX", 1, v);
         }
             
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ELEMENT_INDEX, v);
+            set_state_int(&cmd->state, "GL_MAX_ELEMENT_INDEX", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl3_0|gl3_1|gl4_5|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_FRAMEBUFFER_SRGB, v);
             set_state_bool(&cmd->state, "GL_FRAMEBUFFER_SRGB", 1, v);
         }
             
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_OUTPUT_VERTICES, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_OUTPUT_VERTICES", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_SUBROUTINES, v);
+            set_state_int(&cmd->state, "GL_MAX_SUBROUTINES", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_SUBROUTINE_UNIFORM_LOCATIONS, v);
+            set_state_int(&cmd->state, "GL_MAX_SUBROUTINE_UNIFORM_LOCATIONS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_NUM_SHADER_BINARY_FORMATS, v);
+            set_state_int(&cmd->state, "GL_NUM_SHADER_BINARY_FORMATS", 1, v);
+        }
+            
         if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_SHADER_COMPILER, v);
             set_state_bool(&cmd->state, "GL_SHADER_COMPILER", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_UNIFORM_VECTORS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_UNIFORM_VECTORS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VARYING_VECTORS, v);
+            set_state_int(&cmd->state, "GL_MAX_VARYING_VECTORS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_1|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_UNIFORM_VECTORS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_UNIFORM_VECTORS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS", 1, v);
         }
             
         if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
@@ -13426,16 +14326,46 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_bool(&cmd->state, "GL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE", 1, v);
         }
             
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_TRANSFORM_FEEDBACK_BINDING, v);
+            set_state_int(&cmd->state, "GL_TRANSFORM_FEEDBACK_BINDING", 1, v);
+        }
+            
         if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION, v);
             set_state_bool(&cmd->state, "GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION", 1, v);
         }
             
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PROVOKING_VERTEX, v);
+            set_state_int(&cmd->state, "GL_PROVOKING_VERTEX", 1, v);
+        }
+            
         if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_SAMPLE_MASK, v);
             set_state_bool(&cmd->state, "GL_SAMPLE_MASK", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_SAMPLE_MASK_VALUE, v);
+            set_state_int(&cmd->state, "GL_SAMPLE_MASK_VALUE", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_SAMPLE_MASK_WORDS, v);
+            set_state_int(&cmd->state, "GL_MAX_SAMPLE_MASK_WORDS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_SHADER_INVOCATIONS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_SHADER_INVOCATIONS", 1, v);
         }
             
         if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
@@ -13450,6 +14380,42 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_MAX_FRAGMENT_INTERPOLATION_OFFSET", 1, v);
         }
             
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_FRAGMENT_INTERPOLATION_OFFSET_BITS, v);
+            set_state_int(&cmd->state, "GL_FRAGMENT_INTERPOLATION_OFFSET_BITS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET, v);
+            set_state_int(&cmd->state, "GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET, v);
+            set_state_int(&cmd->state, "GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_STREAMS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_STREAMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PATCH_VERTICES, v);
+            set_state_int(&cmd->state, "GL_PATCH_VERTICES", 1, v);
+        }
+            
         if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetFloatv)) {
             GLfloat v[2];
             F(glGetFloatv)(GL_PATCH_DEFAULT_INNER_LEVEL, v);
@@ -13462,16 +14428,442 @@ static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_comm
             set_state_float(&cmd->state, "GL_PATCH_DEFAULT_OUTER_LEVEL", 4, v);
         }
             
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, v);
+            set_state_int(&cmd->state, "GL_MAX_PATCH_VERTICES", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_GEN_LEVEL, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_GEN_LEVEL", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_PATCH_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_PATCH_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_COPY_READ_BUFFER, v);
+            set_state_int(&cmd->state, "GL_COPY_READ_BUFFER", 1, v);
+        }
+            
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_COPY_WRITE_BUFFER, v);
+            set_state_int(&cmd->state, "GL_COPY_WRITE_BUFFER", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_IMAGE_UNITS_AND_FRAGMENT_OUTPUTS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_IMAGE_UNITS_AND_FRAGMENT_OUTPUTS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DRAW_INDIRECT_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_DRAW_INDIRECT_BUFFER_BINDING", 1, v);
+        }
+            
         if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_PRIMITIVE_RESTART, v);
             set_state_bool(&cmd->state, "GL_PRIMITIVE_RESTART", 1, v);
         }
             
+        if (((gl3_2|gl4_4|gl3_3|gl4_5|gl3_1|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PRIMITIVE_RESTART_INDEX, v);
+            set_state_int(&cmd->state, "GL_PRIMITIVE_RESTART_INDEX", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_IMAGE_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_MAX_IMAGE_SAMPLES", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MIN_MAP_BUFFER_ALIGNMENT, v);
+            set_state_int(&cmd->state, "GL_MIN_MAP_BUFFER_ALIGNMENT", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DISPATCH_INDIRECT_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_DISPATCH_INDIRECT_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COLOR_TEXTURE_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_MAX_COLOR_TEXTURE_SAMPLES", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DEPTH_TEXTURE_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_MAX_DEPTH_TEXTURE_SAMPLES", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_INTEGER_SAMPLES, v);
+            set_state_int(&cmd->state, "GL_MAX_INTEGER_SAMPLES", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_INPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_INPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_OUTPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_OUTPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_INPUT_COMPONENTS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_INPUT_COMPONENTS", 1, v);
+        }
+            
+        if (((gl3_2|gl3_3|gl4_5|gl4_4|gl4_3|gl4_2|gl4_1|gl4_0) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CONTEXT_PROFILE_MASK, v);
+            set_state_int(&cmd->state, "GL_CONTEXT_PROFILE_MASK", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_COMPRESSED_BLOCK_WIDTH, v);
+            set_state_int(&cmd->state, "GL_UNPACK_COMPRESSED_BLOCK_WIDTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_COMPRESSED_BLOCK_HEIGHT, v);
+            set_state_int(&cmd->state, "GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_COMPRESSED_BLOCK_DEPTH, v);
+            set_state_int(&cmd->state, "GL_UNPACK_COMPRESSED_BLOCK_DEPTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_UNPACK_COMPRESSED_BLOCK_SIZE, v);
+            set_state_int(&cmd->state, "GL_UNPACK_COMPRESSED_BLOCK_SIZE", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_COMPRESSED_BLOCK_WIDTH, v);
+            set_state_int(&cmd->state, "GL_PACK_COMPRESSED_BLOCK_WIDTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_COMPRESSED_BLOCK_HEIGHT, v);
+            set_state_int(&cmd->state, "GL_PACK_COMPRESSED_BLOCK_HEIGHT", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_COMPRESSED_BLOCK_DEPTH, v);
+            set_state_int(&cmd->state, "GL_PACK_COMPRESSED_BLOCK_DEPTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_PACK_COMPRESSED_BLOCK_SIZE, v);
+            set_state_int(&cmd->state, "GL_PACK_COMPRESSED_BLOCK_SIZE", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DEBUG_MESSAGE_LENGTH, v);
+            set_state_int(&cmd->state, "GL_MAX_DEBUG_MESSAGE_LENGTH", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_DEBUG_LOGGED_MESSAGES, v);
+            set_state_int(&cmd->state, "GL_MAX_DEBUG_LOGGED_MESSAGES", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_DEBUG_LOGGED_MESSAGES, v);
+            set_state_int(&cmd->state, "GL_DEBUG_LOGGED_MESSAGES", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_QUERY_BUFFER_BINDING, v);
+            set_state_int(&cmd->state, "GL_QUERY_BUFFER_BINDING", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT, v);
+            set_state_int(&cmd->state, "GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_UNIFORM_BLOCKS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_UNIFORM_BLOCKS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_TEXTURE_IMAGE_UNITS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_TEXTURE_IMAGE_UNITS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_IMAGE_UNIFORMS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_IMAGE_UNIFORMS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[3];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_WORK_GROUP_COUNT, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_WORK_GROUP_COUNT", 3, v);
+        }
+            
+        if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[3];
+            F(glGetIntegerv)(GL_MAX_COMPUTE_WORK_GROUP_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_COMPUTE_WORK_GROUP_SIZE", 3, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_VERTEX_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_VERTEX_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_CONTROL_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_CONTROL_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_TESS_EVALUATION_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_TESS_EVALUATION_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_GEOMETRY_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_GEOMETRY_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_FRAGMENT_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_FRAGMENT_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_COMBINED_ATOMIC_COUNTERS, v);
+            set_state_int(&cmd->state, "GL_MAX_COMBINED_ATOMIC_COUNTERS", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE, v);
+            set_state_int(&cmd->state, "GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE", 1, v);
+        }
+            
+        if (((gl4_5|gl4_2|gl4_4|gl4_3) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, v);
+            set_state_int(&cmd->state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS", 1, v);
+        }
+            
         if (((gl4_5|gl4_4|gl4_3) & gl2_1) && F(glGetBooleanv)) {
             GLboolean v[1];
             F(glGetBooleanv)(GL_DEBUG_OUTPUT, v);
             set_state_bool(&cmd->state, "GL_DEBUG_OUTPUT", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CLIP_ORIGIN, v);
+            set_state_int(&cmd->state, "GL_CLIP_ORIGIN", 1, v);
+        }
+            
+        if (((gl4_5) & gl2_1) && F(glGetIntegerv)) {
+            GLint v[1];
+            F(glGetIntegerv)(GL_CLIP_DEPTH_MODE, v);
+            set_state_int(&cmd->state, "GL_CLIP_DEPTH_MODE", 1, v);
         }
                         {
                 GLboolean v = F(glIsEnabled)(GL_ALPHA_TEST);

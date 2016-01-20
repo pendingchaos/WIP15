@@ -1,5 +1,6 @@
 #ifndef LIB_INSPECT_H
 #define LIB_INSPECT_H
+
 #include "libtrace/libtrace.h"
 #include "shared/uint.h"
 #include <stdbool.h>

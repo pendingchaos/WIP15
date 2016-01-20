@@ -8,13 +8,11 @@ Debugging:
         Uninitialized uniforms
         Uninitialized textures
         Uninitialized buffers
-        Unused uniforms
+    Asynchronous replaying
     Object viewing
         samplers
-        queries
-            timer
-            occlusion
         program pipelines
+        program uniforms
         large buffers
     Shader debugger
         Can use SSBOs
@@ -34,7 +32,6 @@ Debugging:
 Bugs:
     Program crashes with optimizations.
         Seems to be the glGetIntegerv calls in the state tracking code.
-            Currently disabled.
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The state, textures, etc will not be updated when opening a trace in the GUI.
 

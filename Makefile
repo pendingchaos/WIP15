@@ -22,16 +22,16 @@ trace:
 .PHONY: inspect-gui
 inspect-gui:
 	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
-	gcc -Isrc /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so src/shared/glapi.o $(wildcard src/gui/*.c) -Isrc/gui -std=c99 -o bin/inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
+	gcc -Isrc /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so src/shared/glapi.o $(wildcard src/gui/*.c) -Isrc/gui -std=c99 -o bin/inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
 	rm src/shared/glapi.o
 
 .PHONY: leakcheck
 leakcheck:
-	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
+	cd bin; gcc -I../src /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
 
 .PHONY: testtrace
 testtrace:
-	cd bin; gcc -I../src /home/rugrats/Documents/Python/WIP15/bin/libtrace.so /home/rugrats/Documents/Python/WIP15/bin/libinspect.so ../src/testtrace.c -std=c99 -o testtrace -Wall -g -rdynamic -D_DEFAULT_SOURCE
+	cd bin; gcc -I../src /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so ../src/testtrace.c -std=c99 -o testtrace -Wall -g -rdynamic -D_DEFAULT_SOURCE
 
 .PHONY: clean
 clean:

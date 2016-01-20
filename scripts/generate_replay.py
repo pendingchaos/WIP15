@@ -1132,7 +1132,7 @@ for get in gl_gets:
         output.write("""
         if (((%s) & gl3_0) && F(glGetString))
             set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
-    elif get[1] not in ["I", "E"]:
+    else:
         type = {"B": "GLboolean",
                 "I": "GLint",
                 "I64": "GLint64",
