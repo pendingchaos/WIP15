@@ -258,7 +258,8 @@ for name in gl.functions:
     if name in fb_commands:
         output.write("if (test_mode && current_limits) test_fb(\"%s\");\n" % (name))
     
-    output.write("update_drawable_size();")
+    if name == "glXSwapBuffers":
+        output.write("update_drawable_size();")
     
     if function.returnType != "void":
         output.write("return result;")
@@ -303,6 +304,16 @@ output.write("""void __attribute__ ((constructor)) gl_init() {
     }
     
     test_mode = getenv("WIP15_TEST") != NULL;
+    
+    char* comp_level = getenv("WIP15_COMPRESSION_LEVEL");
+    if (comp_level) {
+        char* end;
+        int level = strtol(comp_level, &end, 10);
+        if (level<0 || level>100 || end==comp_level || *end)
+            fprintf(stderr, "Invalid compression level: \\\"%s\\\"\\n", comp_level);
+        else
+            compression_level = level;
+    }
     
     fwrite("WIP15", 5, 1, trace_file);
     

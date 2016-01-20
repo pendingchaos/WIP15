@@ -28,8 +28,10 @@ Debugging:
         Currently have lots though more still needed.
         Some duplicated state (glGetBooleanv and glIsEnabled calls getting the same state)
     Replay should check to see if the user supplied limits have been reached.
+
 Tests:
     Compare expected objects with actual objects
+
 Bugs:
     Program crashes with optimizations.
         Seems to be the glGetIntegerv calls in the state tracking code.

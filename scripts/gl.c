@@ -196,6 +196,7 @@ static limits_t* current_limits = NULL;
 static bool test_mode = false;
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;
+static unsigned int compression_level = 0; //0-100
 
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
@@ -309,8 +310,10 @@ static void gl_param_string(const char *value) {
 static void gl_param_data(size_t size, const void* data) {
     void* compressed = malloc(size);
     
+    unsigned int level = (float)compression_level / 100.0 * 9.0;
+    
     uLongf compressed_size = size;
-    if (compress2(compressed, &compressed_size, data, size, 9) != Z_OK) {
+    if (level && compress2(compressed, &compressed_size, data, size, level) != Z_OK) {
         gl_write_b(COMPRESSION_NONE);
         gl_write_uint32(size);
         gl_write_uint32(size);
@@ -722,8 +725,12 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     return final_size;
 }
 
+static void* actual_func(const char* name) {
+    return dlsym(RTLD_NEXT, name);
+}
+
 static void* actual_dlopen(const char* filename, int flags) {
-    return ((void* (*)(const char*, int))dlsym(RTLD_NEXT, "dlopen"))(filename, flags);
+    return ((void* (*)(const char*, int))actual_func("dlopen"))(filename, flags);
 }
 
 void* dlopen(const char* filename, int flags) {
