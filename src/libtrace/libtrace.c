@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <endian.h>
+#include <zlib.h>
 
 typedef enum {
     BaseType_Void = 0,
@@ -110,18 +111,42 @@ static char* read_str(FILE* file) {
 }
 
 static void* read_data(FILE* file) {
+    uint8_t compression_method;
+    if (!readf(&compression_method, 1, 1, file))
+        return NULL;
+    
     uint32_t size;
     if (!readf(&size, 4, 1, file))
         return NULL;
     size = le32toh(size);
     
-    void* data = malloc(size);
-    if (!readf(data, size, 1, file)) {
-        free(data);
+    uint32_t compressed_size;
+    if (!readf(&compressed_size, 4, 1, file))
+        return NULL;
+    compressed_size = le32toh(compressed_size);
+    
+    void* compressed_data = malloc(compressed_size);
+    if (!readf(compressed_data, compressed_size, 1, file)) {
+        free(compressed_data);
         return NULL;
     }
     
-    return data;
+    if (compression_method == 0) {
+        return compressed_data;
+    } else {
+        void* data = malloc(size);
+        
+        uLongf dest_len = size;
+        if (uncompress(data, &dest_len, compressed_data, compressed_size) != Z_OK) {
+            free(compressed_data);
+            free(data);
+            return NULL;
+        }
+        
+        free(compressed_data);
+        
+        return data;
+    }
 }
 
 //Returns true on success

@@ -1,3 +1,5 @@
+#include <zlib.h>
+
 #if __WORDSIZE == 64
 #elif __WORDSIZE == 32
 #else
@@ -18,6 +20,9 @@
 #define BASE_STRING 7
 #define BASE_DATA 8
 #define BASE_FUNC_PTR 9
+
+#define COMPRESSION_NONE 0
+#define COMPRESSION_ZLIB 1
 
 #define BASE_TYPE_STRING BASE_STRING
 #define BASE_TYPE_DATA BASE_DATA
@@ -302,8 +307,20 @@ static void gl_param_string(const char *value) {
 }
 
 static void gl_param_data(size_t size, const void* data) {
-    gl_write_uint32(size);
-    fwrite(data, size, 1, trace_file);
+    void* compressed = malloc(size);
+    
+    uLongf compressed_size = size;
+    if (compress2(compressed, &compressed_size, data, size, 9) != Z_OK) {
+        gl_write_b(COMPRESSION_NONE);
+        gl_write_uint32(size);
+        gl_write_uint32(size);
+        fwrite(data, size, 1, trace_file);
+    } else {
+        gl_write_b(COMPRESSION_ZLIB);
+        gl_write_uint32(size);
+        gl_write_uint32(compressed_size);
+        fwrite(compressed, compressed_size, 1, trace_file);
+    }
 }
 
 static void gl_param_pointer(const void *value) {

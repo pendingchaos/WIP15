@@ -25,6 +25,16 @@ BaseType (uint8)
     Data = 8
     FunctionPtr = 9
 
+CompressionMethod (uint8)
+    None = 0
+    Zlib = 1
+
+Data
+    CompressionMethod (uint8)
+    uint32 size
+    uint32 compressedSize
+    uint8 compressedData[size]
+
 ValueElement<Void>
     (nothing)
 
@@ -51,8 +61,7 @@ ValueElement<String>
     uchar8 data[len]
 
 ValueElement<Data>
-    uint32 size;
-    uint8 data[size]
+    Data data
 
 ValueElement<FunctionPtr>
     (nothing)
@@ -102,8 +111,7 @@ OpData<OpCall>
     for i in 0...extra_count
         uint32 extra_name_len
         uchar8 extra_name[extra_name_len]
-        uint32 extra_data_size
-        uint8 extra_data[extra_data_size]
+        Data extra_data
 
 Content
     uchar8 magic[5] = "WIP15"

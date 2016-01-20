@@ -49,6 +49,9 @@ glXQueryExtension:
 glXQueryVersion:
     ;
 
+glXQueryDrawable:
+    ;
+
 glXChooseVisual:
     ;
 

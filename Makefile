@@ -2,12 +2,12 @@
 .PHONY: gl
 gl:
 	cd scripts; python generate_gl.py
-	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -g -std=c99 -Isrc -Wall
+	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -g -std=c99 -Isrc -Wall `pkg-config zlib --cflags --libs`
 	rm src/gl.c
 
 .PHONY: libtrace
 libtrace:
-	gcc -Isrc src/libtrace/libtrace.c -o bin/libtrace.so src/shared/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -Wall -g
+	gcc -Isrc src/libtrace/libtrace.c -o bin/libtrace.so src/shared/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -Wall -g `pkg-config zlib --cflags --libs`
 
 .PHONY: libinspect
 libinspect:

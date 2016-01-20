@@ -33619,8 +33619,11 @@ void replay_glXQueryDrawable(replay_context_t* ctx, trace_command_t* command, in
 replay_begin_cmd(ctx, "glXQueryDrawable", inspect_command);
     glXQueryDrawable_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glXQueryDrawable;
     do {(void)sizeof((real));} while (0);
-    real((Display  *)gl_param_pointer(command, 0), (GLXDrawable)gl_param_GLXDrawable(command, 1), (int)gl_param_int(command, 2), (unsigned int *)gl_param_pointer(command, 3));
-replay_end_cmd(ctx, "glXQueryDrawable", inspect_command);
+    ;
+
+#undef FUNC
+#define FUNC "glXQueryDrawable"
+RETURN;
 }
 
 void replay_glProgramLocalParameter4fvARB(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
