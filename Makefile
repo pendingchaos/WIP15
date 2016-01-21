@@ -17,7 +17,7 @@ libinspect:
 
 .PHONY: trace
 trace:
-	gcc src/trace.c -o bin/trace -g
+	gcc src/trace.c -o bin/trace -g -Wall
 
 .PHONY: inspect-gui
 inspect-gui:
