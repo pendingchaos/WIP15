@@ -111,9 +111,7 @@ void new_callback(GObject* obj, gpointer user_data) {
     if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
         const char* args = gtk_entry_get_text(arg_entry);
         char* program = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(prog_button));
-        const char* cmd = static_format("./trace limits/this.limits.txt %s.trace %s %s", program, program, args);
-        
-        printf("%s\n", cmd);
+        const char* cmd = static_format("./trace -l limits/this.limits.txt -o \"%s.trace\" %s %s", program, program, args);
         
         if (system(cmd)) {
             fprintf(stderr, "Unable to trace program\n");

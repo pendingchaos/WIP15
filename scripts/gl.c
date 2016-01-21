@@ -976,6 +976,11 @@ static void handle_limits() {
     
     FILE* file = fopen(filename, "r");
     
+    if (!file) {
+        fprintf(stderr, "Unable to find limits file.\n");
+        exit(1);
+    }
+    
     init_limits(&gl30_limits);
     init_limits(&gl31_limits);
     init_limits(&gl32_limits);
