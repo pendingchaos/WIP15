@@ -250,6 +250,25 @@ static void gl_write_group(uint32_t group) {
     gl_write_uint32(group);
 }
 
+static void gl_write_data(size_t size, const void* data) {
+    void* compressed = malloc(size);
+    
+    unsigned int level = (float)compression_level / 100.0 * 9.0;
+    
+    uLongf compressed_size = size;
+    if (level && compress2(compressed, &compressed_size, data, size, level) != Z_OK) {
+        gl_write_b(COMPRESSION_NONE);
+        gl_write_uint32(size);
+        gl_write_uint32(size);
+        fwrite(data, size, 1, trace_file);
+    } else {
+        gl_write_b(COMPRESSION_ZLIB);
+        gl_write_uint32(size);
+        gl_write_uint32(compressed_size);
+        fwrite(compressed, compressed_size, 1, trace_file);
+    }
+}
+
 static void gl_start_func_decl(uint32_t func_id, const char* name) {
     gl_write_b(OP_DECL_FUNC);
     gl_write_uint32(func_id);
@@ -264,13 +283,40 @@ static void gl_start_func_decl_args(uint32_t count) {
 
 static void gl_end_func_decl_args() {}
 
+typedef struct {
+    const char* name;
+    size_t size;
+} extra_t;
+
+static size_t extra_count;
+static extra_t** extras;
+
 static void gl_start_call(uint32_t func_id) {
     gl_write_b(OP_CALL);
     gl_write_uint32(func_id);
+    extra_count = 0;
+    extras = NULL;
+}
+
+//name must be available at gl_end_call.
+static void gl_add_extra(const char* name, size_t size, const void* data) {
+    extras = realloc(extras, (extra_count+1)*sizeof(extra_t*));
+    extra_t** extra = extras + extra_count++;
+    *extra = malloc(sizeof(extra_t)+size);
+    (*extra)->name = name;
+    (*extra)->size = size;
+    memcpy((*extra)+1, data, size);
 }
 
 static void gl_end_call() {
-    gl_write_uint32(0);
+    gl_write_uint32(extra_count);
+    
+    for (size_t i = 0; i < extra_count; i++) {
+        gl_write_str(extras[i]->name);
+        gl_write_data(extras[i]->size, extras[i]+1);
+        free(extras[i]);
+    }
+    free(extras);
 }
 
 static void gl_param_GLuint_array(size_t count, const GLuint* data) {
@@ -308,22 +354,7 @@ static void gl_param_string(const char *value) {
 }
 
 static void gl_param_data(size_t size, const void* data) {
-    void* compressed = malloc(size);
-    
-    unsigned int level = (float)compression_level / 100.0 * 9.0;
-    
-    uLongf compressed_size = size;
-    if (level && compress2(compressed, &compressed_size, data, size, level) != Z_OK) {
-        gl_write_b(COMPRESSION_NONE);
-        gl_write_uint32(size);
-        gl_write_uint32(size);
-        fwrite(data, size, 1, trace_file);
-    } else {
-        gl_write_b(COMPRESSION_ZLIB);
-        gl_write_uint32(size);
-        gl_write_uint32(compressed_size);
-        fwrite(compressed, compressed_size, 1, trace_file);
-    }
+    gl_write_data(size, data);
 }
 
 static void gl_param_pointer(const void *value) {

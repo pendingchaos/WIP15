@@ -35,23 +35,32 @@ typedef struct {
         bool bl;
         char* str;
         uint64_t ptr;
-        void* data;
+        void* data; //TODO: The size is not stored
         uint64_t* u64_array;
         int64_t* i64_array;
         double* dbl_array;
         bool* bl_array;
         char** str_array;
         uint64_t* ptr_array;
-        void** data_array;
+        void** data_array; //TODO: The size is not stored
     };
     int32_t group_index; //Negative if there is no group
 } trace_value_t;
 TYPED_VEC(trace_value_t, trace_val)
 
+typedef struct {
+    char* name;
+    size_t size;
+    void* data;
+} trace_extra_t;
+
 typedef struct trace_command_t {
     uint32_t func_index;
     trace_val_vec_t args;
     trace_value_t ret;
+    
+    uint32_t extra_count;
+    trace_extra_t* extras;
 } trace_command_t;
 TYPED_VEC(trace_command_t, trace_cmd)
 
@@ -92,4 +101,5 @@ bool* trace_get_bool(trace_value_t* val);
 uint64_t* trace_get_ptr(trace_value_t* val);
 char** trace_get_str(trace_value_t* val);
 void** trace_get_data(trace_value_t* val);
+trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name);
 #endif

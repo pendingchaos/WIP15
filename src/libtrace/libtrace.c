@@ -85,6 +85,11 @@ static void free_command(trace_command_t* command) {
     free_trace_val_vec(args);
     
     trace_free_value(command->ret);
+    
+    for (size_t i = 0; i < command->extra_count; i++) {
+        free(command->extras[i].name);
+        free(command->extras[i].data);
+    }
 }
 
 static void free_frame(trace_frame_t* frame) {
@@ -110,19 +115,18 @@ static char* read_str(FILE* file) {
     return str;
 }
 
-static void* read_data(FILE* file) {
+static void* read_data(FILE* file, size_t* res_size) {
+    if (res_size) *res_size = 0;
+    
     uint8_t compression_method;
-    if (!readf(&compression_method, 1, 1, file))
-        return NULL;
+    if (!readf(&compression_method, 1, 1, file)) return NULL;
     
     uint32_t size;
-    if (!readf(&size, 4, 1, file))
-        return NULL;
+    if (!readf(&size, 4, 1, file)) return NULL;
     size = le32toh(size);
     
     uint32_t compressed_size;
-    if (!readf(&compressed_size, 4, 1, file))
-        return NULL;
+    if (!readf(&compressed_size, 4, 1, file)) return NULL;
     compressed_size = le32toh(compressed_size);
     
     void* compressed_data = malloc(compressed_size);
@@ -145,6 +149,7 @@ static void* read_data(FILE* file) {
         
         free(compressed_data);
         
+        if (res_size) *res_size = size;
         return data;
     }
 }
@@ -304,14 +309,14 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         case BaseType_Data: {
             val->type = Type_Data;
             if (val->count == 1) {
-                val->data = read_data(file);
+                val->data = read_data(file, NULL);
                 if (!val->data)
                     return false;
             } else {
                 val->data_array = malloc(sizeof(void*)*val->count);
                 
                 for (size_t i = 0; i < val->count; i++) {
-                    val->data_array[i] = read_data(file);
+                    val->data_array[i] = read_data(file, NULL);
                     if (!val->data_array[i]) {
                         for (size_t j = 0; j < i; j++)
                             free(val->data_array[i]);
@@ -522,14 +527,14 @@ trace_t *load_trace(const char* filename) {
                 goto error;
             }
             
-            uint32_t extra_count;
-            if (!readf(&extra_count, 4, 1, file))
+            if (!readf(&command.extra_count, 4, 1, file))
                 ERROR("Unable to read function extra count");
+            command.extra_count = le32toh(command.extra_count);
             
-            //TODO
-            for (size_t i = 0; i < extra_count; i++) {
-                free(read_str(file));
-                free(read_data(file));
+            command.extras = malloc(command.extra_count * sizeof(trace_extra_t));
+            for (size_t i = 0; i < command.extra_count; i++) {
+                command.extras[i].name = read_str(file);
+                command.extras[i].data = read_data(file, &command.extras[i].size);
             }
             
             append_trace_cmd_vec(frame->commands, &command);
@@ -719,4 +724,11 @@ char** trace_get_str(trace_value_t* val) {
 
 void** trace_get_data(trace_value_t* val) {
     return val->count==1 ? &val->data : val->data_array;
+}
+
+trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name) {
+    for (size_t i = 0; i < cmd->extra_count; i++)
+        if (!strcmp(cmd->extras[i].name, name))
+            return cmd->extras + i;
+    return NULL;
 }
