@@ -727,9 +727,8 @@ void** trace_get_data(trace_value_t* val) {
 }
 
 trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name) {
-    for (size_t i = 0; i < cmd->extra_count; i++) {
+    for (size_t i = 0; i < cmd->extra_count; i++)
         if (!strcmp(cmd->extras[i].name, name))
             return cmd->extras + i;
-    }
     return NULL;
 }
