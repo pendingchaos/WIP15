@@ -42,11 +42,6 @@ glSetContextCapsWIP15: void
     #undef LIMITF
     #undef LIMIT*/
 
-glMappedBufferDataWIP15: void, GLenum, GLsizei, data
-    gl_param_GLenum(target);
-    gl_param_GLsizei(size);
-    gl_param_data(size, data);
-
 glGenTextures: void, GLsizei, GLuint+array
     gl_param_GLsizei(n);
     gl_glGenTextures(n, textures);
@@ -311,6 +306,24 @@ glBufferSubData: void, GLenum, GLintptr, GLsizeiptr, data
     gl_param_data(size, data);
     
     gl_glBufferSubData(target, offset, size, data);
+
+glUnmapBuffer: GLboolean, GLenum
+    gl_param_GLenum(target); //TODO: The group
+    
+    GLboolean result = gl_glUnmapBuffer(target);
+    gl_result_GLboolean(result);
+    
+    GLint access;
+    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+    if (access != GL_READ_ONLY) {
+        GLint size;
+        F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
+        
+        void* data = malloc(size);
+        F(glGetBufferSubData)(target, 0, size, data);
+        gl_add_extra("replay/glUnmapBuffer/data", size, data);
+        free(data);
+    }
 
 glShaderSource: void, GLuint, GLsizei, string+array, GLint+array
     gl_param_GLuint(shader);

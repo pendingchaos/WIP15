@@ -111,7 +111,6 @@ class GL:
         
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
-        ext.functions.append("glMappedBufferDataWIP15")
         ext.functions.append("glProgramUniformWIP15")
         ext.functions.append("glProgramAttribWIP15")
         ext.functions.append("glTestFBWIP15")

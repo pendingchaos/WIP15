@@ -15660,17 +15660,8 @@ void replay_glMappedBufferDataWIP15(replay_context_t* ctx, trace_command_t* comm
     replay_begin_cmd(ctx, "glMappedBufferDataWIP15", inspect_command);
     glMappedBufferDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glMappedBufferDataWIP15;
     do {(void)sizeof((real));} while (0);
-    GLuint target = gl_param_GLenum(command, 0);
-    GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
-    const void* data = gl_param_data(command, 2);
-    
-    F(glUnmapBuffer)(target);
-    F(glBufferSubData)(target, 0, size, data);
-    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, size, data);
-
-#undef FUNC
-#define FUNC "glMappedBufferDataWIP15"
-RETURN;
+    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const GLvoid*)gl_param_pointer(command, 2));
+replay_end_cmd(ctx, "glMappedBufferDataWIP15", inspect_command);
 }
 
 void replay_glVertexAttribL4dEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -30028,7 +30019,17 @@ void replay_glUnmapBuffer(replay_context_t* ctx, trace_command_t* command, inspe
     replay_begin_cmd(ctx, "glUnmapBuffer", inspect_command);
     glUnmapBuffer_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glUnmapBuffer;
     do {(void)sizeof((real));} while (0);
-    ;
+    GLuint target = gl_param_GLenum(command, 0);
+    trace_extra_t* extra = trace_get_extra(command, "replay/glUnmapBuffer/data");
+    
+    F(glUnmapBuffer)(target);
+    
+    if (!extra) {
+        inspect_add_error(inspect_command, "replay/glUnmapBuffer/data extra not found");
+        RETURN;
+    }
+    F(glBufferSubData)(target, 0, extra->size, extra->data);
+    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, extra->size, extra->data);
 
 #undef FUNC
 #define FUNC "glUnmapBuffer"

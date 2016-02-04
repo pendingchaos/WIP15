@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import glxml
 
-dont_implement = ["glUnmapBuffer", "glLinkProgram"]
+dont_implement = ["glLinkProgram"]
 fb_commands = ["glDrawArrays", "glDrawElements", "glMultiDrawArrays", #TODO: Update this
                "glMultiDrawElements", "glDrawRangeElements",
                "glClear", "glXSwapBuffers"]
@@ -22,7 +22,7 @@ for name in gl.groups:
     groupToID[name] = nextID
     nextID += 1
 
-output = open("../src/gl.c", "w")
+output = open("../src/libgl.c", "w")
 
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>

@@ -612,17 +612,18 @@ glBufferSubData:
     real(target, offset, size, data);
     inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), offset, size, data);
 
-glMappedBufferDataWIP15:
+glUnmapBuffer:
     GLuint target = gl_param_GLenum(command, 0);
-    GLsizeiptr size = gl_param_GLsizeiptr(command, 1);
-    const void* data = gl_param_data(command, 2);
+    trace_extra_t* extra = trace_get_extra(command, "replay/glUnmapBuffer/data");
     
     F(glUnmapBuffer)(target);
-    F(glBufferSubData)(target, 0, size, data);
-    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, size, data);
-
-glUnmapBuffer:
-    ;
+    
+    if (!extra) {
+        inspect_add_error(inspect_command, "replay/glUnmapBuffer/data extra not found");
+        RETURN;
+    }
+    F(glBufferSubData)(target, 0, extra->size, extra->data);
+    inspect_act_buf_sub_data(&inspect_command->state, get_bound_buffer(ctx, target), 0, extra->size, extra->data);
 
 glCreateShader:
     GLenum type = gl_param_GLenum(command, 0);

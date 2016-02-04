@@ -60,9 +60,9 @@ static void handle_options(int argc, char** argv) {
 }
 
 static void run(int cmdc, char** cmd) {
-    char* lib_path = realpath("gl.so", NULL);
+    char* lib_path = realpath("libgl.so", NULL);
     if (lib_path == NULL) {
-        fprintf(stderr, "Unable to find gl.so.\n");
+        fprintf(stderr, "Unable to find libgl.so.\n");
         exit(EXIT_FAILURE);
     }
     

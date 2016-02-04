@@ -208,8 +208,7 @@ static void gl_write_uint32(uint32_t i) {
 }
 
 static void gl_write_bool(uint64_t b) {
-    uint8_t i = b ? 1 : 0;
-    fwrite(&i, 1, 1, trace_file);
+    gl_write_b(b ? 1 : 0);
 }
 
 static void gl_write_float(float f) {
@@ -1274,32 +1273,6 @@ static void test_fb(const char* name) {
         free(back);
         free(depth);
     }
-}
-
-GLboolean glUnmapBuffer(GLenum target) {
-    func_decl_glUnmapBuffer();
-    
-    GLint access;
-    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
-    
-    GLboolean result = F(glUnmapBuffer)(target);
-    
-    if (access != GL_READ_ONLY) {
-        GLint size;
-        F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
-        
-        void* data = malloc(size);
-        F(glGetBufferSubData)(target, 0, size, data);
-        glMappedBufferDataWIP15(target, size, data);
-        free(data);
-    }
-    
-    gl_start_call(FUNC_glUnmapBuffer);
-    gl_param_GLenum(target); //TODO: The group
-    gl_result_GLboolean(result);
-    gl_end_call();
-    
-    return result;
 }
 
 void glLinkProgram(GLuint program) {

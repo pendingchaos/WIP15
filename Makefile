@@ -1,65 +1,62 @@
-# TODO: Make this a proper Makefile.
-.PHONY: gl
-gl:
+CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC
+
+gui_src = $(wildcard src/gui/*.c)
+libtrace_src = $(wildcard src/libtrace/*.c)
+libinspect_src = $(wildcard src/libinspect/*.c)
+src = $(wildcard *.c) $(wildcard src/*.c) $(gui_src) $(libinspect_src) $(libtrace_src) $(wildcard src/shared/*.c) src/libgl.c
+obj = $(src:.c=.o)
+gui_obj = $(gui_src:.c=.o)
+libtrace_obj = $(libtrace_src:.c=.o)
+libinspect_obj = $(libinspect_src:.c=.o)
+dep = $(src:.c=.d)
+
+all: bin/libtrace.so bin/libgl.so bin/libinspect.so bin/trace bin/inspect-gui bin/leakcheck bin/testtrace bin/test
+
+-include $(dep)
+
+%.d: %.c
+	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
+
+src/libgl.c: scripts/nontrivial_func_trace_impls.txt scripts/gl.c
 	cd scripts; python generate_gl.py
-	gcc src/gl.c -o bin/gl.so -shared -fPIC -ldl -D_GNU_SOURCE -g -std=c99 -Isrc -Wall `pkg-config zlib --cflags --libs`
-	rm src/gl.c
 
-.PHONY: libtrace
-libtrace:
-	gcc -Isrc src/libtrace/libtrace.c -o bin/libtrace.so src/shared/vec.c -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -Wall -g `pkg-config zlib --cflags --libs`
+bin/libgl.so: src/libgl.o
+	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g `pkg-config zlib --libs` $(CFLAGS)
 
-.PHONY: libinspect
-libinspect:
-	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
-	gcc -Isrc src/libinspect/libinspect.c src/libinspect/actions.c src/libinspect/replay.c src/libinspect/replay_gl.c src/shared/vec.c src/shared/glapi.o -o bin/libinspect.so -shared -fPIC -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -lGL -ldl -Wall -g `sdl2-config --libs --cflags`
-	rm src/shared/glapi.o
+bin/libtrace.so: $(libtrace_obj) src/shared/vec.o
+	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g `pkg-config zlib --libs` $(CFLAGS)
 
-.PHONY: trace
-trace:
-	gcc src/trace.c -o bin/trace -g -Wall
+bin/libinspect.so: $(libinspect_obj) src/shared/vec.o src/shared/glapi.o
+	$(CC) $^ -o bin/libinspect.so -shared -fPIC -lGL -ldl -g `sdl2-config --libs` $(CFLAGS)
 
-.PHONY: inspect-gui
-inspect-gui:
-	gcc -c src/shared/glapi.c -std=c99 -o src/shared/glapi.o -w -rdynamic
-	gcc -Isrc /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so src/shared/glapi.o $(wildcard src/gui/*.c) -Isrc/gui -std=c99 -o bin/inspect-gui -Wall -g `pkg-config --cflags --libs gtk+-3.0` -rdynamic -D_DEFAULT_SOURCE
-	rm src/shared/glapi.o
+bin/trace: src/trace.o
+	$(CC) $^ -o bin/trace -g $(CFLAGS)
 
-.PHONY: leakcheck
-leakcheck:
-	cd bin; gcc -I../src /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so ../src/leakcheck.c -std=c99 -o leakcheck -Wall -g -rdynamic -D_DEFAULT_SOURCE
+bin/inspect-gui: $(gui_obj) src/shared/vec.o src/shared/glapi.o bin/libtrace.so bin/libinspect.so
+	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
 
-.PHONY: testtrace
-testtrace:
-	cd bin; gcc -I../src /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so ../src/testtrace.c -std=c99 -o testtrace -Wall -g -rdynamic -D_DEFAULT_SOURCE
+bin/leakcheck: src/leakcheck.o bin/libtrace.so bin/libinspect.so
+	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/leakcheck -g -rdynamic $(CFLAGS)
+
+bin/testtrace: src/testtrace.o bin/libtrace.so bin/libinspect.so
+	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/testtrace -g -rdynamic $(CFLAGS)
+
+bin/test: test.o
+	$(CC) $^ -lSDL2 -lGL -o bin/test -g $(CFLAGS)
+
+bin/tests: tests/main.o
+	$(CC) $^ `sdl2-config --libs` -lGL -o bin/tests -g $(CFLAGS)
 
 .PHONY: clean
 clean:
-	rm bin/libtrace.so
-	rm bin/libinspect.so
-	rm bin/inspect-gui
-	rm bin/trace
-	rm bin/test
-	rm bin/gl.so
-	rm bin/tests
-	rm bin/testtrace
-
-.PHONY: test
-test:
-	gcc test.c -lSDL2 -lGL -o bin/test -g -std=c99 -Wall
-
-.PHONY: tests
-tests:
-	gcc tests/main.c `sdl2-config --cflags --libs` -lGL -o bin/tests -g -std=c99 -Wall
-
-.PHONY: all
-all:
-	make gl
-	make libtrace
-	make libinspect
-	make trace
-	make inspect-gui
-	make leakcheck
-	make testtrace
-	make test
-	make tests
+	rm -f src/.libgl.c
+	rm -f bin/libtrace.so
+	rm -f bin/libinspect.so
+	rm -f bin/inspect-gui
+	rm -f bin/trace
+	rm -f bin/test
+	rm -f bin/gl.so
+	rm -f bin/tests
+	rm -f bin/testtrace
+	rm -f $(obj)
+	rm -f $(dep)
