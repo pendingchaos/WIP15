@@ -32,7 +32,6 @@ typedef struct {
 
 typedef struct {
     int texture;
-    int type;
     int depth_stencil_mode;
     int base_level;
     int compare_func;
@@ -46,17 +45,17 @@ typedef struct {
     float max_lod;
     float lod_bias;
     int swizzle[4];
-    int width;
-    int height;
-    int depth;
     int internal_format;
 } inspect_gl_tex_params_t;
 
 typedef struct {
     uint fake;
     inspect_gl_tex_params_t params;
+    uint type;
     size_t mipmap_count;
-    inspect_image_t* mipmaps;
+    size_t layer_count;
+    size_t width, height, depth;
+    inspect_image_t*** mipmaps;
 } inspect_texture_t;
 TYPED_VEC(inspect_texture_t, inspect_tex)
 
@@ -251,4 +250,9 @@ inspect_query_t* inspect_find_query_ptr(inspector_t* inspector, uint fake);
 bool inspect_replace_image(inspect_image_t* img, size_t w, size_t h, const void* data);
 void inspect_destroy_image(inspect_image_t* img);
 bool inspect_get_image_data(inspect_image_t* img, void* data);
+
+inspect_image_t* inspect_get_tex_mipmap(inspect_texture_t* tex, size_t level, size_t layer, size_t face);
+void inspect_set_tex_mipmap(inspect_texture_t* tex, size_t level, size_t layer, size_t face, inspect_image_t* img);
+void inspect_init_tex_mipmaps(inspect_texture_t* tex);
+void inspect_free_tex_mipmaps(inspect_texture_t* tex);
 #endif

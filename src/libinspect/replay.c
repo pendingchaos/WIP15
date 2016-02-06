@@ -47,6 +47,10 @@ typedef struct {
     unsigned int depth_stencil_texture;
 } fb_data_t;
 
+typedef struct {
+    unsigned int type;
+} tex_data_t;
+
 typedef struct replay_obj_t {
     uint64_t real;
     uint64_t fake;
@@ -54,6 +58,7 @@ typedef struct replay_obj_t {
     union {
         program_data_t prog;
         fb_data_t fb;
+        tex_data_t tex;
     };
 } replay_obj_t;
 TYPED_VEC(replay_obj_t, obj)
@@ -170,6 +175,9 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
         new_obj.fb.depth_level = new_obj.fb.stencil_level =
         new_obj.fb.depth_stencil_level = new_obj.fb.depth_texture =
         new_obj.fb.stencil_texture = new_obj.fb.depth_stencil_texture = 0;
+        break;
+    case ReplayObjType_GLTexture:
+        new_obj.tex.type = 0;
         break;
     default:
         break;
@@ -424,5 +432,20 @@ uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t ind
     fb_data_t* data = find_fb(ctx, fake_fb);
     if (data)
         return get_attach_vec(data->attachments, index)->attachment;
+    return 0;
+}
+
+void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, unsigned int type) {
+    replay_internal_t* internal = ctx->_internal;
+    obj_vec_t objs = internal->objects[ReplayObjType_GLTexture];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        if (obj->fake == fake_tex) obj->tex.type = type;
+}
+
+unsigned int replay_get_tex_type(replay_context_t* ctx, uint64_t fake_tex) {
+    replay_internal_t* internal = ctx->_internal;
+    obj_vec_t objs = internal->objects[ReplayObjType_GLTexture];
+    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        if (obj->fake == fake_tex) return obj->tex.type;
     return 0;
 }

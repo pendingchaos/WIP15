@@ -254,6 +254,10 @@ glBindTexture:
     GLuint real_tex = replay_get_real_object(ctx, ReplayObjType_GLTexture, fake);
     if (!real_tex && fake)
         inspect_add_error(inspect_command, "Invalid texture being bound.");
+    if (!F(glIsTexture)(real_tex)) {
+        inspect_act_tex_type(&inspect_command->state, fake, target);
+        replay_set_tex_type(ctx, fake, target);
+    }
     real(target, real_tex);
 
 glTexImage1D:
@@ -266,7 +270,7 @@ glTexImage1D:
     GLenum type = gl_param_GLenum(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalFormat, width, border, format, type, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, 0, 0, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glCompressedTexImage1D:
@@ -278,7 +282,7 @@ glCompressedTexImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, internalformat, width, border, imageSize, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, 0, 0, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexSubImage1D:
@@ -315,7 +319,7 @@ glTexImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, height, 0, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glCompressedTexImage2D:
@@ -328,7 +332,7 @@ glCompressedTexImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalformat, width, height, border, imageSize, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, height, 0, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexSubImage2D:
@@ -359,7 +363,7 @@ glCompressedTexSubImage2D:
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexImage3D:
-    GLenum target = gl_param_GLenum(command, 0);
+    GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
     GLint level = gl_param_GLint(command, 1);
     GLint internalFormat = gl_param_GLint(command, 2);
     GLsizei width = gl_param_GLsizei(command, 3);
@@ -370,11 +374,11 @@ glTexImage3D:
     GLenum type = gl_param_GLenum(command, 8);
     const void* data = gl_param_data(command, 9);
     real(target, level, internalFormat, width, height, depth, border, format, type, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, height, depth, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glCompressedTexImage3D:
-    GLenum target = gl_param_GLenum(command, 0);
+    GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
     GLint level = gl_param_GLint(command, 1);
     GLenum internalformat = gl_param_GLenum(command, 2);
     GLsizei width = gl_param_GLsizei(command, 3);
@@ -384,7 +388,7 @@ glCompressedTexImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalformat, width, height, depth, border, imageSize, data);
-    replay_get_tex_params(ctx, inspect_command, target);
+    replay_alloc_tex(ctx, inspect_command, target, level, width, height, depth, 1, 1);
     replay_get_tex_data(ctx, inspect_command, target, level);
 
 glTexSubImage3D:

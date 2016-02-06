@@ -8,10 +8,8 @@ static void apply_gen_tex(inspector_t* inspector, inspect_action_t* action) {
     inspect_texture_t tex;
     tex.fake = action->obj;
     tex.params.texture = action->obj;
-    tex.params.width = 0;
-    tex.params.height = 0;
-    tex.params.type = 0;
-    tex.mipmap_count = 0;
+    tex.type = tex.width = tex.height = tex.depth = tex.mipmap_count
+    = tex.layer_count = 0;
     tex.mipmaps = NULL;
     append_inspect_tex_vec(inspector->textures, &tex);
 }
@@ -21,9 +19,7 @@ static void apply_del_tex(inspector_t* inspector, inspect_action_t* action) {
     if (!tex)
         return;
     
-    for (size_t j = 0; j < tex->mipmap_count; ++j)
-        inspect_destroy_image(tex->mipmaps+j);
-    free(tex->mipmaps);
+    inspect_free_tex_mipmaps(tex);
     
     size_t index = tex - get_inspect_tex_vec_data(inspector->textures);
     remove_inspect_tex_vec(inspector->textures, index, 1);
@@ -205,32 +201,26 @@ static void apply_tex_params(inspector_t* inspector, inspect_action_t* action) {
     if (!tex)
         return;
     
-    if (tex->params.width != params->width || tex->params.height != params->height) {
-        size_t mipmap_count = 1;
-        size_t w = params->width;
-        size_t h = params->height;
-        while ((w > 1) && (h > 1)) {
-            ++mipmap_count;
-            w /= 2;
-            h /= 2;
-        }
-        
-        for (size_t j = 0; j < tex->mipmap_count; ++j)
-            inspect_destroy_image(tex->mipmaps+j);
-        free(tex->mipmaps);
-        
-        tex->mipmap_count = mipmap_count;
-        tex->mipmaps = malloc(tex->mipmap_count*sizeof(inspect_image_t));
-        for (size_t j = 0; j < mipmap_count; ++j)
-            tex->mipmaps[j].filename = NULL;
-    }
-    
     tex->params = *params;
+}
+
+typedef struct {
+     uint obj, type;
+} tex_type_t;
+
+static void apply_tex_type(inspector_t* inspector, inspect_action_t* action) {
+    tex_type_t* data = action->data;
+    
+    inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
+    if (!tex) return;
+    tex->type = data->type;
 }
 
 typedef struct {
     uint obj;
     size_t mipmap;
+    size_t layer;
+    size_t face;
     inspect_image_t image;
 } tex_data_t;
 
@@ -238,18 +228,41 @@ static void apply_tex_data(inspector_t* inspector, inspect_action_t* action) {
     tex_data_t* data = action->data;
     
     inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
-    if (!tex)
-        return;
-    if (tex->params.type != GL_TEXTURE_2D)
-        return;
+    if (!tex) return;
+    if (!tex->mipmaps) return;
     
-    //TODO: Make this work with non-2d textures
     void* idata = malloc(data->image.width*data->image.height*4);
     inspect_get_image_data(&data->image, idata);
     
-    inspect_replace_image(tex->mipmaps+data->mipmap, data->image.width, data->image.height, idata);
+    inspect_replace_image(inspect_get_tex_mipmap(tex, data->mipmap, data->layer, data->face), data->image.width, data->image.height, idata);
     
     free(idata);
+}
+
+typedef struct {
+    uint obj;
+    size_t mipmaps, layers, width, height, depth;
+} tex_alloc_t;
+
+static void apply_tex_alloc(inspector_t* inspector, inspect_action_t* action) {
+    tex_alloc_t* data = action->data;
+    
+    inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
+    if (!tex) return;
+    
+    if (tex->mipmap_count!=data->mipmaps ||
+        tex->layer_count!=data->layers ||
+        tex->width!=data->width ||
+        tex->height!=data->height ||
+        tex->depth!=data->depth) {
+        tex->mipmap_count = data->mipmaps;
+        tex->layer_count = data->layers;
+        tex->width = data->width;
+        tex->height = data->height;
+        tex->depth = data->depth;
+        inspect_free_tex_mipmaps(tex);
+        inspect_init_tex_mipmaps(tex);
+    }
 }
 
 static void tex_data_free(inspect_action_t* action) {
@@ -551,16 +564,46 @@ void inspect_act_tex_params(inspect_gl_state_t* state, uint id, inspect_gl_tex_p
     append_inspect_act_vec(state->actions, &action);
 }
 
-void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t w, size_t h, const void* data) {
+void inspect_act_tex_type(inspect_gl_state_t* state, uint id, uint type) {
+    tex_type_t* act_data = malloc(sizeof(tex_type_t));
+    act_data->obj = id;
+    act_data->type = type;
+    
+    inspect_action_t action;
+    action.apply_func = &apply_tex_type;
+    action.free_func = &simple_free;
+    action.data = act_data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, size_t layer, size_t face, size_t w, size_t h, const void* data) {
     tex_data_t* act_data = malloc(sizeof(tex_data_t));
     act_data->obj = id;
     act_data->mipmap = mipmap;
+    act_data->layer = layer;
+    act_data->face = face;
     act_data->image.filename = NULL;
     inspect_replace_image(&act_data->image, w, h, data);
     
     inspect_action_t action;
     action.apply_func = &apply_tex_data;
     action.free_func = &tex_data_free;
+    action.data = act_data;
+    append_inspect_act_vec(state->actions, &action);
+}
+
+void inspect_act_alloc_tex(inspect_gl_state_t* state, uint id, size_t mipmaps, size_t layers, size_t width, size_t height, size_t depth) {
+    tex_alloc_t* act_data = malloc(sizeof(tex_alloc_t));
+    act_data->obj = id;
+    act_data->mipmaps = mipmaps;
+    act_data->layers = layers;
+    act_data->width = width;
+    act_data->height = height;
+    act_data->depth = depth;
+    
+    inspect_action_t action;
+    action.apply_func = &apply_tex_alloc;
+    action.free_func = &simple_free;
     action.data = act_data;
     append_inspect_act_vec(state->actions, &action);
 }

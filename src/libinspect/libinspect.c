@@ -10,6 +10,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <GL/gl.h>
 
 static void update_context(uint64_t *context,
                            const trace_t* trace,
@@ -256,11 +257,8 @@ inspector_t* create_inspector(inspection_t* inspection) {
 
 static void free_textures(inspector_t* inspector) {
     inspect_tex_vec_t textures = inspector->textures;
-    for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++) {
-        for (size_t j = 0; j < tex->mipmap_count; j++)
-            inspect_destroy_image(tex->mipmaps+j);
-        free(tex->mipmaps);
-    }
+    for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++)
+        inspect_free_tex_mipmaps(tex);
 }
 
 static void free_buffers(inspector_t* inspector) {
@@ -588,4 +586,42 @@ bool inspect_get_image_data(inspect_image_t* img, void* data) {
     fclose(file);
     
     return true;
+}
+
+inspect_image_t* inspect_get_tex_mipmap(inspect_texture_t* tex, size_t level, size_t layer, size_t face) {
+    return &tex->mipmaps[face][level][layer];
+}
+
+void inspect_set_tex_mipmap(inspect_texture_t* tex, size_t level, size_t layer, size_t face, inspect_image_t* img) {
+    tex->mipmaps[face][level][layer] = *img;
+}
+
+void inspect_init_tex_mipmaps(inspect_texture_t* tex) {
+    size_t face_count = tex->type == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+    face_count = tex->type == GL_TEXTURE_CUBE_MAP_ARRAY ? 6 : face_count;
+    tex->mipmaps = malloc(sizeof(inspect_image_t**)*face_count);
+    for (size_t i = 0; i < face_count; i++) {
+        tex->mipmaps[i] = malloc(sizeof(inspect_image_t*)*tex->mipmap_count);
+        for (size_t j = 0; j < tex->mipmap_count; j++) {
+            tex->mipmaps[i][j] = malloc(sizeof(inspect_image_t)*tex->layer_count);
+            for (size_t k = 0; k < tex->layer_count; k++)
+                tex->mipmaps[i][j][k].filename = NULL;
+        }
+    }
+}
+
+void inspect_free_tex_mipmaps(inspect_texture_t* tex) {
+    if (!tex->mipmaps) return;
+    
+    size_t face_count = tex->type == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+    face_count = tex->type == GL_TEXTURE_CUBE_MAP_ARRAY ? 6 : face_count;
+    for (size_t i = 0; i < face_count; i++) {
+        for (size_t j = 0; j < tex->mipmap_count; j++) {
+            for (size_t k = 0; k < tex->layer_count; k++)
+                inspect_destroy_image(&tex->mipmaps[i][j][k]);
+            free(tex->mipmaps[i][j]);
+        }
+        free(tex->mipmaps[i]);
+    }
+    free(tex->mipmaps);
 }

@@ -31,16 +31,15 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     //Initialize params
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     inspect_texture_t* tex = get_inspect_tex_vec(inspector->textures, tex_index);
-    if (!tex)
-        return;
+    if (!tex) return;
     
     inspect_gl_tex_params_t params = tex->params;
     
-    if (params.type) {
-        GtkTreeIter row;
-        #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
+    GtkTreeIter row;
+    #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
     gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
-        VAL("Type", static_format("%s", get_enum_str("TextureTarget", params.type)));
+    if (tex->type) {
+        VAL("Type", static_format("%s", get_enum_str("TextureTarget", tex->type)));
         VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
         VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
         VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
@@ -60,23 +59,30 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
                                      get_enum_str(NULL, params.swizzle[2]),
                                      get_enum_str(NULL, params.swizzle[3])));
         VAL("Border Color", static_format("[%s, %s, %s, %s]",
-                                         format_float(params.border_color[0]),
-                                         format_float(params.border_color[1]),
-                                         format_float(params.border_color[2]),
-                                         format_float(params.border_color[3])));
-        VAL("Width", static_format("%d", params.width));
-        VAL("Height", static_format("%d", params.height));
-        VAL("Depth", static_format("%d", params.depth));
+                                          format_float(params.border_color[0]),
+                                          format_float(params.border_color[1]),
+                                          format_float(params.border_color[2]),
+                                          format_float(params.border_color[3])));
+    }
+    
+    if (tex->mipmaps) {
+        VAL("Width", static_format("%zu", tex->width));
+        VAL("Height", static_format("%zu", tex->height));
+        VAL("Depth", static_format("%zu", tex->depth));
+        VAL("Mipmap Count", static_format("%zu", tex->mipmap_count));
+        VAL("Layer Count", static_format("%zu", tex->layer_count));
         VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
         #undef VAL
         
         //Initialize images
-        size_t w = params.width;
-        size_t h = params.height;
+        size_t w = tex->width;
+        size_t h = tex->height;
         for (size_t level = 0; level < tex->mipmap_count; level++) {
-            if (tex->mipmaps[level].filename) {
+            //TODO: Layer and face
+            inspect_image_t* img = inspect_get_tex_mipmap(tex, level, 0, 0);
+            if (img->filename) {
                 uint32_t* data = (uint32_t*)malloc(w*h*4);
-                inspect_get_image_data(tex->mipmaps+level, data);
+                inspect_get_image_data(img, data);
                 
                 GtkTreeIter row;
                 gtk_tree_store_append(image_store, &row, NULL);

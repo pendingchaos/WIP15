@@ -76,4 +76,6 @@ size_t replay_get_color_tex_count(replay_context_t* ctx, uint64_t fake_fb);
 uint64_t replay_get_color_tex(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index);
+void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, unsigned int type);
+unsigned int replay_get_tex_type(replay_context_t* ctx, uint64_t fake_tex);
 #endif
