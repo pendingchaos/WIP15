@@ -349,25 +349,25 @@ glShaderSource: void, GLuint, GLsizei, string+array, GLint+array
     }
     gl_glShaderSource(shader, count, string, length);
 
-glGetBooleanv: void, GLenum, pointer
+glGetBooleanv: void, GLenum+group, pointer
     gl_param_GLenum(pname);
     gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetBooleanv)
 
-glGetDoublev: void, GLenum, pointer
+glGetDoublev: void, GLenum+group, pointer
     gl_param_GLenum(pname);
     gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetDoublev)
 
-glGetFloatv: void, GLenum, pointer
+glGetFloatv: void, GLenum+group, pointer
     gl_param_GLenum(pname);
     gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
     GL_GET(glGetFloatv)
 
-glGetIntegerv: void, GLenum, pointer
+glGetIntegerv: void, GLenum+group, pointer
     gl_param_GLenum(pname);
     gl_write_group(GROUP_GetPName);
     gl_param_pointer(data);
@@ -578,8 +578,8 @@ glUniformMatrix4x3fv: void, GLint, GLsizei, GLboolean, GLfloat+array
 
 glTestFBWIP15: void, string, data, data
     gl_param_string(name);
-    gl_param_data(100*100*4, color);
-    gl_param_data(100*100*4, depth);
+    gl_param_data(drawable_width*drawable_height*4, color);
+    gl_param_data(drawable_width*drawable_height*4, depth);
 
 glCurrentTestWIP15: void, string
     gl_param_string(name);

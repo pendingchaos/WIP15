@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <GL/gl.h>
 
 static void apply_gen_tex(inspector_t* inspector, inspect_action_t* action) {
     inspect_texture_t tex;
@@ -238,6 +239,8 @@ static void apply_tex_data(inspector_t* inspector, inspect_action_t* action) {
     
     inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
     if (!tex)
+        return;
+    if (tex->params.type != GL_TEXTURE_2D)
         return;
     
     //TODO: Make this work with non-2d textures

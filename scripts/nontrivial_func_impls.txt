@@ -1665,16 +1665,19 @@ glTestFBWIP15:
     GLint last_buf;
     F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
     
-    F(glReadBuffer)(GL_BACK);
-    uint32_t* back = malloc(100*100*4);
-    F(glReadPixels)(0, 0, 100, 100, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    int w, h;
+    SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     
-    uint32_t* depth = malloc(100*100*4);
-    F(glReadPixels)(0, 0, 100, 100, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    F(glReadBuffer)(GL_BACK);
+    uint32_t* back = malloc(w*h*4);
+    F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    uint32_t* depth = malloc(w*h*4);
+    F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
     
     F(glReadBuffer)(last_buf);
     
-    if (memcmp(back, gl_param_data(command, 1), 100*100*4) != 0)
+    if (memcmp(back, gl_param_data(command, 1), w*h*4) != 0)
         fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", gl_param_string(command, 0), ctx->current_test_name);
     
     //TODO

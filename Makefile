@@ -1,9 +1,9 @@
-CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC
+CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g
 
 gui_src = $(wildcard src/gui/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)
 libinspect_src = $(wildcard src/libinspect/*.c)
-src = $(wildcard src/*.c) $(gui_src) $(libinspect_src) $(libtrace_src) $(wildcard src/shared/*.c) src/libgl.c
+src = $(wildcard src/*.c) $(wildcard tests/*.c) $(gui_src) $(libinspect_src) $(libtrace_src) $(wildcard src/shared/*.c) src/libgl.c
 
 base_gui_obj = $(gui_src:.c=.o)
 gui_obj = $(join $(dir $(base_gui_obj)), $(addprefix ., $(notdir $(base_gui_obj))))
