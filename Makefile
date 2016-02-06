@@ -1,5 +1,4 @@
 CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC
-LDFLAGS = 
 
 gui_src = $(wildcard src/gui/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)

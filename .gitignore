@@ -11,7 +11,7 @@
 /bin/leakcheck
 /bin/ui.glade~
 /src/shared/glapi.c
-/src/replay_gl.c
+/src/libinspect/replay_gl.c
 /src/libgl.c
 *.pyc
 *.o
