@@ -32,20 +32,28 @@ typedef struct {
 
 typedef struct {
     int texture;
-    int depth_stencil_mode;
-    int base_level;
-    int compare_func;
-    int compare_mode;
-    int max_level;
-    int wrap[3];
-    int min_filter;
-    int mag_filter;
-    float border_color[4];
+    
+    uint type;
+    uint depth_stencil_mode;
+    uint mag_filter;
+    uint min_filter;
     float min_lod;
     float max_lod;
     float lod_bias;
-    int swizzle[4];
-    int internal_format;
+    int base_level;
+    int max_level;
+    uint swizzle[4];
+    int wrap[3];
+    float border_color[4];
+    uint compare_mode;
+    uint compare_func;
+    int view_min_level;
+    uint view_num_levels;
+    int view_min_layer;
+    int view_num_layers;
+    uint immutable_levels;
+    uint image_format_compatibility_type;
+    uint immutable_format;
 } inspect_gl_tex_params_t;
 
 typedef struct {

@@ -250,11 +250,9 @@ static void apply_tex_alloc(inspector_t* inspector, inspect_action_t* action) {
     inspect_texture_t* tex = inspect_find_tex_ptr(inspector, data->obj);
     if (!tex) return;
     
-    if (tex->mipmap_count!=data->mipmaps ||
-        tex->layer_count!=data->layers ||
-        tex->width!=data->width ||
-        tex->height!=data->height ||
-        tex->depth!=data->depth) {
+    if (!(tex->mipmap_count!=data->mipmaps || tex->layer_count!=data->layers ||
+          tex->width!=data->width || tex->height!=data->height || tex->depth!=data->depth)) {
+    } else {
         tex->mipmap_count = data->mipmaps;
         tex->layer_count = data->layers;
         tex->width = data->width;

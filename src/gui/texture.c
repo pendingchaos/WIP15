@@ -40,29 +40,36 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
     if (tex->type) {
         VAL("Type", static_format("%s", get_enum_str("TextureTarget", tex->type)));
+        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
         VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
         VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
         VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
         VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
+        VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
         VAL("Base Level", static_format("%d", params.base_level));
         VAL("Max Level", static_format("%d", params.max_level));
-        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
-        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
-        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
-        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
-        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
-        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
-        VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
         VAL("Swizzle", static_format("[%s, %s, %s, %s]",
                                      get_enum_str(NULL, params.swizzle[0]),
                                      get_enum_str(NULL, params.swizzle[1]),
                                      get_enum_str(NULL, params.swizzle[2]),
                                      get_enum_str(NULL, params.swizzle[3])));
+        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
+        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
+        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
         VAL("Border Color", static_format("[%s, %s, %s, %s]",
                                           format_float(params.border_color[0]),
                                           format_float(params.border_color[1]),
                                           format_float(params.border_color[2]),
                                           format_float(params.border_color[3])));
+        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
+        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
+        VAL("View Min Level", static_format("%d", params.view_min_level));
+        VAL("View Num Levels", static_format("%u", params.view_num_levels));
+        VAL("View Min Layer", static_format("%d", params.view_min_layer));
+        VAL("View Num Layers", static_format("%u", params.view_num_layers));
+        VAL("Immutable levels", static_format("%u", params.immutable_levels));
+        VAL("Image Format Compat Type", static_format("%s", get_enum_str(NULL, params.image_format_compatibility_type)));
+        VAL("Immutable Format", static_format("%s", get_enum_str(NULL, params.immutable_format)));
     }
     
     if (tex->mipmaps) {
@@ -71,7 +78,6 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         VAL("Depth", static_format("%zu", tex->depth));
         VAL("Mipmap Count", static_format("%zu", tex->mipmap_count));
         VAL("Layer Count", static_format("%zu", tex->layer_count));
-        VAL("Internal format", static_format("%s", get_enum_str(NULL, params.internal_format)));
         #undef VAL
         
         //Initialize images
