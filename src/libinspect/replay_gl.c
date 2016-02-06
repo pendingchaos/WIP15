@@ -556,7 +556,6 @@ typedef void (*glPointParameterfvARB_t)(GLenum, const  GLfloat  *);
 typedef void (*glVertex2xOES_t)(GLfixed);
 typedef void (*glDrawElementsInstancedBaseInstance_t)(GLenum, GLsizei, GLenum, const void *, GLsizei, GLuint);
 typedef void (*glMultTransposeMatrixdARB_t)(const  GLdouble  *);
-typedef void (*glMappedBufferDataWIP15_t)(GLenum, GLsizei, const GLvoid*);
 typedef void (*glVertexAttribL4dEXT_t)(GLuint, GLdouble, GLdouble, GLdouble, GLdouble);
 typedef void (*glGetTextureParameterivEXT_t)(GLuint, GLenum, GLenum, GLint  *);
 typedef void (*glCoverStrokePathInstancedNV_t)(GLsizei, GLenum, const void *, GLuint, GLenum, GLenum, const  GLfloat  *);
@@ -1065,7 +1064,6 @@ typedef void (*glCullParameterdvEXT_t)(GLenum, GLdouble  *);
 typedef void (*glGetTexParameterxvOES_t)(GLenum, GLenum, GLfixed  *);
 typedef void (*glVDPAUMapSurfacesNV_t)(GLsizei, const  GLvdpauSurfaceNV  *);
 typedef void (*glProgramUniform3fvEXT_t)(GLuint, GLint, GLsizei, const  GLfloat  *);
-typedef void (*glProgramUniformWIP15_t)(GLuint, const GLchar*, GLuint);
 typedef void (*glMultiTexCoord1iARB_t)(GLenum, GLint);
 typedef void (*glGetVertexArrayPointervEXT_t)(GLuint, GLenum, void **);
 typedef void (*glXDestroyPbuffer_t)(Display  *, GLXPbuffer);
@@ -3270,7 +3268,6 @@ typedef void (*glVDPAUSurfaceAccessNV_t)(GLvdpauSurfaceNV, GLenum);
 typedef void (*glLockArraysEXT_t)(GLint, GLsizei);
 typedef void (*glVertexAttribPointerNV_t)(GLuint, GLint, GLenum, GLsizei, const void *);
 typedef void (*glConvolutionParameterf_t)(GLenum, GLenum, GLfloat);
-typedef void (*glProgramAttribWIP15_t)(GLuint, const GLchar*, GLuint);
 typedef void (*glCompileCommandListNV_t)(GLuint);
 typedef void (*glProgramUniformMatrix2x3fvEXT_t)(GLuint, GLint, GLsizei, GLboolean, const  GLfloat  *);
 typedef void (*glNamedFramebufferSampleLocationsfvARB_t)(GLuint, GLuint, GLsizei, const  GLfloat  *);
@@ -3475,7 +3472,6 @@ typedef struct {
     glVertex2xOES_t real_glVertex2xOES;
     glDrawElementsInstancedBaseInstance_t real_glDrawElementsInstancedBaseInstance;
     glMultTransposeMatrixdARB_t real_glMultTransposeMatrixdARB;
-    glMappedBufferDataWIP15_t real_glMappedBufferDataWIP15;
     glVertexAttribL4dEXT_t real_glVertexAttribL4dEXT;
     glGetTextureParameterivEXT_t real_glGetTextureParameterivEXT;
     glCoverStrokePathInstancedNV_t real_glCoverStrokePathInstancedNV;
@@ -3984,7 +3980,6 @@ typedef struct {
     glGetTexParameterxvOES_t real_glGetTexParameterxvOES;
     glVDPAUMapSurfacesNV_t real_glVDPAUMapSurfacesNV;
     glProgramUniform3fvEXT_t real_glProgramUniform3fvEXT;
-    glProgramUniformWIP15_t real_glProgramUniformWIP15;
     glMultiTexCoord1iARB_t real_glMultiTexCoord1iARB;
     glGetVertexArrayPointervEXT_t real_glGetVertexArrayPointervEXT;
     glXDestroyPbuffer_t real_glXDestroyPbuffer;
@@ -6189,7 +6184,6 @@ typedef struct {
     glLockArraysEXT_t real_glLockArraysEXT;
     glVertexAttribPointerNV_t real_glVertexAttribPointerNV;
     glConvolutionParameterf_t real_glConvolutionParameterf;
-    glProgramAttribWIP15_t real_glProgramAttribWIP15;
     glCompileCommandListNV_t real_glCompileCommandListNV;
     glProgramUniformMatrix2x3fvEXT_t real_glProgramUniformMatrix2x3fvEXT;
     glNamedFramebufferSampleLocationsfvARB_t real_glNamedFramebufferSampleLocationsfvARB;
@@ -15652,18 +15646,6 @@ void replay_glMultTransposeMatrixdARB(replay_context_t* ctx, trace_command_t* co
 replay_end_cmd(ctx, "glMultTransposeMatrixdARB", inspect_command);
 }
 
-void replay_glMappedBufferDataWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
-    if (!ctx->_current_context) {
-        inspect_add_error(inspect_command, "No current OpenGL context.");
-        return;
-    }
-    replay_begin_cmd(ctx, "glMappedBufferDataWIP15", inspect_command);
-    glMappedBufferDataWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glMappedBufferDataWIP15;
-    do {(void)sizeof((real));} while (0);
-    real((GLenum)gl_param_GLenum(command, 0), (GLsizei)gl_param_GLsizei(command, 1), (const GLvoid*)gl_param_pointer(command, 2));
-replay_end_cmd(ctx, "glMappedBufferDataWIP15", inspect_command);
-}
-
 void replay_glVertexAttribL4dEXT(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -19496,6 +19478,42 @@ void replay_glLinkProgram(replay_context_t* ctx, trace_command_t* command, inspe
     free(info_log);
     
     inspect_act_link_prog(&inspect_command->state, fake);
+    
+    trace_extra_t* uniform = NULL;
+    size_t i = 0;
+    while ((uniform=trace_get_extrai(command, "replay/program/uniform", i++))) {
+        if (uniform->size < 8) continue;
+        void* data = uniform->data;
+        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
+        uint32_t len = le32toh(((uint32_t*)data)[1]);
+        char* name = calloc(1, len+1);
+        memcpy(name, (uint8_t*)data+8, len);
+        
+        GLint real_loc = F(glGetUniformLocation)(real_program, name);
+        if (real_loc < 0)
+            inspect_add_error(inspect_command, "Nonexistent or inactive uniform while adding uniforms.");
+        else
+            replay_add_uniform(ctx, fake, fake_loc, real_loc);
+        
+        free(name);
+    }
+    
+    trace_extra_t* attrib = NULL;
+    i = 0;
+    while ((attrib=trace_get_extrai(command, "replay/program/vertex_attrib", i++))) {
+        if (attrib->size < 8) continue;
+        void* data = attrib->data;
+        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
+        uint32_t len = le32toh(((uint32_t*)data)[1]);
+        char* name = calloc(1, len+1);
+        memcpy(name, (uint8_t*)data+8, len);
+        
+        GLint real_loc = F(glGetAttribLocation)(real_program, name);
+        if (real_loc < 0)
+            inspect_add_error(inspect_command, "Nonexistent or inactive uniform while adding vertex attributes.");
+        else
+            replay_add_attrib(ctx, fake, fake_loc, real_loc);
+    }
 
 #undef FUNC
 #define FUNC "glLinkProgram"
@@ -22167,34 +22185,6 @@ void replay_glProgramUniform3fvEXT(replay_context_t* ctx, trace_command_t* comma
     do {(void)sizeof((real));} while (0);
     real((GLuint)gl_param_GLuint(command, 0), (GLint)gl_param_GLint(command, 1), (GLsizei)gl_param_GLsizei(command, 2), (const  GLfloat  *)gl_param_pointer(command, 3));
 replay_end_cmd(ctx, "glProgramUniform3fvEXT", inspect_command);
-}
-
-void replay_glProgramUniformWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
-    if (!ctx->_current_context) {
-        inspect_add_error(inspect_command, "No current OpenGL context.");
-        return;
-    }
-    replay_begin_cmd(ctx, "glProgramUniformWIP15", inspect_command);
-    glProgramUniformWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glProgramUniformWIP15;
-    do {(void)sizeof((real));} while (0);
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
-        inspect_add_error(inspect_command, "Invalid program.");
-        RETURN;
-    }
-    
-    GLint loc = F(glGetUniformLocation)(real_program, gl_param_string(command, 1));
-    if (loc < 0) {
-        inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        RETURN;
-    }
-    
-    replay_add_uniform(ctx, fake, gl_param_GLuint(command, 2), loc);
-
-#undef FUNC
-#define FUNC "glProgramUniformWIP15"
-RETURN;
 }
 
 void replay_glMultiTexCoord1iARB(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
@@ -49830,34 +49820,6 @@ void replay_glConvolutionParameterf(replay_context_t* ctx, trace_command_t* comm
 replay_end_cmd(ctx, "glConvolutionParameterf", inspect_command);
 }
 
-void replay_glProgramAttribWIP15(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
-    if (!ctx->_current_context) {
-        inspect_add_error(inspect_command, "No current OpenGL context.");
-        return;
-    }
-    replay_begin_cmd(ctx, "glProgramAttribWIP15", inspect_command);
-    glProgramAttribWIP15_t real = ((replay_gl_funcs_t*)ctx->_replay_gl)->real_glProgramAttribWIP15;
-    do {(void)sizeof((real));} while (0);
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
-        inspect_add_error(inspect_command, "Invalid program.");
-        RETURN;
-    }
-    
-    GLint loc = F(glGetAttribLocation)(real_program, gl_param_string(command, 1));
-    if (loc < 0) {
-        inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        RETURN;
-    }
-    
-    replay_add_attrib(ctx, fake, gl_param_GLuint(command, 2), loc);
-
-#undef FUNC
-#define FUNC "glProgramAttribWIP15"
-RETURN;
-}
-
 void replay_glCompileCommandListNV(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {
     if (!ctx->_current_context) {
         inspect_add_error(inspect_command, "No current OpenGL context.");
@@ -52129,7 +52091,6 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertex2xOES = NULL;
     funcs->real_glDrawElementsInstancedBaseInstance = NULL;
     funcs->real_glMultTransposeMatrixdARB = NULL;
-    funcs->real_glMappedBufferDataWIP15 = NULL;
     funcs->real_glVertexAttribL4dEXT = NULL;
     funcs->real_glGetTextureParameterivEXT = NULL;
     funcs->real_glCoverStrokePathInstancedNV = NULL;
@@ -52615,7 +52576,6 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetTexParameterxvOES = NULL;
     funcs->real_glVDPAUMapSurfacesNV = NULL;
     funcs->real_glProgramUniform3fvEXT = NULL;
-    funcs->real_glProgramUniformWIP15 = NULL;
     funcs->real_glMultiTexCoord1iARB = NULL;
     funcs->real_glGetVertexArrayPointervEXT = NULL;
     funcs->real_glGlobalAlphaFactorubSUN = NULL;
@@ -54722,7 +54682,6 @@ static void reset_gl_funcs(replay_context_t* ctx) {
     funcs->real_glLockArraysEXT = NULL;
     funcs->real_glVertexAttribPointerNV = NULL;
     funcs->real_glConvolutionParameterf = NULL;
-    funcs->real_glProgramAttribWIP15 = NULL;
     funcs->real_glCompileCommandListNV = NULL;
     funcs->real_glProgramUniformMatrix2x3fvEXT = NULL;
     funcs->real_glNamedFramebufferSampleLocationsfvARB = NULL;
@@ -54921,7 +54880,6 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glVertex2xOES = (glVertex2xOES_t)glXGetProcAddress((const GLubyte*)"glVertex2xOES");
     funcs->real_glDrawElementsInstancedBaseInstance = (glDrawElementsInstancedBaseInstance_t)glXGetProcAddress((const GLubyte*)"glDrawElementsInstancedBaseInstance");
     funcs->real_glMultTransposeMatrixdARB = (glMultTransposeMatrixdARB_t)glXGetProcAddress((const GLubyte*)"glMultTransposeMatrixdARB");
-    funcs->real_glMappedBufferDataWIP15 = (glMappedBufferDataWIP15_t)glXGetProcAddress((const GLubyte*)"glMappedBufferDataWIP15");
     funcs->real_glVertexAttribL4dEXT = (glVertexAttribL4dEXT_t)glXGetProcAddress((const GLubyte*)"glVertexAttribL4dEXT");
     funcs->real_glGetTextureParameterivEXT = (glGetTextureParameterivEXT_t)glXGetProcAddress((const GLubyte*)"glGetTextureParameterivEXT");
     funcs->real_glCoverStrokePathInstancedNV = (glCoverStrokePathInstancedNV_t)glXGetProcAddress((const GLubyte*)"glCoverStrokePathInstancedNV");
@@ -55407,7 +55365,6 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glGetTexParameterxvOES = (glGetTexParameterxvOES_t)glXGetProcAddress((const GLubyte*)"glGetTexParameterxvOES");
     funcs->real_glVDPAUMapSurfacesNV = (glVDPAUMapSurfacesNV_t)glXGetProcAddress((const GLubyte*)"glVDPAUMapSurfacesNV");
     funcs->real_glProgramUniform3fvEXT = (glProgramUniform3fvEXT_t)glXGetProcAddress((const GLubyte*)"glProgramUniform3fvEXT");
-    funcs->real_glProgramUniformWIP15 = (glProgramUniformWIP15_t)glXGetProcAddress((const GLubyte*)"glProgramUniformWIP15");
     funcs->real_glMultiTexCoord1iARB = (glMultiTexCoord1iARB_t)glXGetProcAddress((const GLubyte*)"glMultiTexCoord1iARB");
     funcs->real_glGetVertexArrayPointervEXT = (glGetVertexArrayPointervEXT_t)glXGetProcAddress((const GLubyte*)"glGetVertexArrayPointervEXT");
     funcs->real_glGlobalAlphaFactorubSUN = (glGlobalAlphaFactorubSUN_t)glXGetProcAddress((const GLubyte*)"glGlobalAlphaFactorubSUN");
@@ -57514,7 +57471,6 @@ static void reload_gl_funcs(replay_context_t* ctx) {
     funcs->real_glLockArraysEXT = (glLockArraysEXT_t)glXGetProcAddress((const GLubyte*)"glLockArraysEXT");
     funcs->real_glVertexAttribPointerNV = (glVertexAttribPointerNV_t)glXGetProcAddress((const GLubyte*)"glVertexAttribPointerNV");
     funcs->real_glConvolutionParameterf = (glConvolutionParameterf_t)glXGetProcAddress((const GLubyte*)"glConvolutionParameterf");
-    funcs->real_glProgramAttribWIP15 = (glProgramAttribWIP15_t)glXGetProcAddress((const GLubyte*)"glProgramAttribWIP15");
     funcs->real_glCompileCommandListNV = (glCompileCommandListNV_t)glXGetProcAddress((const GLubyte*)"glCompileCommandListNV");
     funcs->real_glProgramUniformMatrix2x3fvEXT = (glProgramUniformMatrix2x3fvEXT_t)glXGetProcAddress((const GLubyte*)"glProgramUniformMatrix2x3fvEXT");
     funcs->real_glNamedFramebufferSampleLocationsfvARB = (glNamedFramebufferSampleLocationsfvARB_t)glXGetProcAddress((const GLubyte*)"glNamedFramebufferSampleLocationsfvARB");

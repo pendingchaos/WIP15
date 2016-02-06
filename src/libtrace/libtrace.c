@@ -136,6 +136,7 @@ static void* read_data(FILE* file, size_t* res_size) {
     }
     
     if (compression_method == 0) {
+        if (res_size) *res_size = size;
         return compressed_data;
     } else {
         void* data = malloc(size);
@@ -727,8 +728,13 @@ void** trace_get_data(trace_value_t* val) {
 }
 
 trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name) {
+    return trace_get_extrai(cmd, name, 0);
+}
+
+trace_extra_t* trace_get_extrai(trace_command_t* cmd, const char* name, size_t index) {
+    size_t num_left = index + 1;
     for (size_t i = 0; i < cmd->extra_count; i++)
-        if (!strcmp(cmd->extras[i].name, name))
+        if (!strcmp(cmd->extras[i].name, name) && !--num_left)
             return cmd->extras + i;
     return NULL;
 }

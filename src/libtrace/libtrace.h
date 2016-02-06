@@ -102,4 +102,5 @@ uint64_t* trace_get_ptr(trace_value_t* val);
 char** trace_get_str(trace_value_t* val);
 void** trace_get_data(trace_value_t* val);
 trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name);
+trace_extra_t* trace_get_extrai(trace_command_t* cmd, const char* name, size_t index);
 #endif

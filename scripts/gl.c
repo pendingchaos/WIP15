@@ -1246,9 +1246,6 @@ void __attribute__ ((destructor)) gl_deinit() {
 }
 
 void glSetContextCapsWIP15();
-void glMappedBufferDataWIP15(GLenum target, GLsizei size, const GLvoid* data);
-void glProgramUniformWIP15(GLuint program, const GLchar* name, GLuint location);
-void glProgramAttribWIP15(GLuint program, const GLchar* name, GLuint index);
 void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 void glDrawableSizeWIP15(GLsizei width, GLsizei height);
 
@@ -1275,20 +1272,37 @@ static void test_fb(const char* name) {
     }
 }
 
+static void add_uniform(const char* name, uint32_t loc) {
+    uint8_t data[strlen(name)+8];
+    loc = htole32(loc);
+    uint32_t len = htole32(strlen(name));
+    memcpy(data, &loc, 4);
+    memcpy(data+4, &len, 4);
+    memcpy(data+8, name, strlen(name));
+    gl_add_extra("replay/program/uniform", strlen(name)+8, data);
+}
+
+static void add_vertex_attrib(const char* name, uint32_t idx) {
+    uint8_t data[strlen(name)+8];
+    idx = htole32(idx);
+    uint32_t len = htole32(strlen(name));
+    memcpy(data, &idx, 4);
+    memcpy(data+4, &len, 4);
+    memcpy(data+8, name, strlen(name));
+    gl_add_extra("replay/program/vertex_attrib", strlen(name)+8, data);
+}
+
 void glLinkProgram(GLuint program) {
     func_decl_glLinkProgram();
     
     gl_start_call(FUNC_glLinkProgram);
     gl_param_GLuint(program);
     F(glLinkProgram)(program);
-    gl_end_call();
     
     GLint count;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORMS, &count);
-    
     GLint maxNameLen;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLen);
-    
     for (size_t i = 0; i < count; i++) {
         GLchar name[maxNameLen+1];
         memset(name, 0, maxNameLen+1);
@@ -1302,21 +1316,19 @@ void glLinkProgram(GLuint program) {
             continue;
         
         if (size == 1) {
-            glProgramUniformWIP15(program, name, F(glGetUniformLocation)(program, name));
+            add_uniform(name, F(glGetUniformLocation)(program, name));
         } else {
             for (size_t j = 0; j < size; j++) {
                 GLchar new_name[maxNameLen+1];
                 memset(new_name, 0, maxNameLen+1);
                 snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                
-                glProgramUniformWIP15(program, new_name, F(glGetUniformLocation)(program, name));
+                add_uniform(new_name, F(glGetUniformLocation)(program, name));
             }
         }
     }
     
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTES, &count);
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxNameLen);
-    
     for (size_t i = 0; i < count; i++) {
         GLchar name[maxNameLen+1];
         memset(name, 0, maxNameLen+1);
@@ -1330,17 +1342,19 @@ void glLinkProgram(GLuint program) {
             continue;
         
         if (size == 1) {
-            glProgramAttribWIP15(program, name, F(glGetAttribLocation)(program, name));
+            add_vertex_attrib(name, F(glGetAttribLocation)(program, name));
         } else {
             for (size_t j = 0; j < size; j++) {
                 GLchar new_name[maxNameLen+1];
                 memset(new_name, 0, maxNameLen+1);
                 snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                
-                glProgramAttribWIP15(program, new_name, F(glGetAttribLocation)(program, name));
+                add_vertex_attrib(new_name, F(glGetAttribLocation)(program, name));
             }
         }
     }
+    
+    gl_end_call();
+    
 }
 
 static void update_drawable_size() {

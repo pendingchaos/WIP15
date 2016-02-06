@@ -790,6 +790,42 @@ glLinkProgram:
     free(info_log);
     
     inspect_act_link_prog(&inspect_command->state, fake);
+    
+    trace_extra_t* uniform = NULL;
+    size_t i = 0;
+    while ((uniform=trace_get_extrai(command, "replay/program/uniform", i++))) {
+        if (uniform->size < 8) continue;
+        void* data = uniform->data;
+        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
+        uint32_t len = le32toh(((uint32_t*)data)[1]);
+        char* name = calloc(1, len+1);
+        memcpy(name, (uint8_t*)data+8, len);
+        
+        GLint real_loc = F(glGetUniformLocation)(real_program, name);
+        if (real_loc < 0)
+            inspect_add_error(inspect_command, "Nonexistent or inactive uniform while adding uniforms.");
+        else
+            replay_add_uniform(ctx, fake, fake_loc, real_loc);
+        
+        free(name);
+    }
+    
+    trace_extra_t* attrib = NULL;
+    i = 0;
+    while ((attrib=trace_get_extrai(command, "replay/program/vertex_attrib", i++))) {
+        if (attrib->size < 8) continue;
+        void* data = attrib->data;
+        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
+        uint32_t len = le32toh(((uint32_t*)data)[1]);
+        char* name = calloc(1, len+1);
+        memcpy(name, (uint8_t*)data+8, len);
+        
+        GLint real_loc = F(glGetAttribLocation)(real_program, name);
+        if (real_loc < 0)
+            inspect_add_error(inspect_command, "Nonexistent or inactive uniform while adding vertex attributes.");
+        else
+            replay_add_attrib(ctx, fake, fake_loc, real_loc);
+    }
 
 glValidateProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -1094,22 +1130,6 @@ glGetSamplerParamaterIuiv:
     GLuint real_sampler = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake);
     if (!real_sampler)
         inspect_add_error(inspect_command, "Invalid sampler.");
-
-glProgramUniformWIP15:
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
-        inspect_add_error(inspect_command, "Invalid program.");
-        RETURN;
-    }
-    
-    GLint loc = F(glGetUniformLocation)(real_program, gl_param_string(command, 1));
-    if (loc < 0) {
-        inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        RETURN;
-    }
-    
-    replay_add_uniform(ctx, fake, gl_param_GLuint(command, 2), loc);
 
 glUniform1f:
     GLint loc;
@@ -1455,22 +1475,6 @@ glUniformMatrix4x3fv:
         values[i] = trace_get_double(trace_get_arg(command, 3))[i];
     
     real(loc, count, gl_param_GLboolean(command, 2), values);
-
-glProgramAttribWIP15:
-    GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
-    if (!real_program) {
-        inspect_add_error(inspect_command, "Invalid program.");
-        RETURN;
-    }
-    
-    GLint loc = F(glGetAttribLocation)(real_program, gl_param_string(command, 1));
-    if (loc < 0) {
-        inspect_add_error(inspect_command, "Nonexistent or inactive uniform.");
-        RETURN;
-    }
-    
-    replay_add_attrib(ctx, fake, gl_param_GLuint(command, 2), loc);
 
 glVertexAttribPointer:
     real(gl_param_GLint(command, 0),

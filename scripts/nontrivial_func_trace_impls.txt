@@ -441,11 +441,6 @@ glTexParameteriv: void, GLenum+group, GLenum+group, GLint+array
     
     gl_glTexParameteriv(target, pname, params);
 
-glProgramUniformWIP15: void, GLuint, string, GLuint
-    gl_param_GLuint(program);
-    gl_param_string(name);
-    gl_param_GLuint(location);
-
 glUniform1fv: void, GLint, GLsizei, GLfloat+array
     gl_param_GLint(location);
     gl_param_GLsizei(count);
@@ -580,11 +575,6 @@ glUniformMatrix4x3fv: void, GLint, GLsizei, GLboolean, GLfloat+array
     gl_param_GLboolean(transpose);
     gl_param_GLfloat_array(count*12, value);
     gl_glUniformMatrix4x3fv(location, count, transpose, value);
-
-glProgramAttribWIP15: void, GLuint, string, GLuint
-    gl_param_GLuint(program);
-    gl_param_string(name);
-    gl_param_GLuint(index);
 
 glTestFBWIP15: void, string, data, data
     gl_param_string(name);

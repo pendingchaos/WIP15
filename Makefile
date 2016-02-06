@@ -1,4 +1,5 @@
 CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC
+LDFLAGS = 
 
 gui_src = $(wildcard src/gui/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)
@@ -13,6 +14,9 @@ libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(bas
 
 base_libinspect_obj = $(libinspect_src:.c=.o)
 libinspect_obj = $(join $(dir $(base_libinspect_obj)), $(addprefix ., $(notdir $(base_libinspect_obj))))
+
+base_obj = $(src:.c=.o)
+obj = $(join $(dir $(base_obj)), $(addprefix ., $(notdir $(base_obj))))
 
 dep = $(obj:.o=.d)
 
@@ -29,6 +33,9 @@ all: bin/libtrace.so bin/libgl.so bin/libinspect.so bin/trace bin/inspect-gui bi
 src/libgl.c: scripts/nontrivial_func_trace_impls.txt scripts/gl.c
 	cd scripts; python generate_gl.py
 
+src/libinspect/replay_gl.c: scripts/nontrivial_func_impls.txt 
+	cd scripts; python generate_replay.py
+
 bin/libgl.so: src/.libgl.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g `pkg-config zlib --libs` $(CFLAGS)
 
@@ -38,14 +45,14 @@ bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o
 bin/libinspect.so: $(libinspect_obj) src/shared/.vec.o src/shared/.glapi.o
 	$(CC) $^ -o bin/libinspect.so -shared -fPIC -lGL -ldl -g `sdl2-config --libs` $(CFLAGS)
 
-bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libtrace.so bin/libinspect.so
-	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
+bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libinspect.so bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -linspect -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
 
 bin/leakcheck: src/.leakcheck.o bin/libtrace.so bin/libinspect.so
-	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/leakcheck -g -rdynamic $(CFLAGS)
+	$(CC) -Lbin -Wl,-rpath=. -linspect -ltrace src/.leakcheck.o -o bin/leakcheck -g -rdynamic $(CFLAGS)
 
 bin/testtrace: src/.testtrace.o bin/libtrace.so bin/libinspect.so
-	$(CC) /home/rugrats/Documents/C/WIP15/bin/libtrace.so /home/rugrats/Documents/C/WIP15/bin/libinspect.so $^ -o bin/testtrace -g -rdynamic $(CFLAGS)
+	$(CC) -Lbin -Wl,-rpath=. -linspect -ltrace src/.testtrace.o -o bin/testtrace -g -rdynamic $(CFLAGS)
 
 bin/trace: src/.trace.o
 	$(CC) $^ -o bin/trace -g $(CFLAGS)

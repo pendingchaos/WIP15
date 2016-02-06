@@ -37,6 +37,7 @@ Bugs:
         Seems to be the glGetIntegerv calls in the state tracking code.
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The state, textures, etc will not be updated when opening a trace in the GUI.
+    The shader type is not displayed
 
 Various TODOs in the source code.
 
@@ -53,6 +54,8 @@ glDel* should only flag the objects for deletion.
 Control over the output trace filename in the GUI.
 
 Control over the limits file in the GUI.
+
+Multiple context support
 
 Reduce memory usage during replaying.
     Reduce amount of memory needed to store state

@@ -76,24 +76,6 @@ class GL:
     def _create_wip15_extension(self):
         self.functions["glSetContextCapsWIP15"] = Function("void")
         
-        glMappedBufferDataWIP15 = Function("void")
-        glMappedBufferDataWIP15.params.append(FunctionParam("GLenum", "target"))
-        glMappedBufferDataWIP15.params.append(FunctionParam("GLsizei", "size"))
-        glMappedBufferDataWIP15.params.append(FunctionParam("const GLvoid*", "data"))
-        self.functions["glMappedBufferDataWIP15"] = glMappedBufferDataWIP15
-        
-        glProgramUniformWIP15 = Function("void")
-        glProgramUniformWIP15.params.append(FunctionParam("GLuint", "program"))
-        glProgramUniformWIP15.params.append(FunctionParam("const GLchar*", "name"))
-        glProgramUniformWIP15.params.append(FunctionParam("GLuint", "location"))
-        self.functions["glProgramUniformWIP15"] = glProgramUniformWIP15
-        
-        glProgramAttribWIP15 = Function("void")
-        glProgramAttribWIP15.params.append(FunctionParam("GLuint", "program"))
-        glProgramAttribWIP15.params.append(FunctionParam("const GLchar*", "name"))
-        glProgramAttribWIP15.params.append(FunctionParam("GLuint", "index"))
-        self.functions["glProgramAttribWIP15"] = glProgramAttribWIP15
-        
         glTestFBWIP15 = Function("void")
         glTestFBWIP15.params.append(FunctionParam("const GLchar*", "name"))
         glTestFBWIP15.params.append(FunctionParam("const GLvoid*", "color"))
@@ -111,8 +93,6 @@ class GL:
         
         ext = Extension()
         ext.functions.append("glSetContextCapsWIP15")
-        ext.functions.append("glProgramUniformWIP15")
-        ext.functions.append("glProgramAttribWIP15")
         ext.functions.append("glTestFBWIP15")
         ext.functions.append("glCurrentTestWIP15")
         ext.functions.append("glDrawableSizeWIP15")

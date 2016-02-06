@@ -160,7 +160,6 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shdr_src_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
     gtk_text_buffer_set_text(source_buffer, shdr->source?shdr->source:"", -1);
-    printf("%s\n", shdr->source);
 }
 
 void shader_init() {
