@@ -40,7 +40,7 @@ void init_shader_list(GtkTreeView* tree) {
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, id, -1);
+        gtk_tree_store_set(store, &row, 0, id, 1, shader_type_str(shdr->type) ,-1);
     }
     
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
