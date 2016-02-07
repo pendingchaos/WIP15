@@ -155,6 +155,29 @@ static void* read_data(FILE* file, size_t* res_size) {
     }
 }
 
+static uint64_t read_uleb128(FILE* file, bool* error) {
+    uint64_t v = 0;
+    uint shift = 0;
+    uint8_t b;
+    do {
+        if (!readf(&b, 1, 1, file)) {
+            *error = true;
+            return 0;
+        }
+        v |= (uint64_t)(b&0x7f) << shift;
+        shift += 7;
+    } while (b & 0x80);
+    *error = false;
+    return v;
+}
+
+static int64_t read_sleb128(FILE* file, bool* error) {
+    uint64_t i = read_uleb128(file, error);
+    bool sign = i&1;
+    i >>= 1;
+    return sign ? -(int64_t)i : i;
+}
+
 //Returns true on success
 static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trace) {
     if (type->is_array) {
@@ -170,62 +193,59 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             val->type = Type_Void;
             break;
         }
-        case BaseType_UnsignedInt: { //TODO: LEB128
+        case BaseType_UnsignedInt: {
             val->type = Type_UInt;
+            bool error;
             if (val->count == 1) {
-                uint64_t v;
-                if (!readf(&v, 8, 1, file))
-                    return false;
-                val->u64 = le64toh(v);
+                val->u64 = read_uleb128(file, &error);
+                if (error) return false;
             } else {
                 val->u64_array = malloc(sizeof(uint64_t)*val->count);
                 
                 for (size_t i = 0; i < val->count; ++i) {
-                    if (!readf(val->u64_array+i, 8, 1, file)) {
+                    val->u64_array[i] = read_uleb128(file, &error);
+                    if (error) {
                         free(val->u64_array);
                         return false;
                     }
-                    val->u64_array[i] = le32toh(val->u64_array[i]);
                 }
             }
             break;
         }
-        case BaseType_Int: { //TODO: LEB128
+        case BaseType_Int: {
             val->type = Type_Int;
+            bool error;
             if (val->count == 1) {
-                int64_t v;
-                if (!readf(&v, 8, 1, file))
-                    return false;
-                val->i64 = le64toh(v);
+                val->i64 = read_sleb128(file, &error);
+                if (error) return false;
             } else {
                 val->i64_array = malloc(sizeof(int64_t)*val->count);
                 
                 for (size_t i = 0; i < val->count; i++) {
-                    if (!readf(val->i64_array+i, 8, 1, file)) {
+                    val->i64_array[i] = read_sleb128(file, &error);
+                    if (error) {
                         free(val->i64_array);
                         return false;
                     }
-                    val->i64_array[i] = le64toh(val->i64_array[i]);
                 }
             }
             break;
         }
-        case BaseType_Ptr: { //TODO: LEB128
+        case BaseType_Ptr: {
             val->type = Type_Ptr;
+            bool error;
             if (val->count == 1) {
-                uint64_t v;
-                if (!readf(&v, 8, 1, file))
-                    return false;
-                val->ptr = le64toh(v);
+                val->ptr = read_uleb128(file, &error);
+                if (error) return false;
             } else {
                 val->ptr_array = malloc(sizeof(uint64_t)*val->count);
                 
                 for (size_t i = 0; i < val->count; i++) {
-                    if (!readf(val->ptr_array+i, 8, 1, file)) {
+                    val->ptr_array[i] = read_uleb128(file, &error);
+                    if (error) {
                         free(val->ptr_array);
                         return false;
                     }
-                    val->ptr_array[i] = le32toh(val->ptr_array[i]);
                 }
             }
             break;

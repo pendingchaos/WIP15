@@ -5,8 +5,8 @@ bool is a unsigned 8-bit integer where 0 is false and anything else is true.
 uchar8 is a unsigned 8-bit ASCII character
 uint32 is a unsigned 32-bit integer.
 uint8 is a unsigned 8-bit integer.
-uvari is a unsigned integer encoded using unsigned LEB128 resulting in a integer requiring less than 65 bits.
-svari is a signed integer encoded using signed LEB128 resulting in a integer requiring less than 65 bits.
+uvari is a unsigned integer encoded using unsigned LEB128 storing an integer requiring less than 65 bits.
+svari is a signed integer encoded using unsigned LEB128 storing an integer requiring less than 65 bits. It is encoded using encode_uvari(v<0?1:0 | (unsigned int)abs(v)<<1)
 
 Type
     BaseType base

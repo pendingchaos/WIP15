@@ -373,7 +373,7 @@ glGetIntegerv: void, GLenum+group, pointer
     gl_param_pointer(data);
     GL_GET(glGetIntegerv)
 
-glGetString: string, GLenum
+glGetString: string, GLenum+group
     gl_param_GLenum(name);
     gl_write_group(GROUP_StringName);
     const GLubyte* result = (const GLubyte*)"";
@@ -414,6 +414,8 @@ glGetString: string, GLenum
     #else
     result = gl_glGetString(name);
     #endif
+    
+    gl_result_string((const char*)result);
 
 glTexParameterfv: void, GLenum+group, GLenum+group, GLfloat+array
     gl_param_GLenum(target);

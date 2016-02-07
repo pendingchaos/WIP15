@@ -219,14 +219,18 @@ static void gl_write_double(double d) {
     fwrite(&d, 8, 1, trace_file);
 }
 
-static void gl_write_uleb128(uint64_t v) { //TODO
-    v = htole64(v);
-    fwrite(&v, 8, 1, trace_file);
+static void gl_write_uleb128(uint64_t v) {
+    do {
+        uint8_t b = v & 0x7f;
+        v >>= 7;
+        if (v) b |= 0x80;
+        fwrite(&b, 1, 1, trace_file);
+    } while (v);
 }
 
-static void gl_write_sleb128(int64_t v) { //TODO
-    v = htole64(v);
-    fwrite(&v, 8, 1, trace_file);
+static void gl_write_sleb128(int64_t v) {
+    if (v<0) gl_write_uleb128(1 | (uint64_t)(-v)<<1);
+    else gl_write_uleb128((uint64_t)v << 1);
 }
 
 static void gl_write_ptr(const void* v) {
@@ -572,6 +576,10 @@ static void gl_param_GLXVideoSourceSGIX(GLXVideoSourceSGIX value) {
 
 static void gl_param_GLXContext(GLXContext value) {
     gl_write_ptr(value);
+}
+
+static void gl_result_string(const char *value) {
+    gl_write_str(value);
 }
 
 static void gl_result_GLenum(GLenum value) {
