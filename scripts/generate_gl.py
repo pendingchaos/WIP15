@@ -3,9 +3,14 @@
 import glxml
 
 dont_implement = ["glLinkProgram"]
-fb_commands = ["glDrawArrays", "glDrawElements", "glMultiDrawArrays", #TODO: Update this
-               "glMultiDrawElements", "glDrawRangeElements",
-               "glClear", "glXSwapBuffers"]
+fb_commands = ["glClear", "glXSwapBuffers", "glDrawArrays", "glDrawArraysIndirect",
+               "glDrawArraysInstanced", "glDrawAraysInstancedBaseInstance",
+               "glDrawElements", "glDrawElementsBaseVertex", "glDrawElementsIndirect",
+               "glDrawElementsInstanced", "glDrawElementsInstancedBaseInstance",
+               "glDrawElementsInstancedBaseVertex", "glDrawElementsInstancedBaseVertexBaseInstance",
+               "glDrawRangeElements", "glDrawRangeElementsBaseVertex", "glMultiDrawArrays",
+               "glMultiDrawArraysIndirect", "glMultiDrawElements", "glMultiDrawElements",
+               "glMultiDrawElementsBaseVertex", "glMultiDrawElementsIndirect"];
 
 gl = glxml.GL(False)
 

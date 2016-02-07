@@ -1249,8 +1249,37 @@ void glSetContextCapsWIP15();
 void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 void glDrawableSizeWIP15(GLsizei width, GLsizei height);
 
+static void update_drawable_size() {
+    Display* dpy = F(glXGetCurrentDisplay)();
+    GLXDrawable drawable = F(glXGetCurrentDrawable)();
+    
+    if (!F(glXGetCurrentContext)())
+        return;
+    
+    int w, h;
+    if (dpy && drawable!=None) {
+        uint w_, h_;
+        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
+        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
+        
+        w = w_;
+        h = h_;
+    } else {
+        w = -1;
+        h = -1;
+    }
+    
+    if (w!=drawable_width || h!=drawable_height) {
+        drawable_width = w;
+        drawable_height = h;
+        glDrawableSizeWIP15(w, h);
+    }
+}
+
 static void test_fb(const char* name) {
     if (test_mode) {
+        update_drawable_size();
+        
         F(glFinish)();
         
         GLint last_buf;
@@ -1355,31 +1384,4 @@ void glLinkProgram(GLuint program) {
     
     gl_end_call();
     
-}
-
-static void update_drawable_size() {
-    Display* dpy = F(glXGetCurrentDisplay)();
-    GLXDrawable drawable = F(glXGetCurrentDrawable)();
-    
-    if (!F(glXGetCurrentContext)())
-        return;
-    
-    int w, h;
-    if (dpy && drawable!=None) {
-        uint w_, h_;
-        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
-        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
-        
-        w = w_;
-        h = h_;
-    } else {
-        w = -1;
-        h = -1;
-    }
-    
-    if (w!=drawable_width || h!=drawable_height) {
-        drawable_width = w;
-        drawable_height = h;
-        glDrawableSizeWIP15(w, h);
-    }
 }
