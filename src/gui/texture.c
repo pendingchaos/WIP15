@@ -24,14 +24,20 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     gtk_tree_store_clear(param_store);
     
     GtkTreePath* path;
+    GtkSpinButton* layer_spinbutton = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "layer_spinbutton"));
+    
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    if (!path)
+    if (!path) {
+        gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), 0);
         return;
+    }
     
     //Initialize params
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     inspect_texture_t* tex = get_inspect_tex_vec(inspector->textures, tex_index);
     if (!tex) return;
+    
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), tex->layer_count-1);
     
     inspect_gl_tex_params_t params = tex->params;
     
@@ -80,12 +86,17 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         VAL("Layer Count", static_format("%zu", tex->layer_count));
         #undef VAL
         
+        GtkSpinButton* layer_button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "layer_spinbutton"));
+        uint32_t layer = gtk_spin_button_get_value(GTK_SPIN_BUTTON(layer_button));
+        
+        GtkComboBox* face_combobox = GTK_COMBO_BOX(gtk_builder_get_object(builder, "face_combobox"));
+        gint face = gtk_combo_box_get_active(GTK_COMBO_BOX(face_combobox));
+        
         //Initialize images
         size_t w = tex->width;
         size_t h = tex->height;
         for (size_t level = 0; level < tex->mipmap_count; level++) {
-            //TODO: Layer and face
-            inspect_image_t* img = inspect_get_tex_mipmap(tex, level, 0, 0);
+            inspect_image_t* img = inspect_get_tex_mipmap(tex, level, layer, face);
             if (img->filename) {
                 uint32_t* data = (uint32_t*)malloc(w*h*4);
                 inspect_get_image_data(img, data);
@@ -145,4 +156,24 @@ void texture_init() {
     column = gtk_tree_view_get_column(GTK_TREE_VIEW(tex_image_view), 1);
     gtk_tree_view_column_pack_start(column, renderer, FALSE);
     gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+    
+    //Initialize face combobox
+    GObject* face = gtk_builder_get_object(builder, "face_combobox");
+    GtkTreeStore* face_store = gtk_tree_store_new(1, G_TYPE_STRING);
+    gtk_combo_box_set_model(GTK_COMBO_BOX(face), GTK_TREE_MODEL(face_store));
+    renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(face), renderer, TRUE);
+    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(face), renderer, "text", 0, NULL);
+    GtkTreeIter row;
+    const char* strs[] = {"Positive X", "Negative X", "Positive Y", "Negative Y", "Positive Z", "Negative Z"};
+    for (size_t i = 0; i < sizeof(strs)/sizeof(strs[0]); i++) {
+        gtk_tree_store_append(face_store, &row, NULL);
+        gtk_tree_store_set(face_store, &row, 0, strs[i], -1);
+    }
+    g_object_unref(face_store);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(face), 0);
+    
+    //Initialize layer
+    GtkSpinButton* button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "layer_spinbutton"));
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(button), 0);
 }

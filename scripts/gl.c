@@ -270,6 +270,8 @@ static void gl_write_data(size_t size, const void* data) {
         gl_write_uint32(compressed_size);
         fwrite(compressed, compressed_size, 1, trace_file);
     }
+    
+    free(compressed);
 }
 
 static void gl_start_func_decl(uint32_t func_id, const char* name) {
