@@ -59,13 +59,13 @@ class Func(object):
         res += '        gl_start_func_decl(%d, "%s");\n' % (self.func_id, self.name)
         
         if self.rettype != None:
-            res += indent(self.rettype.gen_write_type_code(), 2) + '\n'
+            res += indent(self.rettype.gen_write_type_code(), 2) + ';\n'
         else:
-            res += '        gl_write_type(BASE_TYPE_VOID, false, false)\n'
+            res += '        gl_write_type(BASE_VOID, false, false);\n'
         
         res += '        gl_start_func_decl_args(%d);\n' % len(self.params)
         for param in self.params:
-            res += indent(param.gen_write_type_code(), 2) + '\n'
+            res += indent(param.gen_write_type_code(), 2) + ';\n'
         res += '        gl_end_func_decl_args();\n'
         
         res += '        gl_end_func_decl();\n'
@@ -82,19 +82,21 @@ class Func(object):
         res += '    func_decl_%s();\n' % self.name
         
         res += '    if (!gl_%s)\n' % self.name # TODO: This could change when the context does
-        res += '        gl_%s = gl_glXGetProcAddress((const GLubyte*)"%s");\n' % (self.name, self.name)
+        res += '        gl_%s = (%s_t)gl_glXGetProcAddress((const GLubyte*)"%s");\n' % (self.name, self.name, self.name)
         
         res += '    gl_start_call(%d);\n' % self.func_id
-        
-        for param in self.params:
-            res += indent(param.gen_write_code(), 1) + '\n'
         
         params = ', '.join([param.name for param in self.params])
         if self.rettype != None:
             res += '    %s result = gl_%s(%s);\n' % (self.rettype.gen_type_code(), self.name, params)
-            res += indent(self.rettype.gen_write_code('result'), 1) + '\n'
         else:
             res += '    gl_%s(%s);\n' % (self.name, params)
+        
+        for param in self.params:
+            res += indent(param.gen_write_code(), 1) + ';\n'
+        
+        if self.rettype != None:
+            res += indent(self.rettype.gen_write_code('result'), 1) + ';\n'
         
         res += '    gl_end_call();\n'
         if self.rettype != None:
@@ -192,6 +194,7 @@ exec _create_int('GLuint64')
 exec _create_uint('GLhandleARB')
 exec _create_int('GLintptrARB')
 exec _create_int('GLsizeiptr')
+exec _create_uint('GLuintptr')
 exec _create_int('GLint')
 exec _create_int('GLclampx')
 exec _create_int('GLsizeiptrARB')
@@ -225,7 +228,7 @@ class tGLclampd(_Double): ctype = 'GLclampd'
 class tGLdouble(_Double): ctype = 'GLdouble'
 
 class tPointer(_Ptr): ctype = 'void*'
-class tMutablePointer(tPointer): pass
+class tMutablePointer(_Ptr): ctype = 'const void*'
 class tGLsync(_Ptr): ctype = 'GLsync'
 class tGLeglImageOES(_Ptr): ctype = 'GLeglImageOES'
 class tGLXFBConfig(_Ptr): ctype = 'GLXFBConfig'
@@ -307,8 +310,8 @@ class tGLhalfNV(Type): # TODO
 
 class tString(Type):
     def gen_type_code(self, var_name='', array_count=None):
-        if array_count != None: return 'char** %s' % var_name
-        else: return 'char* %s' % var_name
+        if array_count != None: return 'const char** %s' % var_name
+        else: return 'const char* %s' % var_name
     
     def gen_write_code(self, var_name, array_count=None):
         if array_count != None:
@@ -320,14 +323,18 @@ class tString(Type):
         else:
             return 'gl_write_str(%s)' % var_name
 
-class tMutableString(tString): pass
+class tMutableString(tString):
+    def gen_type_code(self, var_name='', array_count=None):
+        if array_count != None: return 'char** %s' % var_name
+        else: return 'char* %s' % var_name
 
 exec open('generated_gl_funcs.py').read()
 exec open('gl_funcs.py').read()
 
 gl_c = open('output_gl.c', 'w')
 
-gl_c.write('''#include <X11/Xlib.h>
+gl_c.write('''#define _GNU_SOURCE
+#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -343,7 +350,10 @@ gl_c.write('''#include <X11/Xlib.h>
 
 ''')
 
-gl_c.write(open("gl.c", "r").read())
+import glxml
+gl_c.write(glxml.GL(False).typedecls)
+
+gl_c.write(open("new_gl.c", "r").read())
 
 for func in funcs:
     params = ', '.join([p.gen_param_code() for p in func.params])
@@ -387,7 +397,7 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     
     fwrite("0.0a            ", 16, 1, trace_file);
     
-    gl_write_uint32(%d);
+    gl_write_uint32(FUNC_COUNT);
     
     lib_gl = actual_dlopen("libGL.so.1", RTLD_NOW|RTLD_LOCAL);
     

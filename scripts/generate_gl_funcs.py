@@ -16,6 +16,10 @@ for v in vers:
     for r in gl.versions[v].removed_functions:
         funcs.remove(r)
 
+for f in gl.functions.keys():
+    if f.startswith('glX'):
+        funcs.append(f)
+
 for name in funcs:
     func = gl.functions[name]
     
