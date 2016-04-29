@@ -20,3 +20,5 @@
 /bin/tests
 /bin/testtrace
 /WIP15.geany
+/scripts/output_gl.c
+/scripts/generated_gl_funcs.py
