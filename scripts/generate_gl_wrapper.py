@@ -45,9 +45,9 @@ class Func(object):
             next_func_id += 1
         self.name = name
         self.params = params
-        self.prologue_code = ''
-        self.epilogue_code = ''
-        self.extras_code = ''
+        self.trace_prologue_code = ''
+        self.trace_epilogue_code = ''
+        self.trace_extras_code = ''
         if rettype != None: self.rettype = rettype() if isinstance(rettype, type) else rettype
         else: self.rettype = None
         
@@ -90,7 +90,7 @@ class Func(object):
         res += '    if (!gl_%s)\n' % self.name
         res += '        gl_%s = (%s_t)gl_glXGetProcAddress("%s");\n' % (self.name, self.name, self.name)
         
-        res += indent(self.prologue_code, 1) + '\n'
+        res += indent(self.trace_prologue_code, 1) + '\n'
         
         res += '    gl_start_call(%d);\n' % self.func_id
         
@@ -106,11 +106,11 @@ class Func(object):
         if self.rettype != None:
             res += indent(self.rettype.gen_write_code('result'), 1) + ';\n'
         
-        res += indent(self.extras_code, 1) + '\n'
+        res += indent(self.trace_extras_code, 1) + '\n'
         
         res += '    gl_end_call();\n'
         
-        res += indent(self.epilogue_code, 1) + '\n'
+        res += indent(self.trace_epilogue_code, 1) + '\n'
         
         if self.rettype != None:
             res += '    return result;\n'
