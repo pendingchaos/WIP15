@@ -486,6 +486,9 @@ trace_t *load_trace(const char* filename) {
                 ERROR("Unable to read function index");
             index = le32toh(index);
             
+            if (index >= trace->func_name_count)
+                ERROR("Invalid function index");
+            
             trace->func_names[index] = read_str(file);
             if (!trace->func_names[index])
                 ERROR("Unable to read function name");
@@ -508,6 +511,7 @@ trace_t *load_trace(const char* filename) {
             break;
         }
         case Op_DeclGroup: {
+            printf("Op_DeclGroup\n");
             uint32_t index;
             if (!readf(&index, 4, 1, file))
                 ERROR("Unable to read group index");

@@ -823,7 +823,7 @@ static void update_drawable_size() {
     if (w!=drawable_width || h!=drawable_height) {
         drawable_width = w;
         drawable_height = h;
-        glDrawableSizeWIP15(w, h);
+        //glDrawableSizeWIP15(w, h);
     }
 }
 
@@ -845,7 +845,7 @@ static void test_fb(const char* name) {
         
         F(glReadBuffer)(last_buf);
         
-        glTestFBWIP15(name, back, depth);
+        //glTestFBWIP15(name, back, depth);
         
         free(back);
         free(depth);

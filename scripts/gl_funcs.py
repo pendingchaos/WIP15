@@ -1,3 +1,26 @@
+class glXGetProcAddressFunc(Func):
+    def gen_wrapper(self):
+        res = '__GLXextFuncPtr %s(const char* name) {\n' % self.name
+        res += '    func_decl_%s();\n' % self.name
+        res += '    gl_start_call(%d);\n' % self.func_id
+        res += '    gl_write_str(name);\n'
+        res += '    func_t result = NULL;\n'
+        
+        first = True
+        for func in funcs:
+            if first:
+                res += '    if (!strcmp(name, "%s")) result = (func_t)dlsym(RTLD_DEFAULT, "%s");\n' % (func.name, func.name)
+            else:
+                res += '    else if (!strcmp(name, "%s")) result = (func_t)dlsym(RTLD_DEFAULT, "%s");\n' % (func.name, func.name)
+            first = False
+        
+        #res += '    gl_write_func_ptr(result);\n'
+        res += '    gl_end_call();\n'
+        res += '    return result;\n'
+        res += '}'
+        
+        return res
+
 P = Param
 
 class tTexImageData(tData):
@@ -13,14 +36,37 @@ class tTexImageData(tData):
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    if (%s[i]) gl_write_data(sz_%d, %s[i]);' % (var_name, id(self), var_name)
             res += '    else {\n'
-            res += '        void*d=malloc(sz_%d);\n' % id(self)
+            res += '        void* d = calloc(sz_%d, 1);\n' % id(self)
             res += '        gl_write_data(sz_%d, d);' % id(self)
             res += '        free(d);\n'
             res += '    }'
         else:
             res += 'if (%s) gl_write_data(sz_%d, %s);\n' % (var_name, id(self), var_name)
             res += 'else {\n'
-            res += '    void* d = malloc(sz_%d);\n' % id(self)
+            res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
+            res += '    gl_write_data(sz_%d, d);\n' % id(self)
+            res += '    free(d);\n'
+            res += '}'
+        return res
+
+class tBufData(tData):
+    def gen_write_code(self, var_name, array_count=None):
+        if array_count != None:
+            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
+            res += 'gl_write_uint32(count_%d);\n' % id(self)
+            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
+            res += '    if (%s[i]) gl_write_data((%s), %s[i]);\n' % (var_name, str(self.size_expr), var_name)
+            res += '    else {\n'
+            res += '        size_t sz_%d = %s;\n' % (id(self), str(self.size_expr))
+            res += '        void* d = calloc(sz_%d, 1);\n' % id(self)
+            res += '        gl_write_data(sz_%d, d);\n' % id(self)
+            res += '        free(d);\n'
+            res += '    }'
+        else:
+            res = 'if (%s) gl_write_data((%s), %s);\n' % (var_name, self.size_expr, var_name)
+            res += 'else {\n'
+            res += '    size_t sz_%d = %s;\n' % (id(self), str(self.size_expr))
+            res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
             res += '    gl_write_data(sz_%d, d);\n' % id(self)
             res += '    free(d);\n'
             res += '}'
@@ -103,10 +149,10 @@ Func('glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 Func('glGenBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 
 Func('glBufferData', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'),
-                      P(tData('size'), 'data'), P(tGLenum, 'usage')])
+                      P(tBufData('size'), 'data'), P(tGLenum, 'usage')])
 
 Func('glBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'),
-                         P(tGLsizeiptr, 'size'), P(tData('size'), 'data')])
+                         P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data')])
 
 #Func('glGetBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
 #Func('glMapBuffer', [P(tGLenum, 'target'), P(tGLenum, 'access')], tPointer)
@@ -526,7 +572,7 @@ Func('glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode'), P(tGLint, 'first'
 
 
 
-
+# TODO: glMapBuffer
 
 
 
@@ -569,7 +615,7 @@ Func('glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, '
 #Func('glXCreateWindow', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tWindow, 'win'), P(tPointer, 'attrib_list')], tGLXWindow)
 #Func('glXGetCurrentDrawable', [], tGLXDrawable)
 #Func('glXQueryHyperpipeBestAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'attribList'), P(tMutablePointer, 'returnAttribList')], tint)
-Func('glXGetProcAddress', [P(tString, 'procName')], t__GLXextFuncPtr)
+glXGetProcAddressFunc('glXGetProcAddress', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func('glXCushionSGI', [P(tMutablePointer, 'dpy'), P(tWindow, 'window'), P(tfloat, 'cushion')])
 #Func('glXMakeContextCurrent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tGLXDrawable, 'read'), P(tGLXContext, 'ctx')], tBool)
 #Func('glXSwapIntervalSGI', [P(tint, 'interval')], tint)
@@ -617,7 +663,7 @@ Func('glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, '
 #Func('glXGetVideoInfoNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tGLXVideoDeviceNV, 'VideoDevice'), P(tMutablePointer, 'pulCounterOutputPbuffer'), P(tMutablePointer, 'pulCounterOutputVideo')], tint)
 #Func('glXGetSyncValuesOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
 #Func('glXDeleteAssociatedContextAMD', [P(tGLXContext, 'ctx')], tBool)
-Func('glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
+glXGetProcAddressFunc('glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func('glXEnumerateVideoDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 #Func('glXCreateContext', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'vis'), P(tGLXContext, 'shareList'), P(tBool, 'direct')], tGLXContext)
 #Func('glXReleaseTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer')])
@@ -636,7 +682,7 @@ Func('glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func('glXWaitGL', [])
 #Func('glXQueryCurrentRendererStringMESA', [P(tint, 'attribute')], tPointer)
 #Func('glXCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLenum, 'readTarget'), P(tGLenum, 'writeTarget'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
-Func('glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')]).epilogue_code = 'update_drawable_size();\nif (test_mode) test_fb("glClearBufferiv");'
+Func('glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')]).epilogue_code = 'update_drawable_size();\nif (test_mode) test_fb("glXSwapBuffers");'
 #Func('glXWaitX', [])
 #Func('glXQueryHyperpipeNetworkSGIX', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'npipes')], tPointer)
 #Func('glXGetVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'numVideoDevices'), P(tMutablePointer, 'pVideoDevice')], tint)
@@ -650,4 +696,4 @@ Func('glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')])
 #Func('glXGetVisualFromFBConfig', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config')], tPointer)
 
 #TODO
-Func('glXMakeCurrent', [Param(tMutablePointer, 'dpy', None), Param(tGLXDrawable, 'drawable', None), Param(tGLXContext, 'ctx', None)], tBool).epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl();'
+Func('glXMakeCurrent', [Param(tMutablePointer, 'dpy', None), Param(tGLXDrawable, 'drawable', None), Param(tGLXContext, 'ctx', None)], tBool).epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs();'

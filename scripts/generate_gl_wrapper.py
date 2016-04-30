@@ -38,8 +38,11 @@ class Param(object):
 class Func(object):
     def __init__(self, name, params, rettype=None):
         global next_func_id, funcs
-        self.func_id = next_func_id
-        next_func_id += 1
+        if name in func_dict:
+            self.func_id = func_dict[name].func_id
+        else:
+            self.func_id = next_func_id
+            next_func_id += 1
         self.name = name
         self.params = params
         self.prologue_code = ''
@@ -85,7 +88,7 @@ class Func(object):
         res += '    func_decl_%s();\n' % self.name
         
         res += '    if (!gl_%s)\n' % self.name
-        res += '        gl_%s = (%s_t)gl_glXGetProcAddress((const GLubyte*)"%s");\n' % (self.name, self.name, self.name)
+        res += '        gl_%s = (%s_t)gl_glXGetProcAddress("%s");\n' % (self.name, self.name, self.name)
         
         res += indent(self.prologue_code, 1) + '\n'
         
@@ -271,10 +274,10 @@ class tData(Type):
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    gl_write_data((%s), %s[i]);' % (self.size_expr, var_name)
+            res += '    gl_write_data((%s), %s[i]);' % (str(self.size_expr), var_name)
             return res
         else:
-            return 'gl_write_data((%s), %s)' % (self.size_expr, var_name)
+            return 'gl_write_data((%s), %s)' % (str(self.size_expr), var_name)
     
     def gen_write_type_code(self, array_count=None):
         array = 'true' if array_count != None else 'false'
@@ -332,6 +335,10 @@ class tString(Type):
             return res
         else:
             return 'gl_write_str(%s)' % var_name
+    
+    def gen_write_type_code(self, array_count):
+        array = 'true' if array_count != None else 'false'
+        return 'gl_write_type(BASE_STRING, false, %s)' % (array)
 
 class tMutableString(tString):
     def gen_type_code(self, var_name='', array_count=None):
@@ -343,8 +350,7 @@ exec open('gl_funcs.py').read()
 
 gl_c = open('output_gl.c', 'w')
 
-gl_c.write('''#define _GNU_SOURCE
-#include <X11/Xlib.h>
+gl_c.write('''#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -379,23 +385,24 @@ for func in funcs:
     gl_c.write("static %s_t gl_%s;\n" % (func.name, func.name))
 
 gl_c.write('''
+
+void reset_gl_funcs() {''')
+
+for name in [f.name for f in funcs]:
+    if not name.startswith('glX'):
+        gl_c.write('    gl_%s = NULL;\n' % name)
+
+gl_c.write('''}
+
 #define _STR(...) #__VA_ARGS__
 #define STR(...) _STR(__VA_ARGS__)
 #define F(name) ((name##_t)get_func((func_t*)&gl_##name, STR(name)))
 
 static func_t get_func(func_t* f, const char* name) {
     if (*f) return *f;
-    else return *f = gl_glXGetProcAddress((const GLubyte*)name);
+    else return *f = gl_glXGetProcAddress(name);
 }
-
-void reset_gl_funcs() {
 ''')
-
-for name in [f.name for f in funcs]:
-    if not name.startswith('glX'):
-        gl_c.write('    gl_%s = NULL;\n' % name)
-
-gl_c.write('}\n')
 
 gl_c.write(open("new_gl.c", "r").read())
 
@@ -436,6 +443,7 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     fwrite("0.0a            ", 16, 1, trace_file);
     
     gl_write_uint32(FUNC_COUNT);
+    gl_write_uint32(0);
     
     lib_gl = actual_dlopen("libGL.so.1", RTLD_NOW|RTLD_LOCAL);
     
@@ -448,11 +456,13 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     
     current_limits = NULL;
     
+    gl_glXGetProcAddress = dlsym(lib_gl, "glXGetProcAddress");
+    
 ''')
 
 for name in [f.name for f in funcs]:
     if name.startswith('glX'):
-        gl_c.write('    gl_%s = (%s_t)dlsym(lib_gl, "%s");\n' % (name, name, name))
+        gl_c.write("    gl_%s=(%s_t)gl_glXGetProcAddress(\"%s\");\n" % (name, name, name))
     else:
         gl_c.write('    gl_%s = NULL;\n' % name)
 
