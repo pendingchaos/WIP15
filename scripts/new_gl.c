@@ -24,8 +24,6 @@
 #define COMPRESSION_NONE 0
 #define COMPRESSION_ZLIB 1
 
-typedef void (*func_t)();
-
 typedef struct {
     bool exists;
     int32_t val;
@@ -797,4 +795,65 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     }
     
     return final_size;
+}
+
+void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void glDrawableSizeWIP15(GLsizei width, GLsizei height);
+
+static void update_drawable_size() {
+    Display* dpy = F(glXGetCurrentDisplay)();
+    GLXDrawable drawable = F(glXGetCurrentDrawable)();
+    
+    if (!F(glXGetCurrentContext)())
+        return;
+    
+    int w, h;
+    if (dpy && drawable!=None) {
+        uint w_, h_;
+        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
+        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
+        
+        w = w_;
+        h = h_;
+    } else {
+        w = -1;
+        h = -1;
+    }
+    
+    if (w!=drawable_width || h!=drawable_height) {
+        drawable_width = w;
+        drawable_height = h;
+        glDrawableSizeWIP15(w, h);
+    }
+}
+
+static void test_fb(const char* name) {
+    if (test_mode) {
+        update_drawable_size();
+        
+        F(glFinish)();
+        
+        GLint last_buf;
+        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+        
+        F(glReadBuffer)(GL_BACK);
+        void* back = malloc(drawable_width*drawable_height*4);
+        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_RGBA, GL_UNSIGNED_BYTE, back);
+        
+        void* depth = malloc(drawable_width*drawable_height*4);
+        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+        
+        F(glReadBuffer)(last_buf);
+        
+        glTestFBWIP15(name, back, depth);
+        
+        free(back);
+        free(depth);
+    }
+}
+
+size_t glx_attrib_int_count(const int* attribs) {
+    size_t count = 0;
+    while (attribs[count]) count += 2;
+    return count + 1;
 }

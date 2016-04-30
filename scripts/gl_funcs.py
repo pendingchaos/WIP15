@@ -1,17 +1,42 @@
 P = Param
 
-#Func('glTexPeterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+class tTexImageData(tData):
+    def __init__(self, dim):
+        Type.__init__(self)
+        self.texel_count_expr = ['width', 'width*height', 'width*height*depth'][dim-1]
+    
+    def gen_write_code(self, var_name, array_count=None):
+        res = 'size_t sz_%d = get_texel_size(format, type) * %s;\n' % (id(self), self.texel_count_expr)
+        if array_count != None:
+            res += 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
+            res += 'gl_write_uint32(count_%d);\n' % id(self)
+            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
+            res += '    if (%s[i]) gl_write_data(sz_%d, %s[i]);' % (var_name, id(self), var_name)
+            res += '    else {\n'
+            res += '        void*d=malloc(sz_%d);\n' % id(self)
+            res += '        gl_write_data(sz_%d, d);' % id(self)
+            res += '        free(d);\n'
+            res += '    }'
+        else:
+            res += 'if (%s) gl_write_data(sz_%d, %s);\n' % (var_name, id(self), var_name)
+            res += 'else {\n'
+            res += '    void* d = malloc(sz_%d);\n' % id(self)
+            res += '    gl_write_data(sz_%d, d);\n' % id(self)
+            res += '    free(d);\n'
+            res += '}'
+        return res
+
+#Func('glTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 
 Func('glTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
                       P(tGLsizei, 'width'), P(tGLint, 'border'), P(tGLenum, 'format'),
-                      P(tGLenum, 'type'), P(tData('get_texel_size(format, type)*width'), 'pixels')])
+                      P(tGLenum, 'type'), P(tTexImageData(1), 'pixels')])
 
-#TODO: Support NULL
 Func('glTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
                       P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'),
                       P(tGLenum, 'format'), P(tGLenum, 'type'),
-                      P(tData('get_texel_size(format, type)*width*height'), 'pixels')])
+                      P(tTexImageData(2), 'pixels')])
 
 #Func('glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
 #Func('glGetBooleanv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
@@ -20,19 +45,19 @@ Func('glTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'inter
 #Func('glGetIntegerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
 #Func('glGetString', [P(tGLenum, 'name')], tPointer)
 #Func('glGetTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
-#Func('glGetTexPeterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexLevelPeterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexLevelPeteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
 Func('glTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
                          P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'),
-                         P(tData('get_texel_size(format, type)*width'), 'pixels')])
+                         P(tTexImageData(1), 'pixels')])
 
 Func('glTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
                          P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
                          P(tGLenum, 'format'), P(tGLenum, 'type'),
-                         P(tData('get_texel_size(format, type)*width*height'), 'pixels')])
+                         P(tTexImageData(2), 'pixels')])
 
 Func('glDeleteTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 Func('glGenTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
@@ -44,12 +69,12 @@ Func('glDrawRangeElements', [P(tGLenum, 'mode'), P(tGLuint, 'start'), P(tGLuint,
 Func('glTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
                       P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                       P(tGLint, 'border'), P(tGLenum, 'format'), P(tGLenum, 'type'),
-                      P(tData('get_texel_size(format, type)*width*height*depth'), 'pixels')])
+                      P(tTexImageData(3), 'pixels')])
 
 Func('glTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
                          P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'),
                          P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'),
-                         P(tGLenum, 'type'), P(tData('get_texel_size(format, type)*width*height*depth'), 'pixels')])
+                         P(tGLenum, 'type'), P(tTexImageData(3), 'pixels')])
 
 #Func('glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func('glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
@@ -67,8 +92,8 @@ Func('glMultiDrawElements', [P(tGLenum, 'mode'), P(tPointer, 'count', 'drawcount
                              P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount')])\
      .epilogue_code = 'if (test_mode) test_fb("glMultiDrawElements");'
 
-#Func('glPointPeterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glPointPeteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glPointParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glPointParameteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
 Func('glGenQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func('glDeleteQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 #Func('glGetQueryiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -85,7 +110,7 @@ Func('glBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'),
 
 #Func('glGetBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
 #Func('glMapBuffer', [P(tGLenum, 'target'), P(tGLenum, 'access')], tPointer)
-#Func('glGetBufferPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetBufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetBufferPointerv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func('glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
 #Func('glGetActiveAttrib', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
@@ -181,20 +206,20 @@ Func('glUniform1uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, '
 Func('glUniform2uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*2')])
 Func('glUniform3uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*3')])
 Func('glUniform4uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*4')])
-#Func('glTexPeterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexPeterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glGetTexPeterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexPeterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glGetTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glClearBufferiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')]).epilogue_code = 'if (test_mode) test_fb("glClearBufferiv");'
 #Func('glClearBufferuiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')]).epilogue_code = 'if (test_mode) test_fb("glClearBufferuiv");'
 #Func('glClearBufferfv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')]).epilogue_code = 'if (test_mode) test_fb("glClearBufferfv");'
 #Func('glGetStringi', [P(tGLenum, 'name'), P(tGLuint, 'index')], tPointer)
 Func('glDeleteRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
 Func('glGenRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func('glGetRenderbufferPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func('glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func('glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
-#Func('glGetFramebufferAttachmentPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glMapBufferRange', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
 Func('glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func('glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
@@ -235,18 +260,18 @@ Func('glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode'), P(tGLsizei, 'count', 
 #Func('glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
 #Func('glGetSynciv', [P(tGLsync, 'sync'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'values')])
 #Func('glGetInteger64i_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func('glGetBufferPeteri64v', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetBufferParameteri64v', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetMultisamplefv', [P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'val')])
 Func('glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func('glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
-#Func('glSamplerPeteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerPeterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerPeterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerPeterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glGetSamplerPeteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerPeterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerPeterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerPeterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetQueryObjecti64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetQueryObjectui64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
@@ -294,7 +319,7 @@ Func('glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
 #Func('glUniformSubroutinesuiv', [P(tGLenum, 'shadertype'), P(tGLsizei, 'count'), P(tPointer, 'indices')])
 #Func('glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func('glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
-#Func('glPatchPeterfv', [P(tGLenum, 'pname'), P(tPointer, 'values')])
+#Func('glPatchParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'values')])
 Func('glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func('glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 #Func('glGetQueryIndexediv', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -405,7 +430,7 @@ Func('glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'), P(tGL
 #Func('glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 #Func('glClearBufferSubData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glGetFramebufferPeteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetFramebufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetInternalformati64v', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func('glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
 #Func('glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
@@ -443,8 +468,8 @@ Func('glNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tG
 #Func('glClearNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 #Func('glMapNamedBuffer', [P(tGLuint, 'buffer'), P(tGLenum, 'access')], tPointer)
 #Func('glMapNamedBufferRange', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
-#Func('glGetNamedBufferPeteriv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetNamedBufferPeteri64v', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetNamedBufferParameteriv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetNamedBufferParameteri64v', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetNamedBufferPointerv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
 #Func('glCreateFramebuffers', [P(tGLsizei, 'n'), P(tMutablePointer, 'framebuffers')])
@@ -454,10 +479,10 @@ Func('glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'n
 #Func('glClearNamedFramebufferiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
 #Func('glClearNamedFramebufferuiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
 #Func('glClearNamedFramebufferfv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
-#Func('glGetNamedFramebufferPeteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-#Func('glGetNamedFramebufferAttachmentPeteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetNamedFramebufferParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+#Func('glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func('glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func('glGetNamedRenderbufferPeteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetNamedRenderbufferParameteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func('glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 #Func('glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
 #Func('glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
@@ -465,18 +490,18 @@ Func('glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'te
 #Func('glCompressedTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func('glCompressedTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func('glCompressedTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glTexturePeterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glTexturePeterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexturePeterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexturePeteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func('glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func('glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
 #Func('glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 #Func('glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetTextureLevelPeterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureLevelPeteriv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexturePeterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexturePeterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexturePeterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexturePeteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureLevelParameterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureLevelParameteriv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func('glGetTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func('glCreateVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func('glVertexArrayVertexBuffers', [P(tGLuint, 'vaobj'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
 #Func('glGetVertexArrayiv', [P(tGLuint, 'vaobj'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
@@ -513,7 +538,7 @@ Func('glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode'), P(tGLint, 'first'
 #Func('glXChannelRectSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tint, 'x'), P(tint, 'y'), P(tint, 'w'), P(tint, 'h')], tint)
 #Func('glXCopyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'src'), P(tGLXContext, 'dst'), P(tunsignedlong, 'mask')])
 #Func('glXGetTransparentIndexSUN', [P(tMutablePointer, 'dpy'), P(tWindow, 'overlay'), P(tWindow, 'underlay'), P(tMutablePointer, 'pTransparentIndex')], tStatus)
-#Func('glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'attribList')], tPointer)
+Func('glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'attribList', 'glx_attrib_int_count(attribList)')], tPointer)
 #Func('glXReleaseVideoImageNV', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf')], tint)
 #Func('glXDestroyGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXPbufferSGIX, 'pbuf')])
 #Func('glXGetCurrentAssociatedContextAMD', [], tGLXContext)
@@ -585,7 +610,7 @@ Func('glXGetProcAddress', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func('glXGetCurrentReadDrawable', [], tGLXDrawable)
 #Func('glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
 #Func('glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
-#Func('glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tPointer, 'attrib_list')], tGLXContext)
+Func('glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
 #Func('glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
 #Func('glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
 #Func('glXSelectEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tunsignedlong, 'event_mask')])
@@ -623,3 +648,6 @@ Func('glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')])
 #Func('glXCreatePbuffer', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tPointer, 'attrib_list')], tGLXPbuffer)
 #Func('glXUseXFont', [P(tFont, 'font'), P(tint, 'first'), P(tint, 'count'), P(tint, 'list')])
 #Func('glXGetVisualFromFBConfig', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config')], tPointer)
+
+#TODO
+Func('glXMakeCurrent', [Param(tMutablePointer, 'dpy', None), Param(tGLXDrawable, 'drawable', None), Param(tGLXContext, 'ctx', None)], tBool).epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl();'

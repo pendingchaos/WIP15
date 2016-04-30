@@ -342,6 +342,8 @@ output.write("""void __attribute__ ((constructor)) gl_init() {
     handle_limits();
     
     current_limits = NULL;
+    
+    gl_glXGetProcAddress = dlsym(lib_gl, "glXGetProcAddress");
 """)
 
 for name in gl.groups:
@@ -349,7 +351,7 @@ for name in gl.groups:
 
 for name in gl.functions:
     if name.startswith("glX"):
-        output.write("gl_%s=(%s_t)dlsym(lib_gl, \"%s\");\n" % (name, name, name))
+        output.write("gl_%s=(%s_t)gl_glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
     else:
         output.write("gl_%s=NULL;\n" % (name))
 

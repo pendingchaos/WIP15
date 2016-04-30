@@ -84,7 +84,7 @@ class Func(object):
         res = '%s %s(%s) {\n' % (ret, self.name, ', '.join(params))
         res += '    func_decl_%s();\n' % self.name
         
-        res += '    if (!gl_%s)\n' % self.name # TODO: This could change when the context does
+        res += '    if (!gl_%s)\n' % self.name
         res += '        gl_%s = (%s_t)gl_glXGetProcAddress((const GLubyte*)"%s");\n' % (self.name, self.name, self.name)
         
         res += indent(self.prologue_code, 1) + '\n'
@@ -358,18 +358,46 @@ gl_c.write('''#define _GNU_SOURCE
 
 #include "shared/uint.h"
 
+typedef void (*func_t)();
+
+#define GLuintptr size_t
+
 ''')
 
 import glxml
-gl_c.write(glxml.GL(False).typedecls)
+gl = glxml.GL(False)
 
-gl_c.write(open("new_gl.c", "r").read())
+gl_c.write(gl.typedecls)
+
+for k, v, in gl.enumValues.iteritems():
+    gl_c.write("#define %s %s\n" % (k, v))
 
 for func in funcs:
     params = ', '.join([p.gen_param_code() for p in func.params])
     ret = func.rettype.gen_type_code() if func.rettype else 'void'
     gl_c.write('typedef %s (*%s_t)(%s);\n' % (ret, func.name, params))
     gl_c.write("static %s_t gl_%s;\n" % (func.name, func.name))
+
+gl_c.write('''
+#define _STR(...) #__VA_ARGS__
+#define STR(...) _STR(__VA_ARGS__)
+#define F(name) ((name##_t)get_func((func_t*)&gl_##name, STR(name)))
+
+static func_t get_func(func_t* f, const char* name) {
+    if (*f) return *f;
+    else return *f = gl_glXGetProcAddress((const GLubyte*)name);
+}
+
+void reset_gl_funcs() {
+''')
+
+for name in [f.name for f in funcs]:
+    if not name.startswith('glX'):
+        gl_c.write('    gl_%s = NULL;\n' % name)
+
+gl_c.write('}\n')
+
+gl_c.write(open("new_gl.c", "r").read())
 
 for func in funcs:
     gl_c.write(func.gen_decl() + '\n\n' + func.gen_wrapper() + '\n\n')
