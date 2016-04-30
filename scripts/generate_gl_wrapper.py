@@ -36,12 +36,15 @@ class Param(object):
         return self.dtype.gen_write_type_code(self.array_count)
 
 class Func(object):
-    def __init__(self, name, params, rettype):
+    def __init__(self, name, params, rettype=None):
         global next_func_id, funcs
         self.func_id = next_func_id
         next_func_id += 1
         self.name = name
         self.params = params
+        self.prologue_code = ''
+        self.epilogue_code = ''
+        self.extras_code = ''
         if rettype != None: self.rettype = rettype() if isinstance(rettype, type) else rettype
         else: self.rettype = None
         
@@ -84,6 +87,8 @@ class Func(object):
         res += '    if (!gl_%s)\n' % self.name # TODO: This could change when the context does
         res += '        gl_%s = (%s_t)gl_glXGetProcAddress((const GLubyte*)"%s");\n' % (self.name, self.name, self.name)
         
+        res += indent(self.prologue_code, 1) + '\n'
+        
         res += '    gl_start_call(%d);\n' % self.func_id
         
         params = ', '.join([param.name for param in self.params])
@@ -98,7 +103,12 @@ class Func(object):
         if self.rettype != None:
             res += indent(self.rettype.gen_write_code('result'), 1) + ';\n'
         
+        res += indent(self.extras_code, 1) + '\n'
+        
         res += '    gl_end_call();\n'
+        
+        res += indent(self.epilogue_code, 1) + '\n'
+        
         if self.rettype != None:
             res += '    return result;\n'
         res += '}'
