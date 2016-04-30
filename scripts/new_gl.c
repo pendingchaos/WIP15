@@ -188,10 +188,6 @@ static void gl_write_type(uint8_t base, bool has_group, bool is_array) {
     gl_write_bool(is_array);
 }
 
-static void gl_write_group(uint32_t group) {
-    gl_write_uint32(group);
-}
-
 static void gl_write_data(size_t size, const void* data) {
     void* compressed = malloc(size);
     

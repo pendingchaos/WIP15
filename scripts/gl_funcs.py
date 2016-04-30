@@ -41,7 +41,7 @@ class tTexImageData(tData):
         Type.__init__(self)
         self.texel_count_expr = ['width', 'width*height', 'width*height*depth'][dim-1]
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         res = 'size_t sz_%d = get_texel_size(format, type) * %s;\n' % (id(self), self.texel_count_expr)
         if array_count != None:
             res += 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
@@ -60,10 +60,10 @@ class tTexImageData(tData):
             res += '    gl_write_data(sz_%d, d);\n' % id(self)
             res += '    free(d);\n'
             res += '}'
-        return res
+        return res + self._gen_group_write_code(group)
 
 class tBufData(tData):
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
@@ -83,13 +83,13 @@ class tBufData(tData):
             res += '    gl_write_data(sz_%d, d);\n' % id(self)
             res += '    free(d);\n'
             res += '}'
-        return res
+        return res + self._gen_group_write_code(group)
 
 class tShdrSrc(Type):
     def gen_type_code(self, var_name='', array_count=None):
         return 'char** %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         return '''if (length) {
     gl_write_uint32(count);
     for (size_t i = 0; i < count; i++) {
@@ -103,22 +103,23 @@ class tShdrSrc(Type):
     gl_write_uint32(count);
     for (size_t i = 0; i < count; i++)
         gl_write_str(string[i]);
-}'''
+}''' + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count=None):
-        return 'gl_write_type(BASE_STRING, false, true);'
+    def gen_write_type_code(self, array_count=None, group=False):
+        return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
 
 #Func('glTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 #Func('glTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 
-Func('glTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
-                      P(tGLsizei, 'width'), P(tGLint, 'border'), P(tGLenum, 'format'),
-                      P(tGLenum, 'type'), P(tTexImageData(1), 'pixels')])
+Func('glTexImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                      P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLint, 'border'),
+                      Param(tGLenum, 'format', None, 'PixelFormat'), Param(tGLenum, 'type', None, 'PixelType'),
+                      P(tTexImageData(1), 'pixels')])
 
-Func('glTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
-                      P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'),
-                      P(tGLenum, 'format'), P(tGLenum, 'type'),
-                      P(tTexImageData(2), 'pixels')])
+Func('glTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                      P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
+                      P(tGLint, 'border'), Param(tGLenum, 'format', None, 'PixelFormat'),
+                      Param(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])
 
 #Func('glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
 #Func('glGetBooleanv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
@@ -132,31 +133,33 @@ Func('glTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'inter
 #Func('glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
-Func('glTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
-                         P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'),
-                         P(tTexImageData(1), 'pixels')])
+Func('glTexSubImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                         P(tGLint, 'xoffset'), P(tGLsizei, 'width'), Param(tGLenum, 'format', None, 'PixelFormat'),
+                         Param(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
-Func('glTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
-                         P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
-                         P(tGLenum, 'format'), P(tGLenum, 'type'),
-                         P(tTexImageData(2), 'pixels')])
+Func('glTexSubImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                         P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'),
+                         P(tGLsizei, 'height'), Param(tGLenum, 'format', None, 'PixelFormat'),
+                         Param(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(2), 'pixels')])
 
 Func('glDeleteTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 Func('glGenTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 
-Func('glDrawRangeElements', [P(tGLenum, 'mode'), P(tGLuint, 'start'), P(tGLuint, 'end'),
-                             P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices')])\
+Func('glDrawRangeElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLuint, 'start'),
+                             P(tGLuint, 'end'), P(tGLsizei, 'count'), P(tGLenum, 'type'),
+                             P(tPointer, 'indices')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElements");'
 
-Func('glTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'internalformat'),
-                      P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
-                      P(tGLint, 'border'), P(tGLenum, 'format'), P(tGLenum, 'type'),
-                      P(tTexImageData(3), 'pixels')])
+Func('glTexImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                      P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
+                      P(tGLsizei, 'depth'), P(tGLint, 'border'), Param(tGLenum, 'format', None, 'PixelFormat'),
+                      Param(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(3), 'pixels')])
 
-Func('glTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
-                         P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'),
-                         P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'),
-                         P(tGLenum, 'type'), P(tTexImageData(3), 'pixels')])
+Func('glTexSubImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+                         P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'),
+                         P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
+                         Param(tGLenum, 'format', None, 'PixelFormat'), Param(tGLenum, 'type', None, 'PixelType'),
+                         P(tTexImageData(3), 'pixels')])
 
 #Func('glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func('glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
@@ -166,12 +169,13 @@ Func('glTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xo
 #Func('glCompressedTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func('glGetCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tMutablePointer, 'img')])
 
-Func('glMultiDrawArrays', [P(tGLenum, 'mode'), P(tGLint, 'first', 'drawcount'),
+Func('glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first', 'drawcount'),
                            P(tGLsizei, 'count', 'drawcount'), P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArrays");'
 
-Func('glMultiDrawElements', [P(tGLenum, 'mode'), P(tPointer, 'count', 'drawcount'), P(tGLenum, 'type'),
-                             P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount')])\
+Func('glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'count', 'drawcount'),
+                             P(tGLenum, 'type'), P(tPointer, 'indices', 'drawcount'),
+                             P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElements");'
 
 #Func('glPointParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
@@ -217,9 +221,9 @@ Func('glUniform1iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'va
 Func('glUniform2iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*2')])
 Func('glUniform3iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*3')])
 Func('glUniform4iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*4')])
-Func('glUniformMatrix2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', '4*count')])
-Func('glUniformMatrix3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', '9*count')])
-Func('glUniformMatrix4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', '16*count')])
+Func('glUniformMatrix2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '4*count')])
+Func('glUniformMatrix3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '9*count')])
+Func('glUniformMatrix4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '16*count')])
 Func('glVertexAttrib1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 1)])
 Func('glVertexAttrib1fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 1)])
 Func('glVertexAttrib1sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 1)])
@@ -246,22 +250,28 @@ Func('glVertexAttrib4usv', [P(tGLuint, 'index'), P(tGLushort, 'v', )])
 #Func('glVertexAttribPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 
 Func('glUniformMatrix2x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*6')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*6')])
 
 Func('glUniformMatrix3x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*6')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*6')])
 
 Func('glUniformMatrix2x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*8')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*8')])
 
 Func('glUniformMatrix4x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*8')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*8')])
 
 Func('glUniformMatrix3x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*12')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*12')])
 
 Func('glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*12')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLfloat, 'value', 'count*12')])
 
 #Func('glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func('glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
@@ -308,9 +318,9 @@ Func('glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func('glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func('glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 
-Func('glDrawElementsInstanced', [P(tGLenum, 'mode'), P(tGLsizei, 'count'),
-                                 P(tGLenum, 'type'), P(tPointer, 'indices'),
-                                 P(tGLsizei, 'instancecount')])\
+Func('glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                 P(tGLsizei, 'count'), P(tGLenum, 'type'),
+                                 P(tPointer, 'indices'), P(tGLsizei, 'instancecount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanced");'
 
 #Func('glGetUniformIndices', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
@@ -320,25 +330,27 @@ Func('glDrawElementsInstanced', [P(tGLenum, 'mode'), P(tGLsizei, 'count'),
 #Func('glGetActiveUniformBlockName', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformBlockName')])
 #Func('glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 
-Func('glDrawElementsBaseVertex', [P(tGLenum, 'mode'), P(tGLsizei, 'count'),
-                                  P(tGLenum, 'type'), P(tPointer, 'indices'),
-                                  P(tGLint, 'basevertex')])\
+Func('glDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                  P(tGLsizei, 'count'), P(tGLenum, 'type'),
+                                  P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsBaseVertex");'
 
-Func('glDrawRangeElementsBaseVertex', [P(tGLenum, 'mode'), P(tGLuint, 'start'),
-                                       P(tGLuint, 'end'), P(tGLsizei, 'count'),
-                                       P(tGLenum, 'type'), P(tPointer, 'indices'),
-                                       P(tGLint, 'basevertex')])\
+Func('glDrawRangeElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                       P(tGLuint, 'start'), P(tGLuint, 'end'),
+                                       P(tGLsizei, 'count'), P(tGLenum, 'type'),
+                                       P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElementsBaseVertex");'
 
-Func('glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode'), P(tGLsizei, 'count'),
-                                           P(tGLenum, 'type'), P(tPointer, 'indices'),
-                                           P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex')])\
+Func('glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                           P(tGLsizei, 'count'), P(tGLenum, 'type'),
+                                           P(tPointer, 'indices'), P(tGLsizei, 'instancecount'),
+                                           P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseVertex");'
 
-Func('glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode'), P(tGLsizei, 'count', 'drawcount'),
-                                       P(tGLenum, 'type'), P(tPointer, 'indices', 'drawcount'),
-                                       P(tGLsizei, 'drawcount'), P(tPointer, 'basevertex', 'drawcount')])\
+Func('glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                       P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type'),
+                                       P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
+                                       P(tPointer, 'basevertex', 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsBaseVertex");'
 
 #Func('glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
@@ -362,39 +374,48 @@ Func('glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')]
 #Func('glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
 #Func('glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
 #Func('glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func('glDrawArraysIndirect', [P(tGLenum, 'mode'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
-#Func('glDrawElementsIndirect', [P(tGLenum, 'mode'), P(tGLenum, 'type'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
+#Func('glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
+#Func('glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
 Func('glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
 Func('glUniform2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*2')])
 Func('glUniform3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*3')])
 Func('glUniform4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*4')])
 
 Func('glUniformMatrix2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                            P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '4*count')])
+                            P(tGLboolean, 'transpose', None, 'Boolean'),
+                            P(tGLdouble, 'value', '4*count')])
 
 Func('glUniformMatrix3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                            P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '9*count')])
+                            P(tGLboolean, 'transpose', None, 'Boolean'),
+                            P(tGLdouble, 'value', '9*count')])
 
 Func('glUniformMatrix4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                            P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '16*count')])
+                            P(tGLboolean, 'transpose', None, 'Boolean'),
+                            P(tGLdouble, 'value', '16*count')])
 
 Func('glUniformMatrix2x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '6*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '6*count')])
 
 Func('glUniformMatrix2x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '8*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '8*count')])
 
 Func('glUniformMatrix3x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '6*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '6*count')])
 
 Func('glUniformMatrix3x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '12*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '12*count')])
 
 Func('glUniformMatrix4x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '8*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '8*count')])
 
 Func('glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
-                              P(tGLboolean, 'transpose'), P(tGLdouble, 'value', '12*count')])
+                              P(tGLboolean, 'transpose', None, 'Boolean'),
+                              P(tGLdouble, 'value', '12*count')])
 
 #Func('glGetUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func('glGetActiveSubroutineUniformiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
@@ -465,35 +486,35 @@ Func('glProgramUniform4uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                               P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*4')])
 
 Func('glProgramUniformMatrix2fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
-                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose'),
+                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*4')])
 
 Func('glProgramUniformMatrix3fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
-                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose'),
+                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*9')])
 
 Func('glProgramUniformMatrix4fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
-                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose'),
+                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*16')])
 
 Func('glProgramUniformMatrix2dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
-                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose'),
+                                   P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLdouble, 'value', 'count*4')])
 
-Func('glProgramUniformMatrix3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*9')])
-Func('glProgramUniformMatrix4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*16')])
-Func('glProgramUniformMatrix2x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*6')])
-Func('glProgramUniformMatrix3x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*6')])
-Func('glProgramUniformMatrix2x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*8')])
-Func('glProgramUniformMatrix4x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*8')])
-Func('glProgramUniformMatrix3x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*12')])
-Func('glProgramUniformMatrix4x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLfloat, 'value', 'count*12')])
-Func('glProgramUniformMatrix2x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*6')])
-Func('glProgramUniformMatrix3x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*6')])
-Func('glProgramUniformMatrix2x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*8')])
-Func('glProgramUniformMatrix4x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*8')])
-Func('glProgramUniformMatrix3x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*12')])
-Func('glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose'), P(tGLdouble, 'value', 'count*12')])
+Func('glProgramUniformMatrix3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*9')])
+Func('glProgramUniformMatrix4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*16')])
+Func('glProgramUniformMatrix2x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
+Func('glProgramUniformMatrix3x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
+Func('glProgramUniformMatrix2x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
+Func('glProgramUniformMatrix4x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
+Func('glProgramUniformMatrix3x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
+Func('glProgramUniformMatrix4x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
+Func('glProgramUniformMatrix2x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
+Func('glProgramUniformMatrix3x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
+Func('glProgramUniformMatrix2x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
+Func('glProgramUniformMatrix4x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
+Func('glProgramUniformMatrix3x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
+Func('glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
 #Func('glGetProgramPipelineInfoLog', [P(tGLuint, 'pipeline'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
 #Func('glVertexAttribL1dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
 #Func('glVertexAttribL2dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
@@ -508,8 +529,8 @@ Func('glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'
 #Func('glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
 #Func('glGetFloati_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func('glGetDoublei_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-Func('glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
-Func('glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
+Func('glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
+Func('glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
 #Func('glGetInternalformativ', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func('glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
@@ -518,8 +539,8 @@ Func('glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'), P(tGL
 #Func('glGetInternalformati64v', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func('glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
 #Func('glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
-#Func('glMultiDrawArraysIndirect', [P(tGLenum, 'mode'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
-#Func('glMultiDrawElementsIndirect', [P(tGLenum, 'mode'), P(tGLenum, 'type'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
+#Func('glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
+#Func('glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
 #Func('glGetProgramInterfaceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func('glGetProgramResourceName', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
 #Func('glGetProgramResourceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'propCount'), P(tPointer, 'props'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'params')])
@@ -603,10 +624,26 @@ Func('glCreateQueries', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'ids
 #Func('glGetnUniformiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func('glGetnUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func('glReadnPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'data')])
-Func('glDrawArrays', [P(tGLenum, 'mode'), P(tGLint, 'first'), P(tGLsizei, 'count')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArrays");'
-Func('glDrawElements', [P(tGLenum, 'mode'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElements");'
-Func('glDrawArraysInstanced', [P(tGLenum, 'mode'), P(tGLint, 'first'), P(tGLsizei, 'count'), P(tGLsizei, 'instancecount')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstanced");'
-Func('glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode'), P(tGLint, 'first'), P(tGLsizei, 'count'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstancedBaseInstance");'
+
+Func('glDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first'),
+                      P(tGLsizei, 'count')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArrays");'
+
+Func('glDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
+                        P(tGLenum, 'type'), P(tPointer, 'indices')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElements");'
+
+Func('glDrawArraysInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                               P(tGLint, 'first'), P(tGLsizei, 'count'),
+                               P(tGLsizei, 'instancecount')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstanced");'
+
+Func('glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+                                           P(tGLint, 'first'), P(tGLsizei, 'count'),
+                                           P(tGLsizei, 'instancecount'),
+                                           P(tGLuint, 'baseinstance')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstancedBaseInstance");'
+
 Func('glLinkProgram', [Param(tGLuint, 'program', None)], None).trace_extras_code = 'link_program_extras(program);'
 Func('glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
                     P(tGLsizei, 'width'), P(tGLsizei, 'height')]).trace_epilogue_code = 'update_drawable_size();'

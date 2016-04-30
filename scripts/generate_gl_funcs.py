@@ -16,9 +16,30 @@ for v in vers:
     for r in gl.versions[v].removed_functions:
         funcs.remove(r)
 
+enums = []
+for v in vers:
+    enums += gl.versions[v].new_enums
+    for r in gl.versions[v].removed_enums:
+        try: enums.remove(r)
+        except ValueError: pass
+
+groups = set()
+for f in funcs:
+    for p in gl.functions[f].params:
+        if p.group != None: groups.add(p.group)
+groups = list(groups)
+
 for f in gl.functions.keys():
     if f.startswith('glX'):
         funcs.append(f)
+
+for name in groups:
+    group = gl.groups[name]
+    
+    output.write('Group(\'%s\')' % name)
+    for en in group.enumNames:
+        output.write('.add(\'%s\', %d)' % (en, gl.enumValues[en]))
+    output.write('\n')
 
 for name in funcs:
     func = gl.functions[name]
@@ -49,7 +70,7 @@ for name in funcs:
         else:
             res += 't' + dtype.replace('const', '').replace(' ', '').lstrip().rstrip()
         
-        params.append(res + ', \'%s\', %s)' % (param.name, array_count))
+        params.append(res + ', \'%s\', %s, %s)' % (param.name, array_count, repr(param.group)))
     
     output.write(', '.join(params) + ']')
     

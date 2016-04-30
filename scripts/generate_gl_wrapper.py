@@ -4,42 +4,76 @@ funcs = []
 func_dict = {}
 next_func_id = 0
 
+groups = []
+group_dict = {}
+next_group_id = 0
+
 def indent(s, amount):
     return '\n'.join(['    '*amount+l for l in s.split('\n')])
+
+class Group(object):
+    def __init__(self, name):
+        global next_group_id, groups
+        self.name = name
+        self.vals = {}
+        if name in group_dict:
+            self.group_id = group_dict[name].group_id
+            groups.remove(group_dict[name])
+        else:
+            self.group_id = next_group_id
+            next_group_id += 1
+        group_dict[name] = self
+        groups.append(self)
+    
+    def add(self, name, val):
+        self.vals[name] = val
+        return self
 
 class Type(object):
     def __init__(self):
         pass
     
+    def _gen_group_write_code(self, group):
+        if group != None: return ';gl_write_uint32(%d)' % group_dict[group].group_id
+        else: return ''
+    
     def gen_type_code(self, var_name='', array_count=None):
         return ''
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         return ''
     
-    def gen_write_type_code(self, array_count=None):
+    def gen_write_type_code(self, array_count=None, group=False):
         return ''
 
 class Param(object):
-    def __init__(self, dtype, name, array_count=None):
+    def __init__(self, dtype, name, array_count=None, group=None):
         self.dtype = dtype() if isinstance(dtype, type) else dtype
         self.name = name
         self.array_count = array_count
+        self.group = group
     
     def gen_param_code(self):
         return self.dtype.gen_type_code(self.name, self.array_count)
     
     def gen_write_code(self):
-        return self.dtype.gen_write_code(self.name, self.array_count)
+        return self.dtype.gen_write_code(self.name, self.array_count, self.group)
     
     def gen_write_type_code(self):
-        return self.dtype.gen_write_type_code(self.array_count)
+        return self.dtype.gen_write_type_code(self.array_count, self.group)
 
 class Func(object):
     def __init__(self, name, params, rettype=None):
         global next_func_id, funcs
         if name in func_dict:
+            # TODO: Remove this
+            for p1, p2 in zip(func_dict[name].params, params):
+                if p1.group != p2.group:
+                    print name
+                    break
+            
             self.func_id = func_dict[name].func_id
+            funcs.remove(func_dict[name])
         else:
             self.func_id = next_func_id
             next_func_id += 1
@@ -50,9 +84,6 @@ class Func(object):
         self.trace_extras_code = ''
         if rettype != None: self.rettype = rettype() if isinstance(rettype, type) else rettype
         else: self.rettype = None
-        
-        if name in func_dict:
-            funcs.remove(func_dict[name])
         
         func_dict[name] = self
         funcs.append(self)
@@ -125,19 +156,20 @@ class _BaseType(Type):
         else:
             return '%s %s' % (self.__class__.ctype, var_name)
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    %s(%s[i]);' % (self.__class__.write_func, var_name)
-            return res
+            return res + self._gen_group_write_code(group)
         else:
-            return '%s(%s)' % (self.__class__.write_func, var_name)
+            return '%s(%s)' % (self.__class__.write_func, var_name) + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count=None):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(%s, false, %s)' % (self.__class__.base, array)
+        return 'gl_write_type(%s, %s, %s)' % (self.__class__.base, group, array)
 
 class _UInt(_BaseType):
     write_func = 'gl_write_uleb128'
@@ -168,13 +200,16 @@ class _FuncPtr(Type):
         if array_count != None: return 'func_t* %s' % (var_name)
         else: return 'func_t %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None):
-        if array_count != None: return 'gl_write_uint32((%s));' % str(array_count)
-        else: return ''
+    def gen_write_code(self, var_name, array_count=None, group=None):
+        if array_count != None:
+            return 'gl_write_uint32((%s));' % str(array_count) + self._gen_group_write_code(group)
+        else:
+            return self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count=None):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FUNC_PTR, false, %s)' % array
+        return 'gl_write_type(BASE_FUNC_PTR, %s, %s)' % (group, array)
 
 def _create_uint(name):
     return 'class t%s(_UInt): ctype = \'%s\'' % (name.replace(' ', ''), name)
@@ -269,76 +304,80 @@ class tData(Type):
         else:
             return 'void* %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    gl_write_data((%s), %s[i]);' % (str(self.size_expr), var_name)
-            return res
+            return res + self._gen_group_write_code(group)
         else:
-            return 'gl_write_data((%s), %s)' % (str(self.size_expr), var_name)
+            return 'gl_write_data((%s), %s)' % (str(self.size_expr), var_name) + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count=None):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_DATA, false, %s)' % (array)
+        return 'gl_write_type(BASE_DATA, %s, %s)' % (group, array)
 
 class tGLfixed(Type):
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'GLfixed* %s' % var_name
         else: return 'GLfixed %s' % var_name
     
-    def gen_write_code(self, var_name, array_count):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    gl_write_float(%s[i] / 65535.0);' % (var_name)
-            return res
+            return res + self._gen_group_write_code(group)
         else:
-            return 'gl_write_float(%s/65535.0)' % var_name
+            return 'gl_write_float(%s/65535.0)' % var_name + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FLOAT, false, %s)' % (array)
+        return 'gl_write_type(BASE_FLOAT, %s, %s)' % (group, array)
 
 class tGLhalfNV(Type): # TODO
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'GLhalfNV* %s' % var_name
         else: return 'GLhalfNV %s' % var_name
     
-    def gen_write_code(self, var_name, array_count):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    gl_write_float(0.0);'
-            return res
+            return res + self._gen_group_write_code(group)
         else:
-            return 'gl_write_float(0.0)'
+            return 'gl_write_float(0.0)' + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FLOAT, false, %s)' % (array)
+        return 'gl_write_type(BASE_FLOAT, %s, %s)' % (group, array)
 
 class tString(Type):
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'const char** %s' % var_name
         else: return 'const char* %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None):
+    def gen_write_code(self, var_name, array_count=None, group=None):
         if array_count != None:
             res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
             res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
             res += '    gl_write_str(%s[i]);' % (var_name)
-            return res
+            return res + self._gen_group_write_code(group)
         else:
-            return 'gl_write_str(%s)' % var_name
+            return 'gl_write_str(%s)' % var_name + self._gen_group_write_code(group)
     
-    def gen_write_type_code(self, array_count):
+    def gen_write_type_code(self, array_count=None, group=False):
+        group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_STRING, false, %s)' % (array)
+        return 'gl_write_type(BASE_STRING, %s, %s)' % (group, array)
 
 class tMutableString(tString):
     def gen_type_code(self, var_name='', array_count=None):
@@ -410,6 +449,7 @@ for func in funcs:
     gl_c.write(func.gen_decl() + '\n\n' + func.gen_wrapper() + '\n\n')
 
 gl_c.write('#define FUNC_COUNT %d\n' % len(funcs))
+gl_c.write('#define GROUP_COUNT %d\n' % len(groups))
 
 gl_c.write('''
 void __attribute__ ((constructor)) wip15_gl_init() {
@@ -443,7 +483,7 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     fwrite("0.0a            ", 16, 1, trace_file);
     
     gl_write_uint32(FUNC_COUNT);
-    gl_write_uint32(0);
+    gl_write_uint32(GROUP_COUNT);
     
     lib_gl = actual_dlopen("libGL.so.1", RTLD_NOW|RTLD_LOCAL);
     
@@ -459,6 +499,11 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     gl_glXGetProcAddress = dlsym(lib_gl, "glXGetProcAddress");
     
 ''')
+
+for name, group in group_dict.iteritems():
+    gl_c.write('    gl_write_b(OP_DECL_GROUP);\n')
+    gl_c.write('    gl_write_uint32(%d);\n' % group.group_id)
+    gl_c.write('    gl_write_str("%s");\n' % name)
 
 for name in [f.name for f in funcs]:
     if name.startswith('glX'):
