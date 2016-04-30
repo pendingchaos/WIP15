@@ -476,13 +476,11 @@ static void gl_param_GLintptrARB(GLintptrARB value) {
     gl_write_sleb128(value);
 }
 
-static void gl_param_GLsizeiptr(GLsizeiptr value)
-{
+static void gl_param_GLsizeiptr(GLsizeiptr value) {
     gl_param_GLintptrARB(value);
 }
 
-static void gl_param_GLint(GLint value)
-{
+static void gl_param_GLint(GLint value) {
     gl_write_sleb128(value);
 }
 
