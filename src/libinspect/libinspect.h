@@ -1,6 +1,7 @@
 #ifndef LIB_INSPECT_H
 #define LIB_INSPECT_H
 
+#include "libinspect/tmpdata.h"
 #include "libtrace/libtrace.h"
 #include "shared/uint.h"
 #include <stdbool.h>
@@ -27,7 +28,8 @@ TYPED_VEC(inspect_gl_state_entry_t, inspect_gl_state)
 typedef struct {
     uint32_t width;
     uint32_t height;
-    char* filename;
+    bool has_data;
+    tmpdata_t data;
 } inspect_image_t;
 
 typedef struct {

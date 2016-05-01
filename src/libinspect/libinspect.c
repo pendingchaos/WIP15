@@ -8,8 +8,6 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdarg.h>
-#include <unistd.h>
-#include <inttypes.h>
 #include <GL/gl.h>
 
 static void update_context(uint64_t *context,
@@ -51,13 +49,13 @@ inspection_t* create_inspection(const trace_t* trace) {
             new_command->state.entries = alloc_inspect_gl_state_vec(0);
             new_command->state.back.width = 0;
             new_command->state.back.height = 0;
-            new_command->state.back.filename = NULL;
+            new_command->state.back.has_data = false;
             new_command->state.front.width = 0;
             new_command->state.front.height = 0;
-            new_command->state.front.filename = NULL;
+            new_command->state.front.has_data = false;
             new_command->state.depth.width = 0;
             new_command->state.depth.height = 0;
-            new_command->state.depth.filename = NULL;
+            new_command->state.depth.has_data = false;
             new_command->state.actions = alloc_inspect_act_vec(0);
         }
     }
@@ -396,13 +394,13 @@ static void update_inspection(inspector_t* inspector, inspect_gl_state_t* state)
         if (action->apply_func)
             action->apply_func(inspector, action);
     
-    if (state->front.filename)
+    if (state->front.has_data)
         inspector->front_buf = &state->front;
     
-    if (state->back.filename)
+    if (state->back.has_data)
         inspector->back_buf = &state->back;
     
-    if (state->depth.filename)
+    if (state->depth.has_data)
         inspector->depth_buf = &state->depth;
 }
 
@@ -541,25 +539,8 @@ int inspect_find_query(inspector_t* inspector, uint query) {
 bool inspect_replace_image(inspect_image_t* img, size_t w, size_t h, const void* data) {
     inspect_destroy_image(img);
     
-    char dummy;
-    size_t len = snprintf(&dummy, 1, ".WIP15_img_%"PRId64"_%p", (int64_t)getpid(), img);
-    
-    img->filename = malloc(len+1);
-    snprintf(img->filename, len, ".WIP15_img_%" PRId64 "_%p", (int64_t)getpid(), img);
-    
-    FILE* file = fopen(img->filename, "wb");
-    if (!file) {
-        free(img->filename);
-        img->filename = NULL;
-        return false;
-    }
-    fwrite(data, w*h*4, 1, file);
-    fclose(file);
-    
-    char* new_fname = canonicalize_file_name(img->filename);
-    free(img->filename);
-    img->filename = new_fname;
-    
+    img->has_data = true;
+    img->data = tmpdata_new(w*h*4, data);
     img->width = w;
     img->height = h;
     
@@ -567,24 +548,13 @@ bool inspect_replace_image(inspect_image_t* img, size_t w, size_t h, const void*
 }
 
 void inspect_destroy_image(inspect_image_t* img) {
-    if (img->filename) {
-        remove(img->filename);
-        free(img->filename);
-        img->filename = NULL;
-    }
+    if (img->has_data) tmpdata_del(img->data);
+    img->has_data = false;
 }
 
 bool inspect_get_image_data(inspect_image_t* img, void* data) {
-    if (!img->filename)
-        return false;
-    
-    FILE* file = fopen(img->filename, "rb");
-    if (!file)
-        return false;
-    
-    fread(data, img->width*img->height*4, 1, file);
-    fclose(file);
-    
+    if (!img->has_data) return false;
+    tmpdata_read(img->data, data);
     return true;
 }
 
@@ -605,7 +575,7 @@ void inspect_init_tex_mipmaps(inspect_texture_t* tex) {
         for (size_t j = 0; j < tex->mipmap_count; j++) {
             tex->mipmaps[i][j] = malloc(sizeof(inspect_image_t)*tex->layer_count);
             for (size_t k = 0; k < tex->layer_count; k++)
-                tex->mipmaps[i][j][k].filename = NULL;
+                tex->mipmaps[i][j][k].has_data = false;
         }
     }
 }

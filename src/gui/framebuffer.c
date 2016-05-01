@@ -40,7 +40,7 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     gtk_tree_store_clear(store);
     
     inspect_image_t* front = inspector->front_buf;
-    if (front && front->filename) {
+    if (front && front->has_data) {
         uint32_t* img = (uint32_t*)malloc(front->width*front->height*4);
         inspect_get_image_data(front, img);
         
@@ -66,7 +66,7 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     }
     
     inspect_image_t* back = inspector->back_buf;
-    if (back && back->filename) {
+    if (back && back->has_data) {
         uint32_t* img = (uint32_t*)malloc(back->width*back->height*4);
         inspect_get_image_data(back, img);
         
@@ -92,7 +92,7 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     }
     
     inspect_image_t* depth = inspector->depth_buf;
-    if (depth && depth->filename) {
+    if (depth && depth->has_data) {
         uint32_t* img = (uint32_t*)malloc(depth->width*depth->height*4);
         inspect_get_image_data(depth, img);
         

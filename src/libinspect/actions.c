@@ -580,7 +580,7 @@ void inspect_act_tex_data(inspect_gl_state_t* state, uint id, size_t mipmap, siz
     act_data->mipmap = mipmap;
     act_data->layer = layer;
     act_data->face = face;
-    act_data->image.filename = NULL;
+    act_data->image.has_data = false;
     inspect_replace_image(&act_data->image, w, h, data);
     
     inspect_action_t action;

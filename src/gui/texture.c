@@ -97,7 +97,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         size_t h = tex->height;
         for (size_t level = 0; level < tex->mipmap_count; level++) {
             inspect_image_t* img = inspect_get_tex_mipmap(tex, level, layer, face);
-            if (img->filename) {
+            if (img->has_data) {
                 uint32_t* data = (uint32_t*)malloc(w*h*4);
                 inspect_get_image_data(img, data);
                 
