@@ -1,4 +1,17 @@
-CFLAGS = -Wall -std=c99 `pkg-config zlib --cflags` `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g
+USE_LZ4 = 0
+USE_ZLIB = 1
+
+CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g
+
+COMP_LIBS =
+ifeq (USE_LZ4, 1)
+COMP_LIBS += -llz4
+CLFAGS += -DLZ4_ENABLED
+endif
+ifeq (USE_ZLIB, 1)
+COMP_LIBS += `pkg-config zlib --libs`
+CLFAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
+endif
 
 gui_src = $(wildcard src/gui/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)
@@ -42,10 +55,10 @@ src/libinspect/replay_gl.c: scripts/nontrivial_func_impls.txt scripts/generate_r
 	cd scripts; python generate_replay.py
 
 bin/libgl.so: src/.libgl.o
-	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g `pkg-config zlib --libs` $(CFLAGS)
+	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
 
 bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o
-	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g `pkg-config zlib --libs` $(CFLAGS)
+	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g $(COMP_LIBS) $(CFLAGS)
 
 bin/libinspect.so: $(libinspect_obj) src/libinspect/.replay_gl.o src/shared/.vec.o src/shared/.glapi.o
 	$(CC) $^ -o bin/libinspect.so -shared -fPIC -lGL -ldl -g `sdl2-config --libs` $(CFLAGS)

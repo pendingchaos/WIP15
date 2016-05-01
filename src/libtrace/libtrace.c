@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <endian.h>
+#ifdef ZLIB_ENABLED
 #include <zlib.h>
+#endif
 
 typedef enum {
     BaseType_Void = 0,
@@ -115,6 +117,8 @@ static char* read_str(FILE* file) {
     return str;
 }
 
+int LZ4_decompress_safe (const char* source, char* dest, int compressedSize, int maxDecompressedSize);
+
 static void* read_data(FILE* file, size_t* res_size) {
     if (res_size) *res_size = 0;
     
@@ -138,7 +142,9 @@ static void* read_data(FILE* file, size_t* res_size) {
     if (compression_method == 0) {
         if (res_size) *res_size = size;
         return compressed_data;
-    } else {
+    }
+    #ifdef ZLIB_ENABLED
+    if (compression_method == 1) {
         void* data = malloc(size);
         
         uLongf dest_len = size;
@@ -153,6 +159,24 @@ static void* read_data(FILE* file, size_t* res_size) {
         if (res_size) *res_size = size;
         return data;
     }
+    #endif
+    #ifdef LZ4_ENABLED
+    if (compression_method == 2) {
+        void* data = malloc(size);
+        
+        if (LZ4_decompress_safe(compressed_data, data, compressed_size, size) < 0) {
+            free(compressed_data);
+            free(data);
+            return NULL;
+        }
+        
+        free(compressed_data);
+        
+        if (res_size) *res_size = size;
+        return data;
+    }
+    #endif
+    return NULL;
 }
 
 static uint64_t read_uleb128(FILE* file, bool* error) {

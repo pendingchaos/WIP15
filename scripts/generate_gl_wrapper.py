@@ -93,6 +93,36 @@ void __attribute__ ((constructor)) wip15_gl_init() {
             compression_level = level;
     }
     
+    char* comp_meth = getenv("WIP15_COMPESSION_METHOD");
+    if (comp_meth && !strcmp(comp_meth, "zlib"))
+        compression_method = COMPRESSION_ZLIB;
+    else if (comp_meth && !strcmp(comp_meth, "lz4"))
+        compression_method = COMPRESSION_LZ4;
+    
+    #ifndef ZLIB_ENABLED
+    if (compression_method == COMPRESSION_ZLIB) {
+        #ifdef LZ4_ENABLED
+        compression_method = COMPRESSION_LZ4;
+        printf("Warning: OpenGL wrapper not built with Zlib support. Using LZ4 reference implementation.\\n");
+        #else
+        compression_method = COMPRESSION_NONE;
+        printf("Warning: OpenGL wrapper not built with Zlib or LZ4 support. Disabling compression.\\n");
+        #endif
+    }
+    #endif
+    
+    #ifndef LZ4_ENABLED
+    if (compression_method == COMPRESSION_LZ4) {
+        #ifdef ZLIB_ENABLED
+        compression_method = COMPRESSION_ZLIB;
+        printf("Warning: OpenGL wrapper not built with LZ4 support. Using Zlib.\\n");
+        #else
+        compression_method = COMPRESSION_NONE;
+        printf("Warning: OpenGL wrapper not built with Zlib or LZ4 support. Disabling compression.\\n");
+        #endif
+    }
+    #endif
+    
     fwrite("WIP15", 5, 1, trace_file);
     
     if (BYTE_ORDER == LITTLE_ENDIAN)

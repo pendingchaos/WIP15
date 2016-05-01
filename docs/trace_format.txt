@@ -28,6 +28,7 @@ BaseType (uint8)
 CompressionMethod (uint8)
     None = 0
     Zlib = 1
+    LZ4 = 2
 
 Data
     CompressionMethod (uint8)
