@@ -108,6 +108,10 @@ class tShdrSrc(Type):
     def gen_write_type_code(self, array_count=None, group=False):
         return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
 
+Group('ElementType').add('GL_UNSIGNED_BYTE', 0x1401, (1, 1))\
+                    .add('GL_UNSIGNED_SHORT', 0x1403, (1, 1))\
+                    .add('GL_UNSIGNED_INT', 0x1405, (1, 1))
+
 Group('InternalFormat').add('GL_DEPTH_COMPONENT', 0x1902, (1, 0))\
                        .add('GL_DEPTH_STENCIL', 0x84F9, (1, 0))\
                        .add('GL_RED', 0x1903, (1, 0))\
@@ -192,15 +196,111 @@ Group('InternalFormat').add('GL_DEPTH_COMPONENT', 0x1902, (1, 0))\
                        .add('GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT', 0x8E8E, (4, 2))\
                        .add('GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT', 0x8E8F, (4, 2))
 
-#Func((1, 0), 'glTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((1, 0), 'glTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+Group('TextureParameterName').add('GL_DEPTH_STENCIL_TEXTURE_MODE', 0x90EA, (4, 3))\
+                             .add('GL_TEXTURE_BASE_LEVEL', 0x813C, (1, 2))\
+                             .add('GL_TEXTURE_BORDER_COLOR', 0x1004, (1, 0))\
+                             .add('GL_TEXTURE_COMPARE_FUNC', 0x884D, (1, 4))\
+                             .add('GL_TEXTURE_COMPARE_MODE', 0x884C, (1, 4))\
+                             .add('GL_TEXTURE_LOD_BIAS', 0x8501, (1, 4))\
+                             .add('GL_TEXTURE_MIN_FILTER', 0x2801, (1, 0))\
+                             .add('GL_TEXTURE_MAG_FILTER', 0x2800, (1, 0))\
+                             .add('GL_TEXTURE_MIN_LOD', 0x813A, (1, 2))\
+                             .add('GL_TEXTURE_MAX_LOD', 0x813B, (1, 2))\
+                             .add('GL_TEXTURE_MAX_LEVEL', 0x813D, (1, 2))\
+                             .add('GL_TEXTURE_SWIZZLE_R', 0x8E42, (3, 3))\
+                             .add('GL_TEXTURE_SWIZZLE_G', 0x8E43, (3, 3))\
+                             .add('GL_TEXTURE_SWIZZLE_B', 0x8E44, (3, 3))\
+                             .add('GL_TEXTURE_SWIZZLE_A', 0x8E45, (3, 3))\
+                             .add('GL_TEXTURE_SWIZZLE_RGBA', 0x8E46, (3, 3))\
+                             .add('GL_TEXTURE_WRAP_S', 0x2802, (1, 0))\
+                             .add('GL_TEXTURE_WRAP_T', 0x2803, (1, 0))\
+                             .add('GL_TEXTURE_WRAP_R', 0x8072, (1, 2))
 
-Func((1, 0), 'glTexImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Group('SamplerParameterName').add('GL_TEXTURE_COMPARE_FUNC', 0x884D, (3, 3))\
+                             .add('GL_TEXTURE_COMPARE_MODE', 0x884C, (3, 3))\
+                             .add('GL_TEXTURE_MIN_FILTER', 0x2801, (3, 3))\
+                             .add('GL_TEXTURE_MAG_FILTER', 0x2800, (3, 3))\
+                             .add('GL_TEXTURE_MIN_LOD', 0x813A, (3, 3))\
+                             .add('GL_TEXTURE_MAX_LOD', 0x813B, (3, 3))\
+                             .add('GL_TEXTURE_WRAP_S', 0x2802, (3, 3))\
+                             .add('GL_TEXTURE_WRAP_T', 0x2803, (3, 3))\
+                             .add('GL_TEXTURE_WRAP_R', 0x8072, (3, 3))
+
+Group('TexImage1DTarget').add('GL_TEXTURE_1D', 0x0DE0, (1, 0))\
+                         .add('GL_PROXY_TEXTURE_1D', 0x8063, (1, 1))
+
+Group('TexImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
+                         .add('GL_PROXY_TEXTURE_2D', 0x8064, (1, 1))\
+                         .add('GL_TEXTURE_1D_ARRAY', 0x8C18, (3, 0))\
+                         .add('GL_PROXY_TEXTURE_1D_ARRAY', 0x8C19, (3, 0))\
+                         .add('GL_TEXTURE_RECTANGLE', 0x84F5, (3, 1))\
+                         .add('GL_PROXY_TEXTURE_RECTANGLE', 0x84F7, (3, 1))\
+                         .add('GL_TEXTURE_CUBE_MAP_POSITIVE_X', 0x8515, (1, 3))\
+                         .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_X', 0x8516, (1, 3))\
+                         .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Y', 0x8517, (1, 3))\
+                         .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Y', 0x8518, (1, 3))\
+                         .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 0x8519, (1, 3))\
+                         .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Z', 0x851A, (1, 3))\
+                         .add('GL_PROXY_TEXTURE_CUBE_MAP', 0x851B, (1, 3))
+
+Group('TexSubImage1DTarget').add('GL_TEXTURE_1D', 0x0DE0, (1, 0))
+
+Group('TexSubImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
+                            .add('GL_TEXTURE_1D_ARRAY', 0x8C18, (3, 0))\
+                            .add('GL_TEXTURE_CUBE_MAP_POSITIVE_X', 0x8515, (1, 3))\
+                            .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_X', 0x8516, (1, 3))\
+                            .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Y', 0x8517, (1, 3))\
+                            .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Y', 0x8518, (1, 3))\
+                            .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 0x8519, (1, 3))\
+                            .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Z', 0x851A, (1, 3))
+
+Group('TexImage3DTarget').add('GL_TEXTURE_3D', 0x806F, (1, 2))\
+                         .add('GL_PROXY_TEXTURE_3D', 0x8070, (1, 2))\
+                         .add('GL_TEXTURE_2D_ARRAY', 0x8C1A, (3, 0))\
+                         .add('GL_PROXY_TEXTURE_2D_ARRAY', 0x8C1B, (3, 0))
+
+Group('TexSubImage3DTarget').add('GL_TEXTURE_3D', 0x806F, (1, 2))\
+                            .add('GL_TEXTURE_2D_ARRAY', 0x8C1A, (3, 0))
+
+Group('CopyTexImage1DTarget').add('GL_TEXTURE_1D', 0x0DE0, (1, 0))
+
+Group('CopyTexImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
+                             .add('GL_TEXTURE_CUBE_MAP_POSITIVE_X', 0x8515, (1, 3))\
+                             .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_X', 0x8516, (1, 3))\
+                             .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Y', 0x8517, (1, 3))\
+                             .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Y', 0x8518, (1, 3))\
+                             .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 0x8519, (1, 3))\
+                             .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Z', 0x851A, (1, 3))
+
+Group('TexBufferRangeTarget').add('GL_TEXTURE_BUFFER', 0x8C2A, (3, 1))
+
+Group('TexImage2DMSTarget').add('GL_TEXTURE_2D_MULTISAMPLE', 0x9100, (3, 2))\
+                           .add('GL_PROXY_TEXTURE_2D_MULTISAMPLE', 0x9101, (3, 2))
+
+Group('TexImage3DMSTarget').add('GL_TEXTURE_2D_MULTISAMPLE_ARRAY', 0x9102, (3, 2))\
+                           .add('GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY', 0x9103, (3, 2))
+
+Group('ShaderType').add('GL_COMPUTE_SHADER', 0x91B9, (4, 2))\
+                   .add('GL_VERTEX_SHADER', 0x8B31, (2, 0))\
+                   .add('GL_TESS_CONTROL_SHADER', 0x8E88, (4, 0))\
+                   .add('GL_TESS_EVALUATION_SHADER', 0x8E87, (4, 0))\
+                   .add('GL_GEOMETRY_SHADER', 0x8DD9, (3, 2))\
+                   .add('GL_FRAGMENT_SHADER', 0x8B30, (2, 0))
+
+Func((1, 0), 'glTexParameterfv', [P(tGLenum, 'target', None, 'TextureTarget'),
+                                  P(tGLenum, 'pname', None, 'TextureParameterName'),
+                                  P(tGLfloat, 'params', 'tex_param_count(pname)')])
+
+Func((1, 0), 'glTexParameteriv', [P(tGLenum, 'target', None, 'TextureTarget'),
+                                  P(tGLenum, 'pname', None, 'TextureParameterName'),
+                                  P(tGLint, 'params', 'tex_param_count(pname)')])
+
+Func((1, 0), 'glTexImage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(tGLint, 'level'),
                               P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
                               P(tGLint, 'border'), P(tGLenum, 'format', None, 'PixelFormat'),
                               P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
-Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
                       P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLenum, 'format', None, 'PixelFormat'),
                       P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])
@@ -217,12 +317,12 @@ Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGL
 #Func((1, 0), 'glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((1, 0), 'glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
-Func((1, 1), 'glTexSubImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glTexSubImage1D', [P(tGLenum, 'target', None, 'TexSubImage1DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLsizei, 'width'),
                                  P(tGLenum, 'format', None, 'PixelFormat'),
                                  P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
-Func((1, 1), 'glTexSubImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glTexSubImage2D', [P(tGLenum, 'target', None, 'TexSubImage2DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'),
                                  P(tGLsizei, 'height'), P(tGLenum, 'format', None, 'PixelFormat'),
                                  P(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(2), 'pixels')])
@@ -231,27 +331,27 @@ Func((1, 1), 'glDeleteTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')]
 Func((1, 1), 'glGenTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 
 Func((1, 2), 'glDrawRangeElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLuint, 'start'),
-                             P(tGLuint, 'end'), P(tGLsizei, 'count'), P(tGLenum, 'type'),
-                             P(tPointer, 'indices')])\
+                                     P(tGLuint, 'end'), P(tGLsizei, 'count'), P(tGLenum, 'type', None, 'ElementType'),
+                                     P(tPointer, 'indices')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElements");'
 
-Func((1, 2), 'glTexImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 2), 'glTexImage3D', [P(tGLenum, 'target', None, 'TexImage3DTarget'), P(tGLint, 'level'),
                               P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
                               P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'),
                               P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
                               P(tTexImageData(3), 'pixels')])
 
-Func((1, 2), 'glTexSubImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 2), 'glTexSubImage3D', [P(tGLenum, 'target', None, 'TexSubImage3DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'),
                                  P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                                  P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
                                  P(tTexImageData(3), 'pixels')])
 
-Func((1, 1), 'glCopyTexImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glCopyTexImage1D', [P(tGLenum, 'target', None, 'CopyTexImage1DTarget'), P(tGLint, 'level'),
                                   P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLint, 'x'), P(tGLint, 'y'),
                                   P(tGLsizei, 'width'), P(tGLint, 'border')])
 
-Func((1, 1), 'glCopyTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glCopyTexImage2D', [P(tGLenum, 'target', None, 'CopyTexImage2DTarget'), P(tGLint, 'level'),
                                   P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLint, 'x'),
                                   P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border')])
 
@@ -262,7 +362,7 @@ Func((1, 4), 'glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArrays");'
 
 Func((1, 4), 'glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'count', 'drawcount'),
-                             P(tGLenum, 'type'), P(tPointer, 'indices', 'drawcount'),
+                             P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indices', 'drawcount'),
                              P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElements");'
 
@@ -407,8 +507,8 @@ Func((3, 0), 'glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n'
 Func((3, 0), 'glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 
 Func((3, 1), 'glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
-                                 P(tGLsizei, 'count'), P(tGLenum, 'type'),
-                                 P(tPointer, 'indices'), P(tGLsizei, 'instancecount')])\
+                                         P(tGLsizei, 'count'), P(tGLenum, 'type', None, 'ElementType'),
+                                         P(tPointer, 'indices'), P(tGLsizei, 'instancecount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanced");'
 
 #Func((3, 1), 'glGetUniformIndices', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
@@ -419,26 +519,26 @@ Func((3, 1), 'glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 
 Func((3, 2), 'glDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
-                                  P(tGLsizei, 'count'), P(tGLenum, 'type'),
-                                  P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
+                                          P(tGLsizei, 'count'), P(tGLenum, 'type', None, 'ElementType'),
+                                          P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsBaseVertex");'
 
 Func((3, 2), 'glDrawRangeElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
-                                       P(tGLuint, 'start'), P(tGLuint, 'end'),
-                                       P(tGLsizei, 'count'), P(tGLenum, 'type'),
-                                       P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
+                                               P(tGLuint, 'start'), P(tGLuint, 'end'),
+                                               P(tGLsizei, 'count'), P(tGLenum, 'type', None, 'ElementType'),
+                                               P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElementsBaseVertex");'
 
 Func((3, 2), 'glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
-                                           P(tGLsizei, 'count'), P(tGLenum, 'type'),
-                                           P(tPointer, 'indices'), P(tGLsizei, 'instancecount'),
-                                           P(tGLint, 'basevertex')])\
+                                                   P(tGLsizei, 'count'), P(tGLenum, 'type', None, 'ElementType'),
+                                                   P(tPointer, 'indices'), P(tGLsizei, 'instancecount'),
+                                                   P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseVertex");'
 
 Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
-                                       P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type'),
-                                       P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
-                                       P(tPointer, 'basevertex', 'drawcount')])\
+                                               P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type', None, 'ElementType'),
+                                               P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
+                                               P(tPointer, 'basevertex', 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsBaseVertex");'
 
 #Func((3, 2), 'glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
@@ -448,10 +548,25 @@ Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'Primiti
 #Func((3, 2), 'glGetMultisamplefv', [P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'val')])
 Func((3, 3), 'glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func((3, 3), 'glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
-#Func((3, 3), 'glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func((3, 3), 'glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func((3, 3), 'glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+
+Func((3, 3), 'glSamplerParameteri', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                     P(tGLint, 'param')])
+
+Func((3, 3), 'glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                      P(tGLint, 'param', 'tex_param_count(pname)')])
+
+Func((3, 3), 'glSamplerParameterf', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                     P(tGLfloat, 'param')])
+
+Func((3, 3), 'glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                      P(tGLfloat, 'param', 'tex_param_count(pname)')])
+
+Func((3, 3), 'glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                       P(tGLint, 'param', 'tex_param_count(pname)')])
+
+Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+                                        P(tGLuint, 'param', 'tex_param_count(pname)')])
+
 #Func((3, 3), 'glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 3), 'glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 3), 'glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -463,7 +578,7 @@ Func((3, 3), 'glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', '
 #Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
 #Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
 #Func((4, 0), 'glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
-#Func((4, 0), 'glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
+#Func((4, 0), 'glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
 Func((4, 0), 'glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
 Func((4, 0), 'glUniform2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*2')])
 Func((4, 0), 'glUniform3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*3')])
@@ -520,7 +635,8 @@ Func((4, 0), 'glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n'
 #Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
 #Func((4, 1), 'glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
 #Func((4, 1), 'glProgramBinary', [P(tGLuint, 'program'), P(tGLenum, 'binaryFormat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
-#Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type'), P(tGLsizei, 'count'), P(tPointer, 'strings')], tGLuint)
+Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLuint)
+Func((2, 0), 'glCreateShader', [P(tGLenum, 'type', None, 'ShaderType')], tGLuint)
 Func((4, 1), 'glDeleteProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
 Func((4, 1), 'glGenProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
 #Func((4, 1), 'glGetProgramPipelineiv', [P(tGLuint, 'pipeline'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -617,8 +733,18 @@ Func((4, 1), 'glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'l
 #Func((4, 1), 'glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
 #Func((4, 1), 'glGetFloati_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func((4, 1), 'glGetDoublei_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-Func((4, 2), 'glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
-Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
+
+Func((4, 2), 'glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
+                                                     P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indices'),
+                                                     P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
+
+Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
+                                                               P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indices'),
+                                                               P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'),
+                                                               P(tGLuint, 'baseinstance')])\
+     .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
+
 #Func((4, 2), 'glGetInternalformativ', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func((4, 2), 'glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 3), 'glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
@@ -628,7 +754,7 @@ Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'
 #Func((4, 3), 'glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
 #Func((4, 3), 'glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 #Func((4, 3), 'glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
-#Func((4, 3), 'glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
+#Func((4, 3), 'glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
 #Func((4, 3), 'glGetProgramInterfaceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 3), 'glGetProgramResourceName', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
 #Func((4, 3), 'glGetProgramResourceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'propCount'), P(tPointer, 'props'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'params')])
@@ -677,13 +803,27 @@ Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLs
 Func((4, 5), 'glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
 #Func((4, 5), 'glGetNamedRenderbufferParameteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 5), 'glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
-#Func((4, 5), 'glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func((4, 5), 'glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func((4, 5), 'glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func((4, 5), 'glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func((4, 5), 'glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((4, 5), 'glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+
+Func((4, 5), 'glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
+                                     P(tGLsizei, 'width'), P(tGLenum, 'format', None, 'PixelFormat'),
+                                     P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
+
+Func((4, 5), 'glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
+                                     P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
+                                     P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                                     P(tTexImageData(2), 'pixels')])
+
+Func((4, 5), 'glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'),
+                                     P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
+                                     P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                                     P(tTexImageData(3), 'pixels')])
+
+Func((4, 5), 'glTextureParameterf', [P(tGLuint, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLfloat, 'param')])
+Func((4, 5), 'glTextureParameteri', [P(tGLuint, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLint, 'param')])
+Func((4, 5), 'glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLfloat, 'param', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLuint, 'params', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'param', 'tex_param_count(pname)')])
 #Func((4, 5), 'glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 #Func((4, 5), 'glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 #Func((4, 5), 'glGetTextureLevelParameterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -710,50 +850,50 @@ Func((4, 5), 'glCreateQueries', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLui
 #Func((4, 5), 'glGetnUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func((4, 5), 'glReadnPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'data')])
 
-Func((4, 3), 'glTexBufferRange', [P(tGLenum, 'target'),
+Func((4, 3), 'glTexBufferRange', [P(tGLenum, 'target', None, 'TexBufferRangeTarget'),
                                   P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                   P(tGLuint, 'buffer'), P(tGLintptr, 'offset'),
                                   P(tGLsizeiptr, 'size')])
 
-Func((4, 3), 'glTexStorage2DMultisample', [P(tGLenum, 'target'), P(tGLsizei, 'samples'),
+Func((4, 3), 'glTexStorage2DMultisample', [P(tGLenum, 'target', None, 'TexImage2DMSTarget'), P(tGLsizei, 'samples'),
                                            P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                            P(tGLsizei, 'width'), P(tGLsizei, 'height'),
                                            P(tGLboolean, 'fixedsamplelocations', None, 'Boolean')])
 
-Func((4, 3), 'glTexStorage3DMultisample', [P(tGLenum, 'target'), P(tGLsizei, 'samples'),
+Func((4, 3), 'glTexStorage3DMultisample', [P(tGLenum, 'target', None, 'TexImage3DMSTarget'), P(tGLsizei, 'samples'),
                                            P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                            P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                                            P(tGLboolean, 'fixedsamplelocations', None, 'Boolean')])
 
-Func((3, 2), 'glTexImage2DMultisample', [P(tGLenum, 'target'), P(tGLsizei, 'samples'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
+Func((3, 2), 'glTexImage2DMultisample', [P(tGLenum, 'target', None, 'TexImage2DMSTarget'), P(tGLsizei, 'samples'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                          P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLboolean, 'fixedsamplelocations', None, 'Boolean')])
 
-Func((3, 2), 'glTexImage3DMultisample', [P(tGLenum, 'target'), P(tGLsizei, 'samples'), Param(tGLenum, 'internalformat', None, 'InternalFormat'),
+Func((3, 2), 'glTexImage3DMultisample', [P(tGLenum, 'target', None, 'TexImage3DMSTarget'), P(tGLsizei, 'samples'), Param(tGLenum, 'internalformat', None, 'InternalFormat'),
                                          P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLboolean, 'fixedsamplelocations', None, 'Boolean')])
 
 Func((4, 3), 'glTextureView', [P(tGLuint, 'texture'), P(tGLenum, 'target'), P(tGLuint, 'origtexture'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                P(tGLuint, 'minlevel'), P(tGLuint, 'numlevels'), P(tGLuint, 'minlayer'), P(tGLuint, 'numlayers')])
 
-Func((1, 3), 'glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'),
-                                        P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
+Func((1, 3), 'glCompressedTexImage3D', [P(tGLenum, 'target', None, 'TexImage3DTarget'), P(tGLint, 'level'),
+                                        P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                                         P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
-Func((1, 3), 'glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'),
-                                        P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'),
+Func((1, 3), 'glCompressedTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLint, 'level'),
+                                        P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'),
                                         P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
-Func((1, 3), 'glCompressedTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'),
+Func((1, 3), 'glCompressedTexImage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'),
                                         P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
-Func((1, 3), 'glCompressedTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'),
-                                           P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
+Func((1, 3), 'glCompressedTexSubImage3D', [P(tGLenum, 'target', None, 'TexSubImage3DTarget'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
+                                           P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                                            P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
-Func((1, 3), 'glCompressedTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'),
-                                           P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
+Func((1, 3), 'glCompressedTexSubImage2D', [P(tGLenum, 'target', None, 'TexSubImage2DTarget'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'),
+                                           P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
-Func((1, 3), 'glCompressedTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'),
-                                           P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
+Func((1, 3), 'glCompressedTexSubImage1D', [P(tGLenum, 'target', None, 'TexSubImage1DTarget'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
+                                           P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
 
 Func((4, 5), 'glCompressedTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'),
                                                P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tData('imageSize'), 'data')])
@@ -765,13 +905,21 @@ Func((4, 5), 'glCompressedTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 
                                                P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                                                P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), Param(tData('imageSize'), 'data')])
 
-Func((4, 2), 'glTexStorage1D', [P(tGLenum, 'target'), P(tGLsizei, 'levels'), P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width')])
+Func((4, 2), 'glTexStorage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(tGLsizei, 'levels'),
+                                P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width')])
 
-Func((4, 2), 'glTexStorage2D', [P(tGLenum, 'target'), P(tGLsizei, 'levels'),
+Func((4, 2), 'glTexStorage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLsizei, 'levels'),
                                 P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
-Func((4, 2), 'glTexStorage3D', [P(tGLenum, 'target'), P(tGLsizei, 'levels'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
+Func((4, 2), 'glTexStorage3D', [P(tGLenum, 'target', None, 'TexImage3DTarget'), P(tGLsizei, 'levels'),
+                                P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                 P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth')])
+
+Func((1, 1), 'glCopyTexSubImage1D', [P(tGLenum, 'target', None, 'CopyTexImage1DTarget'), P(tGLint, 'level'),
+                                     P(tGLint, 'xoffset'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width')])
+
+Func((1, 1), 'glCopyTexSubImage2D', [P(tGLenum, 'target', None, 'CopyTexImage2DTarget'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
+                                     P(tGLint, 'yoffset'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
 Func((3, 0), 'glRenderbufferStorage', [P(tGLenum, 'target'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                        P(tGLsizei, 'width'), P(tGLsizei, 'height')])
@@ -791,7 +939,7 @@ Func((1, 1), 'glDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLin
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArrays");'
 
 Func((1, 1), 'glDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
-                        P(tGLenum, 'type'), P(tPointer, 'indices')])\
+                                P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indices')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElements");'
 
 Func((3, 1), 'glDrawArraysInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),

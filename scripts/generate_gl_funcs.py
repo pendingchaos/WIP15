@@ -6,6 +6,8 @@ gl = glapi.glxml.GL(False)
 
 output = open('generated_gl_funcs.py', 'w')
 
+output.write('P = Param\n')
+
 vers = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (2, 1),
         (3, 0), (3, 1), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3),
         (4, 4), (4, 5)]
@@ -65,13 +67,9 @@ for name in funcs:
     except: ver = 'None'
     output.write('Func(%s, \'%s\', [' % (ver, name))
     
-    s = open('gl_funcs.py').read()
-    s = s.replace('Func(\'%s\'' % name, 'Func(%s, \'%s\'' % (ver, name))
-    open('gl_funcs.py', 'w').write(s)
-    
     params = []
     for param in func.params:
-        res = 'Param('
+        res = 'P('
         dtype = param.type_
         
         array_count = 'None'
@@ -93,7 +91,10 @@ for name in funcs:
         else:
             res += 't' + dtype.replace('const', '').replace(' ', '').lstrip().rstrip()
         
-        params.append(res + ', \'%s\', %s, %s)' % (param.name, array_count, repr(param.group)))
+        if array_count=='None' and param.group==None:
+            params.append(res + ', \'%s\')' % param.name)
+        else:
+            params.append(res + ', \'%s\', %s, %s)' % (param.name, array_count, repr(param.group)))
     
     output.write(', '.join(params) + ']')
     

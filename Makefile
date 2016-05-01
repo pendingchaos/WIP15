@@ -32,7 +32,7 @@ all: bin/libtrace.so bin/libgl.so bin/libinspect.so bin/trace bin/inspect-gui bi
 scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 	cd scripts; python generate_gl_funcs.py
 
-src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generated_gl_funcs.py
+src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generated_gl_funcs.py scripts/gl_wrapper.c
 	cd scripts; python generate_gl_wrapper.py
 
 src/shared/glapi.c: scripts/generate_glapi.py
@@ -47,7 +47,7 @@ bin/libgl.so: src/.libgl.o
 bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g `pkg-config zlib --libs` $(CFLAGS)
 
-bin/libinspect.so: $(libinspect_obj) src/libinspect/replay_gl.c src/shared/.vec.o src/shared/.glapi.o
+bin/libinspect.so: $(libinspect_obj) src/libinspect/.replay_gl.o src/shared/.vec.o src/shared/.glapi.o
 	$(CC) $^ -o bin/libinspect.so -shared -fPIC -lGL -ldl -g `sdl2-config --libs` $(CFLAGS)
 
 bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libinspect.so bin/libtrace.so

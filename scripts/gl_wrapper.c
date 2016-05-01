@@ -929,3 +929,28 @@ static void link_program_extras(GLuint program) {
         }
     }
 }
+
+static size_t tex_param_count(GLenum param) {
+    switch (param) {
+    case GL_DEPTH_STENCIL_TEXTURE_MODE:
+    case GL_TEXTURE_COMPARE_FUNC:
+    case GL_TEXTURE_COMPARE_MODE:
+    case GL_TEXTURE_LOD_BIAS:
+    case GL_TEXTURE_MIN_FILTER:
+    case GL_TEXTURE_MAG_FILTER:
+    case GL_TEXTURE_MIN_LOD:
+    case GL_TEXTURE_MAX_LOD:
+    case GL_TEXTURE_MAX_LEVEL:
+    case GL_TEXTURE_SWIZZLE_R:
+    case GL_TEXTURE_SWIZZLE_G:
+    case GL_TEXTURE_SWIZZLE_B:
+    case GL_TEXTURE_SWIZZLE_A:
+    case GL_TEXTURE_WRAP_S:
+    case GL_TEXTURE_WRAP_T:
+    case GL_TEXTURE_WRAP_R:
+    case GL_TEXTURE_BASE_LEVEL: return 1;
+    case GL_TEXTURE_SWIZZLE_RGBA:
+    case GL_TEXTURE_BORDER_COLOR: return 4;
+    default: return 0;
+    }
+}

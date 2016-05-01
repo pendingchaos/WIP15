@@ -2,18 +2,6 @@
 # -*- coding: utf-8 -*-
 from glapi.glapi import *
 
-class GroupEntry(object):
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-        self.versions = [(1, 0)]
-        self.extensions = []
-
-class Group(object):
-    def __init__(self):
-        self.entries = []
-        self.bitmask = False
-
 versions = [(1, 0),
             (1, 1),
             (1, 2),
