@@ -8,6 +8,8 @@ groups = []
 group_dict = {}
 next_group_id = 0
 
+_cur_file = None
+
 def indent(s, amount):
     return '\n'.join(['    '*amount+l for l in s.split('\n')])
 
@@ -67,11 +69,17 @@ class Param(object):
 class Func(object):
     def __init__(self, minver, name, params, rettype=None):
         global next_func_id, funcs
+        
+        self._file = _cur_file
+        
         if name in func_dict:
+            if func_dict[name]._file == self._file:
+                print "Warning: Redefining %s in %s" % (name, self._file)
+            
             # TODO: Remove this
             for p1, p2 in zip(func_dict[name].params, params):
-                if p1.group != p2.group:
-                    print name
+                if p1.group!=None and p2.group==None:
+                    print "Warning: Group removed from", name
                     break
             
             self.func_id = func_dict[name].func_id
@@ -387,7 +395,10 @@ class tMutableString(tString):
         if array_count != None: return 'char** %s' % var_name
         else: return 'char* %s' % var_name
 
+_cur_file = 'generated_gl_funcs.py'
 exec open('generated_gl_funcs.py').read()
+
+_cur_file = 'gl_funcs.py'
 exec open('gl_funcs.py').read()
 
 gl_c = open('output_gl.c', 'w')
@@ -416,6 +427,11 @@ import glxml
 gl = glxml.GL(False)
 
 gl_c.write(gl.typedecls)
+
+for fname, func in func_dict.iteritems():
+    for param in func.params:
+        if isinstance(param.dtype, tGLenum) and param.group==None:
+            print "Warning: Parameter %s of %s is probably missing a group" % (param.name, fname)
 
 for k, v, in gl.enumValues.iteritems():
     gl_c.write("#define %s %s\n" % (k, v))

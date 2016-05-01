@@ -10,9 +10,14 @@ vers = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (2, 1),
         (3, 0), (3, 1), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3),
         (4, 4), (4, 5)]
 
+func_names = []
 funcs = []
 for v in vers:
-    funcs += gl.versions[v].new_functions
+    for n in gl.versions[v].new_functions:
+        if n not in func_names:
+            funcs.append(n)
+            func_names.append(n)
+    
     for r in gl.versions[v].removed_functions:
         funcs.remove(r)
 
