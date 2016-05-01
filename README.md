@@ -7,10 +7,8 @@ The GUI also requires [GTK+ 3](http://www.gtk.org).
 
 # Compiling
 ```shell
-make all
+make -j$(getconf _NPROCESSORS_ONLN)
 ```
-
-You may need to run scripts/generate_replay.py to update src/libinspect/replay_gl.c.
 
 # Usage
 ## Tracing

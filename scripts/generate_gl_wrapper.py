@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from glapi import *
+from glapi.glapi import *
+import glapi.glxml
 
-gl_c = open('output_gl.c', 'w')
+gl_c = open('../src/libgl.c', 'w')
 
 gl_c.write('''#include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -24,8 +25,7 @@ typedef void (*func_t)();
 
 ''')
 
-import glxml
-gl = glxml.GL(False)
+gl = glapi.glxml.GL(False)
 
 gl_c.write(gl.typedecls)
 
@@ -63,7 +63,7 @@ static func_t get_func(func_t* f, const char* name) {
 }
 ''')
 
-gl_c.write(open("new_gl.c", "r").read())
+gl_c.write(open("gl_wrapper.c", "r").read())
 
 for func in funcs:
     gl_c.write(func.gen_decl() + '\n\n' + func.gen_wrapper() + '\n\n')

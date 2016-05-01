@@ -1,6 +1,8 @@
 import xml.etree.ElementTree as ET
 import urllib2
+import os.path
 import copy
+import sys
 
 class Group:
     def __init__(self, enumNames=[]):
@@ -32,6 +34,8 @@ class Extension:
 
 class GL:
     def __init__(self, download):
+        base = os.path.split(__file__)[0]
+        
         if download:
             try:
                 print 'Retreiving gl.xml from khronos.org.'
@@ -41,7 +45,7 @@ class GL:
                 
                 print 'Writing to gl.xml on this computer.'
                 
-                with open('gl.xml', 'w') as glXML:
+                with open(os.path.join(base, 'gl.xml'), 'w') as glXML:
                     glXML.write(data)
                 
                 print 'Retreiving glx.xml from khronos.org.'
@@ -51,7 +55,7 @@ class GL:
                 
                 print 'Writing to glx.xml on this computer.'
                 
-                with open('glx.xml', 'w') as glXXML:
+                with open(os.path.join(base, 'glx.xml'), 'w') as glXXML:
                     glXXML.write(data)
             except urllib2.URLError:
                 print 'Failed to retrieve gl.xml or glx.xml from khronos.org. Using gl.xml and glx.xml file on this computer.'
@@ -63,11 +67,11 @@ class GL:
         self.extensions = {}
         self.typedecls = ''
         
-        tree = ET.parse('gl.xml')
+        tree = ET.parse(os.path.join(base, 'gl.xml'))
         root = tree.getroot()
         self._run(root)
         
-        tree = ET.parse('glx.xml')
+        tree = ET.parse(os.path.join(base, 'glx.xml'))
         root = tree.getroot()
         self._run(root)
         

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # TODO: Function pointers
-import glxml
+import glapi.glxml
 from gl_state import *
 
-gl = glxml.GL(False)
+gl = glapi.glxml.GL(False)
 
 output = open("../src/libinspect/replay_gl.c", "w")
 

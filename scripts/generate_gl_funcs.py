@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import glxml
+import glapi.glxml
 
-gl = glxml.GL(False)
+gl = glapi.glxml.GL(False)
 
 output = open('generated_gl_funcs.py', 'w')
 
