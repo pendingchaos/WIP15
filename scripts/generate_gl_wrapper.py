@@ -16,6 +16,7 @@ class Group(object):
         global next_group_id, groups
         self.name = name
         self.vals = {}
+        self.minvers = {}
         if name in group_dict:
             self.group_id = group_dict[name].group_id
             groups.remove(group_dict[name])
@@ -25,8 +26,9 @@ class Group(object):
         group_dict[name] = self
         groups.append(self)
     
-    def add(self, name, val):
+    def add(self, name, val, minver):
         self.vals[name] = val
+        self.minvers[name] = minver
         return self
 
 class Type(object):
@@ -63,7 +65,7 @@ class Param(object):
         return self.dtype.gen_write_type_code(self.array_count, self.group)
 
 class Func(object):
-    def __init__(self, name, params, rettype=None):
+    def __init__(self, minver, name, params, rettype=None):
         global next_func_id, funcs
         if name in func_dict:
             # TODO: Remove this
@@ -77,6 +79,7 @@ class Func(object):
         else:
             self.func_id = next_func_id
             next_func_id += 1
+        self.minver = minver
         self.name = name
         self.params = params
         self.trace_prologue_code = ''

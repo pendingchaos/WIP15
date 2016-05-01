@@ -23,28 +23,46 @@ for v in vers:
         try: enums.remove(r)
         except ValueError: pass
 
-groups = set()
+groups = {}
 for f in funcs:
     for p in gl.functions[f].params:
-        if p.group != None: groups.add(p.group)
-groups = list(groups)
+        if p.group != None: groups[p.group] = []
+
+func_minvers = {}
+for vn, v in gl.versions.iteritems():
+    for gn, g in gl.groups.iteritems():
+        if gn not in groups: continue
+        for e in g.enumNames:
+            if e in v.new_enums: groups[gn].append(e)
+    for f in v.new_functions:
+        func_minvers[f] = vn
 
 for f in gl.functions.keys():
     if f.startswith('glX'):
         funcs.append(f)
 
-for name in groups:
-    group = gl.groups[name]
-    
+for name, group in groups.iteritems():
     output.write('Group(\'%s\')' % name)
-    for en in group.enumNames:
-        output.write('.add(\'%s\', %d)' % (en, gl.enumValues[en]))
+    for en in group:
+        ver = (3, 2)
+        for v in gl.versions.iteritems():
+            if en in v[1].new_enums: 
+                ver = v[0]
+                break
+        
+        output.write('.add(\'%s\', %d, (%d, %d))' % (en, gl.enumValues[en], ver[0], ver[1]))
     output.write('\n')
 
 for name in funcs:
     func = gl.functions[name]
     
-    output.write('Func(\'%s\', [' % name)
+    try: ver = '(%d, %d)' % (func_minvers[name][0], func_minvers[name][1])
+    except: ver = 'None'
+    output.write('Func(%s, \'%s\', [' % (ver, name))
+    
+    s = open('gl_funcs.py').read()
+    s = s.replace('Func(\'%s\'' % name, 'Func(%s, \'%s\'' % (ver, name))
+    open('gl_funcs.py', 'w').write(s)
     
     params = []
     for param in func.params:

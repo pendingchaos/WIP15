@@ -108,547 +108,547 @@ class tShdrSrc(Type):
     def gen_write_type_code(self, array_count=None, group=False):
         return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
 
-#Func('glTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((1, 0), 'glTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((1, 0), 'glTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 
-Func('glTexImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 0), 'glTexImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLint, 'border'),
                       Param(tGLenum, 'format', None, 'PixelFormat'), Param(tGLenum, 'type', None, 'PixelType'),
                       P(tTexImageData(1), 'pixels')])
 
-Func('glTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
                       P(tGLint, 'border'), Param(tGLenum, 'format', None, 'PixelFormat'),
                       Param(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])
 
-#Func('glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
-#Func('glGetBooleanv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func('glGetDoublev', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func('glGetFloatv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func('glGetIntegerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func('glGetString', [P(tGLenum, 'name')], tPointer)
-#Func('glGetTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
-#Func('glGetTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 0), 'glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
+#Func((1, 0), 'glGetBooleanv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
+#Func((1, 0), 'glGetDoublev', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
+#Func((1, 0), 'glGetFloatv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
+#Func((1, 0), 'glGetIntegerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
+#Func((1, 0), 'glGetString', [P(tGLenum, 'name')], tPointer)
+#Func((1, 0), 'glGetTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
+#Func((1, 0), 'glGetTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 0), 'glGetTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 0), 'glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 0), 'glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
-Func('glTexSubImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glTexSubImage1D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                          P(tGLint, 'xoffset'), P(tGLsizei, 'width'), Param(tGLenum, 'format', None, 'PixelFormat'),
                          Param(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
-Func('glTexSubImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 1), 'glTexSubImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                          P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'),
                          P(tGLsizei, 'height'), Param(tGLenum, 'format', None, 'PixelFormat'),
                          Param(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(2), 'pixels')])
 
-Func('glDeleteTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
-Func('glGenTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
+Func((1, 1), 'glDeleteTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
+Func((1, 1), 'glGenTextures', [P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 
-Func('glDrawRangeElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLuint, 'start'),
+Func((1, 2), 'glDrawRangeElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLuint, 'start'),
                              P(tGLuint, 'end'), P(tGLsizei, 'count'), P(tGLenum, 'type'),
                              P(tPointer, 'indices')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElements");'
 
-Func('glTexImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 2), 'glTexImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
                       P(tGLsizei, 'depth'), P(tGLint, 'border'), Param(tGLenum, 'format', None, 'PixelFormat'),
                       Param(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(3), 'pixels')])
 
-Func('glTexSubImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
+Func((1, 2), 'glTexSubImage3D', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'),
                          P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'),
                          P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
                          Param(tGLenum, 'format', None, 'PixelFormat'), Param(tGLenum, 'type', None, 'PixelType'),
                          P(tTexImageData(3), 'pixels')])
 
-#Func('glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glGetCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tMutablePointer, 'img')])
+#Func((1, 3), 'glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glCompressedTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glCompressedTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glCompressedTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glCompressedTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((1, 3), 'glGetCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tMutablePointer, 'img')])
 
-Func('glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first', 'drawcount'),
+Func((1, 4), 'glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first', 'drawcount'),
                            P(tGLsizei, 'count', 'drawcount'), P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArrays");'
 
-Func('glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'count', 'drawcount'),
+Func((1, 4), 'glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'count', 'drawcount'),
                              P(tGLenum, 'type'), P(tPointer, 'indices', 'drawcount'),
                              P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElements");'
 
-#Func('glPointParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glPointParameteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
-Func('glGenQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-Func('glDeleteQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-#Func('glGetQueryiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetQueryObjectiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetQueryObjectuiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
-Func('glGenBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
+#Func((1, 4), 'glPointParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((1, 4), 'glPointParameteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
+Func((1, 5), 'glGenQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+Func((1, 5), 'glDeleteQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+#Func((1, 5), 'glGetQueryiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 5), 'glGetQueryObjectiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 5), 'glGetQueryObjectuiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((1, 5), 'glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
+Func((1, 5), 'glGenBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 
-Func('glBufferData', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'),
+Func((1, 5), 'glBufferData', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'),
                       P(tBufData('size'), 'data'), P(tGLenum, 'usage')])
 
-Func('glBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'),
+Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'),
                          P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data')])
 
-#Func('glGetBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
-#Func('glGetBufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetBufferPointerv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
-#Func('glGetActiveAttrib', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func('glGetActiveUniform', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func('glGetAttachedShaders', [P(tGLuint, 'program'), P(tGLsizei, 'maxCount'), P(tMutablePointer, 'count'), P(tMutablePointer, 'shaders')])
-#Func('glGetProgramiv', [P(tGLuint, 'program'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetProgramInfoLog', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
-#Func('glGetShaderiv', [P(tGLuint, 'shader'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetShaderInfoLog', [P(tGLuint, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
-#Func('glGetShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'source')])
-#Func('glGetUniformfv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
-#Func('glGetUniformiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
-#Func('glGetVertexAttribdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetVertexAttribfv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetVertexAttribiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetVertexAttribPointerv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'pointer')])
-Func('glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string'), P(tGLint, 'length', 'length?count:0')])
-Func('glUniform1fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count')])
-Func('glUniform2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*2')])
-Func('glUniform3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*3')])
-Func('glUniform4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*4')])
-Func('glUniform1iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count')])
-Func('glUniform2iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*2')])
-Func('glUniform3iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*3')])
-Func('glUniform4iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*4')])
-Func('glUniformMatrix2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '4*count')])
-Func('glUniformMatrix3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '9*count')])
-Func('glUniformMatrix4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '16*count')])
-Func('glVertexAttrib1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 1)])
-Func('glVertexAttrib1fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 1)])
-Func('glVertexAttrib1sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 1)])
-Func('glVertexAttrib2dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 2)])
-Func('glVertexAttrib2fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 2)])
-Func('glVertexAttrib2sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 2)])
-Func('glVertexAttrib3dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 3)])
-Func('glVertexAttrib3fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 3)])
-Func('glVertexAttrib3sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 3)])
-Func('glVertexAttrib4Nbv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
-Func('glVertexAttrib4Niv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
-Func('glVertexAttrib4Nsv', [P(tGLuint, 'index'), P(tGLshort, 'v', 4)])
-Func('glVertexAttrib4Nubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
-Func('glVertexAttrib4Nuiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
-Func('glVertexAttrib4Nusv', [P(tGLuint, 'index'), P(tGLushort, 'v', 4)])
-Func('glVertexAttrib4bv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
-Func('glVertexAttrib4dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
-Func('glVertexAttrib4fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 4)])
-Func('glVertexAttrib4iv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
-Func('glVertexAttrib4sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 4)])
-Func('glVertexAttrib4ubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
-Func('glVertexAttrib4uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
-Func('glVertexAttrib4usv', [P(tGLuint, 'index'), P(tGLushort, 'v', )])
-#Func('glVertexAttribPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+#Func((1, 5), 'glGetBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
+#Func((1, 5), 'glGetBufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 5), 'glGetBufferPointerv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((2, 0), 'glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
+#Func((2, 0), 'glGetActiveAttrib', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+#Func((2, 0), 'glGetActiveUniform', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+#Func((2, 0), 'glGetAttachedShaders', [P(tGLuint, 'program'), P(tGLsizei, 'maxCount'), P(tMutablePointer, 'count'), P(tMutablePointer, 'shaders')])
+#Func((2, 0), 'glGetProgramiv', [P(tGLuint, 'program'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetProgramInfoLog', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
+#Func((2, 0), 'glGetShaderiv', [P(tGLuint, 'shader'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetShaderInfoLog', [P(tGLuint, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
+#Func((2, 0), 'glGetShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'source')])
+#Func((2, 0), 'glGetUniformfv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetUniformiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetVertexAttribdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetVertexAttribfv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetVertexAttribiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((2, 0), 'glGetVertexAttribPointerv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'pointer')])
+Func((2, 0), 'glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string'), P(tGLint, 'length', 'length?count:0')])
+Func((2, 0), 'glUniform1fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count')])
+Func((2, 0), 'glUniform2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*2')])
+Func((2, 0), 'glUniform3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*3')])
+Func((2, 0), 'glUniform4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*4')])
+Func((2, 0), 'glUniform1iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count')])
+Func((2, 0), 'glUniform2iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*2')])
+Func((2, 0), 'glUniform3iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*3')])
+Func((2, 0), 'glUniform4iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLint, 'value', 'count*4')])
+Func((2, 0), 'glUniformMatrix2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '4*count')])
+Func((2, 0), 'glUniformMatrix3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '9*count')])
+Func((2, 0), 'glUniformMatrix4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '16*count')])
+Func((2, 0), 'glVertexAttrib1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 1)])
+Func((2, 0), 'glVertexAttrib1fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 1)])
+Func((2, 0), 'glVertexAttrib1sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 1)])
+Func((2, 0), 'glVertexAttrib2dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 2)])
+Func((2, 0), 'glVertexAttrib2fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 2)])
+Func((2, 0), 'glVertexAttrib2sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 2)])
+Func((2, 0), 'glVertexAttrib3dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 3)])
+Func((2, 0), 'glVertexAttrib3fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 3)])
+Func((2, 0), 'glVertexAttrib3sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 3)])
+Func((2, 0), 'glVertexAttrib4Nbv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4Niv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4Nsv', [P(tGLuint, 'index'), P(tGLshort, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4Nubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4Nuiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4Nusv', [P(tGLuint, 'index'), P(tGLushort, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4bv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4iv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4ubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
+Func((2, 0), 'glVertexAttrib4usv', [P(tGLuint, 'index'), P(tGLushort, 'v', )])
+#Func((2, 0), 'glVertexAttribPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 
-Func('glUniformMatrix2x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix2x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*6')])
 
-Func('glUniformMatrix3x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix3x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*6')])
 
-Func('glUniformMatrix2x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix2x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*8')])
 
-Func('glUniformMatrix4x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix4x2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*8')])
 
-Func('glUniformMatrix3x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix3x4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*12')])
 
-Func('glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLfloat, 'value', 'count*12')])
 
-#Func('glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func('glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func('glTransformFeedbackVaryings', [P(tGLuint, 'program'), P(tGLsizei, 'count'), P(tPointer, 'varyings'), P(tGLenum, 'bufferMode')])
-#Func('glGetTransformFeedbackVarying', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func('glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
-#Func('glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glVertexAttribI1iv', [P(tGLuint, 'index'), P(tGLint, 'v', 1)])
-Func('glVertexAttribI2iv', [P(tGLuint, 'index'), P(tGLint, 'v', 2)])
-Func('glVertexAttribI3iv', [P(tGLuint, 'index'), P(tGLint, 'v', 3)])
-Func('glVertexAttribI4iv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
-Func('glVertexAttribI1uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 1)])
-Func('glVertexAttribI2uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 2)])
-Func('glVertexAttribI3uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 3)])
-Func('glVertexAttribI4uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
-Func('glVertexAttribI4bv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
-Func('glVertexAttribI4sv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
-Func('glVertexAttribI4ubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
-Func('glVertexAttribI4usv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
-#Func('glGetUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
-Func('glUniform1uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, 'value', 'count')])
-Func('glUniform2uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*2')])
-Func('glUniform3uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*3')])
-Func('glUniform4uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*4')])
-#Func('glTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glGetTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glClearBufferiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLint, 'value', 'buffer==GL_COLOR?4:1')])\
+#Func((3, 0), 'glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+#Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+#Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLuint, 'program'), P(tGLsizei, 'count'), P(tPointer, 'varyings'), P(tGLenum, 'bufferMode')])
+#Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+#Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+#Func((3, 0), 'glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 0), 'glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glVertexAttribI1iv', [P(tGLuint, 'index'), P(tGLint, 'v', 1)])
+Func((3, 0), 'glVertexAttribI2iv', [P(tGLuint, 'index'), P(tGLint, 'v', 2)])
+Func((3, 0), 'glVertexAttribI3iv', [P(tGLuint, 'index'), P(tGLint, 'v', 3)])
+Func((3, 0), 'glVertexAttribI4iv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
+Func((3, 0), 'glVertexAttribI1uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 1)])
+Func((3, 0), 'glVertexAttribI2uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 2)])
+Func((3, 0), 'glVertexAttribI3uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 3)])
+Func((3, 0), 'glVertexAttribI4uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
+Func((3, 0), 'glVertexAttribI4bv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
+Func((3, 0), 'glVertexAttribI4sv', [P(tGLuint, 'index'), P(tGLbyte, 'v', 4)])
+Func((3, 0), 'glVertexAttribI4ubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
+Func((3, 0), 'glVertexAttribI4usv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
+#Func((3, 0), 'glGetUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glUniform1uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, 'value', 'count')])
+Func((3, 0), 'glUniform2uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*2')])
+Func((3, 0), 'glUniform3uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*3')])
+Func((3, 0), 'glUniform4uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tPointer, 'value', 'count*4')])
+#Func((3, 0), 'glTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((3, 0), 'glTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((3, 0), 'glGetTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 0), 'glGetTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glClearBufferiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLint, 'value', 'buffer==GL_COLOR?4:1')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferiv");'
-Func('glClearBufferuiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLuint, 'value', 'buffer==GL_COLOR?4:1')])\
+Func((3, 0), 'glClearBufferuiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLuint, 'value', 'buffer==GL_COLOR?4:1')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferuiv");'
-Func('glClearBufferfv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLfloat, 'value', 'buffer==GL_COLOR?4:1')])\
+Func((3, 0), 'glClearBufferfv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLfloat, 'value', 'buffer==GL_COLOR?4:1')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferfv");'
-#Func('glGetStringi', [P(tGLenum, 'name'), P(tGLuint, 'index')], tPointer)
-Func('glDeleteRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-Func('glGenRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func('glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
-Func('glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
-#Func('glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glMapBufferRange', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
-Func('glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
-Func('glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
+#Func((3, 0), 'glGetStringi', [P(tGLenum, 'name'), P(tGLuint, 'index')], tPointer)
+Func((3, 0), 'glDeleteRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
+Func((3, 0), 'glGenRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
+#Func((3, 0), 'glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
+Func((3, 0), 'glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
+#Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 0), 'glMapBufferRange', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+Func((3, 0), 'glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
+Func((3, 0), 'glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 
-Func('glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 1), 'glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                  P(tGLsizei, 'count'), P(tGLenum, 'type'),
                                  P(tPointer, 'indices'), P(tGLsizei, 'instancecount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanced");'
 
-#Func('glGetUniformIndices', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
-#Func('glGetActiveUniformsiv', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformIndices'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetActiveUniformName', [P(tGLuint, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformName')])
-#Func('glGetActiveUniformBlockiv', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetActiveUniformBlockName', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformBlockName')])
-#Func('glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+#Func((3, 1), 'glGetUniformIndices', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
+#Func((3, 1), 'glGetActiveUniformsiv', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformIndices'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 1), 'glGetActiveUniformName', [P(tGLuint, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformName')])
+#Func((3, 1), 'glGetActiveUniformBlockiv', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 1), 'glGetActiveUniformBlockName', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformBlockName')])
+#Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 
-Func('glDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 2), 'glDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                   P(tGLsizei, 'count'), P(tGLenum, 'type'),
                                   P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsBaseVertex");'
 
-Func('glDrawRangeElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 2), 'glDrawRangeElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                        P(tGLuint, 'start'), P(tGLuint, 'end'),
                                        P(tGLsizei, 'count'), P(tGLenum, 'type'),
                                        P(tPointer, 'indices'), P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawRangeElementsBaseVertex");'
 
-Func('glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 2), 'glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                            P(tGLsizei, 'count'), P(tGLenum, 'type'),
                                            P(tPointer, 'indices'), P(tGLsizei, 'instancecount'),
                                            P(tGLint, 'basevertex')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseVertex");'
 
-Func('glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                        P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type'),
                                        P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
                                        P(tPointer, 'basevertex', 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsBaseVertex");'
 
-#Func('glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func('glGetSynciv', [P(tGLsync, 'sync'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'values')])
-#Func('glGetInteger64i_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func('glGetBufferParameteri64v', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetMultisamplefv', [P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'val')])
-Func('glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
-Func('glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
-#Func('glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetQueryObjecti64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetQueryObjectui64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func('glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func('glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func('glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func('glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
-#Func('glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
-Func('glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
-Func('glUniform2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*2')])
-Func('glUniform3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*3')])
-Func('glUniform4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*4')])
+#Func((3, 2), 'glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
+#Func((3, 2), 'glGetSynciv', [P(tGLsync, 'sync'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'values')])
+#Func((3, 2), 'glGetInteger64i_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+#Func((3, 2), 'glGetBufferParameteri64v', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 2), 'glGetMultisamplefv', [P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'val')])
+Func((3, 3), 'glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
+Func((3, 3), 'glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
+#Func((3, 3), 'glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((3, 3), 'glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((3, 3), 'glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((3, 3), 'glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glGetQueryObjecti64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glGetQueryObjectui64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 3), 'glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
+#Func((3, 3), 'glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
+#Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
+#Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
+#Func((4, 0), 'glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
+#Func((4, 0), 'glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
+Func((4, 0), 'glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
+Func((4, 0), 'glUniform2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*2')])
+Func((4, 0), 'glUniform3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*3')])
+Func((4, 0), 'glUniform4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*4')])
 
-Func('glUniformMatrix2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                             P(tGLboolean, 'transpose', None, 'Boolean'),
                             P(tGLdouble, 'value', '4*count')])
 
-Func('glUniformMatrix3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                             P(tGLboolean, 'transpose', None, 'Boolean'),
                             P(tGLdouble, 'value', '9*count')])
 
-Func('glUniformMatrix4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                             P(tGLboolean, 'transpose', None, 'Boolean'),
                             P(tGLdouble, 'value', '16*count')])
 
-Func('glUniformMatrix2x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix2x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '6*count')])
 
-Func('glUniformMatrix2x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix2x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '8*count')])
 
-Func('glUniformMatrix3x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix3x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '6*count')])
 
-Func('glUniformMatrix3x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix3x4dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '12*count')])
 
-Func('glUniformMatrix4x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix4x2dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '8*count')])
 
-Func('glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
+Func((4, 0), 'glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
                               P(tGLdouble, 'value', '12*count')])
 
-#Func('glGetUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
-#Func('glGetActiveSubroutineUniformiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
-#Func('glGetActiveSubroutineUniformName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
-#Func('glGetActiveSubroutineName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
-#Func('glUniformSubroutinesuiv', [P(tGLenum, 'shadertype'), P(tGLsizei, 'count'), P(tPointer, 'indices')])
-#Func('glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
-#Func('glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
-#Func('glPatchParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'values')])
-Func('glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-Func('glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-#Func('glGetQueryIndexediv', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glShaderBinary', [P(tGLsizei, 'count'), P(tPointer, 'shaders'), P(tGLenum, 'binaryformat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
-#Func('glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
-#Func('glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
-#Func('glProgramBinary', [P(tGLuint, 'program'), P(tGLenum, 'binaryFormat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
-#Func('glCreateShaderProgramv', [P(tGLenum, 'type'), P(tGLsizei, 'count'), P(tPointer, 'strings')], tGLuint)
-Func('glDeleteProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
-Func('glGenProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
-#Func('glGetProgramPipelineiv', [P(tGLuint, 'pipeline'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 0), 'glGetUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
+#Func((4, 0), 'glGetActiveSubroutineUniformiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
+#Func((4, 0), 'glGetActiveSubroutineUniformName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
+#Func((4, 0), 'glGetActiveSubroutineName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
+#Func((4, 0), 'glUniformSubroutinesuiv', [P(tGLenum, 'shadertype'), P(tGLsizei, 'count'), P(tPointer, 'indices')])
+#Func((4, 0), 'glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
+#Func((4, 0), 'glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
+#Func((4, 0), 'glPatchParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'values')])
+Func((4, 0), 'glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+Func((4, 0), 'glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+#Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 1), 'glShaderBinary', [P(tGLsizei, 'count'), P(tPointer, 'shaders'), P(tGLenum, 'binaryformat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
+#Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
+#Func((4, 1), 'glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
+#Func((4, 1), 'glProgramBinary', [P(tGLuint, 'program'), P(tGLenum, 'binaryFormat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
+#Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type'), P(tGLsizei, 'count'), P(tPointer, 'strings')], tGLuint)
+Func((4, 1), 'glDeleteProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
+Func((4, 1), 'glGenProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
+#Func((4, 1), 'glGetProgramPipelineiv', [P(tGLuint, 'pipeline'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
-Func('glProgramUniform1iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform1iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLint, 'value', 'count')])
 
-Func('glProgramUniform1fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform1fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count')])
 
-Func('glProgramUniform1dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform1dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
 
-Func('glProgramUniform1uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform1uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                               P(tGLsizei, 'count'), P(tGLuint, 'value', 'count')])
 
-Func('glProgramUniform2iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform2iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLint, 'value', 'count*2')])
 
-Func('glProgramUniform2fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform2fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*2')])
 
-Func('glProgramUniform2dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform2dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*2')])
 
-Func('glProgramUniform2uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform2uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                               P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*2')])
 
-Func('glProgramUniform3iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform3iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLint, 'value', 'count*3')])
 
-Func('glProgramUniform3fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform3fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*3')])
 
-Func('glProgramUniform3dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform3dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*3')])
 
-Func('glProgramUniform3uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform3uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                               P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*3')])
 
-Func('glProgramUniform4iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform4iv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLint, 'value', 'count*4')])
 
-Func('glProgramUniform4fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform4fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*4')])
 
-Func('glProgramUniform4dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform4dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                              P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count*4')])
 
-Func('glProgramUniform4uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniform4uiv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                               P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*4')])
 
-Func('glProgramUniformMatrix2fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniformMatrix2fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                                    P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*4')])
 
-Func('glProgramUniformMatrix3fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniformMatrix3fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                                    P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*9')])
 
-Func('glProgramUniformMatrix4fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniformMatrix4fv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                                    P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLfloat, 'value', 'count*16')])
 
-Func('glProgramUniformMatrix2dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
+Func((4, 1), 'glProgramUniformMatrix2dv', [P(tGLuint, 'program'), P(tGLint, 'location'),
                                    P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'),
                                    P(tGLdouble, 'value', 'count*4')])
 
-Func('glProgramUniformMatrix3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*9')])
-Func('glProgramUniformMatrix4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*16')])
-Func('glProgramUniformMatrix2x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
-Func('glProgramUniformMatrix3x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
-Func('glProgramUniformMatrix2x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
-Func('glProgramUniformMatrix4x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
-Func('glProgramUniformMatrix3x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
-Func('glProgramUniformMatrix4x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
-Func('glProgramUniformMatrix2x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
-Func('glProgramUniformMatrix3x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
-Func('glProgramUniformMatrix2x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
-Func('glProgramUniformMatrix4x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
-Func('glProgramUniformMatrix3x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
-Func('glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
-#Func('glGetProgramPipelineInfoLog', [P(tGLuint, 'pipeline'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
-#Func('glVertexAttribL1dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glVertexAttribL2dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glVertexAttribL3dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glVertexAttribL4dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glVertexAttribLPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
-#Func('glGetVertexAttribLdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glViewportArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
-#Func('glViewportIndexedfv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glScissorArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
-#Func('glScissorIndexedv', [P(tGLuint, 'index'), P(tPointer, 'v')])
-#Func('glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
-#Func('glGetFloati_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func('glGetDoublei_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-Func('glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
-Func('glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
-#Func('glGetInternalformativ', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glClearBufferSubData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glGetFramebufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetInternalformati64v', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
-#Func('glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
-#Func('glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
-#Func('glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
-#Func('glGetProgramInterfaceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetProgramResourceName', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
-#Func('glGetProgramResourceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'propCount'), P(tPointer, 'props'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'params')])
-#Func('glDebugMessageControl', [P(tGLenum, 'source'), P(tGLenum, 'type'), P(tGLenum, 'severity'), P(tGLsizei, 'count'), P(tPointer, 'ids'), P(tGLboolean, 'enabled')])
-#Func('glDebugMessageCallback', [P(tGLDEBUGPROC, 'callback'), P(tPointer, 'userP')])
-#Func('glGetDebugMessageLog', [P(tGLuint, 'count'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'sources'), P(tMutablePointer, 'types'), P(tMutablePointer, 'ids'), P(tMutablePointer, 'severities'), P(tMutablePointer, 'lengths'), P(tMutableString, 'messageLog')], tGLuint)
-#Func('glGetObjectLabel', [P(tGLenum, 'identifier'), P(tGLuint, 'name'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'label')])
-#Func('glObjectPtrLabel', [P(tPointer, 'ptr'), P(tGLsizei, 'length'), P(tString, 'label')])
-#Func('glGetObjectPtrLabel', [P(tPointer, 'ptr'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'label')])
-#Func('glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glBufferStorage', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
-#Func('glClearTexImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glClearTexSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glBindBuffersBase', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers')])
-#Func('glBindBuffersRange', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers'), P(tPointer, 'offsets'), P(tPointer, 'sizes')])
-Func('glBindTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
-Func('glBindSamplers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
-Func('glBindImageTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
-Func('glBindVertexBuffers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLuintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
-Func('glCreateTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-#Func('glGetTransformFeedbackiv', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-#Func('glGetTransformFeedbacki_v', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'param')])
-#Func('glGetTransformFeedbacki64_v', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'param')])
-Func('glCreateBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
-#Func('glNamedBufferStorage', [P(tGLuint, 'buffer'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
-Func('glNamedBufferData', [P(tGLuint, 'buffer'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data'), P(tGLenum, 'usage')])
-Func('glNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data')])
-#Func('glClearNamedBufferData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glClearNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func('glMapNamedBuffer', [P(tGLuint, 'buffer'), P(tGLenum, 'access')], tPointer)
-#Func('glMapNamedBufferRange', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
-#Func('glGetNamedBufferParameteriv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetNamedBufferParameteri64v', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetNamedBufferPointerv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
-#Func('glCreateFramebuffers', [P(tGLsizei, 'n'), P(tMutablePointer, 'framebuffers')])
-Func('glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
-#Func('glInvalidateNamedFramebufferData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
-#Func('glInvalidateNamedFramebufferSubData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
-#Func('glClearNamedFramebufferiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
-#Func('glClearNamedFramebufferuiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
-#Func('glClearNamedFramebufferfv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
-#Func('glGetNamedFramebufferParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-#Func('glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func('glGetNamedRenderbufferParameteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
-#Func('glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func('glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func('glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func('glCompressedTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glCompressedTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func('glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func('glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
-#Func('glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetTextureLevelParameterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureLevelParameteriv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func('glGetTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func('glCreateVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
-Func('glVertexArrayVertexBuffers', [P(tGLuint, 'vaobj'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
-#Func('glGetVertexArrayiv', [P(tGLuint, 'vaobj'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-#Func('glGetVertexArrayIndexediv', [P(tGLuint, 'vaobj'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-#Func('glGetVertexArrayIndexed64iv', [P(tGLuint, 'vaobj'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
-Func('glCreateSamplers', [P(tGLsizei, 'n'), P(tGLuint, 'samplers', 'n')])
-Func('glCreateProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
-Func('glCreateQueries', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-#Func('glGetTextureSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetCompressedTextureSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetnCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'lod'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetnTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func('glGetnUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glGetnUniformfv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glGetnUniformiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glGetnUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func('glReadnPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'data')])
+Func((4, 1), 'glProgramUniformMatrix3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*9')])
+Func((4, 1), 'glProgramUniformMatrix4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*16')])
+Func((4, 1), 'glProgramUniformMatrix2x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
+Func((4, 1), 'glProgramUniformMatrix3x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*6')])
+Func((4, 1), 'glProgramUniformMatrix2x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
+Func((4, 1), 'glProgramUniformMatrix4x2fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*8')])
+Func((4, 1), 'glProgramUniformMatrix3x4fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
+Func((4, 1), 'glProgramUniformMatrix4x3fv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', 'count*12')])
+Func((4, 1), 'glProgramUniformMatrix2x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
+Func((4, 1), 'glProgramUniformMatrix3x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*6')])
+Func((4, 1), 'glProgramUniformMatrix2x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
+Func((4, 1), 'glProgramUniformMatrix4x2dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
+Func((4, 1), 'glProgramUniformMatrix3x4dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
+Func((4, 1), 'glProgramUniformMatrix4x3dv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
+#Func((4, 1), 'glGetProgramPipelineInfoLog', [P(tGLuint, 'pipeline'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
+#Func((4, 1), 'glVertexAttribL1dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glVertexAttribL2dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glVertexAttribL3dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glVertexAttribL4dv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glVertexAttribLPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+#Func((4, 1), 'glGetVertexAttribLdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 1), 'glViewportArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
+#Func((4, 1), 'glViewportIndexedfv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glScissorArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
+#Func((4, 1), 'glScissorIndexedv', [P(tGLuint, 'index'), P(tPointer, 'v')])
+#Func((4, 1), 'glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
+#Func((4, 1), 'glGetFloati_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+#Func((4, 1), 'glGetDoublei_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+Func((4, 2), 'glDrawElementsInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstancedBaseInstance");'
+Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'), P(tGLenum, 'type'), P(tPointer, 'indices'), P(tGLsizei, 'instancecount'), P(tGLint, 'basevertex'), P(tGLuint, 'baseinstance')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanceBaseVertexBaseInstance");'
+#Func((4, 2), 'glGetInternalformativ', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 2), 'glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 3), 'glClearBufferSubData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glGetInternalformati64v', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
+#Func((4, 3), 'glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
+#Func((4, 3), 'glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
+#Func((4, 3), 'glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
+#Func((4, 3), 'glGetProgramInterfaceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glGetProgramResourceName', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
+#Func((4, 3), 'glGetProgramResourceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'propCount'), P(tPointer, 'props'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glDebugMessageControl', [P(tGLenum, 'source'), P(tGLenum, 'type'), P(tGLenum, 'severity'), P(tGLsizei, 'count'), P(tPointer, 'ids'), P(tGLboolean, 'enabled')])
+#Func((4, 3), 'glDebugMessageCallback', [P(tGLDEBUGPROC, 'callback'), P(tPointer, 'userP')])
+#Func((4, 3), 'glGetDebugMessageLog', [P(tGLuint, 'count'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'sources'), P(tMutablePointer, 'types'), P(tMutablePointer, 'ids'), P(tMutablePointer, 'severities'), P(tMutablePointer, 'lengths'), P(tMutableString, 'messageLog')], tGLuint)
+#Func((4, 3), 'glGetObjectLabel', [P(tGLenum, 'identifier'), P(tGLuint, 'name'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'label')])
+#Func((4, 3), 'glObjectPtrLabel', [P(tPointer, 'ptr'), P(tGLsizei, 'length'), P(tString, 'label')])
+#Func((4, 3), 'glGetObjectPtrLabel', [P(tPointer, 'ptr'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'label')])
+#Func((1, 1), 'glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 1), 'glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 4), 'glBufferStorage', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
+#Func((4, 4), 'glClearTexImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 4), 'glClearTexSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 4), 'glBindBuffersBase', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers')])
+#Func((4, 4), 'glBindBuffersRange', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers'), P(tPointer, 'offsets'), P(tPointer, 'sizes')])
+Func((4, 4), 'glBindTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
+Func((4, 4), 'glBindSamplers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
+Func((4, 4), 'glBindImageTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
+Func((4, 4), 'glBindVertexBuffers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLuintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
+Func((4, 5), 'glCreateTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+#Func((4, 5), 'glGetTransformFeedbackiv', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+#Func((4, 5), 'glGetTransformFeedbacki_v', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'param')])
+#Func((4, 5), 'glGetTransformFeedbacki64_v', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'param')])
+Func((4, 5), 'glCreateBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
+#Func((4, 5), 'glNamedBufferStorage', [P(tGLuint, 'buffer'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
+Func((4, 5), 'glNamedBufferData', [P(tGLuint, 'buffer'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data'), P(tGLenum, 'usage')])
+Func((4, 5), 'glNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data')])
+#Func((4, 5), 'glClearNamedBufferData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 5), 'glClearNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 5), 'glMapNamedBuffer', [P(tGLuint, 'buffer'), P(tGLenum, 'access')], tPointer)
+#Func((4, 5), 'glMapNamedBufferRange', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+#Func((4, 5), 'glGetNamedBufferParameteriv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetNamedBufferParameteri64v', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetNamedBufferPointerv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
+#Func((4, 5), 'glCreateFramebuffers', [P(tGLsizei, 'n'), P(tMutablePointer, 'framebuffers')])
+Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
+#Func((4, 5), 'glInvalidateNamedFramebufferData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
+#Func((4, 5), 'glInvalidateNamedFramebufferSubData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
+#Func((4, 5), 'glClearNamedFramebufferiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
+#Func((4, 5), 'glClearNamedFramebufferuiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
+#Func((4, 5), 'glClearNamedFramebufferfv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
+#Func((4, 5), 'glGetNamedFramebufferParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+#Func((4, 5), 'glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((4, 5), 'glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
+#Func((4, 5), 'glGetNamedRenderbufferParameteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((4, 5), 'glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
+#Func((4, 5), 'glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
+#Func((4, 5), 'glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
+#Func((4, 5), 'glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
+#Func((4, 5), 'glCompressedTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((4, 5), 'glCompressedTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((4, 5), 'glCompressedTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
+#Func((4, 5), 'glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((4, 5), 'glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
+#Func((4, 5), 'glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
+#Func((4, 5), 'glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetTextureLevelParameterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetTextureLevelParameteriv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((4, 5), 'glCreateVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
+Func((4, 5), 'glVertexArrayVertexBuffers', [P(tGLuint, 'vaobj'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
+#Func((4, 5), 'glGetVertexArrayiv', [P(tGLuint, 'vaobj'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+#Func((4, 5), 'glGetVertexArrayIndexediv', [P(tGLuint, 'vaobj'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+#Func((4, 5), 'glGetVertexArrayIndexed64iv', [P(tGLuint, 'vaobj'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
+Func((4, 5), 'glCreateSamplers', [P(tGLsizei, 'n'), P(tGLuint, 'samplers', 'n')])
+Func((4, 5), 'glCreateProgramPipelines', [P(tGLsizei, 'n'), P(tGLuint, 'pipelines', 'n')])
+Func((4, 5), 'glCreateQueries', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
+#Func((4, 5), 'glGetTextureSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetCompressedTextureSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetnCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'lod'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetnTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
+#Func((4, 5), 'glGetnUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetnUniformfv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetnUniformiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glGetnUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
+#Func((4, 5), 'glReadnPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'data')])
 
-Func('glDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first'),
+Func((1, 1), 'glDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first'),
                       P(tGLsizei, 'count')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArrays");'
 
-Func('glDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
+Func((1, 1), 'glDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count'),
                         P(tGLenum, 'type'), P(tPointer, 'indices')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElements");'
 
-Func('glDrawArraysInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((3, 1), 'glDrawArraysInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                P(tGLint, 'first'), P(tGLsizei, 'count'),
                                P(tGLsizei, 'instancecount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstanced");'
 
-Func('glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'),
+Func((4, 2), 'glDrawArraysInstancedBaseInstance', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                            P(tGLint, 'first'), P(tGLsizei, 'count'),
                                            P(tGLsizei, 'instancecount'),
                                            P(tGLuint, 'baseinstance')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysInstancedBaseInstance");'
 
-Func('glLinkProgram', [Param(tGLuint, 'program', None)], None).trace_extras_code = 'link_program_extras(program);'
-Func('glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
+Func((2, 0), 'glLinkProgram', [Param(tGLuint, 'program', None)], None).trace_extras_code = 'link_program_extras(program);'
+Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
                     P(tGLsizei, 'width'), P(tGLsizei, 'height')]).trace_epilogue_code = 'update_drawable_size();'
 
-Func('glUnmapBuffer', [Param(tGLenum, 'target', None)], tGLboolean).trace_extras_code = '''GLint access;
+Func((1, 5), 'glUnmapBuffer', [Param(tGLenum, 'target', None)], tGLboolean).trace_extras_code = '''GLint access;
 F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
 if (access != GL_READ_ONLY) {
     GLint size;
@@ -661,127 +661,127 @@ if (access != GL_READ_ONLY) {
 }
 '''
 
-glDrawableSizeWIP15('glDrawableSizeWIP15', [P(tGLsizei, 'width'), P(tGLsizei, 'height')], None)
-glTestFBWIP15('glTestFBWIP15', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
-                                P(tData('drawable_width*drawable_height*4'), 'depth')], None)
+glDrawableSizeWIP15((1, 0), 'glDrawableSizeWIP15', [P(tGLsizei, 'width'), P(tGLsizei, 'height')], None)
+glTestFBWIP15((1, 0), 'glTestFBWIP15', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
+                                        P(tData('drawable_width*drawable_height*4'), 'depth')], None)
 
-#Func('glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
-#Func('glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)
-#Func('glXQueryExtension', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'errorb'), P(tMutablePointer, 'event')], tBool)
-#Func('glXQueryServerString', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'name')], tPointer)
-#Func('glXChannelRectSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tint, 'x'), P(tint, 'y'), P(tint, 'w'), P(tint, 'h')], tint)
-#Func('glXCopyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'src'), P(tGLXContext, 'dst'), P(tunsignedlong, 'mask')])
-#Func('glXGetTransparentIndexSUN', [P(tMutablePointer, 'dpy'), P(tWindow, 'overlay'), P(tWindow, 'underlay'), P(tMutablePointer, 'pTransparentIndex')], tStatus)
-Func('glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'attribList', 'glx_attrib_int_count(attribList)')], tPointer)
-#Func('glXReleaseVideoImageNV', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf')], tint)
-#Func('glXDestroyGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXPbufferSGIX, 'pbuf')])
-#Func('glXGetCurrentAssociatedContextAMD', [], tGLXContext)
-#Func('glXQueryContextInfoEXT', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'context'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXQueryCurrentRendererIntegerMESA', [P(tint, 'attribute'), P(tMutablePointer, 'value')], tBool)
-#Func('glXDestroyPbuffer', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf')])
-#Func('glXGetFBConfigAttribSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXNamedCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLuint, 'readBuffer'), P(tGLuint, 'writeBuffer'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
-#Func('glXHyperpipeAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'attribList')], tint)
-#Func('glXDestroyGLXVideoSourceSGIX', [P(tMutablePointer, 'dpy'), P(tGLXVideoSourceSGIX, 'glxvideosource')])
-#Func('glXQueryExtensionsString', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tPointer)
-#Func('glXSendPbufferToVideoNV', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf'), P(tint, 'iBufferType'), P(tMutablePointer, 'pulCounterPbuffer'), P(tGLboolean, 'bBlock')], tint)
-#Func('glXDestroyWindow', [P(tMutablePointer, 'dpy'), P(tGLXWindow, 'win')])
-#Func('glXQueryHyperpipeAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'returnAttribList')], tint)
-#Func('glXHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'networkId'), P(tint, 'npipes'), P(tMutablePointer, 'cfg'), P(tMutablePointer, 'hpId')], tint)
-#Func('glXDestroyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')])
-#Func('glXGetCurrentDisplayEXT', [], tPointer)
-#Func('glXCreateContextWithConfigSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tint, 'render_type'), P(tGLXContext, 'share_list'), P(tBool, 'direct')], tGLXContext)
-#Func('glXMakeAssociatedContextCurrentAMD', [P(tGLXContext, 'ctx')], tBool)
-#Func('glXMakeCurrentReadSGI', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tGLXDrawable, 'read'), P(tGLXContext, 'ctx')], tBool)
-#Func('glXBindSwapBarrierSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'barrier')])
-#Func('glXFreeContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'context')])
-#Func('glXDestroyHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId')], tint)
-#Func('glXWaitForSbcOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_sbc'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
-#Func('glXGetSelectedEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tMutablePointer, 'event_mask')])
-#Func('glXEnumerateVideoCaptureDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
-#Func('glXCreateGLXPixmapMESA', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tPixmap, 'pixmap'), P(tColormap, 'cmap')], tGLXPixmap)
-#Func('glXCreateWindow', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tWindow, 'win'), P(tPointer, 'attrib_list')], tGLXWindow)
-#Func('glXGetCurrentDrawable', [], tGLXDrawable)
-#Func('glXQueryHyperpipeBestAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'attribList'), P(tMutablePointer, 'returnAttribList')], tint)
-glXGetProcAddressFunc('glXGetProcAddress', [P(tString, 'procName')], t__GLXextFuncPtr)
-#Func('glXCushionSGI', [P(tMutablePointer, 'dpy'), P(tWindow, 'window'), P(tfloat, 'cushion')])
-#Func('glXMakeContextCurrent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tGLXDrawable, 'read'), P(tGLXContext, 'ctx')], tBool)
-#Func('glXSwapIntervalSGI', [P(tint, 'interval')], tint)
-#Func('glXBindTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer'), P(tPointer, 'attrib_list')])
-#Func('glXReleaseVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device')])
-#Func('glXGetCurrentContext', [], tGLXContext)
-#Func('glXQueryMaxSwapGroupsNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'maxGroups'), P(tMutablePointer, 'maxBarriers')], tBool)
-#Func('glXQueryHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId'), P(tMutablePointer, 'npipes')], tPointer)
-#Func('glXWaitVideoSyncSGI', [P(tint, 'divisor'), P(tint, 'remainder'), P(tMutablePointer, 'count')], tint)
-#Func('glXGetConfig', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tint, 'attrib'), P(tMutablePointer, 'value')], tint)
-#Func('glXCreateGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tunsignedint, 'width'), P(tunsignedint, 'height'), P(tMutablePointer, 'attrib_list')], tGLXPbufferSGIX)
-#Func('glXQueryVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXGetVideoSyncSGI', [P(tMutablePointer, 'count')], tint)
-#Func('glXQueryDrawable', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tint, 'attribute'), P(tMutablePointer, 'value')])
-#Func('glXLockVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device')])
-#Func('glXGetCurrentDisplay', [], tPointer)
-#Func('glXBlitContextFramebufferAMD', [P(tGLXContext, 'dstCtx'), P(tGLint, 'srcX0'), P(tGLint, 'srcY0'), P(tGLint, 'srcX1'), P(tGLint, 'srcY1'), P(tGLint, 'dstX0'), P(tGLint, 'dstY0'), P(tGLint, 'dstX1'), P(tGLint, 'dstY1'), P(tGLbitfield, 'mask'), P(tGLenum, 'filter')])
-#Func('glXGetClientString', [P(tMutablePointer, 'dpy'), P(tint, 'name')], tPointer)
-#Func('glXGetMscRateOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'numerator'), P(tMutablePointer, 'denominator')], tBool)
-#Func('glXGetCurrentReadDrawableSGI', [], tGLXDrawable)
-#Func('glXReleaseBuffersMESA', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')], tBool)
-#Func('glXGetFBConfigAttrib', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXDestroyGLXPixmap', [P(tMutablePointer, 'dpy'), P(tGLXPixmap, 'pixmap')])
-#Func('glXQueryVersion', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'maj'), P(tMutablePointer, 'min')], tBool)
-#Func('glXGetAGPOffsetMESA', [P(tPointer, 'pointer')], tunsignedint)
-#Func('glXWaitForMscOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_msc'), P(tint64_t, 'divisor'), P(tint64_t, 'remainder'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
-#Func('glXQueryMaxSwapBarriersSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'max')], tBool)
-#Func('glXCreateGLXPixmap', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tPixmap, 'pixmap')], tGLXPixmap)
-#Func('glXBindChannelToWindowSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tWindow, 'window')], tint)
-#Func('glXChooseFBConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'attrib_list'), P(tMutablePointer, 'nelements')], tPointer)
-#Func('glXSelectEventSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tunsignedlong, 'mask')])
-#Func('glXGetContextGPUIDAMD', [P(tGLXContext, 'ctx')], tunsignedint)
-#Func('glXDestroyPixmap', [P(tMutablePointer, 'dpy'), P(tGLXPixmap, 'pixmap')])
-#Func('glXCreateNewContext', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tint, 'render_type'), P(tGLXContext, 'share_list'), P(tBool, 'direct')], tGLXContext)
-#Func('glXQueryGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXPbufferSGIX, 'pbuf'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXCopySubBufferMESA', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'x'), P(tint, 'y'), P(tint, 'width'), P(tint, 'height')])
-#Func('glXQueryFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'count')], tBool)
-#Func('glXGetCurrentReadDrawable', [], tGLXDrawable)
-#Func('glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
-#Func('glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
-Func('glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
-#Func('glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
-#Func('glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
-#Func('glXSelectEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tunsignedlong, 'event_mask')])
-#Func('glXGetVideoInfoNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tGLXVideoDeviceNV, 'VideoDevice'), P(tMutablePointer, 'pulCounterOutputPbuffer'), P(tMutablePointer, 'pulCounterOutputVideo')], tint)
-#Func('glXGetSyncValuesOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
-#Func('glXDeleteAssociatedContextAMD', [P(tGLXContext, 'ctx')], tBool)
-glXGetProcAddressFunc('glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
-#Func('glXEnumerateVideoDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
-#Func('glXCreateContext', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'vis'), P(tGLXContext, 'shareList'), P(tBool, 'direct')], tGLXContext)
-#Func('glXReleaseTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer')])
-#Func('glXJoinSwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLuint, 'group')], tBool)
-#Func('glXCreateAssociatedContextAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_list')], tGLXContext)
-#Func('glXBindHyperpipeSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId')], tint)
-#Func('glXGetSelectedEventSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'mask')])
-#Func('glXChooseFBConfig', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tPointer, 'attrib_list'), P(tMutablePointer, 'nelements')], tPointer)
-#Func('glXIsDirect', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')], tBool)
-#Func('glXReleaseVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tGLXVideoDeviceNV, 'VideoDevice')], tint)
-#Func('glXGetGPUInfoAMD', [P(tunsignedint, 'id'), P(tint, 'property'), P(tGLenum, 'dataType'), P(tunsignedint, 'size'), P(tMutablePointer, 'data')], tint)
-#Func('glXSwapBuffersMscOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_msc'), P(tint64_t, 'divisor'), P(tint64_t, 'remainder')], tint64_t)
-#Func('glXGetContextIDEXT', [P(tGLXContext, 'context')], tGLXContextID)
-#Func('glXJoinSwapGroupSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLXDrawable, 'member')])
-#Func('glXQueryContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
-#Func('glXWaitGL', [])
-#Func('glXQueryCurrentRendererStringMESA', [P(tint, 'attribute')], tPointer)
-#Func('glXCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLenum, 'readTarget'), P(tGLenum, 'writeTarget'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
-Func('glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')]).trace_epilogue_code = 'update_drawable_size();\nif (test_mode) test_fb("glXSwapBuffers");'
-#Func('glXWaitX', [])
-#Func('glXQueryHyperpipeNetworkSGIX', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'npipes')], tPointer)
-#Func('glXGetVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'numVideoDevices'), P(tMutablePointer, 'pVideoDevice')], tint)
-#Func('glXQueryChannelRectSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tMutablePointer, 'dx'), P(tMutablePointer, 'dy'), P(tMutablePointer, 'dw'), P(tMutablePointer, 'dh')], tint)
-#Func('glXQueryChannelDeltasSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tMutablePointer, 'x'), P(tMutablePointer, 'y'), P(tMutablePointer, 'w'), P(tMutablePointer, 'h')], tint)
-#Func('glXBindVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tunsignedint, 'video_slot'), P(tunsignedint, 'video_device'), P(tPointer, 'attrib_list')], tint)
-#Func('glXQueryRendererIntegerMESA', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'renderer'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tBool)
-#Func('glXQuerySwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'group'), P(tMutablePointer, 'barrier')], tBool)
-#Func('glXCreatePbuffer', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tPointer, 'attrib_list')], tGLXPbuffer)
-#Func('glXUseXFont', [P(tFont, 'font'), P(tint, 'first'), P(tint, 'count'), P(tint, 'list')])
-#Func('glXGetVisualFromFBConfig', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config')], tPointer)
+#Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
+#Func(None, 'glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)
+#Func(None, 'glXQueryExtension', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'errorb'), P(tMutablePointer, 'event')], tBool)
+#Func(None, 'glXQueryServerString', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'name')], tPointer)
+#Func(None, 'glXChannelRectSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tint, 'x'), P(tint, 'y'), P(tint, 'w'), P(tint, 'h')], tint)
+#Func(None, 'glXCopyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'src'), P(tGLXContext, 'dst'), P(tunsignedlong, 'mask')])
+#Func(None, 'glXGetTransparentIndexSUN', [P(tMutablePointer, 'dpy'), P(tWindow, 'overlay'), P(tWindow, 'underlay'), P(tMutablePointer, 'pTransparentIndex')], tStatus)
+Func(None, 'glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'attribList', 'glx_attrib_int_count(attribList)')], tPointer)
+#Func(None, 'glXReleaseVideoImageNV', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf')], tint)
+#Func(None, 'glXDestroyGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXPbufferSGIX, 'pbuf')])
+#Func(None, 'glXGetCurrentAssociatedContextAMD', [], tGLXContext)
+#Func(None, 'glXQueryContextInfoEXT', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'context'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXQueryCurrentRendererIntegerMESA', [P(tint, 'attribute'), P(tMutablePointer, 'value')], tBool)
+#Func(None, 'glXDestroyPbuffer', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf')])
+#Func(None, 'glXGetFBConfigAttribSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXNamedCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLuint, 'readBuffer'), P(tGLuint, 'writeBuffer'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
+#Func(None, 'glXHyperpipeAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'attribList')], tint)
+#Func(None, 'glXDestroyGLXVideoSourceSGIX', [P(tMutablePointer, 'dpy'), P(tGLXVideoSourceSGIX, 'glxvideosource')])
+#Func(None, 'glXQueryExtensionsString', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tPointer)
+#Func(None, 'glXSendPbufferToVideoNV', [P(tMutablePointer, 'dpy'), P(tGLXPbuffer, 'pbuf'), P(tint, 'iBufferType'), P(tMutablePointer, 'pulCounterPbuffer'), P(tGLboolean, 'bBlock')], tint)
+#Func(None, 'glXDestroyWindow', [P(tMutablePointer, 'dpy'), P(tGLXWindow, 'win')])
+#Func(None, 'glXQueryHyperpipeAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'returnAttribList')], tint)
+#Func(None, 'glXHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'networkId'), P(tint, 'npipes'), P(tMutablePointer, 'cfg'), P(tMutablePointer, 'hpId')], tint)
+#Func(None, 'glXDestroyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')])
+#Func(None, 'glXGetCurrentDisplayEXT', [], tPointer)
+#Func(None, 'glXCreateContextWithConfigSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tint, 'render_type'), P(tGLXContext, 'share_list'), P(tBool, 'direct')], tGLXContext)
+#Func(None, 'glXMakeAssociatedContextCurrentAMD', [P(tGLXContext, 'ctx')], tBool)
+#Func(None, 'glXMakeCurrentReadSGI', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tGLXDrawable, 'read'), P(tGLXContext, 'ctx')], tBool)
+#Func(None, 'glXBindSwapBarrierSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'barrier')])
+#Func(None, 'glXFreeContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'context')])
+#Func(None, 'glXDestroyHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId')], tint)
+#Func(None, 'glXWaitForSbcOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_sbc'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
+#Func(None, 'glXGetSelectedEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tMutablePointer, 'event_mask')])
+#Func(None, 'glXEnumerateVideoCaptureDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
+#Func(None, 'glXCreateGLXPixmapMESA', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tPixmap, 'pixmap'), P(tColormap, 'cmap')], tGLXPixmap)
+#Func(None, 'glXCreateWindow', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tWindow, 'win'), P(tPointer, 'attrib_list')], tGLXWindow)
+#Func(None, 'glXGetCurrentDrawable', [], tGLXDrawable)
+#Func(None, 'glXQueryHyperpipeBestAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'attribList'), P(tMutablePointer, 'returnAttribList')], tint)
+glXGetProcAddressFunc(None, 'glXGetProcAddress', [P(tString, 'procName')], t__GLXextFuncPtr)
+#Func(None, 'glXCushionSGI', [P(tMutablePointer, 'dpy'), P(tWindow, 'window'), P(tfloat, 'cushion')])
+#Func(None, 'glXMakeContextCurrent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tGLXDrawable, 'read'), P(tGLXContext, 'ctx')], tBool)
+#Func(None, 'glXSwapIntervalSGI', [P(tint, 'interval')], tint)
+#Func(None, 'glXBindTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer'), P(tPointer, 'attrib_list')])
+#Func(None, 'glXReleaseVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device')])
+#Func(None, 'glXGetCurrentContext', [], tGLXContext)
+#Func(None, 'glXQueryMaxSwapGroupsNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'maxGroups'), P(tMutablePointer, 'maxBarriers')], tBool)
+#Func(None, 'glXQueryHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId'), P(tMutablePointer, 'npipes')], tPointer)
+#Func(None, 'glXWaitVideoSyncSGI', [P(tint, 'divisor'), P(tint, 'remainder'), P(tMutablePointer, 'count')], tint)
+#Func(None, 'glXGetConfig', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tint, 'attrib'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXCreateGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tunsignedint, 'width'), P(tunsignedint, 'height'), P(tMutablePointer, 'attrib_list')], tGLXPbufferSGIX)
+#Func(None, 'glXQueryVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXGetVideoSyncSGI', [P(tMutablePointer, 'count')], tint)
+#Func(None, 'glXQueryDrawable', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tint, 'attribute'), P(tMutablePointer, 'value')])
+#Func(None, 'glXLockVideoCaptureDeviceNV', [P(tMutablePointer, 'dpy'), P(tGLXVideoCaptureDeviceNV, 'device')])
+#Func(None, 'glXGetCurrentDisplay', [], tPointer)
+#Func(None, 'glXBlitContextFramebufferAMD', [P(tGLXContext, 'dstCtx'), P(tGLint, 'srcX0'), P(tGLint, 'srcY0'), P(tGLint, 'srcX1'), P(tGLint, 'srcY1'), P(tGLint, 'dstX0'), P(tGLint, 'dstY0'), P(tGLint, 'dstX1'), P(tGLint, 'dstY1'), P(tGLbitfield, 'mask'), P(tGLenum, 'filter')])
+#Func(None, 'glXGetClientString', [P(tMutablePointer, 'dpy'), P(tint, 'name')], tPointer)
+#Func(None, 'glXGetMscRateOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'numerator'), P(tMutablePointer, 'denominator')], tBool)
+#Func(None, 'glXGetCurrentReadDrawableSGI', [], tGLXDrawable)
+#Func(None, 'glXReleaseBuffersMESA', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')], tBool)
+#Func(None, 'glXGetFBConfigAttrib', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXDestroyGLXPixmap', [P(tMutablePointer, 'dpy'), P(tGLXPixmap, 'pixmap')])
+#Func(None, 'glXQueryVersion', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'maj'), P(tMutablePointer, 'min')], tBool)
+#Func(None, 'glXGetAGPOffsetMESA', [P(tPointer, 'pointer')], tunsignedint)
+#Func(None, 'glXWaitForMscOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_msc'), P(tint64_t, 'divisor'), P(tint64_t, 'remainder'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
+#Func(None, 'glXQueryMaxSwapBarriersSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'max')], tBool)
+#Func(None, 'glXCreateGLXPixmap', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'visual'), P(tPixmap, 'pixmap')], tGLXPixmap)
+#Func(None, 'glXBindChannelToWindowSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tWindow, 'window')], tint)
+#Func(None, 'glXChooseFBConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'attrib_list'), P(tMutablePointer, 'nelements')], tPointer)
+#Func(None, 'glXSelectEventSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tunsignedlong, 'mask')])
+#Func(None, 'glXGetContextGPUIDAMD', [P(tGLXContext, 'ctx')], tunsignedint)
+#Func(None, 'glXDestroyPixmap', [P(tMutablePointer, 'dpy'), P(tGLXPixmap, 'pixmap')])
+#Func(None, 'glXCreateNewContext', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tint, 'render_type'), P(tGLXContext, 'share_list'), P(tBool, 'direct')], tGLXContext)
+#Func(None, 'glXQueryGLXPbufferSGIX', [P(tMutablePointer, 'dpy'), P(tGLXPbufferSGIX, 'pbuf'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXCopySubBufferMESA', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'x'), P(tint, 'y'), P(tint, 'width'), P(tint, 'height')])
+#Func(None, 'glXQueryFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'count')], tBool)
+#Func(None, 'glXGetCurrentReadDrawable', [], tGLXDrawable)
+#Func(None, 'glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
+#Func(None, 'glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
+Func(None, 'glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
+#Func(None, 'glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
+#Func(None, 'glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
+#Func(None, 'glXSelectEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tunsignedlong, 'event_mask')])
+#Func(None, 'glXGetVideoInfoNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tGLXVideoDeviceNV, 'VideoDevice'), P(tMutablePointer, 'pulCounterOutputPbuffer'), P(tMutablePointer, 'pulCounterOutputVideo')], tint)
+#Func(None, 'glXGetSyncValuesOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'ust'), P(tMutablePointer, 'msc'), P(tMutablePointer, 'sbc')], tBool)
+#Func(None, 'glXDeleteAssociatedContextAMD', [P(tGLXContext, 'ctx')], tBool)
+glXGetProcAddressFunc(None, 'glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
+#Func(None, 'glXEnumerateVideoDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
+#Func(None, 'glXCreateContext', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'vis'), P(tGLXContext, 'shareList'), P(tBool, 'direct')], tGLXContext)
+#Func(None, 'glXReleaseTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer')])
+#Func(None, 'glXJoinSwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLuint, 'group')], tBool)
+#Func(None, 'glXCreateAssociatedContextAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_list')], tGLXContext)
+#Func(None, 'glXBindHyperpipeSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'hpId')], tint)
+#Func(None, 'glXGetSelectedEventSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'mask')])
+#Func(None, 'glXChooseFBConfig', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tPointer, 'attrib_list'), P(tMutablePointer, 'nelements')], tPointer)
+#Func(None, 'glXIsDirect', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')], tBool)
+#Func(None, 'glXReleaseVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tGLXVideoDeviceNV, 'VideoDevice')], tint)
+#Func(None, 'glXGetGPUInfoAMD', [P(tunsignedint, 'id'), P(tint, 'property'), P(tGLenum, 'dataType'), P(tunsignedint, 'size'), P(tMutablePointer, 'data')], tint)
+#Func(None, 'glXSwapBuffersMscOML', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint64_t, 'target_msc'), P(tint64_t, 'divisor'), P(tint64_t, 'remainder')], tint64_t)
+#Func(None, 'glXGetContextIDEXT', [P(tGLXContext, 'context')], tGLXContextID)
+#Func(None, 'glXJoinSwapGroupSGIX', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLXDrawable, 'member')])
+#Func(None, 'glXQueryContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tint)
+#Func(None, 'glXWaitGL', [])
+#Func(None, 'glXQueryCurrentRendererStringMESA', [P(tint, 'attribute')], tPointer)
+#Func(None, 'glXCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLenum, 'readTarget'), P(tGLenum, 'writeTarget'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
+Func(None, 'glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')]).trace_epilogue_code = 'update_drawable_size();\nif (test_mode) test_fb("glXSwapBuffers");'
+#Func(None, 'glXWaitX', [])
+#Func(None, 'glXQueryHyperpipeNetworkSGIX', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'npipes')], tPointer)
+#Func(None, 'glXGetVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'numVideoDevices'), P(tMutablePointer, 'pVideoDevice')], tint)
+#Func(None, 'glXQueryChannelRectSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tMutablePointer, 'dx'), P(tMutablePointer, 'dy'), P(tMutablePointer, 'dw'), P(tMutablePointer, 'dh')], tint)
+#Func(None, 'glXQueryChannelDeltasSGIX', [P(tMutablePointer, 'display'), P(tint, 'screen'), P(tint, 'channel'), P(tMutablePointer, 'x'), P(tMutablePointer, 'y'), P(tMutablePointer, 'w'), P(tMutablePointer, 'h')], tint)
+#Func(None, 'glXBindVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tunsignedint, 'video_slot'), P(tunsignedint, 'video_device'), P(tPointer, 'attrib_list')], tint)
+#Func(None, 'glXQueryRendererIntegerMESA', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'renderer'), P(tint, 'attribute'), P(tMutablePointer, 'value')], tBool)
+#Func(None, 'glXQuerySwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tMutablePointer, 'group'), P(tMutablePointer, 'barrier')], tBool)
+#Func(None, 'glXCreatePbuffer', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tPointer, 'attrib_list')], tGLXPbuffer)
+#Func(None, 'glXUseXFont', [P(tFont, 'font'), P(tint, 'first'), P(tint, 'count'), P(tint, 'list')])
+#Func(None, 'glXGetVisualFromFBConfig', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config')], tPointer)
 
 #TODO
-Func('glXMakeCurrent', [Param(tMutablePointer, 'dpy', None), Param(tGLXDrawable, 'drawable', None), Param(tGLXContext, 'ctx', None)], tBool).trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs(); update_drawable_size();'
+Func(None, 'glXMakeCurrent', [Param(tMutablePointer, 'dpy', None), Param(tGLXDrawable, 'drawable', None), Param(tGLXContext, 'ctx', None)], tBool).trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs(); update_drawable_size();'
