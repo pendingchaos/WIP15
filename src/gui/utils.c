@@ -91,7 +91,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
                 if (entry->value == val) {
-                    strncat(str, static_format("%s(%zu)", entry->name, val), n);
+                    strncat(str, entry->name, n);
                     return;
                 }
             }

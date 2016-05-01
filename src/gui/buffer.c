@@ -47,28 +47,28 @@ static void update_buffer_view(size_t buf_index) {
     switch (type) {
     case TYPE_UINT8:
     case TYPE_INT8: {
-        stride = stride?stride:1;
+        stride = stride ? stride : components;
         type_size = 1;
         break;
     }
     case TYPE_UINT16:
     case TYPE_INT16:
     case TYPE_FLOAT16: {
-        stride = stride?stride:2;
+        stride = stride ? stride : components*2;
         type_size = 2;
         break;
     }
     case TYPE_UINT32:
     case TYPE_INT32:
     case TYPE_FLOAT32: {
-        stride = stride?stride:4;
+        stride = stride ? stride : components*4;
         type_size = 4;
         break;
     }
     case TYPE_UINT64:
     case TYPE_INT64:
     case TYPE_FLOAT64: {
-        stride = stride?stride:8;
+        stride = stride ? stride : components*8;
         type_size = 8;
         break;
     }
@@ -153,8 +153,6 @@ static void update_buffer_view(size_t buf_index) {
             }
             }
             
-            offset += stride;
-            
             bool at_end = offset+type_size > buf_size;
             
             if ((i != components-1) && !at_end)
@@ -163,6 +161,8 @@ static void update_buffer_view(size_t buf_index) {
             if (at_end)
                 break;
         }
+        
+        offset += stride;
         
         if (components>1)
             cur += snprintf(cur, end-cur, "]");

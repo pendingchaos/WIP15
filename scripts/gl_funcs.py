@@ -255,13 +255,6 @@ Func((1, 1), 'glCopyTexImage2D', [P(tGLenum, 'target', None, 'TextureTarget'), P
                                   P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLint, 'x'),
                                   P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border')])
 
-
-#Func((1, 3), 'glCompressedTexImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((1, 3), 'glCompressedTexImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((1, 3), 'glCompressedTexImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'internalformat'), P(tGLsizei, 'width'), P(tGLint, 'border'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((1, 3), 'glCompressedTexSubImage3D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((1, 3), 'glCompressedTexSubImage2D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((1, 3), 'glCompressedTexSubImage1D', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func((1, 3), 'glGetCompressedTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tMutablePointer, 'img')])
 
 Func((1, 4), 'glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first', 'drawcount'),
@@ -687,9 +680,6 @@ Func((4, 5), 'glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLu
 #Func((4, 5), 'glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
 #Func((4, 5), 'glTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
 #Func((4, 5), 'glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'pixels')])
-#Func((4, 5), 'glCompressedTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLsizei, 'width'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((4, 5), 'glCompressedTextureSubImage2D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
-#Func((4, 5), 'glCompressedTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLsizei, 'imageSize'), P(tPointer, 'data')])
 #Func((4, 5), 'glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'param')])
 #Func((4, 5), 'glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 #Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tPointer, 'params')])
