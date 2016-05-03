@@ -200,7 +200,7 @@ glXDestroyContext:
     }
     
     SDL_GL_DeleteContext(glctx);
-    replay_destroy_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(trace_get_arg(command, 1)));
+    replay_rel_object(ctx, ReplayObjType_GLXContext, *trace_get_ptr(trace_get_arg(command, 1)));
 
 glXSwapBuffers:
     if (!ctx->_current_context) {
@@ -243,7 +243,7 @@ glDeleteTextures:
             inspect_add_error(inspect_command, "Invalid texture being deleted.");
         } else {
             inspect_act_del_tex(&inspect_command->state, fake[i]);
-            replay_destroy_object(ctx, ReplayObjType_GLTexture, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLTexture, fake[i]);
         }
     
     real(n, textures);
@@ -563,7 +563,7 @@ glDeleteBuffers:
             inspect_add_error(inspect_command, "Invalid buffer being deleted.");
         } else {
             inspect_act_del_buf(&inspect_command->state, fake[i]);
-            replay_destroy_object(ctx, ReplayObjType_GLBuffer, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLBuffer, fake[i]);
         }
     }
     
@@ -649,7 +649,7 @@ glDeleteShader:
     
     F(glDeleteShader)(real_shdr);
     
-    replay_destroy_object(ctx, ReplayObjType_GLShader, fake);
+    replay_rel_object(ctx, ReplayObjType_GLShader, fake);
     inspect_act_del_shdr(&inspect_command->state, fake);
 
 glShaderSource:
@@ -730,7 +730,7 @@ glDeleteProgram:
     
     real(real_program);
     
-    replay_destroy_object(ctx, ReplayObjType_GLProgram, fake);
+    replay_rel_object(ctx, ReplayObjType_GLProgram, fake);
     inspect_act_del_prog(&inspect_command->state, fake);
 
 glAttachShader:
@@ -1722,7 +1722,7 @@ glDeleteVertexArrays:
             inspect_add_error(inspect_command, "Invalid vertex array being deleted.");
         } else {
             inspect_act_del_vao(&inspect_command->state, fake[i]);
-            replay_destroy_object(ctx, ReplayObjType_GLVAO, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLVAO, fake[i]);
         }
     
     real(n, arrays);
@@ -1849,7 +1849,7 @@ glDeleteSamplers:
         if (!(samplers[i] = replay_get_real_object(ctx, ReplayObjType_GLSampler, fake[i])))
             inspect_add_error(inspect_command, "Invalid sampler being deleted.");
         else
-            replay_destroy_object(ctx, ReplayObjType_GLSampler, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLSampler, fake[i]);
     
     real(n, samplers);
 
@@ -1995,7 +1995,7 @@ glDeleteFramebuffers:
             inspect_add_error(inspect_command, "Invalid framebuffer being deleted.");
         } else {
             inspect_act_del_fb(&inspect_command->state, fake[i]);
-            replay_destroy_object(ctx, ReplayObjType_GLFramebuffer, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLFramebuffer, fake[i]);
         }
     
     real(n, fbs);
@@ -2042,7 +2042,7 @@ glDeleteRenderbuffers:
             inspect_add_error(inspect_command, "Invalid renderbuffer being deleted.");
         } else {
             inspect_act_del_rb(&inspect_command->state, fake[i]);
-            replay_destroy_object(ctx, ReplayObjType_GLRenderbuffer, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLRenderbuffer, fake[i]);
         }
     
     real(n, rbs);
@@ -2239,7 +2239,7 @@ glDeleteSync:
     real((GLsync)real_sync);
     
     if (fake) {
-        replay_destroy_object(ctx, ReplayObjType_GLSync, fake);
+        replay_rel_object(ctx, ReplayObjType_GLSync, fake);
         inspect_act_del_sync(&inspect_command->state, fake);
     }
 
@@ -2284,7 +2284,7 @@ glDeleteQueries:
         if (!(queries[i] = replay_get_real_object(ctx, ReplayObjType_GLQuery, fake[i]))) {
             inspect_add_error(inspect_command, "Invalid query being deleted.");
         } else {
-            replay_destroy_object(ctx, ReplayObjType_GLQuery, fake[i]);
+            replay_rel_object(ctx, ReplayObjType_GLQuery, fake[i]);
             inspect_act_del_query(&inspect_command->state, fake[i]);
         }
     

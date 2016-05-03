@@ -233,10 +233,8 @@ static void gl_write_data(size_t size, const void* data) {
     }
     #endif
     
-    #ifdef ZLIB_ENABLED
-    #ifdef LZ4_ENABLED
+    #if defined(ZLIB_ENABLED) || defined(LZ4_ENABLED)
     none:
-    #endif
     #endif
         gl_write_b(COMPRESSION_NONE);
         gl_write_uint32(size);

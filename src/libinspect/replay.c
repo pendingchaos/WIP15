@@ -44,24 +44,25 @@ typedef struct {
     size_t stencil_level;
     uint stencil_texture;
     size_t depth_stencil_level;
-    unsigned int depth_stencil_texture;
+    uint depth_stencil_texture;
 } fb_data_t;
 
 typedef struct {
     unsigned int type;
 } tex_data_t;
 
-typedef struct replay_obj_t {
+typedef struct obj_t {
     uint64_t real;
     uint64_t fake;
+    uint refcount;
     
     union {
         program_data_t prog;
         fb_data_t fb;
         tex_data_t tex;
     };
-} replay_obj_t;
-TYPED_VEC(replay_obj_t, obj)
+} obj_t;
+TYPED_VEC(obj_t, obj)
 
 typedef struct {
     obj_vec_t objects[ReplayObjType_Max];
@@ -103,13 +104,21 @@ replay_context_t* create_replay_context(inspection_t* inspection) {
     return ctx;
 }
 
-void free_obj(replay_obj_type_t type, replay_obj_t* obj) {
+void free_obj(replay_context_t* ctx, replay_obj_type_t type, obj_t* obj) {
     switch (type) {
     case ReplayObjType_GLProgram:
         free_uni_vec(obj->prog.uniforms);
         free_attrib_vec(obj->prog.attribs);
         break;
     case ReplayObjType_GLFramebuffer:
+        if (obj->fb.depth_texture)
+            replay_rel_object(ctx, ReplayObjType_GLTexture, obj->fb.depth_texture);
+        if (obj->fb.stencil_texture)
+            replay_rel_object(ctx, ReplayObjType_GLTexture, obj->fb.stencil_texture);
+        if (obj->fb.depth_stencil_texture)
+            replay_rel_object(ctx, ReplayObjType_GLTexture, obj->fb.depth_stencil_texture);
+        for (fb_attach_t* attach = obj->fb.attachments->data; !vec_end(obj->fb.attachments, attach); attach++)
+            replay_rel_object(ctx, ReplayObjType_GLTexture, attach->tex);
         free_attach_vec(obj->fb.attachments);
         break;
     default:
@@ -125,8 +134,8 @@ void destroy_replay_context(replay_context_t* context) {
     replay_internal_t* internal = context->_internal;
     for (size_t i = 0; i < ReplayObjType_Max; ++i) {
         obj_vec_t objs = internal->objects[i];
-        for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-            free_obj(i, obj);
+        for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+            free_obj(context, i, obj);
         free_obj_vec(objs);
     }
     free(internal);
@@ -134,26 +143,36 @@ void destroy_replay_context(replay_context_t* context) {
     free(context);
 }
 
-uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
+static obj_t* lookup_fake(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[type];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+    for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake)
-            return obj->real;
+            return obj;
     
-    return 0;
+    return NULL;
+}
+
+static obj_t* lookup_real(replay_context_t* ctx, replay_obj_type_t type, uint64_t real) {
+    replay_internal_t* internal = ctx->_internal;
+    
+    obj_vec_t objs = internal->objects[type];
+    for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        if (obj->real == real)
+            return obj;
+    
+    return NULL;
+}
+
+uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
+    obj_t* obj = lookup_fake(ctx, type, fake);
+    return obj ? obj->real : 0;
 }
 
 uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real) {
-    replay_internal_t* internal = ctx->_internal;
-    
-    obj_vec_t objs = internal->objects[type];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->real == real)
-            return obj->fake;
-    
-    return 0;
+    obj_t* obj = lookup_real(ctx, type, real);
+    return obj ? obj->fake : 0;
 }
 
 void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real, uint64_t fake) {
@@ -161,9 +180,10 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
     
     obj_vec_t objs = internal->objects[type];
     
-    replay_obj_t new_obj;
+    obj_t new_obj;
     new_obj.real = real;
     new_obj.fake = fake;
+    new_obj.refcount = 1;
     
     switch (type) {
     case ReplayObjType_GLProgram:
@@ -186,21 +206,27 @@ void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_
     append_obj_vec(objs, &new_obj);
 }
 
-void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
+static void replay_grab_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
+    obj_t* obj = lookup_fake(ctx, type, fake);
+    if (obj) obj->refcount++;
+}
+
+void replay_rel_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake) {
     replay_internal_t* internal = ctx->_internal;
     
+    obj_t* obj = lookup_fake(ctx, type, fake);
+    if (!obj) return;
+    
+    obj->refcount--;
+    if (obj->refcount) return;
+    
+    free_obj(ctx, type, obj);
     obj_vec_t objs = internal->objects[type];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake) {
-            free_obj(type, obj);
-            remove_obj_vec(objs, obj-(replay_obj_t*)objs->data, 1);
-            return;
-        }
+    remove_obj_vec(objs, obj-(obj_t*)objs->data, 1);
 }
 
 size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type) {
     replay_internal_t* internal = ctx->_internal;
-    
     return get_obj_vec_count(internal->objects[type]);
 }
 
@@ -208,16 +234,16 @@ void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uin
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[type];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        real[obj-(replay_obj_t*)objs->data] = obj->real;
+    for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        real[obj-(obj_t*)objs->data] = obj->real;
 }
 
 void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake) {
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[type];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        fake[obj-(replay_obj_t*)objs->data] = obj->fake;
+    for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+        fake[obj-(obj_t*)objs->data] = obj->fake;
 }
 
 void replay(replay_context_t* ctx) {
@@ -255,7 +281,7 @@ int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, uint
     replay_internal_t* internal = ctx->_internal;
     
     obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
+    for (obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
         if (obj->fake == fake_prog) {
             uni_vec_t uniforms = obj->prog.uniforms;
             for (uniform_t* uni = uniforms->data; !vec_end(uniforms, uni); uni++)
@@ -269,93 +295,82 @@ int replay_conv_uniform_location(replay_context_t* ctx, uint64_t fake_prog, uint
 }
 
 void replay_add_uniform(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real) {
-    replay_internal_t* internal = ctx->_internal;
+    obj_t* obj = lookup_fake(ctx, ReplayObjType_GLProgram, fake_prog);
+    if (!obj) return;
     
-    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_prog) {
-            uniform_t uni;
-            uni.fake = fake;
-            uni.real = real;
-            append_uni_vec(obj->prog.uniforms, &uni);
-            return;
-        }
+    uniform_t uni;
+    uni.fake = fake;
+    uni.real = real;
+    append_uni_vec(obj->prog.uniforms, &uni);
 }
 
 int replay_conv_attrib_index(replay_context_t* ctx, uint64_t fake_prog, uint fake_idx) {
-    replay_internal_t* internal = ctx->_internal;
+    obj_t* obj = lookup_fake(ctx, ReplayObjType_GLProgram, fake_prog);
+    if (!obj) return -1;
     
-    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_prog) {
-            attrib_vec_t attribs = obj->prog.attribs;
-            for (attrib_t* attrib = attribs->data; !vec_end(attribs, attrib); attrib++)
-                if (attrib->fake == fake_idx)
-                    return attrib->real;
-            
-            return -1;
-        }
+    attrib_vec_t attribs = obj->prog.attribs;
+    for (attrib_t* attrib = attribs->data; !vec_end(attribs, attrib); attrib++)
+        if (attrib->fake == fake_idx)
+            return attrib->real;
     
     return -1;
 }
 
 void replay_add_attrib(replay_context_t* ctx, uint64_t fake_prog, uint fake, uint real) {
-    replay_internal_t* internal = ctx->_internal;
+    obj_t* obj = lookup_fake(ctx, ReplayObjType_GLProgram, fake_prog);
+    if (!obj) return;
     
-    obj_vec_t objs = internal->objects[ReplayObjType_GLProgram];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_prog) {
-            uniform_t uni;
-            uni.fake = fake;
-            uni.real = real;
-            append_uni_vec(obj->prog.attribs, &uni);
-            return;
-        }
+    attrib_t attr;
+    attr.fake = fake;
+    attr.real = real;
+    append_attrib_vec(obj->prog.attribs, &attr);
 }
 
-static fb_data_t* find_fb(replay_context_t* ctx, uint64_t fake_fb) {
-    replay_internal_t* internal = ctx->_internal;
-    obj_vec_t objs = internal->objects[ReplayObjType_GLFramebuffer];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_fb)
-            return &obj->fb;
-    return NULL;
+static fb_data_t* lookup_fb(replay_context_t* ctx, uint64_t fake_fb) {
+    obj_t* obj = lookup_fake(ctx, ReplayObjType_GLFramebuffer, fake_fb);
+    return obj ? &obj->fb : NULL;
 }
 
 void replay_set_depth_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
     if (data) {
         data->depth_texture = fake_tex;
         data->depth_level = level;
+        replay_grab_object(ctx, ReplayObjType_GLTexture, fake_tex);
     }
 }
 
 void replay_set_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
     if (data) {
         data->stencil_texture = fake_tex;
         data->stencil_level = level;
+        replay_grab_object(ctx, ReplayObjType_GLTexture, fake_tex);
     }
 }
 
 void replay_set_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb, uint64_t fake_tex, size_t level) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
     if (data) {
         data->depth_stencil_texture = fake_tex;
         data->depth_stencil_level = level;
+        replay_grab_object(ctx, ReplayObjType_GLTexture, fake_tex);
     }
 }
 
-void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, unsigned int attachment, uint64_t fake_tex, size_t level) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
+void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, uint attachment, uint64_t fake_tex, size_t level) {
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
     if (data) {
+        replay_grab_object(ctx, ReplayObjType_GLTexture, fake_tex);
+        
         attach_vec_t v = data->attachments;
-        for (fb_attach_t* attach = v->data; !vec_end(v, attach); attach++)
+        for (fb_attach_t* attach = v->data; !vec_end(v, attach); attach++) {
             if (attach->attachment == attachment) {
                 attach->tex = fake_tex;
                 attach->level = level;
                 return;
             }
+        }
         
         fb_attach_t attach;
         attach.attachment = attachment;
@@ -366,86 +381,71 @@ void replay_set_color_tex(replay_context_t* ctx, uint64_t fake_fb, unsigned int 
 }
 
 uint64_t replay_get_depth_tex(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->depth_texture;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->depth_texture;
     return 0;
 }
 
 size_t replay_get_depth_level(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->depth_level;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->depth_level;
     return 0;
 }
 
 uint64_t replay_get_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->stencil_texture;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->stencil_texture;
     return 0;
 }
 
 size_t replay_get_stencil_level(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->stencil_level;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->stencil_level;
     return 0;
 }
 
 uint64_t replay_get_depth_stencil_tex(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->depth_stencil_texture;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->depth_stencil_texture;
     return 0;
 }
 
 size_t replay_get_depth_stencil_level(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return data->depth_stencil_level;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return data->depth_stencil_level;
     return 0;
 }
 
 size_t replay_get_color_tex_count(replay_context_t* ctx, uint64_t fake_fb) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return get_attach_vec_count(data->attachments);
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return get_attach_vec_count(data->attachments);
     return 0;
 }
 
 uint64_t replay_get_color_tex(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return get_attach_vec(data->attachments, index)->tex;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return get_attach_vec(data->attachments, index)->tex;
     return 0;
 }
 
 size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return get_attach_vec(data->attachments, index)->level;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return get_attach_vec(data->attachments, index)->level;
     return 0;
 }
 
 uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index) {
-    fb_data_t* data = find_fb(ctx, fake_fb);
-    if (data)
-        return get_attach_vec(data->attachments, index)->attachment;
+    fb_data_t* data = lookup_fb(ctx, fake_fb);
+    if (data) return get_attach_vec(data->attachments, index)->attachment;
     return 0;
 }
 
-void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, unsigned int type) {
-    replay_internal_t* internal = ctx->_internal;
-    obj_vec_t objs = internal->objects[ReplayObjType_GLTexture];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_tex) obj->tex.type = type;
+void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, uint type) {
+    obj_t* tex = lookup_fake(ctx, ReplayObjType_GLTexture, fake_tex);
+    if (tex) tex->tex.type = type;
 }
 
 unsigned int replay_get_tex_type(replay_context_t* ctx, uint64_t fake_tex) {
-    replay_internal_t* internal = ctx->_internal;
-    obj_vec_t objs = internal->objects[ReplayObjType_GLTexture];
-    for (replay_obj_t* obj = objs->data; !vec_end(objs, obj); obj++)
-        if (obj->fake == fake_tex) return obj->tex.type;
-    return 0;
+    obj_t* tex = lookup_fake(ctx, ReplayObjType_GLTexture, fake_tex);
+    return tex ? tex->tex.type : 0;
 }

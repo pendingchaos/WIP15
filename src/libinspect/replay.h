@@ -48,7 +48,7 @@ void destroy_replay_context(replay_context_t* context);
 uint64_t replay_get_real_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
 uint64_t replay_get_fake_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real);
 void replay_create_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t real, uint64_t fake);
-void replay_destroy_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
+void replay_rel_object(replay_context_t* ctx, replay_obj_type_t type, uint64_t fake);
 size_t replay_get_obj_count(replay_context_t* ctx, replay_obj_type_t type);
 void replay_list_real_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* real);
 void replay_list_fake_objects(replay_context_t* ctx, replay_obj_type_t type, uint64_t* fake);
@@ -76,6 +76,6 @@ size_t replay_get_color_tex_count(replay_context_t* ctx, uint64_t fake_fb);
 uint64_t replay_get_color_tex(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 size_t replay_get_color_level(replay_context_t* ctx, uint64_t fake_fb, size_t index);
 uint replay_get_color_attach(replay_context_t* ctx, uint64_t fake_fb, size_t index);
-void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, unsigned int type);
+void replay_set_tex_type(replay_context_t* ctx, uint64_t fake_tex, uint type);
 unsigned int replay_get_tex_type(replay_context_t* ctx, uint64_t fake_tex);
 #endif

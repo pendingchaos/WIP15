@@ -286,11 +286,8 @@ class tGLdouble(_Double): ctype = 'GLdouble'
 
 class tPointer(_Ptr): ctype = 'void*'
 class tMutablePointer(_Ptr): ctype = 'const void*'
-class tGLsync(_Ptr): ctype = 'GLsync'
-class tGLeglImageOES(_Ptr): ctype = 'GLeglImageOES'
 class tGLXFBConfig(_Ptr): ctype = 'GLXFBConfig'
 class tGLXFBConfigSGIX(_Ptr): ctype = 'GLXFBConfigSGIX'
-class tGLXContext(_Ptr): ctype = 'GLXContext'
 
 class tbool(_Bool): ctype = 'bool'
 class tGLboolean(_Bool): ctype = 'GLboolean'
@@ -392,6 +389,22 @@ class tMutableString(tString):
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'char** %s' % var_name
         else: return 'char* %s' % var_name
+
+class tGLBuf(tGLuint): pass
+class tGLSampler(tGLuint): pass
+class tGLTex(tGLuint): pass
+class tGLQuery(tGLuint): pass
+class tGLFramebuffer(tGLuint): pass
+class tGLRenderbuffer(tGLuint): pass
+class tGLsync(_Ptr): ctype = 'GLsync'
+class tGLProgram(tGLuint): pass
+class tGLProgramPipeline(tGLuint): pass
+class tGLShader(tGLuint): pass
+class tGLVAO(tGLuint): pass
+class tGLTransformFeedback(tGLuint): pass
+class tGLeglImageOES(_Ptr): ctype = 'GLeglImageOES'
+class tGLXContext(_Ptr): ctype = 'GLXContext'
+class tXID(tuint32_t): pass
 
 _cur_file = 'generated_gl_funcs.py'
 exec open('generated_gl_funcs.py').read()

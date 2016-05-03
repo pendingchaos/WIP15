@@ -4,13 +4,14 @@ USE_ZLIB = 1
 CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g
 
 COMP_LIBS =
-ifeq (USE_LZ4, 1)
+ifeq ($(USE_LZ4), 1)
 COMP_LIBS += -llz4
-CLFAGS += -DLZ4_ENABLED
+CFLAGS += -DLZ4_ENABLED
 endif
-ifeq (USE_ZLIB, 1)
+
+ifeq ($(USE_ZLIB), 1)
 COMP_LIBS += `pkg-config zlib --libs`
-CLFAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
+CFLAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
 endif
 
 gui_src = $(wildcard src/gui/*.c)
@@ -40,7 +41,7 @@ all: bin/libtrace.so bin/libgl.so bin/libinspect.so bin/trace bin/inspect-gui bi
 	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
 .%.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) -c $< $(CFLAGS) -o $@
 
 scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 	cd scripts; python generate_gl_funcs.py
