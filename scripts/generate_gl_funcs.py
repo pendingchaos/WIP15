@@ -31,9 +31,7 @@ for v in vers:
         except ValueError: pass
 
 groups = {}
-for f in funcs:
-    for p in gl.functions[f].params:
-        if p.group != None: groups[p.group] = []
+for name in gl.groups.keys(): groups[name] = []
 
 func_minvers = {}
 for vn, v in gl.versions.iteritems():

@@ -49,7 +49,7 @@ scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generated_gl_funcs.py scripts/gl_wrapper.c
 	cd scripts; python generate_gl_wrapper.py
 
-src/shared/glapi.c: scripts/generate_glapi.py
+src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scripts/gl_funcs.py
 	cd scripts; python generate_glapi.py
 
 src/libinspect/replay_gl.c: scripts/nontrivial_func_impls.txt scripts/generate_replay.py
