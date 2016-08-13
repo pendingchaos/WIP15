@@ -59,3 +59,6 @@ Multiple context support
 
 Reduce memory usage during replaying.
     Reduce amount of memory needed to store state
+
+Disallow inspection of traces when the trace's endianness differs from the tracer's endianness (and vice-versa)
+    and remove the endian code insrc/gui/buffer.c

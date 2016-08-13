@@ -196,38 +196,38 @@
 - [x] glUnmapBuffer
 - [x] glUseProgram
 - [x] glValidateProgram
-- [x] glVertexAttribI2i
+- [ ] glVertexAttribI2i
 - [ ] glVertexAttrib1fv
 - [ ] glVertexAttrib2sv
-- [x] glVertexAttribI3i
+- [ ] glVertexAttribI3i
 - [ ] glVertexAttrib3fv
-- [x] glVertexAttrib4f
-- [x] glVertexAttrib4d
-- [x] glVertexAttrib4s
-- [x] glVertexAttribI4i
+- [ ] glVertexAttrib4f
+- [ ] glVertexAttrib4d
+- [ ] glVertexAttrib4s
+- [ ] glVertexAttribI4i
 - [ ] glVertexAttrib4sv
 - [ ] glVertexAttrib3dv
 - [ ] glVertexAttrib4iv
 - [ ] glVertexAttrib1sv
 - [ ] glVertexAttrib2dv
-- [x] glVertexAttrib1d
-- [x] glVertexAttribI1i
+- [ ] glVertexAttrib1d
+- [ ] glVertexAttribI1i
 - [ ] glVertexAttrib4fv
 - [ ] glVertexAttrib2fv
 - [ ] glVertexAttrib3sv
 - [ ] glVertexAttrib1dv
-- [x] glVertexAttrib1f
-- [x] glVertexAttrib1s
-- [x] glVertexAttrib3d
+- [ ] glVertexAttrib1f
+- [ ] glVertexAttrib1s
+- [ ] glVertexAttrib3d
 - [ ] glVertexAttrib4dv
-- [x] glVertexAttrib3f
-- [x] glVertexAttrib3s
+- [ ] glVertexAttrib3f
+- [ ] glVertexAttrib3s
 - [ ] glVertexAttrib4bv
-- [x] glVertexAttrib2d
-- [x] glVertexAttrib2f
-- [x] glVertexAttrib2s
-- [ ] glVertexAttribIPointer
-- [ ] glVertexAttribPointer
+- [ ] glVertexAttrib2d
+- [ ] glVertexAttrib2f
+- [ ] glVertexAttrib2s
+- [x] glVertexAttribIPointer
+- [x] glVertexAttribPointer
 - [x] glWaitSync
 
 # OpenGL 4.0 support progress

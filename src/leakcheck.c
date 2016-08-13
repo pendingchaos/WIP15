@@ -1,5 +1,4 @@
 //This program is meant to be run under valgrind to check for memory leaks.
-#include "libinspect/libinspect.h"
 #include "libtrace/libtrace.h"
 
 #include <stdlib.h>
@@ -14,26 +13,17 @@ int main(int argc, char** argv) {
     }
     
     trace_t* trace = load_trace(argv[1]);
-    trace_error_t error = get_trace_error();
+    trace_error_t error = trc_get_error();
     if (error == TraceError_Invalid) {
-        fprintf(stderr, "Invalid trace file: %s\n", get_trace_error_desc());
+        fprintf(stderr, "Invalid trace file: %s\n", trc_get_error_desc());
         return EXIT_FAILURE;
     } else if (error == TraceError_UnableToOpen) {
         fprintf(stderr, "Unable to open trace file.\n");
         return EXIT_FAILURE;
     }
     
-    inspection_t* inspection = create_inspection(trace);
-    inspect(inspection);
+    trc_run_inspection(trace);
     
-    inspector_t* inspector = create_inspector(inspection);
-    
-    for (size_t i = 0; i < inspection->frame_count; i++)
-        for (size_t j = 0; j < inspection->frames[i].command_count; j++)
-            seek_inspector(inspector, i, j);
-    
-    free_inspector(inspector);
-    free_inspection(inspection);
     free_trace(trace);
     
     return EXIT_SUCCESS;

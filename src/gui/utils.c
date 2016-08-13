@@ -81,8 +81,8 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         
         uint64_t val = (value.type==Type_Boolean) ?
-                        *trace_get_bool(&value) :
-                        *trace_get_uint(&value);
+                        *trc_get_bool(&value) :
+                        *trc_get_uint(&value);
         
         if (!group) {
         } else if (group->bitmask) {
@@ -106,23 +106,23 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             break;
         }
         case Type_UInt: {
-            strncat(str, static_format("%"PRIu64, trace_get_uint(&value)[i]), n);
+            strncat(str, static_format("%"PRIu64, trc_get_uint(&value)[i]), n);
             break;
         }
         case Type_Int: {
-            strncat(str, static_format("%"PRId64, trace_get_int(&value)[i]), n);
+            strncat(str, static_format("%"PRId64, trc_get_int(&value)[i]), n);
             break;
         }
         case Type_Double: {
-            strncat(str, static_format("%s", format_float(trace_get_double(&value)[i])), n);
+            strncat(str, static_format("%s", format_float(trc_get_double(&value)[i])), n);
             break;
         }
         case Type_Boolean: {
-            strncat(str, static_format(trace_get_bool(&value)[i] ? "true" : "false"), n);
+            strncat(str, static_format(trc_get_bool(&value)[i] ? "true" : "false"), n);
             break;
         }
         case Type_Str: {
-            strncat(str, static_format("'%s'", trace_get_str(&value)[i]), n);
+            strncat(str, static_format("'%s'", trc_get_str(&value)[i]), n);
             break;
         }
         case Type_FunctionPtr: {
@@ -130,7 +130,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             break;
         }
         case Type_Ptr: {
-            strncat(str, static_format("0x%"PRIx64, trace_get_ptr(&value)[i]), n);
+            strncat(str, static_format("0x%"PRIx64, trc_get_ptr(&value)[i]), n);
             break;
         }
         case Type_Data: {

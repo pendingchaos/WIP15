@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <endian.h>
+#include <dlfcn.h>
+#include <SDL2/SDL.h>
 #ifdef ZLIB_ENABLED
 #include <zlib.h>
 #endif
@@ -48,7 +50,7 @@ static size_t readf(void* ptr, size_t size, size_t count, FILE* stream) {
     return size*count == 0 ? count : res;
 }
 
-void trace_free_value(trace_value_t value) {
+void trc_free_value(trace_value_t value) {
     if ((value.count == 1) && (value.type == Type_Str))
         free(value.str);
     else if ((value.count == 1) && (value.type == Type_Data))
@@ -83,14 +85,22 @@ void trace_free_value(trace_value_t value) {
 static void free_command(trace_command_t* command) {
     trace_val_vec_t args = command->args;
     for (trace_value_t* arg = args->data; !vec_end(args, arg); arg++)
-        trace_free_value(*arg);
+        trc_free_value(*arg);
     free_trace_val_vec(args);
     
-    trace_free_value(command->ret);
+    trc_free_value(command->ret);
     
     for (size_t i = 0; i < command->extra_count; i++) {
         free(command->extras[i].name);
         free(command->extras[i].data);
+    }
+    
+    trc_attachment_t* attach = command->attachments;
+    while (attach) {
+        trc_attachment_t* next_attach = attach->next;
+        free(attach->message);
+        free(attach);
+        attach = next_attach;
     }
 }
 
@@ -380,13 +390,13 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
     
     if (type->has_group) {
         if (!readf(&val->group_index, 4, 1, file)) {
-            trace_free_value(*val);
+            trc_free_value(*val);
             return false;
         }
         val->group_index = le32toh(val->group_index);
         
         if ((val->group_index>=trace->group_name_count) || (val->group_index<0)) {
-            trace_free_value(*val);
+            trc_free_value(*val);
             return false;
         }
     } else {
@@ -398,7 +408,6 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
 
 trace_t *load_trace(const char* filename) {
     FILE* file = fopen(filename, "rb");
-    
     if (!file) {
         trace_error = TraceError_UnableToOpen;
         trace_error_desc = "Unable to open trace file";
@@ -409,6 +418,8 @@ trace_t *load_trace(const char* filename) {
     
     trace->func_name_count = 0;
     trace->group_name_count = 0;
+    trace->func_names = NULL;
+    trace->group_names = NULL;
     trace->frames = NULL;
     
     char magic[6];
@@ -436,16 +447,15 @@ trace_t *load_trace(const char* filename) {
     }
     trace->little_endian = endian == '_';
     
-    char version[17];
-    version[16] = 0;
-    if (!readf(version, 16, 1, file)) {
+    uint8_t version[2];
+    if (!readf(version, 2, 1, file)) {
         trace_error = TraceError_Invalid;
         trace_error_desc = "Unable to read version";
         free_trace(trace);
         return NULL;
     }
     
-    if (strcmp(version, "0.0a            ")) {
+    if ((version[0]!=0) || (version[1]!=0)) {
         trace_error = TraceError_Invalid;
         trace_error_desc = "Unknown version";
         free_trace(trace);
@@ -535,6 +545,10 @@ trace_t *load_trace(const char* filename) {
             break;
         }
         case Op_DeclGroup: {
+            uint8_t group_type; //TODO: The group type is unused
+            if (!readf(&group_type, 1, 1, file))
+                ERROR("Failed to read group type");
+            
             uint32_t index;
             if (!readf(&index, 4, 1, file))
                 ERROR("Unable to read group index");
@@ -547,6 +561,9 @@ trace_t *load_trace(const char* filename) {
         }
         case Op_Call: {
             trace_command_t command;
+            command.revision = 0;
+            command.attachments = NULL;
+            
             if (!readf(&command.func_index, 4, 1, file))
                 ERROR("Unable to read function index");
             command.func_index = le32toh(command.func_index);
@@ -605,6 +622,37 @@ trace_t *load_trace(const char* filename) {
     
     fclose(file);
     
+    trace->inspection.cur_revision = 0;
+    trace->inspection.data_count = 0;
+    trace->inspection.data = NULL;
+    trace->inspection.gl_state_revision_count = 1;
+    trace->inspection.gl_state_revisions = malloc(sizeof(trc_gl_state_rev_t));
+    trace->inspection.gl_state_revisions[0].array_buffer = 0;
+    trace->inspection.gl_state_revisions[0].atomic_counter_buffer = 0;
+    trace->inspection.gl_state_revisions[0].copy_read_buffer = 0;
+    trace->inspection.gl_state_revisions[0].copy_write_buffer = 0;
+    trace->inspection.gl_state_revisions[0].dispatch_indirect_buffer = 0;
+    trace->inspection.gl_state_revisions[0].draw_indirect_buffer = 0;
+    trace->inspection.gl_state_revisions[0].element_array_buffer = 0;
+    trace->inspection.gl_state_revisions[0].pixel_pack_buffer = 0;
+    trace->inspection.gl_state_revisions[0].pixel_unpack_buffer = 0;
+    trace->inspection.gl_state_revisions[0].query_buffer = 0;
+    trace->inspection.gl_state_revisions[0].shader_storage_buffer = 0;
+    trace->inspection.gl_state_revisions[0].texture_buffer = 0;
+    trace->inspection.gl_state_revisions[0].transform_feedback_buffer = 0;
+    trace->inspection.gl_state_revisions[0].uniform_buffer = 0;
+    trace->inspection.gl_state_revisions[0].bound_program = 0;
+    trace->inspection.gl_state_revisions[0].bound_vao = 0;
+    trace->inspection.gl_state_revisions[0].read_framebuffer = 0;
+    trace->inspection.gl_state_revisions[0].draw_framebuffer = 0;
+    for (size_t i = 0; i < TrcGLObj_Max; i++) {
+        trace->inspection.gl_obj_history_count[i] = 0;
+        trace->inspection.gl_obj_history[i] = NULL;
+    }
+    trace->inspection.gl_context_history_count = 0;
+    trace->inspection.gl_context_history = NULL;
+    trace->inspection.cur_fake_context = 0;
+    
     return trace;
     
     error:
@@ -627,34 +675,51 @@ void free_trace(trace_t* trace) {
     free(trace->group_names);
     
     trace_frame_vec_t frames = trace->frames;
-    for (trace_frame_t* frame = frames->data; !vec_end(frames, frame); frame++)
-        free_frame(frame);
-    free_trace_frame_vec(trace->frames);
+    if (frames) {
+        for (trace_frame_t* frame = frames->data; !vec_end(frames, frame); frame++)
+            free_frame(frame);
+        free_trace_frame_vec(trace->frames);
+    }
+    
+    trc_gl_inspection_t* ti = &trace->inspection;
+    
+    for (size_t i = 0; i < ti->data_count; i++) free(ti->data[i]->compressed_data);
+    free(ti->gl_state_revisions);
+    
+    for (size_t i = 0; i < TrcGLObj_Max; i++) {
+        for (size_t j = 0; j < ti->gl_obj_history_count[i]; j++)
+            free(ti->gl_obj_history[i][j].revisions);
+        free(ti->gl_obj_history[i]);
+    }
+    
+    for (size_t i = 0; i < ti->gl_context_history_count; i++)
+        free(ti->gl_context_history[i].revisions);
+    free(ti->gl_context_history);
     
     free(trace);
 }
 
-trace_value_t* trace_get_arg(trace_command_t* command, size_t i) {
+trace_value_t* trc_get_arg(trace_command_t* command, size_t i) {
     return get_trace_val_vec(command->args, i);
 }
 
-trace_command_t* trace_get_cmd(trace_frame_t* frame, size_t i) {
+trace_command_t* trc_get_cmd(trace_frame_t* frame, size_t i) {
     return get_trace_cmd_vec(frame->commands, i);
 }
 
-trace_error_t get_trace_error() {
+trace_error_t trc_get_error() {
     trace_error_t error = trace_error;
     trace_error = TraceError_None;
     return error;
 }
 
-const char *get_trace_error_desc() {
+const char *trc_get_error_desc() {
     const char *desc = trace_error_desc;
     trace_error_desc = "";
     return desc;
 }
 
-trace_value_t trace_create_uint(uint32_t count, uint64_t* vals) {
+trace_value_t trc_create_uint(uint32_t count, uint64_t* vals) {
     trace_value_t val;
     val.type = Type_UInt;
     val.count = count;
@@ -668,7 +733,7 @@ trace_value_t trace_create_uint(uint32_t count, uint64_t* vals) {
     return val;
 }
 
-trace_value_t trace_create_int(uint32_t count, int64_t* vals) {
+trace_value_t trc_create_int(uint32_t count, int64_t* vals) {
     trace_value_t val;
     val.type = Type_Int;
     val.count = count;
@@ -682,7 +747,7 @@ trace_value_t trace_create_int(uint32_t count, int64_t* vals) {
     return val;
 }
 
-trace_value_t trace_create_double(uint32_t count, double* vals) {
+trace_value_t trc_create_double(uint32_t count, double* vals) {
     trace_value_t val;
     val.type = Type_Double;
     val.count = count;
@@ -696,7 +761,7 @@ trace_value_t trace_create_double(uint32_t count, double* vals) {
     return val;
 }
 
-trace_value_t trace_create_bool(uint32_t count, bool* vals) {
+trace_value_t trc_create_bool(uint32_t count, bool* vals) {
     trace_value_t val;
     val.type = Type_Boolean;
     val.count = count;
@@ -710,7 +775,7 @@ trace_value_t trace_create_bool(uint32_t count, bool* vals) {
     return val;
 }
 
-trace_value_t trace_create_ptr(uint32_t count, uint64_t* vals) {
+trace_value_t trc_create_ptr(uint32_t count, uint64_t* vals) {
     trace_value_t val;
     val.type = Type_Ptr;
     val.count = count;
@@ -724,7 +789,7 @@ trace_value_t trace_create_ptr(uint32_t count, uint64_t* vals) {
     return val;
 }
 
-trace_value_t trace_create_str(uint32_t count, const char*const* vals) {
+trace_value_t trc_create_str(uint32_t count, const char*const* vals) {
     trace_value_t val;
     val.type = Type_Str;
     val.count = count;
@@ -746,42 +811,474 @@ trace_value_t trace_create_str(uint32_t count, const char*const* vals) {
     return val;
 }
 
-uint64_t* trace_get_uint(trace_value_t* val) {
+uint64_t* trc_get_uint(trace_value_t* val) {
     return val->count==1 ? &val->u64 : val->u64_array;
 }
 
-int64_t* trace_get_int(trace_value_t* val) {
+int64_t* trc_get_int(trace_value_t* val) {
     return val->count==1 ? &val->i64 : val->i64_array;
 }
 
-double* trace_get_double(trace_value_t* val) {
+double* trc_get_double(trace_value_t* val) {
     return val->count==1 ? &val->dbl : val->dbl_array;
 }
 
-bool* trace_get_bool(trace_value_t* val) {
+bool* trc_get_bool(trace_value_t* val) {
     return val->count==1 ? &val->bl : val->bl_array;
 }
 
-uint64_t* trace_get_ptr(trace_value_t* val) {
+uint64_t* trc_get_ptr(trace_value_t* val) {
     return val->count==1 ? &val->ptr : val->ptr_array;
 }
 
-char** trace_get_str(trace_value_t* val) {
+char** trc_get_str(trace_value_t* val) {
     return val->count==1 ? &val->str : val->str_array;
 }
 
-void** trace_get_data(trace_value_t* val) {
+void** trc_get_data(trace_value_t* val) {
     return val->count==1 ? &val->data : val->data_array;
 }
 
-trace_extra_t* trace_get_extra(trace_command_t* cmd, const char* name) {
-    return trace_get_extrai(cmd, name, 0);
+trace_extra_t* trc_get_extra(trace_command_t* cmd, const char* name) {
+    return trc_get_extrai(cmd, name, 0);
 }
 
-trace_extra_t* trace_get_extrai(trace_command_t* cmd, const char* name, size_t index) {
+trace_extra_t* trc_get_extrai(trace_command_t* cmd, const char* name, size_t index) {
     size_t num_left = index + 1;
     for (size_t i = 0; i < cmd->extra_count; i++)
         if (!strcmp(cmd->extras[i].name, name) && !--num_left)
             return cmd->extras + i;
     return NULL;
+}
+
+static char *format_str(const char *format, va_list list) {
+    va_list list2;
+    va_copy(list2, list);
+    char dummy_buf[1];
+    int length = vsnprintf(dummy_buf, 0, format, list2);
+    va_end(list2);
+    
+    if (length < 0) {
+        char *result = malloc(1);
+        result[0] = 0;
+        return result;
+    } else {
+        char *result = malloc(length+1);
+        vsnprintf(result, length+1, format, list);
+        result[length] = 0;
+        return result;
+    }
+}
+
+void trc_add_attachment(trace_command_t* command, trc_attachment_t* attach) {
+    if (!command->attachments) {
+        command->attachments = attach;
+    } else {
+        trc_attachment_t* current = command->attachments;
+        while (current->next) current = current->next;
+        current->next = attach;
+    }
+}
+
+void trc_add_info(trace_command_t* command, const char* format, ...) {
+    trc_attachment_t* attach = malloc(sizeof(trc_attachment_t));
+    attach->type = TrcAttachType_Info;
+    attach->next = NULL;
+    
+    va_list list;
+    va_start(list, format);
+    attach->message = format_str(format, list);
+    va_end(list);
+    
+    trc_add_attachment(command, attach);
+}
+
+void trc_add_warning(trace_command_t* command, const char* format, ...) {
+    trc_attachment_t* attach = malloc(sizeof(trc_attachment_t));
+    attach->type = TrcAttachType_Warning;
+    attach->next = NULL;
+    
+    va_list list;
+    va_start(list, format);
+    attach->message = format_str(format, list);
+    va_end(list);
+    
+    trc_add_attachment(command, attach);
+}
+
+void trc_add_error(trace_command_t* command, const char* format, ...) {
+    trc_attachment_t* attach = malloc(sizeof(trc_attachment_t));
+    attach->type = TrcAttachType_Error;
+    attach->next = NULL;
+    
+    va_list list;
+    va_start(list, format);
+    attach->message = format_str(format, list);
+    va_end(list);
+    fprintf(stderr, "%s\n", attach->message);
+    trc_add_attachment(command, attach);
+}
+
+void trc_clear_inspection(trace_t* trace) {
+    //TODO
+}
+
+typedef void (*replay_func_t)(trc_replay_context_t*, trace_command_t*);
+
+void init_replay_gl(trc_replay_context_t* ctx);
+void deinit_replay_gl(trc_replay_context_t* ctx);
+
+void trc_run_inspection(trace_t* trace) {
+    replay_func_t* funcs = malloc(trace->func_name_count * sizeof(replay_func_t));
+    
+    for (size_t i = 0; i < trace->func_name_count; ++i) {
+        if (!trace->func_names[i] || !strlen(trace->func_names[i]))
+            continue;
+        
+        char name[strlen(trace->func_names[i])+8];
+        strcpy(name, "replay_");
+        strcat(name, trace->func_names[i]);
+        funcs[i] = dlsym(RTLD_DEFAULT, name);
+        if (!funcs[i]) {
+            fprintf(stderr, "Unable to find \"%s\".\n", name); //TODO: Handle
+            fflush(stderr);
+        }
+    }
+    
+    trc_replay_context_t ctx;
+    ctx.trace = trace;
+    
+    bool sdl_was_init = SDL_WasInit(SDL_INIT_VIDEO);
+    if (!sdl_was_init)
+        SDL_Init(SDL_INIT_VIDEO);
+    ctx.window = SDL_CreateWindow("",
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  100,
+                                  100,
+                                  SDL_WINDOW_SHOWN | //TODO: For some reason SDL_WINDOW_HIDDEN messes up the viewport and framebuffer display
+                                  SDL_WINDOW_OPENGL);
+    if (!ctx.window) {
+        fprintf(stderr, "Unable to create a window: %sn", SDL_GetError()); //TODO: Handle
+        fflush(stderr);
+    }
+    
+    ctx.current_test_name = "Unnamed";
+    
+    init_replay_gl(&ctx);
+    
+    for (size_t i = 0; i < get_trace_frame_vec_count(trace->frames); i++) {
+        trace_frame_t* frame = get_trace_frame_vec(trace->frames, i);
+        for (size_t j = 0; j < get_trace_cmd_vec_count(frame->commands); j++) {
+            trace_command_t* cmd = get_trace_cmd_vec(frame->commands, j);
+            funcs[cmd->func_index](&ctx, cmd);
+            trace->inspection.cur_revision++;
+        }
+    }
+    
+    deinit_replay_gl(&ctx);
+    
+    SDL_DestroyWindow(ctx.window);
+    if (!sdl_was_init)
+        SDL_Quit();
+    
+    free(funcs);
+}
+
+const trc_gl_state_rev_t* trc_get_gl_state(trace_t* trace) {
+    trc_gl_inspection_t* i = &trace->inspection;
+    if (!i->gl_state_revision_count) return NULL;
+    return &i->gl_state_revisions[i->gl_state_revision_count-1];
+}
+
+void trc_set_gl_state(trace_t* trace, const trc_gl_state_rev_t* rev) {
+    trc_gl_inspection_t* i = &trace->inspection;
+    i->gl_state_revisions = realloc(i->gl_state_revisions,
+                                    (i->gl_state_revision_count+1)*sizeof(trc_gl_state_rev_t));
+    i->gl_state_revisions[i->gl_state_revision_count++] = *rev;
+}
+
+trc_gl_obj_history_t* find_gl_obj_history(trace_t* trace, trc_gl_obj_type_t type, uint fake) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
+        if (trace->inspection.gl_obj_history[type][i].fake == fake)
+            return &trace->inspection.gl_obj_history[type][i];
+    }
+    return NULL;
+}
+
+static size_t gl_obj_sizes[] = {
+    [TrcGLObj_Buffer] = sizeof(trc_gl_buffer_rev_t),
+    [TrcGLObj_Sampler] = sizeof(trc_gl_sampler_rev_t),
+    [TrcGLObj_Texture] = sizeof(trc_gl_texture_rev_t),
+    [TrcGLObj_Query] = sizeof(trc_gl_query_rev_t),
+    [TrcGLObj_Framebuffer] = sizeof(trc_gl_framebuffer_rev_t),
+    [TrcGLObj_Renderbuffer] = sizeof(trc_gl_renderbuffer_rev_t),
+    [TrcGLObj_Sync] = sizeof(trc_gl_sync_rev_t),
+    [TrcGLObj_Program] = sizeof(trc_gl_program_rev_t),
+    [TrcGLObj_ProgramPipeline] = sizeof(trc_gl_program_pipeline_rev_t),
+    [TrcGLObj_Shader] = sizeof(trc_gl_shader_rev_t),
+    [TrcGLObj_VAO] = sizeof(trc_gl_vao_rev_t),
+    [TrcGLObj_TransformFeedback] = sizeof(trc_gl_transform_feedback_rev_t)
+};
+
+static void* get_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint fake) {
+    trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
+    if (!h) return NULL;
+    if (!h->revision_count) return NULL;
+    return (uint8_t*)h->revisions + (h->revision_count-1)*gl_obj_sizes[type];
+}
+
+static trc_gl_obj_rev_t* get_gl_obj_rev(trc_gl_obj_history_t* h, trc_gl_obj_type_t type, size_t index) {
+    return (trc_gl_obj_rev_t*)((uint8_t*)h->revisions+index*gl_obj_sizes[type]);
+}
+
+static void set_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake, const trc_gl_obj_rev_t* rev) {
+    size_t size = gl_obj_sizes[type];
+    
+    trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
+    if (!h) {
+        trc_gl_inspection_t* i = &trace->inspection;
+        i->gl_obj_history[type] = realloc(i->gl_obj_history[type],
+                                          (i->gl_obj_history_count[type]+1) *
+                                          sizeof(trc_gl_obj_history_t));
+        h = &i->gl_obj_history[type][i->gl_obj_history_count[type]++];
+        h->fake = fake;
+        h->revision_count = 0;
+        h->revisions = NULL;
+    }
+    
+    if (!(h->revision_count && get_gl_obj_rev(h, type, h->revision_count-1)->revision!=rev->revision))
+        h->revisions = realloc(h->revisions, ++h->revision_count*size);
+    memcpy(get_gl_obj_rev(h, type, h->revision_count-1), rev, size);
+    get_gl_obj_rev(h, type, h->revision_count-1)->revision = trace->inspection.cur_revision;
+}
+
+const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Buffer, fake);
+}
+
+void trc_set_gl_buffer(trace_t* trace, uint fake, const trc_gl_buffer_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Buffer, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_buffer(trace_t* trace, uint fake) {
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_sampler_rev_t* trc_get_gl_sampler(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Sampler, fake);
+}
+
+void trc_set_gl_sampler(trace_t* trace, uint fake, const trc_gl_sampler_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Sampler, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_sampler(trace_t* trace, uint fake) {
+    const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_texture_rev_t* trc_get_gl_texture(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Texture, fake);
+}
+
+void trc_set_gl_texture(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Texture, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_texture(trace_t* trace, uint fake) {
+    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_query_rev_t* trc_get_gl_query(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Query, fake);
+}
+
+void trc_set_gl_query(trace_t* trace, uint fake, const trc_gl_query_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Query, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_query(trace_t* trace, uint fake) {
+    const trc_gl_query_rev_t* rev = trc_get_gl_query(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_framebuffer_rev_t* trc_get_gl_framebuffer(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Framebuffer, fake);
+}
+
+void trc_set_gl_framebuffer(trace_t* trace, uint fake, const trc_gl_framebuffer_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Framebuffer, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_framebuffer(trace_t* trace, uint fake) {
+    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_renderbuffer_rev_t* trc_get_gl_renderbuffer(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Renderbuffer, fake);
+}
+
+void trc_set_gl_renderbuffer(trace_t* trace, uint fake, const trc_gl_renderbuffer_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Renderbuffer, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_renderbuffer(trace_t* trace, uint fake) {
+    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_sync_rev_t* trc_get_gl_sync(trace_t* trace, uint64_t fake) {
+    return get_gl_obj(trace, TrcGLObj_Sync, fake);
+}
+
+void trc_set_gl_sync(trace_t* trace, uint64_t fake, const trc_gl_sync_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Sync, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint64_t trc_get_real_gl_sync(trace_t* trace, uint64_t fake) {
+    const trc_gl_sync_rev_t* rev = trc_get_gl_sync(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_program_rev_t* trc_get_gl_program(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Program, fake);
+}
+
+void trc_set_gl_program(trace_t* trace, uint fake, const trc_gl_program_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Program, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_program(trace_t* trace, uint fake) {
+    const trc_gl_program_rev_t* rev = trc_get_gl_program(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_program_pipeline_rev_t* trc_get_gl_program_pipeline(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_ProgramPipeline, fake);
+}
+
+void trc_set_gl_program_pipeline(trace_t* trace, uint fake, const trc_gl_program_pipeline_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_ProgramPipeline, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_program_pipeline(trace_t* trace, uint fake) {
+    const trc_gl_program_pipeline_rev_t* rev = trc_get_gl_program_pipeline(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_shader_rev_t* trc_get_gl_shader(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_Shader, fake);
+}
+
+void trc_set_gl_shader(trace_t* trace, uint fake, const trc_gl_shader_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_Shader, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_shader(trace_t* trace, uint fake) {
+    const trc_gl_shader_rev_t* rev = trc_get_gl_shader(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_vao_rev_t* trc_get_gl_vao(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_VAO, fake);
+}
+
+void trc_set_gl_vao(trace_t* trace, uint fake, const trc_gl_vao_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_VAO, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_vao(trace_t* trace, uint fake) {
+    const trc_gl_vao_rev_t* rev = trc_get_gl_vao(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+const trc_gl_transform_feedback_rev_t* trc_get_gl_transform_feedback(trace_t* trace, uint fake) {
+    return get_gl_obj(trace, TrcGLObj_TransformFeedback, fake);
+}
+
+void trc_set_gl_transform_feedback(trace_t* trace, uint fake, const trc_gl_transform_feedback_rev_t* rev) {
+    set_gl_obj(trace, TrcGLObj_TransformFeedback, fake, (trc_gl_obj_rev_t*)rev);
+}
+
+uint trc_get_real_gl_transform_feedback(trace_t* trace, uint fake) {
+    const trc_gl_transform_feedback_rev_t* rev = trc_get_gl_transform_feedback(trace, fake);
+    if (!rev) return 0;
+    return rev->real;
+}
+
+void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
+    size_t size = gl_obj_sizes[type];
+    const trc_gl_obj_rev_t* rev = get_gl_obj(trace, type, fake);
+    if (!rev) return;
+    trc_gl_obj_rev_t* new_rev = malloc(size);
+    memcpy(new_rev, rev, size);
+    new_rev->ref_count++;
+    set_gl_obj(trace, type, fake, new_rev);
+    free(new_rev);
+}
+
+void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
+    size_t size = gl_obj_sizes[type];
+    const trc_gl_obj_rev_t* rev = get_gl_obj(trace, type, fake);
+    if (!rev) return;
+    trc_gl_obj_rev_t* new_rev = malloc(size);
+    memcpy(new_rev, rev, size);
+    new_rev->ref_count--;
+    set_gl_obj(trace, type, fake, new_rev);
+    free(new_rev);
+}
+
+trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
+    for (size_t i = 0; i < trace->inspection.gl_context_history_count; i++) {
+        if (trace->inspection.gl_context_history[i].fake == fake)
+            return &trace->inspection.gl_context_history[i];
+    }
+    return NULL;
+}
+
+const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
+    trc_gl_context_history_t* h = find_ctx_history(trace, fake);
+    if (!h) return NULL;
+    if (!h->revision_count) return NULL;
+    return &h->revisions[h->revision_count-1];
+}
+
+void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
+    trc_gl_context_history_t* h = find_ctx_history(trace, fake);
+    if (!h) {
+        trc_gl_inspection_t* i = &trace->inspection;
+        i->gl_context_history = realloc(i->gl_context_history,
+                                       (i->gl_context_history_count+1) *
+                                       sizeof(trc_gl_context_history_t));
+        h = &i->gl_context_history[i->gl_context_history_count++];
+        h->fake = fake;
+        h->revision_count = 0;
+        h->revisions = NULL;
+    }
+    
+    if (!(h->revision_count && h->revisions[h->revision_count-1].revision!=rev->revision))
+        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t));
+    h->revisions[h->revision_count-1] = *rev;
+    h->revisions[h->revision_count-1].revision = trace->inspection.cur_revision;
+}
+
+void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
+    const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
+    if (!rev) return NULL;
+    return rev->real;
 }

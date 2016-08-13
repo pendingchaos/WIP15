@@ -2,7 +2,6 @@
 /bin/gtk3.supp
 /bin/inspect
 /bin/inspect-gui
-/bin/libinspect.so
 /bin/libtrace.so
 /bin/output/*
 /bin/output.trace
@@ -11,7 +10,7 @@
 /bin/leakcheck
 /bin/ui.glade~
 /src/shared/glapi.c
-/src/libinspect/replay_gl.c
+/src/libtrace/replay_gl.c
 /src/libgl.c
 *.pyc
 *.o

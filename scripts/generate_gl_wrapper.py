@@ -130,7 +130,8 @@ void __attribute__ ((constructor)) wip15_gl_init() {
     else
         fwrite("-", 1, 1, trace_file);
     
-    fwrite("0.0a            ", 16, 1, trace_file);
+    fwrite("", 1, 1, trace_file);
+    fwrite("", 1, 1, trace_file);
     
     gl_write_uint32(FUNC_COUNT);
     gl_write_uint32(GROUP_COUNT);
@@ -152,6 +153,7 @@ void __attribute__ ((constructor)) wip15_gl_init() {
 
 for name, group in group_dict.iteritems():
     gl_c.write('    gl_write_b(OP_DECL_GROUP);\n')
+    gl_c.write('    gl_write_b(0);\n') # Currently only enum groups
     gl_c.write('    gl_write_uint32(%d);\n' % group.group_id)
     gl_c.write('    gl_write_str("%s");\n' % name)
 

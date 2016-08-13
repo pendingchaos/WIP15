@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# TODO: Function pointers
 import glapi.glxml
 from gl_state import *
 
 gl = glapi.glxml.GL(False)
 
-output = open("../src/libinspect/replay_gl.c", "w")
+output = open("../src/libtrace/replay_gl.c", "w")
 
 output.write("""#include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -15,14 +14,11 @@ output.write("""#include <X11/Xlib.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
-#include "libinspect/replay.h"
 #include "libtrace/libtrace.h"
-#include "libinspect/libinspect.h"
-#include "libinspect/actions.h"
 #include "shared/glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
-#define RETURN do {replay_end_cmd(ctx, FUNC, inspect_command);return;} while(0)
+#define RETURN do {replay_end_cmd(ctx, FUNC, command);return;} while(0)
 #define FUNC ""
 
 typedef void (*_func)();
@@ -37,19 +33,19 @@ static GLuint* gl_param_GLuint_array(trace_command_t* cmd, size_t index) {
 }
 
 static const char* gl_param_string(trace_command_t* cmd, size_t index) {
-    return *trace_get_str(trace_get_arg(cmd, index));
+    return *trc_get_str(trc_get_arg(cmd, index));
 }
 
 static char** gl_param_string_array(trace_command_t* cmd, size_t index) {
-    return trace_get_str(trace_get_arg(cmd, index));
+    return trc_get_str(trc_get_arg(cmd, index));
 }
 
 static void* gl_param_data(trace_command_t* cmd, size_t index) {
-    return *trace_get_data(trace_get_arg(cmd, index));
+    return *trc_get_data(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_pointer(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_command_t* cmd, size_t index) {
@@ -57,23 +53,23 @@ static GLDEBUGPROC gl_param_GLDEBUGPROC(trace_command_t* cmd, size_t index) {
 }
 
 static GLsizei gl_param_GLsizei(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLint64EXT gl_param_GLint64EXT(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLshort gl_param_GLshort(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static int64_t gl_param_int64_t(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLubyte gl_param_GLubyte(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_command_t* cmd, size_t index) {
@@ -81,121 +77,121 @@ static GLDEBUGPROCARB gl_param_GLDEBUGPROCARB(trace_command_t* cmd, size_t index
 }
 
 static GLboolean gl_param_GLboolean(trace_command_t* cmd, size_t index) {
-    return *trace_get_bool(trace_get_arg(cmd, index));
+    return *trc_get_bool(trc_get_arg(cmd, index));
 }
 
 static Bool gl_param_Bool(trace_command_t* cmd, size_t index) {
-    return *trace_get_bool(trace_get_arg(cmd, index));
+    return *trc_get_bool(trc_get_arg(cmd, index));
 }
 
 static GLbitfield gl_param_GLbitfield(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLsync(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLuint gl_param_GLuint(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLint64 gl_param_GLint64(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static int gl_param_int(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLeglImageOES(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLfixed gl_param_GLfixed(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index)) * 65546.0f;
+    return *trc_get_double(trc_get_arg(cmd, index)) * 65546.0f;
 }
 
 static GLclampf gl_param_GLclampf(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index));
+    return *trc_get_double(trc_get_arg(cmd, index));
 }
 
 static float gl_param_float(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index));
+    return *trc_get_double(trc_get_arg(cmd, index));
 }
 
 static GLhalfNV gl_param_GLhalfNV(trace_command_t* cmd, size_t index) { //TODO
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static int64_t gl_param_GLintptr(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLushort gl_param_GLushort(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLenum gl_param_GLenum(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLuint gl_param_unsigned_int(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLfloat gl_param_GLfloat(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index));
+    return *trc_get_double(trc_get_arg(cmd, index));
 }
 
 static GLuint64 gl_param_GLuint64(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLdouble gl_param_GLdouble(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index));
+    return *trc_get_double(trc_get_arg(cmd, index));
 }
 
 static GLhandleARB gl_param_GLhandleARB(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static int64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static int64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLint gl_param_GLint(trace_command_t* cmd, size_t index)
 {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLclampx gl_param_GLclampx(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLsizeiptrARB gl_param_GLsizeiptrARB(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLuint64EXT gl_param_GLuint64EXT(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLvdpauSurfaceNV(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLbyte gl_param_GLbyte(trace_command_t* cmd, size_t index) {
-    return *trace_get_int(trace_get_arg(cmd, index));
+    return *trc_get_int(trc_get_arg(cmd, index));
 }
 
 static GLclampd gl_param_GLclampd(trace_command_t* cmd, size_t index) {
-    return *trace_get_double(trace_get_arg(cmd, index));
+    return *trc_get_double(trc_get_arg(cmd, index));
 }
 
 static GLDEBUGPROCKHR gl_param_GLDEBUGPROCKHR(trace_command_t* cmd, size_t index) {
@@ -207,71 +203,71 @@ static GLDEBUGPROCAMD gl_param_GLDEBUGPROCAMD(trace_command_t* cmd, size_t index
 }
 
 static GLXPixmap gl_param_GLXPixmap(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXWindow gl_param_GLXWindow(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXPbuffer gl_param_GLXPbuffer(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXDrawable gl_param_GLXDrawable(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXVideoDeviceNV gl_param_GLXVideoDeviceNV(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static Pixmap gl_param_Pixmap(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static Window gl_param_Window(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static Font gl_param_Font(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static Colormap gl_param_Colormap(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXContextID gl_param_GLXContextID(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLXFBConfig(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLXVideoCaptureDeviceNV gl_param_GLXVideoCaptureDeviceNV(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLXFBConfigSGIX(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLXPbufferSGIX gl_param_GLXPbufferSGIX(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size_t index) {
-    return *trace_get_uint(trace_get_arg(cmd, index));
+    return *trc_get_uint(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_GLXContext(trace_command_t* cmd, size_t index) {
-    return *trace_get_ptr(trace_get_arg(cmd, index));
+    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
-static void reset_gl_funcs(replay_context_t* ctx);
-static void reload_gl_funcs(replay_context_t* ctx);
+static void reset_gl_funcs(trc_replay_context_t* ctx);
+static void reload_gl_funcs(trc_replay_context_t* ctx);
 
 extern _func glXGetProcAddress(const GLubyte* procName);
 
@@ -296,42 +292,6 @@ for k, v in gl.enumValues.iteritems():
     output.write("#define %s %s\n" % (k, v))
 
 output.write("""
-static void set_state(inspect_gl_state_t* state, const char* name, trace_value_t v) {
-    inspect_gl_state_entry_t entry;
-    entry.name = name;
-    entry.val = v;
-    entry.val.group_index = -1;
-    append_inspect_gl_state_vec(state->entries, &entry);
-}
-
-static void set_state_bool(inspect_gl_state_t* state, const char* name, size_t count, GLboolean* v) {
-    bool arr[count];
-    for (size_t i = 0; i < count; ++i) {
-        arr[i] = v[i];
-    }
-    set_state(state, name, trace_create_bool(count, arr));
-}
-
-static void set_state_int(inspect_gl_state_t* state, const char* name, size_t count, GLint* v) {
-    int64_t arr[count];
-    for (size_t i = 0; i < count; ++i) {
-        arr[i] = v[i];
-    }
-    set_state(state, name, trace_create_int(count, arr));
-}
-
-static void set_state_float(inspect_gl_state_t* state, const char* name, size_t count, GLfloat* v) {
-    double arr[count];
-    for (size_t i = 0; i < count; ++i) {
-        arr[i] = v[i];
-    }
-    set_state(state, name, trace_create_double(count, arr));
-}
-
-static void set_state_str(inspect_gl_state_t* state, const char* name, const GLubyte* s) {
-    set_state(state, name, trace_create_str(1, (const char**)&s));
-}
-
 static void debug_callback(GLenum source,
                            GLenum type,
                            GLuint id,
@@ -370,37 +330,37 @@ static void debug_callback(GLenum source,
     
     switch (type) {
     case GL_DEBUG_TYPE_ERROR: {
-        inspect_add_error((inspect_command_t*)user_param, "Error: '%s' from %s", message, source_str);
+        trc_add_error((trace_command_t*)user_param, "Error: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: {
-        inspect_add_warning((inspect_command_t*)user_param, "Deprecated behavior warning: '%s' from %s", message, source_str);
+        trc_add_warning((trace_command_t*)user_param, "Deprecated behavior warning: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: {
-        inspect_add_warning((inspect_command_t*)user_param, "Undefined behavior warning: '%s' from %s", message, source_str);
+        trc_add_warning((trace_command_t*)user_param, "Undefined behavior warning: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_PORTABILITY: {
-        inspect_add_warning((inspect_command_t*)user_param, "Portibility warning: '%s' from %s", message, source_str);
+        trc_add_warning((trace_command_t*)user_param, "Portibility warning: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_PERFORMANCE: {
-        inspect_add_warning((inspect_command_t*)user_param, "Performance warning: '%s' from %s", message, source_str);
+        trc_add_warning((trace_command_t*)user_param, "Performance warning: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_OTHER: {
-        inspect_add_warning((inspect_command_t*)user_param, "Other: '%s' from %s", message, source_str);
+        trc_add_warning((trace_command_t*)user_param, "Other: '%s' from %s", message, source_str);
         break;
     }
     case GL_DEBUG_TYPE_MARKER: {
-        inspect_add_info((inspect_command_t*)user_param, "Marker: '%s' from %s", message, source_str);
+        trc_add_info((trace_command_t*)user_param, "Marker: '%s' from %s", message, source_str);
         break;
     }
     }
 }
 
-static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd) {
+static void replay_get_back_color(trc_replay_context_t* ctx, trace_command_t* cmd) {
     if (F(glReadPixels)) {
         F(glFinish)();
         
@@ -413,14 +373,15 @@ static void replay_get_back_color(replay_context_t* ctx, inspect_command_t* cmd)
         
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        inspect_replace_image(&cmd->state.back, w, h, data);
+        //TODO
+        //inspect_replace_image(&cmd->state.back, w, h, data);
         free(data);
         
         F(glReadBuffer)(last_buf);
     }
 }
 
-static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd) {
+static void replay_get_front_color(trc_replay_context_t* ctx, trace_command_t* cmd) {
     if (F(glReadPixels)) {
         F(glFinish)();
         
@@ -433,14 +394,15 @@ static void replay_get_front_color(replay_context_t* ctx, inspect_command_t* cmd
         
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        inspect_replace_image(&cmd->state.front, w, h, data);
+        //TODO
+        //inspect_replace_image(&cmd->state.front, w, h, data);
         free(data);
         
         F(glReadBuffer)(last_buf);
     }
 }
 
-static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
+static void replay_get_depth(trc_replay_context_t* ctx, trace_command_t* cmd) {
     if (F(glReadPixels)) {
         F(glFinish)();
         
@@ -453,15 +415,16 @@ static void replay_get_depth(replay_context_t* ctx, inspect_command_t* cmd) {
         
         void* data = malloc(w*h*4);
         F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
-        inspect_replace_image(&cmd->state.depth, w, h, data);
+        //TODO
+        //inspect_replace_image(&cmd->state.depth, w, h, data);
         free(data);
         
         F(glReadBuffer)(last_buf);
     }
 }
 
-static void replay_get_tex_params(replay_context_t* ctx,
-                                  inspect_command_t* cmd,
+static void replay_get_tex_params(trc_replay_context_t* ctx,
+                                  trace_command_t* cmd,
                                   GLenum target) {
     GLint tex;
     switch (target) {
@@ -487,7 +450,8 @@ static void replay_get_tex_params(replay_context_t* ctx,
     }
     
     //TODO: Only do these if it is supported
-    inspect_gl_tex_params_t params;
+    //TODO
+    /*inspect_gl_tex_params_t params;
     params.texture = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
     params.type = target;
     F(glGetTexParameteriv)(target, GL_DEPTH_STENCIL_TEXTURE_MODE, (GLint*)&params.depth_stencil_mode);
@@ -512,8 +476,7 @@ static void replay_get_tex_params(replay_context_t* ctx,
     F(glGetTexParameteriv)(target, GL_TEXTURE_IMMUTABLE_LEVELS, (GLint*)&params.immutable_levels);
     F(glGetTexParameteriv)(target, GL_IMAGE_FORMAT_COMPATIBILITY_TYPE, (GLint*)&params.image_format_compatibility_type);
     F(glGetTexParameteriv)(target, GL_TEXTURE_IMMUTABLE_FORMAT, (GLint*)&params.immutable_format);
-    
-    inspect_act_tex_params(&cmd->state, params.texture, &params);
+    inspect_act_tex_params(&cmd->state, params.texture, &params);*/
 }
 
 static GLenum get_tex_binding(GLenum type) {
@@ -547,7 +510,7 @@ static size_t min_size_t(size_t a, size_t b) {
     return a < b ? a : b;
 }
 
-static void replay_alloc_tex(replay_context_t* ctx, inspect_command_t* cmd, GLenum target,
+static void replay_alloc_tex(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target,
                              size_t level, size_t width, size_t height, size_t depth, size_t layers,
                              size_t faces) {
     for (uint i = 0; i < level; i++) {
@@ -568,11 +531,12 @@ static void replay_alloc_tex(replay_context_t* ctx, inspect_command_t* cmd, GLen
     GLint tex;
     F(glGetIntegerv)(get_tex_binding(target), &tex);
     
-    inspect_act_alloc_tex(&cmd->state, replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex), mipmaps, layers, width, height, depth);
+    //TODO
+    //inspect_act_alloc_tex(&cmd->state, replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex), mipmaps, layers, width, height, depth);
 }
 
-static void replay_get_tex_data(replay_context_t* ctx,
-                                inspect_command_t* cmd,
+static void replay_get_tex_data(trc_replay_context_t* ctx,
+                                trace_command_t* cmd,
                                 GLenum target,
                                 GLint level) {
     GLint tex;
@@ -587,7 +551,8 @@ static void replay_get_tex_data(replay_context_t* ctx,
     F(glGetIntegerv)(GL_PACK_ALIGNMENT, &alignment);
     F(glPixelStorei)(GL_PACK_ALIGNMENT, 4);
     
-    GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
+    //TODO
+    /*GLuint fake = replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex);
     
     void* data = NULL;
     if (target == GL_TEXTURE_1D) {
@@ -613,154 +578,54 @@ static void replay_get_tex_data(replay_context_t* ctx,
     else if (target == GL_TEXTURE_CUBE_MAP)
         ; //TODO
     
-    free(data);
+    free(data);*/
     
     F(glPixelStorei)(GL_PACK_ALIGNMENT, alignment);
 }
 
-static GLuint get_bound_buffer(replay_context_t* ctx, GLenum target) {
-    GLenum get;
+static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
     switch (target) {
-    case GL_ARRAY_BUFFER: {
-        get = GL_ARRAY_BUFFER_BINDING;
-        break;
-    }
-    case GL_ATOMIC_COUNTER_BUFFER: {
-        get = GL_ATOMIC_COUNTER_BUFFER_BINDING;
-        break;
-    }
-    case GL_COPY_READ_BUFFER: {
-        get = GL_COPY_READ_BUFFER_BINDING;
-        break;
-    }
-    case GL_COPY_WRITE_BUFFER: {
-        get = GL_COPY_WRITE_BUFFER_BINDING;
-        break;
-    }
-    case GL_DISPATCH_INDIRECT_BUFFER: {
-        get = GL_DISPATCH_INDIRECT_BUFFER_BINDING;
-        break;
-    }
-    case GL_DRAW_INDIRECT_BUFFER: {
-        get = GL_DRAW_INDIRECT_BUFFER_BINDING;
-        break;
-    }
-    case GL_ELEMENT_ARRAY_BUFFER: {
-        get = GL_ELEMENT_ARRAY_BUFFER_BINDING;
-        break;
-    }
-    case GL_PIXEL_PACK_BUFFER: {
-        get = GL_PIXEL_PACK_BUFFER_BINDING;
-        break;
-    }
-    case GL_PIXEL_UNPACK_BUFFER: {
-        get = GL_PIXEL_UNPACK_BUFFER_BINDING;
-        break;
-    }
-    case GL_QUERY_BUFFER: {
-        get = GL_QUERY_BUFFER_BINDING;
-        break;
-    }
-    case GL_SHADER_STORAGE_BUFFER: {
-        get = GL_SHADER_STORAGE_BUFFER_BINDING;
-        break;
-    }
-    case GL_TEXTURE_BUFFER: {
-        get = GL_TEXTURE_BUFFER_BINDING;
-        break;
-    }
-    case GL_TRANSFORM_FEEDBACK_BUFFER: {
-        get = GL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
-        break;
-    }
-    case GL_UNIFORM_BUFFER: {
-        get = GL_UNIFORM_BUFFER_BINDING;
-        break;
-    }
-    default: {
+    case GL_ARRAY_BUFFER:
+        return trc_get_gl_state(ctx->trace)->array_buffer;
+    case GL_ATOMIC_COUNTER_BUFFER:
+        return trc_get_gl_state(ctx->trace)->atomic_counter_buffer;
+    case GL_COPY_READ_BUFFER:
+        return trc_get_gl_state(ctx->trace)->copy_read_buffer;
+    case GL_COPY_WRITE_BUFFER:
+        return trc_get_gl_state(ctx->trace)->copy_write_buffer;
+    case GL_DISPATCH_INDIRECT_BUFFER:
+        return trc_get_gl_state(ctx->trace)->dispatch_indirect_buffer;
+    case GL_DRAW_INDIRECT_BUFFER:
+        return trc_get_gl_state(ctx->trace)->draw_indirect_buffer;
+    case GL_ELEMENT_ARRAY_BUFFER:
+        return trc_get_gl_state(ctx->trace)->element_array_buffer;
+    case GL_PIXEL_PACK_BUFFER:
+        return trc_get_gl_state(ctx->trace)->pixel_pack_buffer;
+    case GL_PIXEL_UNPACK_BUFFER:
+        return trc_get_gl_state(ctx->trace)->pixel_unpack_buffer;
+    case GL_QUERY_BUFFER:
+        return trc_get_gl_state(ctx->trace)->query_buffer;
+    case GL_SHADER_STORAGE_BUFFER:
+        return trc_get_gl_state(ctx->trace)->shader_storage_buffer;
+    case GL_TEXTURE_BUFFER:
+        return trc_get_gl_state(ctx->trace)->texture_buffer;
+    case GL_TRANSFORM_FEEDBACK_BUFFER:
+        return trc_get_gl_state(ctx->trace)->transform_feedback_buffer;
+    case GL_UNIFORM_BUFFER:
+        return trc_get_gl_state(ctx->trace)->uniform_buffer;
+    default:
         return 0;
     }
-    }
-    
-    GLint buf;
-    F(glGetIntegerv)(get, &buf);
-    
-    return buf;
 }
 
-static bool uniform(replay_context_t* ctx, trace_command_t* cmd, GLint* res) {
-    GLint prog;
-    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
-    
-    *res = replay_conv_uniform_location(ctx, prog, gl_param_GLint(cmd, 0));
-    if (*res < 0)
-        return true;
-    
-    return false;
+static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
+    const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_state(ctx->trace)->bound_program);
+    for (size_t i = 0; i < rev->uniform_count; i++)
+        if (rev->uniforms[i*2+1] == gl_param_GLint(cmd, 0)) return rev->uniforms[i*2];
+    return -1;
 }
 
-typedef struct {
-    GLint enabled;
-    GLint count;
-    GLint type;
-    GLint normalized;
-    GLint stride;
-    GLint buffer;
-    GLint divisor;
-    GLint integer;
-    void* pointer;
-    double value[4];
-} generic_vertex_attrib_t;
-
-static generic_vertex_attrib_t* attribs;
-
-static void set_vertex_attrib(replay_context_t* ctx, GLuint index, const generic_vertex_attrib_t* attrib) {
-    if (attrib->enabled)
-        F(glEnableVertexAttribArray)(index);
-    else
-        F(glDisableVertexAttribArray)(index);
-    
-    if (attrib->buffer) {
-        GLint last_buf;
-        F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
-        
-        F(glBindBuffer)(GL_ARRAY_BUFFER, attrib->buffer);
-        if (attrib->integer)
-            F(glVertexAttribIPointer)(index,
-                                      attrib->count,
-                                      attrib->type,
-                                      attrib->stride,
-                                      attrib->pointer);
-        else
-            F(glVertexAttribPointer)(index,
-                                     attrib->count,
-                                     attrib->type,
-                                     attrib->normalized,
-                                     attrib->stride,
-                                     attrib->pointer);
-        
-        F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
-    } else {
-        switch (attrib->count) {
-        case 1:
-            F(glVertexAttrib1d)(index, attrib->value[0]);
-            break;
-        case 2:
-            F(glVertexAttrib2d)(index, attrib->value[0], attrib->value[1]);
-            break;
-        case 3:
-            F(glVertexAttrib3d)(index, attrib->value[0], attrib->value[1], attrib->value[2]);
-            break;
-        case 4:
-            F(glVertexAttrib4d)(index, attrib->value[0], attrib->value[1], attrib->value[2], attrib->value[3]);
-            break;
-        }
-    }
-    
-    F(glVertexAttribDivisor)(index, attrib->divisor); //TODO: It should only do this if it's supported
-}
-
-static GLint get_bound_framebuffer(replay_context_t* ctx, GLenum target) {
+static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     GLint fb;
     switch (target) {
     case GL_DRAW_FRAMEBUFFER:
@@ -774,11 +639,13 @@ static GLint get_bound_framebuffer(replay_context_t* ctx, GLenum target) {
         break;
     }
     
-    return replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fb);
+    //TODO
+    //return replay_get_real_object(ctx, ReplayObjType_GLFramebuffer, fb);
 }
 
-static void framebuffer_attachment(inspect_command_t* cmd, replay_context_t* ctx, GLuint fb, GLenum attachment, GLuint tex, GLuint level) {
-    switch (attachment) {
+static void framebuffer_attachment(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint fb, GLenum attachment, GLuint tex, GLuint level) {
+    //TODO
+    /*switch (attachment) {
     case GL_DEPTH_ATTACHMENT:
         replay_set_depth_tex(ctx, fb, tex, level);
         inspect_act_fb_depth(&cmd->state, fb, tex, level);
@@ -795,13 +662,14 @@ static void framebuffer_attachment(inspect_command_t* cmd, replay_context_t* ctx
         replay_set_color_tex(ctx, fb, attachment-GL_COLOR_ATTACHMENT0, tex, level);
         inspect_act_fb_color(&cmd->state, fb, attachment-GL_COLOR_ATTACHMENT0, tex, level);
         break;
-    }
+    }*/
 }
 
-static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
+static void update_renderbuffer(trc_replay_context_t* ctx, trace_command_t* cmd) {
     GLint buf;
     F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &buf);
-    buf = replay_get_fake_object(ctx, ReplayObjType_GLRenderbuffer, buf);
+    //TODO
+    /*buf = replay_get_fake_object(ctx, ReplayObjType_GLRenderbuffer, buf);
     
     if (buf) {
         GLint width, height, internal_format, sample_count, red_size;
@@ -829,24 +697,24 @@ static void update_renderbuffer(replay_context_t* ctx, inspect_command_t* cmd) {
         rb.depth_size = depth_size;
         rb.stencil_size = stencil_size;
         inspect_act_set_rb(&cmd->state, &rb);
-    }
+    }*/
 }
 
-static void update_query_type(replay_context_t* ctx, inspect_command_t* cmd, GLenum target) {
+static void update_query_type(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target) {
     GLint id;
     F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
     if (!id)
         return;
     
-    inspect_query_t query;
+    //TODO
+    /*inspect_query_t query;
     query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
     query.type = target;
     query.result = 0;
-    
-    inspect_act_set_query(&cmd->state, &query);
+    inspect_act_set_query(&cmd->state, &query);*/
 }
 
-static void update_query(replay_context_t* ctx, inspect_command_t* cmd, GLenum target, GLuint id) {
+static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint id) {
     if (!id)
         return;
     
@@ -860,15 +728,15 @@ static void update_query(replay_context_t* ctx, inspect_command_t* cmd, GLenum t
         F(glGetQueryObjectiv)(id, GL_QUERY_RESULT, &res);
     }
     
-    inspect_query_t query;
+    //TODO
+    /*inspect_query_t query;
     query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
     query.type = target;
     query.result = res;
-    
-    inspect_act_set_query(&cmd->state, &query);
+    inspect_act_set_query(&cmd->state, &query);*/
 }
 
-static void update_drawbuffer(replay_context_t* ctx, inspect_command_t* cmd, GLenum buffer, GLint drawbuffer) {
+static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum buffer, GLint drawbuffer) {
     GLint fb;
     F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
     
@@ -917,14 +785,16 @@ static void update_drawbuffer(replay_context_t* ctx, inspect_command_t* cmd, GLe
                                                      GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
                                                      &level);
             
-            GLenum type = replay_get_tex_type(ctx, replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex));
+            return; //TODO
+            GLenum type = 0; //replay_get_tex_type(ctx, replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex));
             if (!type) return;
             
             GLint last;
             F(glGetIntegerv)(get_tex_binding(type), &last);
             F(glBindTexture)(type, tex);
             
-            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+            //TODO
+            //replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
             
             F(glBindTexture)(type, last);
         }
@@ -942,39 +812,55 @@ static void update_drawbuffer(replay_context_t* ctx, inspect_command_t* cmd, GLe
     }
 }
 
-static void begin_draw(replay_context_t* ctx) {
-    //TODO: This should use the limits.
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+static void begin_draw(trc_replay_context_t* ctx) {
+    const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
+    const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, trc_get_gl_state(ctx->trace)->bound_program);
     
-    attribs = malloc(sizeof(generic_vertex_attrib_t)*attrib_count);
-    
-    GLint prog;
-    F(glGetIntegerv)(GL_CURRENT_PROGRAM, &prog);
-    
-    for (size_t i = 0; i < attrib_count; i++) {
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attribs[i].enabled);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &attribs[i].count);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &attribs[i].type);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attribs[i].normalized);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attribs[i].stride);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attribs[i].buffer);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &attribs[i].divisor);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &attribs[i].integer);
-        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &attribs[i].pointer);
-        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
-    }
-    
-    for (size_t i = 0; i < attrib_count; i++) {
-        GLint loc = replay_conv_attrib_index(ctx, prog, i);
-        if (loc < 0)
-            continue;
+    for (size_t i = 0; i < vao->attrib_count; i++) {
+        GLint real_loc = -1;
+        for (size_t j = 0; j < program->vertex_attrib_count; j++) {
+            if (program->vertex_attribs[j*2+1] == j) {
+                real_loc = program->vertex_attribs[j*2];
+                break;
+            }
+        }
+        if (real_loc < 0) continue;
         
-        set_vertex_attrib(ctx, loc, attribs+i);
+        trc_gl_vao_attrib_t* a = &vao->attribs[i];
+        if (a->enabled) F(glEnableVertexAttribArray)(real_loc);
+        else F(glDisableVertexAttribArray)(real_loc);
+        
+        if (a->buffer) {
+            GLint last_buf;
+            F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
+            F(glBindBuffer)(GL_ARRAY_BUFFER, a->buffer);
+            if (a->integer)
+                F(glVertexAttribIPointer)(real_loc, a->size, a->type, a->stride, (const void*)(uintptr_t)a->offset);
+            else
+                F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, a->stride, (const void*)(uintptr_t)a->offset);
+            F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+        } else {
+            switch (a->size) {
+            case 1:
+                F(glVertexAttrib1d)(real_loc, a->value[0]);
+                break;
+            case 2:
+                F(glVertexAttrib2d)(real_loc, a->value[0], a->value[1]);
+                break;
+            case 3:
+                F(glVertexAttrib3d)(real_loc, a->value[0], a->value[1], a->value[2]);
+                break;
+            case 4:
+                F(glVertexAttrib4d)(real_loc, a->value[0], a->value[1], a->value[2], a->value[3]);
+                break;
+            }
+        }
+        
+        F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
 }
 
-static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
+static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     GLint maxbuf;
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &maxbuf);
     
@@ -983,18 +869,9 @@ static void end_draw(replay_context_t* ctx, inspect_command_t* cmd) {
     
     update_drawbuffer(ctx, cmd, GL_DEPTH, 0);
     update_drawbuffer(ctx, cmd, GL_STENCIL, 0);
-    
-    //TODO: This should use the limits.
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
-    
-    for (size_t i = 0; i < attrib_count; i++)
-        set_vertex_attrib(ctx, i, attribs+i);
-    
-    free(attribs);
 }
 
-static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
+static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -1006,108 +883,57 @@ static void replay_begin_cmd(replay_context_t* ctx, const char* name, inspect_co
         //TODO: glDebugMessageControlARB
     }
     
-    if (F(glGetError))
-        F(glGetError)();
+    if (F(glGetError)) F(glGetError)();
 }
 
-static void get_uniform(replay_context_t* ctx, inspect_command_t* inspect_command, trace_command_t* command) {
+static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
     GLuint fake = gl_param_GLuint(command, 0);
-    GLuint real_program = replay_get_real_object(ctx, ReplayObjType_GLProgram, fake);
+    GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
     if (!real_program) {
-        inspect_add_error(inspect_command, "Invalid program.");
+        trc_add_error(command, "No such program.");
         return;
     }
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
-    if (!status)
-        inspect_add_error(inspect_command, "Program not successfully linked.");
-}
-
-void update_vao(replay_context_t* ctx, inspect_command_t* inspect_command) {
-    //TODO: This should use the limits
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
-    
-    inspect_vertex_attrib_t attribs[attrib_count];
-    for (size_t i = 0; i < attrib_count; i++) {
-        GLint enabled, size, type, normalized, integer, stride, buffer, divisor;
-        void* pointer;
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
-        F(glGetVertexAttribiv)(i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor); //TODO: It should only do this if it's supported
-        F(glGetVertexAttribPointerv)(i, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
-        F(glGetVertexAttribdv)(i, GL_CURRENT_VERTEX_ATTRIB, attribs[i].value);
-        attribs[i].index = i;
-        attribs[i].enabled = enabled;
-        attribs[i].size = size;
-        attribs[i].type = type;
-        attribs[i].normalized = normalized;
-        attribs[i].integer = integer;
-        attribs[i].stride = stride;
-        attribs[i].buffer = buffer;
-        attribs[i].divisor = divisor;
-        attribs[i].offset = (size_t)pointer;
-    }
-    
-    GLint vao;
-    F(glGetIntegerv)(GL_VERTEX_ARRAY_BINDING, &vao);
-    
-    inspect_act_set_vao(&inspect_command->state, vao, attrib_count, attribs);
+    if (!status) trc_add_error(command, "Program not successfully linked.");
 }
 """)
 
 output.write("""
-static void replay_end_cmd(replay_context_t* ctx, const char* name, inspect_command_t* cmd) {
+static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
-    
-    if (ctx->_current_context && F(glGetError))
+    if (ctx->trace->inspection.cur_fake_context && F(glGetError))
         error = F(glGetError)();
-    
     switch (error) {
-    case GL_NO_ERROR: {
+    case GL_NO_ERROR:
         break;
-    }
-    case GL_INVALID_ENUM: {
-        inspect_add_error(cmd, "Invalid enum");
+    case GL_INVALID_ENUM:
+        trc_add_error(cmd, "GL_INVALID_ENUM");
         break;
-    }
-    case GL_INVALID_VALUE: {
-        inspect_add_error(cmd, "Invalid value");
+    case GL_INVALID_VALUE:
+        trc_add_error(cmd, "GL_INVALID_VALUE");
         break;
-    }
-    case GL_INVALID_OPERATION: {
-        inspect_add_error(cmd, "Invalid operation");
+    case GL_INVALID_OPERATION:
+        trc_add_error(cmd, "GL_INVALID_OPERATION");
         break;
-    }
-    case GL_STACK_OVERFLOW: {
-        inspect_add_error(cmd, "Stack overflow");
+    case GL_STACK_OVERFLOW:
+        trc_add_error(cmd, "GL_STACK_OVERFLOW");
         break;
-    }
-    case GL_STACK_UNDERFLOW: {
-        inspect_add_error(cmd, "Stack underflow");
+    case GL_STACK_UNDERFLOW:
+        trc_add_error(cmd, "GL_STACK_UNDERFLOW");
         break;
-    }
-    case GL_OUT_OF_MEMORY: {
-        inspect_add_error(cmd, "Out of memory");
+    case GL_OUT_OF_MEMORY:
+        trc_add_error(cmd, "GL_OUT_OF_MEMORY");
         break;
-    }
-    case GL_INVALID_FRAMEBUFFER_OPERATION: {
-        inspect_add_error(cmd, "Invalid framebuffer operation");
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+        trc_add_error(cmd, "GL_INVALID_FRAMEBUFFER_OPERATION");
         break;
-    }
-    case GL_CONTEXT_LOST: {
-        inspect_add_error(cmd, "Context lost");
+    case GL_CONTEXT_LOST: //TODO: Handle this
+        trc_add_error(cmd, "GL_CONTEXT_LOST");
         break;
-    }
-    case GL_TABLE_TOO_LARGE: {
-        inspect_add_error(cmd, "Table too large");
+    case GL_TABLE_TOO_LARGE: //TODO: Get rid of this?
+        trc_add_error(cmd, "GL_TABLE_TOO_LARGE");
         break;
-    }
     }
     
     if (F(glGetIntegerv)) {
@@ -1144,7 +970,7 @@ for get in gl_gets:
     if get[1] == "S":
         output.write("""
         if (((%s) & gl3_0) && F(glGetString))
-            set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
+            ; //TODO //set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
     else:
         type = {"B": "GLboolean",
                 "I": "GLint",
@@ -1171,13 +997,14 @@ for get in gl_gets:
         if (((%s) & gl2_1) && F(glGet%sv)) {
             %s v[%d];
             F(glGet%sv)(%s, v);
-            set_state_%s(&cmd->state, \"%s\", %d, v);
+            //TODO
+            //set_state_%s(&cmd->state, \"%s\", %d, v);
         }
             """ % (ver_mask, type_str, type, get[2], type_str, get[0], type_str2, get[0], get[2]))
 
 for v in enable_entries:
-    output.write("            {\n                GLboolean v = F(glIsEnabled)(%s);\n" % v)
-    output.write("                set_state_bool(&cmd->state, \"%s enabled\", 1, &v);\n" % v)
+    output.write("            {\n                //GLboolean v = F(glIsEnabled)(%s);\n" % v)
+    output.write("                //TODO //set_state_bool(&cmd->state, \"%s enabled\", 1, &v);\n" % v)
     output.write("            }\n")
 
 output.write("    }\n}\n\n")
@@ -1200,16 +1027,16 @@ if len(current_name) != 0:
     nontrivial[current_name] = current
 
 for name in gl.functions:
-    output.write("void replay_%s(replay_context_t* ctx, trace_command_t* command, inspect_command_t* inspect_command) {\n" % (name))
+    output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* command) {\n" % (name))
     
     if not name.startswith("glX"):
-        output.write("""    if (!ctx->_current_context) {
-        inspect_add_error(inspect_command, "No current OpenGL context.");
+        output.write("""    if (!ctx->trace->inspection.cur_fake_context) {
+        trc_add_error(command, "No current OpenGL context.");
         return;
     }
     """)
     
-    output.write("replay_begin_cmd(ctx, \"%s\", inspect_command);\n" % (name))
+    output.write("replay_begin_cmd(ctx, \"%s\", command);\n" % (name))
     
     if name == "glXGetProcAddress":
         output.write("    %s_t real = &%s;" % (name, name))
@@ -1256,13 +1083,13 @@ for name in gl.functions:
     
     output.write("    real(%s);\n" % (", ".join(params)))
     
-    output.write("replay_end_cmd(ctx, \"%s\", inspect_command);\n" % (name))
+    output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
     
     output.write("}\n\n")
 
-output.write("""static void reset_gl_funcs(replay_context_t* ctx);
+output.write("""static void reset_gl_funcs(trc_replay_context_t* ctx);
 
-void init_replay_gl(replay_context_t* ctx) {
+void init_replay_gl(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = malloc(sizeof(replay_gl_funcs_t));
     ctx->_replay_gl = funcs;
     reset_gl_funcs(ctx);
@@ -1275,7 +1102,7 @@ for name in gl.functions:
 output.write("""    ctx->_replay_gl = funcs;
 }
 
-static void reset_gl_funcs(replay_context_t* ctx) {
+static void reset_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
@@ -1285,7 +1112,7 @@ for name in gl.functions:
 
 output.write("""}
 
-static void reload_gl_funcs(replay_context_t* ctx) {
+static void reload_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
@@ -1295,7 +1122,7 @@ for name in gl.functions:
 
 output.write("}\n\n")
 
-output.write("""void deinit_replay_gl(replay_context_t* ctx) {
+output.write("""void deinit_replay_gl(trc_replay_context_t* ctx) {
     free(ctx->_replay_gl);
 }
 """)

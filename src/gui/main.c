@@ -51,9 +51,9 @@ static void open_trace(const char* filename) {
     free_open_trace();
     
     trace = load_trace(filename);
-    trace_error_t error = get_trace_error();
+    trace_error_t error = trc_get_error();
     if (error == TraceError_Invalid) {
-        fprintf(stderr, "Invalid trace file: %s\n", get_trace_error_desc());
+        fprintf(stderr, "Invalid trace file: %s\n", trc_get_error_desc());
         reset_trace();
         trace_fill();
         return;
