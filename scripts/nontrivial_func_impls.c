@@ -570,27 +570,22 @@ glBindBuffer:
     
     trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
     
-    uint* buf = NULL;
     switch (target) {
-    case GL_ARRAY_BUFFER: buf = &state.array_buffer; break;
-    case GL_ATOMIC_COUNTER_BUFFER: buf = &state.atomic_counter_buffer; break;
-    case GL_COPY_READ_BUFFER: buf = &state.copy_read_buffer; break;
-    case GL_COPY_WRITE_BUFFER: buf = &state.copy_write_buffer; break;
-    case GL_DISPATCH_INDIRECT_BUFFER: buf = &state.dispatch_indirect_buffer; break;
-    case GL_DRAW_INDIRECT_BUFFER: buf = &state.draw_indirect_buffer; break;
-    case GL_ELEMENT_ARRAY_BUFFER: buf = &state.element_array_buffer; break;
-    case GL_PIXEL_PACK_BUFFER: buf = &state.pixel_pack_buffer; break;
-    case GL_PIXEL_UNPACK_BUFFER: buf = &state.pixel_unpack_buffer; break;
-    case GL_QUERY_BUFFER: buf = &state.query_buffer; break;
-    case GL_SHADER_STORAGE_BUFFER: buf = &state.shader_storage_buffer; break;
-    case GL_TEXTURE_BUFFER: buf = &state.texture_buffer; break;
-    case GL_TRANSFORM_FEEDBACK_BUFFER: buf = &state.transform_feedback_buffer; break;
-    case GL_UNIFORM_BUFFER: buf = &state.uniform_buffer; break;
+    case GL_ARRAY_BUFFER: state.array_buffer = fake; break;
+    case GL_ATOMIC_COUNTER_BUFFER: state.atomic_counter_buffer = fake; break;
+    case GL_COPY_READ_BUFFER: state.copy_read_buffer = fake; break;
+    case GL_COPY_WRITE_BUFFER: state.copy_write_buffer = fake; break;
+    case GL_DISPATCH_INDIRECT_BUFFER: state.dispatch_indirect_buffer = fake; break;
+    case GL_DRAW_INDIRECT_BUFFER: state.draw_indirect_buffer = fake; break;
+    case GL_ELEMENT_ARRAY_BUFFER: state.element_array_buffer = fake; break;
+    case GL_PIXEL_PACK_BUFFER: state.pixel_pack_buffer = fake; break;
+    case GL_PIXEL_UNPACK_BUFFER: state.pixel_unpack_buffer = fake; break;
+    case GL_QUERY_BUFFER: state.query_buffer = fake; break;
+    case GL_SHADER_STORAGE_BUFFER: state.shader_storage_buffer = fake; break;
+    case GL_TEXTURE_BUFFER: state.texture_buffer = fake; break;
+    case GL_TRANSFORM_FEEDBACK_BUFFER: state.transform_feedback_buffer = fake; break;
+    case GL_UNIFORM_BUFFER: state.uniform_buffer = fake; break;
     }
-    
-    trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_Buffer);
-    trc_rel_gl_obj(ctx->trace, *buf, TrcGLObj_Buffer);
-    *buf = fake;
     trc_set_gl_state(ctx->trace, &state);
     
     real(target, real_buf);
@@ -659,6 +654,11 @@ glCreateShader:
     rev.fake_context = ctx->trace->inspection.cur_fake_context;
     rev.ref_count = 1;
     rev.real = real_shdr;
+    rev.source_count = 0;
+    rev.source_lengths = NULL;
+    rev.sources = NULL;
+    rev.info_log = NULL;
+    rev.type = type;
     trc_set_gl_shader(ctx->trace, fake, &rev);
 
 glDeleteShader:
@@ -684,28 +684,35 @@ glShaderSource:
         RETURN;
     }
     
+    trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
+    free(shdr.source_lengths);
+    free(shdr.sources);
+    shdr.source_count = count;
+    shdr.source_lengths = malloc(count*sizeof(size_t));
+    shdr.sources = malloc(count*sizeof(char*));
+    
     if (trc_get_arg(command, 3)->count == 0) {
-        real(shader, 1, (const GLchar*const*)sources, NULL);
-        //TODO inspect_act_shdr_source(&command->state, fake, count, (const char*const*)sources);
+        real(shader, count, (const GLchar*const*)sources, NULL);
+        for (GLsizei i = 0; i < count; i++) {
+            shdr.source_lengths[i] = strlen(sources[i]);
+            shdr.sources[i] = malloc(shdr.source_lengths[i]);
+            memcpy(shdr.sources[i], sources[i], shdr.source_lengths[i]);
+        }
     } else {
         uint64_t* lengths64 = trc_get_uint(trc_get_arg(command, 3));
         
         GLint lengths[count];
         for (GLsizei i = 0; i < count; i++) lengths[i] = lengths64[i];
-        
         real(shader, count, (const GLchar*const*)sources, lengths);
         
-        char* new_sources[count];
         for (GLsizei i = 0; i < count; i++) {
-            new_sources[i] = malloc(lengths[i]+1);
-            memcpy(new_sources[i], sources[i], lengths[i]);
-            new_sources[i][lengths[i]] = 0;
+            shdr.source_lengths[i] = lengths[i];
+            shdr.sources[i] = malloc(lengths[i]);
+            memcpy(shdr.sources[i], sources[i], lengths[i]);
         }
-        
-        //TODO inspect_act_shdr_source(&command->state, fake, count, (const char*const*)new_sources);
-        
-        for (GLsizei i = 0; i < count; i++) free(new_sources[i]);
     }
+    
+    trc_set_gl_shader(ctx->trace, fake, &shdr);
 
 glCompileShader:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -722,15 +729,16 @@ glCompileShader:
     if (!status)
         trc_add_error(command, "Failed to compile shader.");
     
+    trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
+    free(shdr.info_log);
+    
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
-    char* info_log = malloc(len+1);
-    info_log[len] = 0;
-    F(glGetShaderInfoLog)(real_shdr, len, NULL, info_log);
+    shdr.info_log = malloc(len+1);
+    shdr.info_log[len] = 0;
+    F(glGetShaderInfoLog)(real_shdr, len, NULL, shdr.info_log);
     
-    //TODO inspect_act_set_shdr_info_log(&command->state, fake, info_log);
-    
-    free(info_log);
+    trc_set_gl_shader(ctx->trace, fake, &shdr);
 
 glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
@@ -2283,15 +2291,10 @@ glFenceSync:
     rev.fake_context = ctx->trace->inspection.cur_fake_context;
     rev.ref_count = 1;
     rev.real = (uint64_t)real_sync;
+    rev.type = GL_SYNC_FENCE;
+    rev.condition = condition;
+    rev.flags = flags;
     trc_set_gl_sync(ctx->trace, fake, &rev);
-    
-    //TODO
-    /*inspect_sync_t sync;
-    sync.fake = fake;
-    sync.type = GL_SYNC_FENCE;
-    sync.condition = condition;
-    sync.flags = flags;
-    inspect_act_set_sync(&command->state, &sync);*/
 
 glDeleteSync:
     uint64_t fake = gl_param_GLsync(command, 0);

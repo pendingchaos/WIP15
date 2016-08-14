@@ -84,8 +84,7 @@ void trc_free_value(trace_value_t value) {
 
 static void free_command(trace_command_t* command) {
     trace_val_vec_t args = command->args;
-    for (trace_value_t* arg = args->data; !vec_end(args, arg); arg++)
-        trc_free_value(*arg);
+    for (trace_value_t* arg = args->data; !vec_end(args, arg); arg++) trc_free_value(*arg);
     free_trace_val_vec(args);
     
     trc_free_value(command->ret);
@@ -94,6 +93,7 @@ static void free_command(trace_command_t* command) {
         free(command->extras[i].name);
         free(command->extras[i].data);
     }
+    free(command->extras);
     
     trc_attachment_t* attach = command->attachments;
     while (attach) {
@@ -105,10 +105,8 @@ static void free_command(trace_command_t* command) {
 }
 
 static void free_frame(trace_frame_t* frame) {
-    trace_cmd_vec_t commands = frame->commands;
-    for (trace_command_t* cmd = commands->data; !vec_end(commands, cmd); cmd++)
-        free_command(cmd);
-    free_trace_cmd_vec(commands);
+    for (size_t i = 0; i < frame->command_count; i++) free_command(&frame->commands[i]);
+    free(frame->commands);
 }
 
 static char* read_str(FILE* file) {
@@ -420,7 +418,11 @@ trace_t *load_trace(const char* filename) {
     trace->group_name_count = 0;
     trace->func_names = NULL;
     trace->group_names = NULL;
-    trace->frames = NULL;
+    trace->frame_count = 1;
+    trace->frames = malloc(sizeof(trace_frame_t));
+    trace_frame_t *frame = trace->frames;
+    frame->command_count = 0;
+    frame->commands = NULL;
     
     char magic[6];
     magic[5] = 0;
@@ -479,10 +481,6 @@ trace_t *load_trace(const char* filename) {
     }
     trace->group_name_count = le32toh(trace->group_name_count);
     trace->group_names = calloc(1, sizeof(char *)*trace->group_name_count);
-    
-    trace->frames = alloc_trace_frame_vec(1);
-    trace_frame_t *frame = get_trace_frame_vec(trace->frames, 0);
-    frame->commands = alloc_trace_cmd_vec(0);
     
     func_decl_t* func_decls = calloc(1, sizeof(func_decl_t)*trace->func_name_count);
     memset(func_decls, 0, trace->func_name_count*sizeof(func_decl_t));
@@ -602,14 +600,14 @@ trace_t *load_trace(const char* filename) {
                 command.extras[i].data = read_data(file, &command.extras[i].size);
             }
             
-            append_trace_cmd_vec(frame->commands, &command);
+            frame->commands = realloc(frame->commands, ++frame->command_count*sizeof(trace_command_t));
+            frame->commands[frame->command_count-1] = command;
             
             if (strcmp(trace->func_names[command.func_index], "glXSwapBuffers") == 0) {
-                size_t index = get_trace_frame_vec_count(trace->frames);
-                resize_trace_frame_vec(trace->frames, index+1);
-                
-                frame = get_trace_frame_vec(trace->frames, index);
-                frame->commands = alloc_trace_cmd_vec(0);
+                trace->frames = realloc(trace->frames, ++trace->frame_count*sizeof(trace_frame_t));
+                frame = &trace->frames[trace->frame_count-1];
+                frame->command_count = 0;
+                frame->commands = NULL;
             }
             break;
         }
@@ -665,21 +663,15 @@ trace_t *load_trace(const char* filename) {
 }
 
 void free_trace(trace_t* trace) {
-    for (size_t i = 0; i < trace->func_name_count; ++i)
-        free(trace->func_names[i]);
+    for (size_t i = 0; i < trace->func_name_count; ++i) free(trace->func_names[i]);
     
-    for (size_t i = 0; i < trace->group_name_count; ++i)
-        free(trace->group_names[i]);
+    for (size_t i = 0; i < trace->group_name_count; ++i) free(trace->group_names[i]);
     
     free(trace->func_names);
     free(trace->group_names);
     
-    trace_frame_vec_t frames = trace->frames;
-    if (frames) {
-        for (trace_frame_t* frame = frames->data; !vec_end(frames, frame); frame++)
-            free_frame(frame);
-        free_trace_frame_vec(trace->frames);
-    }
+    for (size_t i = 0; i < trace->frame_count; i++) free_frame(&trace->frames[i]);
+    free(trace->frames);
     
     trc_gl_inspection_t* ti = &trace->inspection;
     
@@ -704,7 +696,7 @@ trace_value_t* trc_get_arg(trace_command_t* command, size_t i) {
 }
 
 trace_command_t* trc_get_cmd(trace_frame_t* frame, size_t i) {
-    return get_trace_cmd_vec(frame->commands, i);
+    return &frame->commands[i];
 }
 
 trace_error_t trc_get_error() {
@@ -967,12 +959,12 @@ void trc_run_inspection(trace_t* trace) {
     
     init_replay_gl(&ctx);
     
-    for (size_t i = 0; i < get_trace_frame_vec_count(trace->frames); i++) {
-        trace_frame_t* frame = get_trace_frame_vec(trace->frames, i);
-        for (size_t j = 0; j < get_trace_cmd_vec_count(frame->commands); j++) {
-            trace_command_t* cmd = get_trace_cmd_vec(frame->commands, j);
+    for (size_t i = 0; i < trace->frame_count; i++) {
+        trace_frame_t* frame = &trace->frames[i];
+        for (size_t j = 0; j < frame->command_count; j++) {
+            trace_command_t* cmd = &frame->commands[j];
             funcs[cmd->func_index](&ctx, cmd);
-            trace->inspection.cur_revision++;
+            cmd->revision = trace->inspection.cur_revision++;
         }
     }
     
@@ -1241,6 +1233,18 @@ void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
     new_rev->ref_count--;
     set_gl_obj(trace, type, fake, new_rev);
     free(new_rev);
+}
+
+trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
+        if (trace->inspection.gl_obj_history[type][i].fake != fake) continue;
+        trc_gl_obj_history_t* history = &trace->inspection.gl_obj_history[type][i];
+        for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
+            if (get_gl_obj_rev(history, type, j)->revision <= revision)
+                return get_gl_obj_rev(history, type, j);
+        }
+    }
+    return NULL;
 }
 
 trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {

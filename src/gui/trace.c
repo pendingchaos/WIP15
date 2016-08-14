@@ -1,4 +1,4 @@
-#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 #include "utils.h"
 
 #include <gtk/gtk.h>
@@ -10,8 +10,7 @@ extern GdkPixbuf* info_pixbuf;
 extern GdkPixbuf* warning_pixbuf;
 extern GdkPixbuf* error_pixbuf;
 extern trace_t* trace;
-extern inspector_t* inspector;
-extern inspection_t* inspection;
+extern int64_t revision;
 
 void init_buffer_list(GtkTreeView* tree);
 void init_vao_list(GtkTreeView* tree);
@@ -27,8 +26,8 @@ static void init_trace_tree(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < inspection->frame_count; ++i) {
-        inspect_frame_t* frame = inspection->frames + i;
+    for (size_t i = 0; i < trace->frame_count; ++i) {
+        trace_frame_t* frame = trace->frames + i;
         
         char frame_str[4096];
         memset(frame_str, 0, 4096);
@@ -38,22 +37,19 @@ static void init_trace_tree(GtkTreeView* tree) {
         bool warning = false;
         bool info = false;
         for (size_t j = 0; j < frame->command_count; ++j) {
-            inspect_attachment_t* attachment = frame->commands[j].attachments;
+            trc_attachment_t* attachment = frame->commands[j].attachments;
             while (attachment) {
-                error = error || attachment->type == AttachType_Error;
-                warning = warning || attachment->type == AttachType_Warning;
-                info = info || attachment->type == AttachType_Info;
+                error = error || attachment->type == TrcAttachType_Error;
+                warning = warning || attachment->type == TrcAttachType_Warning;
+                info = info || attachment->type == TrcAttachType_Info;
                 attachment = attachment->next;
             }
         }
         
         GdkPixbuf* pixbuf = NULL;
-        if (error)
-            pixbuf = error_pixbuf;
-        else if (warning)
-            pixbuf = warning_pixbuf;
-        else if (info)
-            pixbuf = info_pixbuf;
+        if (error) pixbuf = error_pixbuf;
+        else if (warning) pixbuf = warning_pixbuf;
+        else if (info) pixbuf = info_pixbuf;
         
         GtkTreeIter frame_row;
         gtk_tree_store_append(store, &frame_row, NULL);
@@ -63,7 +59,7 @@ static void init_trace_tree(GtkTreeView* tree) {
             GtkTreeIter cmd_row;
             gtk_tree_store_append(store, &cmd_row, &frame_row);
             
-            inspect_command_t* cmd = frame->commands + j;
+            trace_command_t* cmd = frame->commands + j;
             char cmd_str[1024];
             memset(cmd_str, 0, 1024);
             format_command(trace, cmd_str, cmd, 1024);
@@ -71,28 +67,26 @@ static void init_trace_tree(GtkTreeView* tree) {
             bool error = false;
             bool warning = false;
             bool info = false;
-            inspect_attachment_t* attachment = cmd->attachments;
+            trc_attachment_t* attachment = cmd->attachments;
             while (attachment) {
-                error = error || attachment->type == AttachType_Error;
-                warning = warning || attachment->type == AttachType_Warning;
-                info = info || attachment->type == AttachType_Info;
+                error = error || attachment->type == TrcAttachType_Error;
+                warning = warning || attachment->type == TrcAttachType_Warning;
+                info = info || attachment->type == TrcAttachType_Info;
                 attachment = attachment->next;
             }
             
             pixbuf = NULL;
-            if (error)
-                pixbuf = error_pixbuf;
-            else if (warning)
-                pixbuf = warning_pixbuf;
-            else if (info)
-                pixbuf = info_pixbuf;
+            if (error) pixbuf = error_pixbuf;
+            else if (warning) pixbuf = warning_pixbuf;
+            else if (info) pixbuf = info_pixbuf;
             
             gtk_tree_store_set(store, &cmd_row, 0, pixbuf, 1, cmd_str, -1);
         }
     }
 }
 
-static void init_state_tree(GtkTreeView* tree,
+//TODO
+/*static void init_state_tree(GtkTreeView* tree,
                             inspect_gl_state_t* state) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
@@ -107,7 +101,7 @@ static void init_state_tree(GtkTreeView* tree,
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, entry->name, 1, val_str, -1);
     }
-}
+}*/
 
 void command_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
@@ -119,12 +113,12 @@ void command_select_callback(GObject* obj, gpointer user_data) {
     if (gtk_tree_path_get_depth(path) == 2) {
         gint* indices = gtk_tree_path_get_indices(path);
         
-        assert(indices[0] < inspection->frame_count);
-        inspect_frame_t* frame = inspection->frames + indices[0];
+        assert(indices[0] < trace->frame_count);
+        trace_frame_t* frame = trace->frames + indices[0];
         assert(indices[1] < frame->command_count);
-        inspect_command_t* cmd = frame->commands + indices[1];
+        trace_command_t* cmd = frame->commands + indices[1];
+        revision = cmd->revision;
         
-        seek_inspector(inspector, indices[0], indices[1]);
         init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
         init_buffer_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffers_treeview")));
         init_shader_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "shader_list_treeview")));
@@ -139,7 +133,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
         gtk_tree_store_clear(store);
         
-        inspect_attachment_t* attachment = cmd->attachments;
+        trc_attachment_t* attachment = cmd->attachments;
         while (attachment) {
             GtkTreeIter row;
             gtk_tree_store_append(store, &row, NULL);
@@ -148,8 +142,9 @@ void command_select_callback(GObject* obj, gpointer user_data) {
             attachment = attachment->next;
         }
         
-        init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
-                        &cmd->state);
+        //TODO
+        /*init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")),
+                        &cmd->state);*/
     } else {
         GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview"));
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));

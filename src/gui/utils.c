@@ -98,7 +98,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         }
     }
     
-    if (value.count > 1) strncat(str, "[", n);
+    if (value.count != 1) strncat(str, "[", n);
     for (size_t i = 0; i < value.count; ++i) {
         switch (value.type) {
         case Type_Void: {
@@ -122,7 +122,11 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             break;
         }
         case Type_Str: {
-            strncat(str, static_format("'%s'", trc_get_str(&value)[i]), n);
+            const char* strval = trc_get_str(&value)[i];
+            bool multiline = false;
+            for (const char* c = strval; *c; c++) multiline |= *c == '\n';
+            if (multiline) strncat(str, "...", n);
+            else strncat(str, static_format("'%s'", strval), n);
             break;
         }
         case Type_FunctionPtr: {
@@ -139,18 +143,15 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         }
         }
         
-        if (i != value.count-1)
-            strncat(str, ", ", n);
+        if (i != value.count-1) strncat(str, ", ", n);
     }
-    if (value.count > 1) strncat(str, "]", n);
+    if (value.count != 1) strncat(str, "]", n);
 }
 
-void format_command(trace_t* trace, char* str, inspect_command_t* command, size_t n) {
-    trace_command_t* trace_cmd = command->trace_cmd;
+void format_command(trace_t* trace, char* str, trace_command_t* cmd, size_t n) {
+    strncat(str, static_format("%s(", trace->func_names[cmd->func_index]), n);
     
-    strncat(str, static_format("%s(", command->name), n);
-    
-    trace_val_vec_t args = command->trace_cmd->args;
+    trace_val_vec_t args = cmd->args;
     size_t count = get_trace_val_vec_count(args);
     for (size_t i = 0; i < count; i++) {
         format_value(trace, str, *get_trace_val_vec(args, i), n);
@@ -161,9 +162,9 @@ void format_command(trace_t* trace, char* str, inspect_command_t* command, size_
     
     strncat(str, ")", n);
     
-    if (trace_cmd->ret.type != Type_Void) {
+    if (cmd->ret.type != Type_Void) {
         strncat(str, " = ", n);
-        format_value(trace, str, trace_cmd->ret, n);
+        format_value(trace, str, cmd->ret, n);
     }
 }
 

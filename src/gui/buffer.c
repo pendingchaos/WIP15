@@ -1,4 +1,4 @@
-#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 #include "utils.h"
 
 #include <endian.h>
@@ -22,8 +22,8 @@
 #define TYPE_INT64 10
 
 extern GtkBuilder* builder;
-extern inspector_t* inspector;
 extern trace_t* trace;
+extern int64_t revision;
 
 static void update_buffer_view(size_t buf_index) {
     GtkSpinButton* stride_button = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "stride"));
@@ -77,7 +77,8 @@ static void update_buffer_view(size_t buf_index) {
     }
     }
     
-    inspect_buffer_t* buf = get_inspect_buf_vec(inspector->buffers, buf_index);
+    //TODO
+    /*inspect_buffer_t* buf = get_inspect_buf_vec(inspector->buffers, buf_index);
     if (!buf)
         return;
     if (!buf->data)
@@ -168,7 +169,7 @@ static void update_buffer_view(size_t buf_index) {
             cur += snprintf(cur, end-cur, "]");
         
         gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    }*/
 }
 
 void update_buffer_view_callback(GObject* obj, gpointer user_data) {
@@ -192,15 +193,18 @@ void init_buffer_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    inspect_buf_vec_t buffers = inspector->buffers;
-    for (inspect_buffer_t* buf = buffers->data; !vec_end(buffers, buf); buf++) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", buf->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Buffer]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Buffer][i];
+        trc_gl_buffer_rev_t* buf = (trc_gl_buffer_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
+        if (buf && buf->ref_count) {
+            char str[64];
+            memset(str, 0, 64);
+            snprintf(str, 64, "%u", (uint)h->fake);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(store, &row, NULL);
+            gtk_tree_store_set(store, &row, 0, str, -1);
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 #include "utils.h"
 
 #include <gtk/gtk.h>
@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 extern GtkBuilder* builder;
-extern inspector_t* inspector;
+extern trace_t* trace;
 
 void init_framebuffers_list(GtkTreeView* tree) {
     GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview"));
@@ -24,12 +24,13 @@ void init_framebuffers_list(GtkTreeView* tree) {
     gtk_tree_store_append(store, &row, NULL);
     gtk_tree_store_set(store, &row, 0, "0", -1);
     
-    inspect_fb_vec_t fbs = inspector->framebuffers;
-    for (inspect_fb_t* fb = fbs->data; !vec_end(fbs, fb); fb++) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Framebuffer]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Framebuffer][i];
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", fb->fake);
+        snprintf(str, 64, "%u", (uint)h->fake);
         
+        GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
     }
@@ -39,7 +40,8 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    inspect_image_t* front = inspector->front_buf;
+    //TODO
+    /*inspect_image_t* front = inspector->front_buf;
     if (front && front->has_data) {
         uint32_t* img = (uint32_t*)malloc(front->width*front->height*4);
         inspect_get_image_data(front, img);
@@ -122,10 +124,10 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
         gtk_tree_store_set(store, &row, 0, "Depth", 1, depth_buf, -1);
         
         g_object_unref(depth_buf);
-    }
+    }*/
 }
 
-static void add_fb_attachment(GtkTreeStore* store, const char* name, const inspect_fb_attach_t* attach) {
+/*static void add_fb_attachment(GtkTreeStore* store, const char* name, const inspect_fb_attach_t* attach) {
     GtkTreeIter parent;
     gtk_tree_store_append(store, &parent, NULL);
     gtk_tree_store_set(store, &parent, 0, name, -1);
@@ -136,10 +138,11 @@ static void add_fb_attachment(GtkTreeStore* store, const char* name, const inspe
     
     gtk_tree_store_append(store, &row, &parent);
     gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);
-}
+}*/
 
 void framebuffer_select_callback(GObject* obj, gpointer user_data) {
-    GtkTreePath* path;
+    //TODO
+    /*GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     
     if (!path)
@@ -185,7 +188,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
     }
     
     GObject* notebook = gtk_builder_get_object(builder, "framebuffer_notebook");
-    g_object_set_property(notebook, "page", &page);
+    g_object_set_property(notebook, "page", &page);*/
 }
 
 void init_renderbuffers_list(GtkTreeView* tree) {
@@ -196,11 +199,11 @@ void init_renderbuffers_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    inspect_rb_vec_t rbs = inspector->renderbuffers;
-    for (inspect_rb_t* rb = rbs->data; !vec_end(rbs, rb); rb++) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Renderbuffer]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Renderbuffer][i];
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", rb->fake);
+        snprintf(str, 64, "%u", (uint)h->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -217,7 +220,8 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
-    inspect_rb_t* rb = get_inspect_rb_vec(inspector->renderbuffers, index);
+    //TODO
+    /*inspect_rb_t* rb = get_inspect_rb_vec(inspector->renderbuffers, index);
     if (!rb)
         return;
     
@@ -247,7 +251,7 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_set(store, &row, 0, "Depth Size", 1, static_format("%zu", rb->depth_size), -1);
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Stencil Size", 1, static_format("%zu", rb->stencil_size), -1);
-    }
+    }*/
 }
 
 void framebuffer_init() {

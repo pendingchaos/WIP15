@@ -1,11 +1,11 @@
-#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 #include "utils.h"
 
 #include <gtk/gtk.h>
 #include <string.h>
 
 extern GtkBuilder* builder;
-extern inspector_t* inspector;
+extern trace_t* trace;
 
 void init_queries_list(GtkTreeView* tree) {
     GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "query_treeview"));
@@ -15,11 +15,11 @@ void init_queries_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    inspect_query_vec_t queries = inspector->queries;
-    for (inspect_query_t* query = queries->data; !vec_end(queries, query); query++) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Query]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Query][i];
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", query->fake);
+        snprintf(str, 64, "%u", (uint)h->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -28,7 +28,8 @@ void init_queries_list(GtkTreeView* tree) {
 }
 
 void query_select_callback(GObject* obj, gpointer user_data) {
-    GtkTreePath* path;
+    //TODO
+    /*GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     
     if (!path)
@@ -50,7 +51,7 @@ void query_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_set(store, &row, 0, "Type", 1, get_enum_str(NULL, query->type), -1);
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Result", 1, static_format("%llu", query->result), -1);
-    }
+    }*/
 }
 
 void query_init() {

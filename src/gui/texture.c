@@ -1,4 +1,4 @@
-#include "libinspect/libinspect.h"
+#include "libtrace/libtrace.h"
 #include "utils.h"
 
 #include <gtk/gtk.h>
@@ -6,10 +6,11 @@
 #include <stdlib.h>
 
 extern GtkBuilder* builder;
-extern inspector_t* inspector;
+extern trace_t* trace;
 
 void texture_select_callback(GObject* obj, gpointer user_data) {
-    GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
+    //TODO
+    /*GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
     GtkTreeStore* param_store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
     
     GtkTreeView* image_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_images"));
@@ -119,18 +120,18 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
             w /= 2;
             h /= 2;
         }
-    }
+    }*/
 }
 
 void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    inspect_tex_vec_t textures = inspector->textures;
-    for (inspect_texture_t* tex = textures->data; !vec_end(textures, tex); tex++) {
+    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
         char str[64];
         memset(str, 0, 64);
-        snprintf(str, 64, "%u", tex->fake);
+        snprintf(str, 64, "%u", (uint)h->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

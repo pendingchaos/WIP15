@@ -48,7 +48,7 @@ src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generate
 src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scripts/gl_funcs.py
 	cd scripts; python generate_glapi.py
 
-src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.txt scripts/generate_replay.py
+src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_replay.py
 	cd scripts; python generate_replay.py
 
 bin/libgl.so: src/.libgl.o
@@ -57,9 +57,8 @@ bin/libgl.so: src/.libgl.o
 bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` $(COMP_LIBS) $(CFLAGS)
 
-bin/inspect-gui:	
-#bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libtrace.so
-#	$(CC) -Lbin -Wl,-rpath=. -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
+bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
 
 bin/leakcheck: src/.leakcheck.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.leakcheck.o -o bin/leakcheck -g -rdynamic $(CFLAGS)

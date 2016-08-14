@@ -154,6 +154,9 @@ typedef struct trc_gl_renderbuffer_rev_t {
 
 typedef struct trc_gl_sync_rev_t {
     TRC_GL_OBJ_HEAD
+    uint type;
+    uint condition;
+    uint flags;
 } trc_gl_sync_rev_t;
 
 typedef struct trc_gl_program_rev_t {
@@ -170,6 +173,11 @@ typedef struct trc_gl_program_pipeline_rev_t {
 
 typedef struct trc_gl_shader_rev_t {
     TRC_GL_OBJ_HEAD
+    uint type;
+    size_t source_count;
+    size_t* source_lengths;
+    char** sources;
+    char* info_log;
 } trc_gl_shader_rev_t;
 
 typedef struct trc_gl_vao_attrib_t {
@@ -247,12 +255,11 @@ typedef struct trace_command_t {
     uint revision; //Revision after the command
     trc_attachment_t* attachments;
 } trace_command_t;
-TYPED_VEC(trace_command_t, trace_cmd)
 
 typedef struct trace_frame_t {
-    trace_cmd_vec_t commands;
+    size_t command_count;
+    trace_command_t* commands;
 } trace_frame_t;
-TYPED_VEC(trace_frame_t, trace_frame)
 
 typedef struct trace_t {
     bool little_endian;
@@ -263,7 +270,8 @@ typedef struct trace_t {
     uint32_t group_name_count;
     char** group_names;
     
-    trace_frame_vec_t frames;
+    size_t frame_count;
+    trace_frame_t* frames;
     
     trc_gl_inspection_t inspection;
 } trace_t;
@@ -356,6 +364,7 @@ uint trc_get_real_gl_transform_feedback(trace_t* trace, uint fake);
 
 void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //Increase the reference count
 void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //Decrease the reference count
+trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type);
 
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake);
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev);

@@ -1,4 +1,3 @@
-#include "libinspect/libinspect.h"
 #include "libtrace/libtrace.h"
 #include "utils.h"
 
@@ -11,9 +10,8 @@ GtkBuilder* builder;
 GdkPixbuf* info_pixbuf;
 GdkPixbuf* warning_pixbuf;
 GdkPixbuf* error_pixbuf;
-inspector_t* inspector = NULL;
-inspection_t* inspection = NULL;
 trace_t* trace = NULL;
+int64_t revision = -1;
 
 void buffer_init();
 void vao_init();
@@ -33,18 +31,12 @@ static void reset_trace() {
     trace->func_names = NULL;
     trace->group_name_count = 0;
     trace->group_names = NULL;
-    trace->frames = alloc_trace_frame_vec(0);
-    
-    inspection = create_inspection(trace);
-    inspector = create_inspector(inspection);
+    trace->frame_count = 0;
+    trace->frames = NULL;
 }
 
 static void free_open_trace() {
-    if (trace) {
-        free_inspector(inspector);
-        free_inspection(inspection);
-        free_trace(trace);
-    }
+    if (trace) free_trace(trace);
 }
 
 static void open_trace(const char* filename) {
@@ -64,10 +56,7 @@ static void open_trace(const char* filename) {
         return;
     }
     
-    inspection = create_inspection(trace);
-    inspect(inspection);
-    
-    inspector = create_inspector(inspection);
+    trc_run_inspection(trace);
 }
 
 void quit_callback(GObject* obj, gpointer user_data) {

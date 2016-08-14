@@ -816,7 +816,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
     const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
     const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, trc_get_gl_state(ctx->trace)->bound_program);
     
-    for (size_t i = 0; i < vao->attrib_count; i++) {
+    for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < program->vertex_attrib_count; j++) {
             if (program->vertex_attribs[j*2+1] == j) {
@@ -1009,7 +1009,7 @@ for v in enable_entries:
 
 output.write("    }\n}\n\n")
 
-nontrivial_str = open("nontrivial_func_impls.txt").read()
+nontrivial_str = open("nontrivial_func_impls.c").read()
 nontrivial = {}
 
 current_name = ""
