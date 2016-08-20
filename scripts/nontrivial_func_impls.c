@@ -101,35 +101,7 @@ glXCreateContext:
         RETURN;
     }
     
-    trc_gl_context_rev_t rev;
-    rev.real = res;
-    rev.array_buffer = 0;
-    rev.atomic_counter_buffer = 0;
-    rev.copy_read_buffer = 0;
-    rev.copy_write_buffer = 0;
-    rev.dispatch_indirect_buffer = 0;
-    rev.draw_indirect_buffer = 0;
-    rev.element_array_buffer = 0;
-    rev.pixel_pack_buffer = 0;
-    rev.pixel_unpack_buffer = 0;
-    rev.query_buffer = 0;
-    rev.shader_storage_buffer = 0;
-    rev.texture_buffer = 0;
-    rev.transform_feedback_buffer = 0;
-    rev.uniform_buffer = 0;
-    rev.bound_program = 0;
-    rev.bound_vao = 0;
-    rev.read_framebuffer = 0;
-    rev.draw_framebuffer = 0;
-    rev.samples_passed_query = 0;
-    rev.any_samples_passed_query = 0;
-    rev.any_samples_passed_conservative_query = 0;
-    rev.primitives_generated_query = 0;
-    rev.transform_feedback_primitives_written_query = 0;
-    rev.time_elapsed_query = 0;
-    rev.timestamp_query = 0;
-    rev.active_texture_unit = 0;
-    //TODO All of the texture_* fields
+    trc_gl_context_rev_t rev = create_context_rev(ctx, res);
     trc_set_gl_context(ctx->trace, trc_get_ptr(&command->ret)[0], &rev);
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
@@ -202,8 +174,7 @@ glXCreateContextAttribsARB:
         RETURN;
     }
     
-    trc_gl_context_rev_t rev;
-    rev.real = res;
+    trc_gl_context_rev_t rev = create_context_rev(ctx, res);
     trc_set_gl_context(ctx->trace, trc_get_ptr(&command->ret)[0], &rev);
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
@@ -241,8 +212,9 @@ glSetContextCapsWIP15:
 glClear:
     GLbitfield mask = gl_param_GLbitfield(command, 0);
     real(mask);
-    if (mask & GL_COLOR_BUFFER_BIT) update_drawbuffer(ctx, command, GL_COLOR, 0);
-    if (mask & GL_DEPTH_BUFFER_BIT) update_drawbuffer(ctx, command, GL_DEPTH, 0);
+    //TODO
+    //if (mask & GL_COLOR_BUFFER_BIT) update_drawbuffer(ctx, command, GL_COLOR, 0);
+    //if (mask & GL_DEPTH_BUFFER_BIT) update_drawbuffer(ctx, command, GL_DEPTH, 0);
 
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -304,6 +276,7 @@ glBindTexture:
     }
     //TODO: Reference counting
     real(target, real_tex);
+    set_bound_texture(ctx->trace, target, -1, fake);
 
 glTexImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -315,8 +288,9 @@ glTexImage1D:
     GLenum type = gl_param_GLenum(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalFormat, width, border, format, type, data);
-    replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -327,8 +301,9 @@ glCompressedTexImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, internalformat, width, border, imageSize, data);
-    replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -339,7 +314,8 @@ glTexSubImage1D:
     GLenum type = gl_param_GLenum(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, type, data);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -350,8 +326,9 @@ glCompressedTexSubImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, imageSize, data);
-    replay_get_tex_params(ctx, command, target);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_params(ctx, command, target);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -364,8 +341,9 @@ glTexImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
-    replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -377,8 +355,9 @@ glCompressedTexImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalformat, width, height, border, imageSize, data);
-    replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -391,7 +370,8 @@ glTexSubImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, type, data);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -404,8 +384,9 @@ glCompressedTexSubImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, imageSize, data);
-    replay_get_tex_params(ctx, command, target);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_params(ctx, command, target);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -419,8 +400,9 @@ glTexImage3D:
     GLenum type = gl_param_GLenum(command, 8);
     const void* data = gl_param_data(command, 9);
     real(target, level, internalFormat, width, height, depth, border, format, type, data);
-    replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -433,8 +415,9 @@ glCompressedTexImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalformat, width, height, depth, border, imageSize, data);
-    replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -449,7 +432,8 @@ glTexSubImage3D:
     GLenum type = gl_param_GLenum(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_data(ctx, command, target, level);
 
 glCompressedTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -464,8 +448,9 @@ glCompressedTexSubImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
-    replay_get_tex_params(ctx, command, target);
-    replay_get_tex_data(ctx, command, target, level);
+    //TODO
+    //replay_get_tex_params(ctx, command, target);
+    //replay_get_tex_data(ctx, command, target, level);
 
 glTexImage2DMultisample:
     GLenum target = gl_param_GLenum(command, 0);
@@ -475,7 +460,8 @@ glTexImage2DMultisample:
     GLsizei height = gl_param_GLsizei(command, 4);
     GLboolean fixedsamplelocations = gl_param_GLboolean(command, 5);
     real(target, samples, internalformat, width, height, fixedsamplelocations);
-    replay_get_tex_params(ctx, command, target);
+    //TODO
+    //replay_get_tex_params(ctx, command, target);
 
 glTexImage3DMultisample:
     GLenum target = gl_param_GLenum(command, 0);
@@ -486,13 +472,15 @@ glTexImage3DMultisample:
     GLsizei depth = gl_param_GLsizei(command, 5);
     GLboolean fixedsamplelocations = gl_param_GLboolean(command, 6);
     real(target, samples, internalformat, width, height, depth, fixedsamplelocations);
-    replay_get_tex_params(ctx, command, target);
+    //TODO
+    //replay_get_tex_params(ctx, command, target);
 
 glGenerateMipmap:
     GLenum target = gl_param_GLenum(command, 0);
     real(target);
     
-    GLint w, h, d;
+    //TODO
+    /*GLint w, h, d;
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, &w);
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, &h);
     F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, &d);
@@ -510,49 +498,51 @@ glGenerateMipmap:
     case GL_TEXTURE_3D:
         for (GLsizei i = 0; w && h && d; i++, w/=2, h/=2, d/=2)
             replay_get_tex_data(ctx, command, target, i);
-    }
+    }*/
 
 glTexParameterf:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     GLfloat param = gl_param_GLfloat(command, 2);
-    real(target, pname, param);
-    replay_get_tex_params(ctx, command, target);
+    GLdouble double_param = param;
+    if (!texture_param_double(ctx, command, target, param, 1, &double_param))
+        real(target, pname, param);
 
 glTexParameteri:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     GLint param = gl_param_GLint(command, 2);
-    real(target, pname, param);
-    replay_get_tex_params(ctx, command, target);
+    GLdouble double_param = param;
+    if (!texture_param_double(ctx, command, target, param, 1, &double_param))
+        real(target, pname, param);
 
 glTexParameterfv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    double* paramsd = trc_get_double(trc_get_arg(command, 2));
-    GLfloat params[4];
-    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
-        for (size_t i = 0; i < 4; i++) params[i] = paramsd[i];
-    else params[0] = paramsd[0];
-    
-    real(target, pname, params);
-    replay_get_tex_params(ctx, command, target);
+    trace_value_t* paramsv = trc_get_arg(command, 2);
+    double* paramsd = trc_get_double(paramsv);
+    GLfloat params[paramsv->count];
+    for (size_t i = 0; i < paramsv->count; i++) params[i] = paramsd[i];
+    if (!texture_param_double(ctx, command, target, pname, paramsv->count, paramsd))
+        real(target, pname, params);
 
 glTexParameteriv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
-    GLint params[4];
-    if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
+    trace_value_t* paramsv = trc_get_arg(command, 2);
+    int64_t* params64 = trc_get_int(paramsv);
+    GLint params[paramsv->count];
+    double double_params[paramsv->count];
+    for (size_t i = 0; i < paramsv->count; i++) params[i] = params64[i];
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
     
-    real(target, pname, params);
-    replay_get_tex_params(ctx, command, target);
+    if (!texture_param_double(ctx, command, target, pname, paramsv->count, double_params))
+        real(target, pname, params);
 
 glTexParameterIiv:
+    //TODO
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
@@ -563,9 +553,9 @@ glTexParameterIiv:
     else params[0] = params64[0];
     
     real(target, pname, params);
-    replay_get_tex_params(ctx, command, target);
 
 glTexParameterIuiv:
+    //TODO
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
@@ -576,7 +566,6 @@ glTexParameterIuiv:
     else params[0] = params64[0];
     
     real(target, pname, params);
-    replay_get_tex_params(ctx, command, target);
 
 glGenBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -2319,7 +2308,8 @@ glFramebufferRenderbuffer:
         RETURN;
     }
     
-    framebuffer_attachment(command, ctx, fb, attachment, 0, 0);
+    //TODO
+    //framebuffer_attachment(command, ctx, fb, attachment, 0, 0);
 
 glFramebufferTexture:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2342,7 +2332,8 @@ glFramebufferTexture:
         RETURN;
     }
     
-    framebuffer_attachment(command, ctx, fb, attachment, texture, level);
+    //TODO
+    //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
 
 glFramebufferTexture2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2366,7 +2357,8 @@ glFramebufferTexture2D:
         RETURN;
     }
     
-    framebuffer_attachment(command, ctx, fb, attachment, texture, level);
+    //TODO
+    //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
 
 glRenderbufferStorage:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2374,7 +2366,8 @@ glRenderbufferStorage:
     GLsizei width = gl_param_GLsizei(command, 2);
     GLsizei height = gl_param_GLsizei(command, 3);
     real(target, internalformat, width, height);
-    update_renderbuffer(ctx, command);
+    //TODO
+    //update_renderbuffer(ctx, command);
 
 glRenderbufferStorageMultisample:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2383,7 +2376,8 @@ glRenderbufferStorageMultisample:
     GLsizei width = gl_param_GLsizei(command, 3);
     GLsizei height = gl_param_GLsizei(command, 4);
     real(target, samples, internalformat, width, height);
-    update_renderbuffer(ctx, command);
+    //TODO
+    //update_renderbuffer(ctx, command);
 
 glFenceSync:
     GLenum condition = gl_param_GLenum(command, 0);
@@ -2524,7 +2518,8 @@ glClearBufferiv:
     
     real(buffer, drawbuffer, value);
     
-    update_drawbuffer(ctx, command, buffer, drawbuffer);
+    //TODO
+    //update_drawbuffer(ctx, command, buffer, drawbuffer);
 
 glClearBufferuiv:
     GLenum buffer = gl_param_GLenum(command, 0);
@@ -2535,7 +2530,8 @@ glClearBufferuiv:
     
     real(buffer, drawbuffer, value);
     
-    update_drawbuffer(ctx, command, buffer, drawbuffer);
+    //TODO
+    //update_drawbuffer(ctx, command, buffer, drawbuffer);
 
 glClearBufferfv:
     GLenum buffer = gl_param_GLenum(command, 0);
@@ -2547,7 +2543,8 @@ glClearBufferfv:
     
     real(buffer, drawbuffer, value);
     
-    update_drawbuffer(ctx, command, buffer, drawbuffer);
+    //TODO
+    //update_drawbuffer(ctx, command, buffer, drawbuffer);
 
 glClearBufferfi:
     GLenum buffer = gl_param_GLenum(command, 0);
@@ -2556,8 +2553,9 @@ glClearBufferfi:
     GLint stencil = gl_param_GLint(command, 3);
     real(buffer, drawbuffer, depth, stencil);
     
-    update_drawbuffer(ctx, command, GL_DEPTH, 0);
-    update_drawbuffer(ctx, command, GL_STENCIL, 0);
+    //TODO
+    //update_drawbuffer(ctx, command, GL_DEPTH, 0);
+    //update_drawbuffer(ctx, command, GL_STENCIL, 0);
 
 glBindFragDataLocation:
     GLuint fake = gl_param_GLuint(command, 0);
