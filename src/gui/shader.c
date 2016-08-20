@@ -127,7 +127,7 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shader_info_log"));
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
     
-    gtk_text_buffer_set_text(info_log_buffer, shdr->info_log?shdr->info_log:"", source_len);
+    gtk_text_buffer_set_text(info_log_buffer, shdr->info_log?shdr->info_log:"", -1);
 }
 
 static trc_gl_program_rev_t* selected_program = NULL;

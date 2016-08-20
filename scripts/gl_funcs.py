@@ -960,11 +960,13 @@ Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
 Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None)], tGLboolean).trace_extras_code = '''GLint access;
 F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
 if (access != GL_READ_ONLY) {
-    GLint size;
-    F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
+    GLint64 size;
+    GLint64 offset;
+    F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_LENGTH, &size);
+    F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_OFFSET, &offset);
     
     void* data = malloc(size);
-    F(glGetBufferSubData)(target, 0, size, data);
+    F(glGetBufferSubData)(target, offset, size, data);
     gl_add_extra("replay/glUnmapBuffer/data", size, data);
     free(data);
 }

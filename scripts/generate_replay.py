@@ -19,6 +19,7 @@ output.write("""#include <X11/Xlib.h>
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
 #define RETURN do {replay_end_cmd(ctx, FUNC, command);return;} while(0)
+#define ERROR(...) do {trc_add_error(command, __VA_ARGS__); RETURN;} while (0)
 #define FUNC ""
 
 typedef void (*_func)();
@@ -360,69 +361,6 @@ static void debug_callback(GLenum source,
     }
 }
 
-static void replay_get_back_color(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    if (F(glReadPixels)) {
-        F(glFinish)();
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-        F(glReadBuffer)(GL_BACK);
-        
-        int w, h;
-        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-        
-        void* data = malloc(w*h*4);
-        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        //TODO
-        //inspect_replace_image(&cmd->state.back, w, h, data);
-        free(data);
-        
-        F(glReadBuffer)(last_buf);
-    }
-}
-
-static void replay_get_front_color(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    if (F(glReadPixels)) {
-        F(glFinish)();
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-        F(glReadBuffer)(GL_FRONT);
-        
-        int w, h;
-        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-        
-        void* data = malloc(w*h*4);
-        F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        //TODO
-        //inspect_replace_image(&cmd->state.front, w, h, data);
-        free(data);
-        
-        F(glReadBuffer)(last_buf);
-    }
-}
-
-static void replay_get_depth(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    if (F(glReadPixels)) {
-        F(glFinish)();
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-        F(glReadBuffer)(GL_BACK);
-        
-        int w, h;
-        SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-        
-        void* data = malloc(w*h*4);
-        F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, data);
-        //TODO
-        //inspect_replace_image(&cmd->state.depth, w, h, data);
-        free(data);
-        
-        F(glReadBuffer)(last_buf);
-    }
-}
-
 static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t* params,
                                 GLenum param, uint32_t count, const double* val) {
     switch (param) {
@@ -519,12 +457,17 @@ static trc_data_t** get_bound_texture_data(trc_gl_context_rev_t* state, GLenum t
     case GL_TEXTURE_2D_MULTISAMPLE: return &state->tex_2d_multisample;
     case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return &state->tex_2d_multisample_array;
     }
+    return NULL;
 }
 
 static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex) {
     trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);
     
     trc_data_t* data = *get_bound_texture_data(&state, target);
+    if (!data) {
+        //TODO: Error
+        return;
+    }
     
     //Copy
     uint* dataptr = trc_lock_data(data, true, false);
@@ -544,6 +487,7 @@ static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex)
 static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(trace, 0);
     trc_data_t* data = *get_bound_texture_data((trc_gl_context_rev_t*)state, target);
+    if (!data) return 0;
     uint* dataptr = trc_lock_data(data, true, false);
     uint res = dataptr[unit<0?state->active_texture_unit:unit];
     trc_unlock_data(data);
@@ -612,7 +556,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
     if (!tex_ptr) {
         printf("%u\\n", texid);
-        trc_add_error(command, "No texture bound or invalid texture handle used\\n");
+        trc_add_error(command, "No texture bound, invalid texture handle used or invalid target\\n");
         return true;
     }
     trc_gl_texture_rev_t tex = *tex_ptr;
@@ -696,6 +640,8 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     }
     
     trc_set_gl_texture(ctx->trace, texid, &tex);
+    
+    return false;
 }
 
 static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
@@ -741,8 +687,7 @@ static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
 }
 
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
-    trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    
+    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     switch (target) {
     case GL_DRAW_FRAMEBUFFER: 
         return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
@@ -751,6 +696,7 @@ static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     case GL_FRAMEBUFFER: 
         return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
     }
+    return 0;
 }
 
 static uint* get_query_binding_pointer(trc_gl_context_rev_t* state, GLenum target) {

@@ -104,6 +104,11 @@ typedef struct trc_gl_buffer_rev_t {
     bool has_data;
     uint data_usage;
     trc_data_t* data;
+    
+    bool mapped;
+    size_t map_offset;
+    size_t map_length;
+    uint map_access; //Bitfield of GL_MAP_*_BIT
 } trc_gl_buffer_rev_t;
 
 typedef struct trc_gl_sample_params_t {

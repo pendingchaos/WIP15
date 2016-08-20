@@ -2,16 +2,12 @@ glXMakeCurrent:
     SDL_GLContext glctx = NULL;
     uint64_t fake_ctx = *trc_get_uint(trc_get_arg(command, 2));
     if (fake_ctx) {
-        if (!(glctx=trc_get_real_gl_context(ctx->trace, fake_ctx))) {
-            trc_add_error(command, "Invalid GLX context.");
-            RETURN;
-        }
+        if (!(glctx=trc_get_real_gl_context(ctx->trace, fake_ctx)))
+            ERROR("Invalid GLX context.");
     }
     
-    if (SDL_GL_MakeCurrent(ctx->window, glctx) < 0) {
-        trc_add_error(command, "Unable to make a context current.");
-        RETURN;
-    }
+    if (SDL_GL_MakeCurrent(ctx->window, glctx) < 0)
+        ERROR("Unable to make a context current.");
     
     if (glctx) {
         reload_gl_funcs(ctx);
@@ -80,10 +76,7 @@ glXCreateContext:
     SDL_GLContext shareList = NULL;
     if (*trc_get_ptr(trc_get_arg(command, 2))) {
         shareList = trc_get_real_gl_context(ctx->trace, *trc_get_ptr(trc_get_arg(command, 2)));
-        if (!shareList) {
-            trc_add_error(command, "Invalid share context handle.");
-            RETURN;
-        }
+        if (!shareList) ERROR("Invalid share context handle.");
     }
     
     SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
@@ -153,10 +146,7 @@ glXCreateContextAttribsARB:
     SDL_GLContext share_ctx = NULL;
     if (gl_param_GLXContext(command, 2)) {
         share_ctx = trc_get_real_gl_context(ctx->trace, gl_param_GLXContext(command, 2));
-        if (!share_ctx) {
-            trc_add_error(command, "Invalid share context handle.");
-            RETURN;
-        }
+        if (!share_ctx) ERROR("Invalid share context handle.");
     }
     
     SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
@@ -189,22 +179,17 @@ glXQueryExtensionsString:
 
 glXDestroyContext:
     SDL_GLContext glctx = trc_get_real_gl_context(ctx->trace, *trc_get_ptr(trc_get_arg(command, 1)));
-    if (!glctx) {
-        trc_add_error(command, "Invalid context handle.");
-        RETURN;
-    }
+    if (!glctx) ERROR("Invalid context handle.");
     
     SDL_GL_DeleteContext(glctx);
     //TODO
     //replay_rel_object(ctx, ReplayObjType_GLXContext, *trc_get_ptr(trc_get_arg(command, 1)));
 
 glXSwapBuffers:
-    if (!ctx->trace->inspection.cur_fake_context) {
-        trc_add_error(command, "No current OpenGL context.");
-        RETURN;
-    }
+    if (!ctx->trace->inspection.cur_fake_context) ERROR("No current OpenGL context.");
     SDL_GL_SwapWindow(ctx->window);
-    replay_get_front_color(ctx, command);
+    //TODO
+    //replay_get_front_color(ctx, command);
 
 glSetContextCapsWIP15:
     ;
@@ -268,7 +253,7 @@ glBindTexture:
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, fake);
-    if (!real_tex && fake) trc_add_error(command, "Invalid texture handle.");
+    if (!real_tex && fake) ERROR("Invalid texture handle.");
     if (!F(glIsTexture)(real_tex)) {
         //TODO
         //inspect_act_tex_type(&command->state, fake, target);
@@ -580,6 +565,12 @@ glGenBuffers:
         rev.ref_count = 1;
         rev.real = buffers[i];
         rev.has_data = false;
+        rev.data_usage = 0;
+        rev.data = NULL;
+        rev.mapped = false;
+        rev.map_offset = 0;
+        rev.map_length = 0;
+        rev.map_access = 0;
         trc_set_gl_buffer(ctx->trace, fake[i], &rev);
     }
 
@@ -600,10 +591,7 @@ glBindBuffer:
     GLenum target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_buf = trc_get_real_gl_buffer(ctx->trace, fake);
-    if (!real_buf && fake) {
-        trc_add_error(command, "Invalid buffer handle.");
-        RETURN;
-    }
+    if (!real_buf && fake) ERROR("Invalid buffer handle.");
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     
@@ -632,10 +620,7 @@ glBindBufferBase:
     GLuint index = gl_param_GLuint(command, 1);
     GLuint fake = gl_param_GLuint(command, 2);
     GLuint buf = trc_get_real_gl_buffer(ctx->trace, fake);
-    if (!buf && fake) {
-        trc_add_error(command, "Invalid buffer handle.");
-        RETURN;
-    }
+    if (!buf && fake) ERROR("Invalid buffer handle.");
     real(target, index, buf);
 
 glBindBufferRange:
@@ -643,10 +628,7 @@ glBindBufferRange:
     GLuint index = gl_param_GLuint(command, 1);
     GLuint fake = gl_param_GLuint(command, 2);
     GLuint buf = trc_get_real_gl_buffer(ctx->trace, fake);
-    if (!buf && fake) {
-        trc_add_error(command, "Invalid buffer handle.");
-        RETURN;
-    }
+    if (!buf && fake) ERROR("Invalid buffer handle.");
     int64_t offset = gl_param_GLintptr(command, 3);
     int64_t size = gl_param_GLsizeiptr(command, 4);
     real(target, index, buf, offset, size);
@@ -659,8 +641,11 @@ glBufferData:
     real(target, size, data, usage);
     
     uint fake = get_bound_buffer(ctx, target);
+    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
+    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
+    if (!buf.data) RETURN; //TODO: Error
     
-    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
     buf.data = trc_create_data(ctx->trace, size, data);
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
@@ -672,9 +657,10 @@ glBufferSubData:
     real(target, offset, size, data);
     
     uint fake = get_bound_buffer(ctx, target);
-    
-    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf.data) RETURN;
+    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
+    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
+    if (!buf.data) RETURN; //TODO: Error
     
     trc_gl_buffer_rev_t old = buf;
     
@@ -689,22 +675,85 @@ glBufferSubData:
     
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
+glMapBuffer:
+    GLuint target = gl_param_GLenum(command, 0);
+    GLuint access = gl_param_GLenum(command, 1);
+    
+    if (access!=GL_READ_ONLY && access!=GL_WRITE_ONLY && access!=GL_READ_WRITE) 
+        ERROR("Invalid access policy");
+    
+    uint fake = get_bound_buffer(ctx, target);
+    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
+    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
+    if (!buf.data) RETURN; //TODO: Error
+    
+    if (buf.mapped) ERROR("Buffer is already mapped");
+    
+    buf.mapped = true;
+    buf.map_offset = 0;
+    buf.map_length = buf.data->uncompressed_size;
+    switch (access) {
+    case GL_READ_ONLY: buf.map_access = GL_MAP_READ_BIT; break;
+    case GL_WRITE_ONLY: buf.map_access = GL_MAP_WRITE_BIT; break;
+    case GL_READ_WRITE: buf.map_access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT; break;
+    }
+    
+    trc_set_gl_buffer(ctx->trace, fake, &buf);
+
+glMapBufferRange:
+    GLuint target = gl_param_GLenum(command, 0);
+    GLintptr offset = gl_param_GLintptr(command, 1);
+    GLsizeiptr length = gl_param_GLsizeiptr(command, 2);
+    GLbitfield access = gl_param_GLbitfield(command, 3);
+    
+    if (offset<0 || length<0 || !length) ERROR("Invalid length or offset");
+    
+    if (!(access&GL_MAP_READ_BIT) && !(access&GL_MAP_WRITE_BIT))
+        ERROR("Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
+    
+    if (access&GL_MAP_READ_BIT && (access&GL_MAP_INVALIDATE_RANGE_BIT ||
+                                   access&GL_MAP_INVALIDATE_BUFFER_BIT ||
+                                   access&GL_MAP_UNSYNCHRONIZED_BIT))
+        ERROR("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT set");
+    
+    if (access&GL_MAP_FLUSH_EXPLICIT_BIT && !(access&GL_MAP_WRITE_BIT))
+        ERROR("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
+    
+    if (access&!(GLbitfield)0xff) ERROR("Invalid access");
+    
+    //TODO:
+    //Make sure the access is valid with the buffer's storage flags
+    
+    uint fake = get_bound_buffer(ctx, target);
+    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
+    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
+    if (!buf.data) RETURN; //TODO: Error
+    
+    if (offset+length > buf.data->uncompressed_size)
+        ERROR("offset+length is greater than the buffer's size");
+    if (buf.mapped) ERROR("Buffer is already mapped");
+
 glUnmapBuffer:
     GLuint target = gl_param_GLenum(command, 0);
     trace_extra_t* extra = trc_get_extra(command, "replay/glUnmapBuffer/data");
     
-    F(glUnmapBuffer)(target);
-    
-    if (!extra) {
-        trc_add_error(command, "replay/glUnmapBuffer/data extra not found");
-        RETURN;
-    }
-    F(glBufferSubData)(target, 0, extra->size, extra->data);
+    if (!extra) ERROR("replay/glUnmapBuffer/data extra not found");
     
     uint fake = get_bound_buffer(ctx, target);
+    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
+    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
+    if (!buf.data) RETURN; //TODO: Error
     
-    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf.data) RETURN;
+    if (buf.map_length != extra->size) {
+        //TODO
+    }
+    
+    if (!buf.mapped) ERROR("Unmapping a buffer that is not mapped");
+    
+    F(glBufferSubData)(target, buf.map_offset, extra->size, extra->data);
     
     trc_gl_buffer_rev_t old = buf;
     
@@ -714,8 +763,13 @@ glUnmapBuffer:
     memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
     trc_unlock_data(old.data);
     
-    memcpy(newdata, extra->data, extra->size);
+    memcpy((uint8_t*)newdata+buf.map_offset, extra->data, extra->size);
     trc_unlock_data(buf.data);
+    
+    buf.mapped = false;
+    buf.map_offset = 0;
+    buf.map_length = 0;
+    buf.map_access = 0;
     
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
@@ -737,10 +791,7 @@ glCreateShader:
 glDeleteShader:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!real_shdr) {
-        trc_add_error(command, "Invalid shader handle.");
-        RETURN;
-    }
+    if (!real_shdr) ERROR("Invalid shader handle.");
     
     F(glDeleteShader)(real_shdr);
     
@@ -752,10 +803,7 @@ glShaderSource:
     char** sources = gl_param_string_array(command, 2);
     
     GLuint shader = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!shader) {
-        trc_add_error(command, "Invalid shader handle.");
-        RETURN;
-    }
+    if (!shader) ERROR("Invalid shader handle.");
     
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
     shdr.source_count = count;
@@ -788,16 +836,13 @@ glShaderSource:
 glCompileShader:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!real_shdr) {
-        trc_add_error(command, "Invalid shader handle.");
-        RETURN;
-    }
+    if (!real_shdr) ERROR("Invalid shader handle.");
     
     real(real_shdr);
     
     GLint status;
     F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
-    if (!status) trc_add_error(command, "Failed to compile shader.");
+    if (!status) ERROR("Failed to compile shader.");
     
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
     
@@ -829,10 +874,7 @@ glCreateProgram:
 glDeleteProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program) ERROR("Invalid program handle.");
     
     real(real_program);
     
@@ -841,17 +883,11 @@ glDeleteProgram:
 glAttachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake_program);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program) ERROR("Invalid program handle.");
     
     GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = trc_get_real_gl_shader(ctx->trace, fake_shader);
-    if (!real_shader) {
-        trc_add_error(command, "Invalid shader handle.");
-        RETURN;
-    }
+    if (!real_shader) ERROR("Invalid shader handle.");
     //TODO: Reference counting
     
     real(real_program, real_shader);
@@ -873,17 +909,11 @@ glAttachShader:
 glDetachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake_program);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program) ERROR("Invalid program handle.");
     
     GLuint fake_shader = gl_param_GLuint(command, 1);
     GLuint real_shader = trc_get_real_gl_shader(ctx->trace, fake_shader);
-    if (!real_shader) {
-        trc_add_error(command, "Invalid shader handle.");
-        RETURN;
-    }
+    if (!real_shader) ERROR("Invalid shader handle.");
     //TODO: Reference counting
     
     real(real_program, real_shader);
@@ -907,16 +937,13 @@ glDetachShader:
 glLinkProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program) ERROR("Invalid program handle.");
     
     real(real_program);
     
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
-    if (!status) trc_add_error(command, "Failed to link program.");
+    if (!status) ERROR("Failed to link program.");
     
     trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, fake);
     
@@ -978,16 +1005,13 @@ glLinkProgram:
 glValidateProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program) ERROR("Invalid program handle.");
     
     real(real_program);
     
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
-    if (!status) trc_add_error(command, "Program validation failed.");
+    if (!status) ERROR("Program validation failed.");
     
     trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, fake);
     
@@ -1002,10 +1026,7 @@ glValidateProgram:
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program && fake) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!real_program && fake) ERROR("Invalid program handle.");
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_Program);
@@ -1054,10 +1075,7 @@ glBindAttribLocation:
     const GLchar* name = gl_param_string(command, 2);
     
     GLuint program = trc_get_real_gl_program(ctx->trace, fake_prog);
-    if (!program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!program) ERROR("Invalid program handle.");
     
     real(program, index, name);
 
@@ -1065,38 +1083,30 @@ glGetAttribLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     const GLchar* name = gl_param_string(command, 1);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
-    if (real(real_program, name) < 0)
-        trc_add_error(command, "No such attribute \"%s\".", name);
+    if (!real_program) ERROR("Invalid program handle.");
+    if (real(real_program, name) < 0) ERROR("No such attribute \"%s\".", name);
 
 glGetUniformLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     const GLchar* name = gl_param_string(command, 1);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
-    if (real(real_program, name) < 0)
-        trc_add_error(command, "No such uniform \"%s\".", name);
+    if (!real_program) ERROR("Invalid program handle.");
+    if (real(real_program, name) < 0) ERROR("No such uniform \"%s\".", name);
 
 glGetShaderiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!real_shdr) trc_add_error(command, "Invalid shader handle.");
+    if (!real_shdr) ERROR("Invalid shader handle.");
 
 glGetShaderInfoLog:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!real_shdr) trc_add_error(command, "Invalid shader handle.");
+    if (!real_shdr) ERROR("Invalid shader handle.");
 
 glGetShaderSource:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, fake);
-    if (!real_shdr) trc_add_error(command, "Invalid shader handle.");
+    if (!real_shdr) ERROR("Invalid shader handle.");
 
 glGetQueryiv:
     ;
@@ -1104,12 +1114,12 @@ glGetQueryiv:
 glGetQueryObjectiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_query = trc_get_real_gl_query(ctx->trace, fake);
-    if (!real_query) trc_add_error(command, "Invalid query handle.");
+    if (!real_query) ERROR("Invalid query handle.");
 
 glGetQueryObjectuiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_query = trc_get_real_gl_query(ctx->trace, fake);
-    if (!real_query) trc_add_error(command, "Invalid query handle.");
+    if (!real_query) ERROR("Invalid query handle.");
 
 glGetProgramInfoLog:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -1119,7 +1129,7 @@ glGetProgramInfoLog:
 glGetProgramiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_prog = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_prog) trc_add_error(command, "Invalid program handle.");
+    if (!real_prog) ERROR("Invalid program handle.");
 
 glGetTexLevelParameterfv:
     ;
@@ -1210,11 +1220,11 @@ glGetAttachedShaders:
 
 glGetActiveUniform:
     if (!trc_get_real_gl_program(ctx->trace, gl_param_GLuint(command, 0)))
-        trc_add_error(command, "Invalid program handle.");
+        ERROR("Invalid program handle.");
 
 glGetActiveAttrib:
     if (!trc_get_real_gl_program(ctx->trace, gl_param_GLuint(command, 0)))
-        trc_add_error(command, "Invalid program handle.");
+        ERROR("Invalid program handle.");
 
 glGetBooleanv:
     ;
@@ -1251,11 +1261,11 @@ glReadPixels:
 
 glGetSamplerParamaterfv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
-        trc_add_error(command, "Invalid sampler handle.");
+        ERROR("Invalid sampler handle.");
 
 glGetSamplerParamateriv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
-        trc_add_error(command, "Invalid sampler handle.");
+        ERROR("Invalid sampler handle.");
 
 glGetSamplerParamaterIiv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
@@ -1263,7 +1273,7 @@ glGetSamplerParamaterIiv:
 
 glGetSamplerParamaterIuiv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
-        trc_add_error(command, "Invalid sampler handle.");
+        ERROR("Invalid sampler handle.");
 
 glUniform1f:
     GLint loc;
@@ -1878,7 +1888,7 @@ glDeleteVertexArrays:
 glBindVertexArray:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_vao = trc_get_real_gl_vao(ctx->trace, fake);
-    if (!real_vao && fake) trc_add_error(command, "Invalid vertex array handle.");
+    if (!real_vao && fake) ERROR("Invalid vertex array handle.");
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_VAO);
@@ -1898,22 +1908,22 @@ glPatchParameterfv:
 glGetFragDataIndex:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
 
 glGetFragDataLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
 
 glGetUniformBlockIndex:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
 
 glGetUniformIndices:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
 
 glDrawableSizeWIP15:
     GLsizei w = gl_param_GLsizei(command, 0);
@@ -2009,10 +2019,7 @@ glBindSampler:
     GLuint unit = gl_param_GLuint(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!real_tex && fake) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!real_tex && fake) ERROR("Invalid sampler handle.");
     real(unit, real_tex);
     //TODO: Reference counting
 
@@ -2024,15 +2031,12 @@ glPointParameteriv:
 
 glGetSynciv:
     if (!trc_get_real_gl_sync(ctx->trace, gl_param_GLsync(command, 0)))
-        trc_add_error(command, "Invalid sync handle.");
+        ERROR("Invalid sync handle.");
 
 glSamplerParameterf:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     GLfloat param = gl_param_GLfloat(command, 2);
     real(sampler, pname, param);
@@ -2040,10 +2044,7 @@ glSamplerParameterf:
 glSamplerParameteri:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     GLint param = gl_param_GLint(command, 2);
     real(sampler, pname, param);
@@ -2051,10 +2052,7 @@ glSamplerParameteri:
 glSamplerParameterfv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     double* paramsd = trc_get_double(trc_get_arg(command, 2));
     
@@ -2068,10 +2066,7 @@ glSamplerParameterfv:
 glSamplerParameteriv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
     
@@ -2085,10 +2080,7 @@ glSamplerParameteriv:
 glSamplerParameterIiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
     
@@ -2102,10 +2094,7 @@ glSamplerParameterIiv:
 glSamplerParameterIuiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
-    if (!sampler) {
-        trc_add_error(command, "Invalid sampler handle.");
-        RETURN;
-    }
+    if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
     uint64_t* params64 = trc_get_uint(trc_get_arg(command, 2));
     
@@ -2147,10 +2136,7 @@ glBindFramebuffer:
     GLenum target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint fb = trc_get_real_gl_framebuffer(ctx->trace, fake);
-    if (!fb && fake) {
-        trc_add_error(command, "Invalid framebuffer handle.");
-        RETURN;
-    }
+    if (!fb && fake) ERROR("Invalid framebuffer handle.");
     real(target, fb);
     
     bool read = true;
@@ -2203,19 +2189,13 @@ glBindRenderbuffer:
     GLenum target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint rb = trc_get_real_gl_renderbuffer(ctx->trace, fake);
-    if (!rb && fake) {
-        trc_add_error(command, "Invalid renderbuffer handle.");
-        RETURN;
-    }
+    if (!rb && fake) ERROR("Invalid renderbuffer handle.");
     real(target, rb);
 
 glGetActiveUniformBlockiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!program) ERROR("Invalid program handle.");
     GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
     GLenum pname = gl_param_GLenum(command, 2);
     
@@ -2234,10 +2214,7 @@ glGetActiveUniformBlockiv:
 glGetActiveUniformBlockName:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!program) ERROR("Invalid program handle.");
     GLuint uniformBlockIndex = gl_param_GLuint(command, 1);
     GLchar buf[64];
     real(program, uniformBlockIndex, 64, NULL, buf);
@@ -2245,10 +2222,7 @@ glGetActiveUniformBlockName:
 glGetActiveUniformName:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!program) ERROR("Invalid program handle.");
     GLuint uniformIndex = gl_param_GLuint(command, 1);
     GLchar buf[64];
     real(program, uniformIndex, 64, NULL, buf);
@@ -2256,10 +2230,7 @@ glGetActiveUniformName:
 glGetActiveUniformsiv:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!program) {
-        trc_add_error(command, "Invalid program handle.");
-        RETURN;
-    }
+    if (!program) ERROR("Invalid program handle.");
     GLsizei uniformCount = gl_param_GLsizei(command, 1);
     uint64_t* uniformIndices64 = trc_get_uint(trc_get_arg(command, 2));
     GLenum pname = gl_param_GLenum(command, 3);
@@ -2294,19 +2265,13 @@ glFramebufferRenderbuffer:
     GLuint renderbuffer = gl_param_GLuint(command, 3);
     
     GLuint real_rb = trc_get_real_gl_renderbuffer(ctx->trace, renderbuffer);
-    if (!real_rb && renderbuffer) {
-        trc_add_error(command, "Invalid renderbuffer handle.");
-        RETURN;
-    }
+    if (!real_rb && renderbuffer) ERROR("Invalid renderbuffer handle.");
     //TODO: Reference counting
     
     real(target, attachment, renderbuffertarget, real_rb);
     
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) {
-        trc_add_error(command, "No or invalid framebuffer bound.");
-        RETURN;
-    }
+    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
     
     //TODO
     //framebuffer_attachment(command, ctx, fb, attachment, 0, 0);
@@ -2318,19 +2283,13 @@ glFramebufferTexture:
     GLint level = gl_param_GLint(command, 3);
     
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, texture);
-    if (!real_tex && texture) {
-        trc_add_error(command, "Invalid texture handle.");
-        RETURN;
-    }
+    if (!real_tex && texture) ERROR("Invalid texture handle.");
     //TODO: Reference counting
     
     real(target, attachment, real_tex, level);
     
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) {
-        trc_add_error(command, "No or invalid framebuffer bound.");
-        RETURN;
-    }
+    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
     
     //TODO
     //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
@@ -2343,19 +2302,13 @@ glFramebufferTexture2D:
     GLint level = gl_param_GLint(command, 4);
     
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, texture);
-    if (!real_tex && texture) {
-        trc_add_error(command, "Invalid texture handle.");
-        RETURN;
-    }
+    if (!real_tex && texture) ERROR("Invalid texture handle.");
     //TODO: Reference counting
     
     real(target, attachment, textarget, real_tex, level);
     
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) {
-        trc_add_error(command, "No or invalid framebuffer bound.");
-        RETURN;
-    }
+    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
     
     //TODO
     //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
@@ -2398,10 +2351,7 @@ glFenceSync:
 glDeleteSync:
     uint64_t fake = gl_param_GLsync(command, 0);
     GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, fake);
-    if (!real_sync && fake) {
-        trc_add_error(command, "Invalid sync handle.");
-        RETURN;
-    }
+    if (!real_sync && fake) ERROR("Invalid sync handle.");
     
     real(real_sync);
     
@@ -2410,20 +2360,14 @@ glDeleteSync:
 glWaitSync:
     uint64_t fake = gl_param_GLsync(command, 0);
     GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, fake);
-    if (!real_sync) {
-        trc_add_error(command, "Invalid sync handle.");
-        RETURN;
-    }
+    if (!real_sync) ERROR("Invalid sync handle.");
     
     real(real_sync, gl_param_GLbitfield(command, 1), gl_param_GLuint64(command, 2));
 
 glClientWaitSync:
     uint64_t fake = gl_param_GLsync(command, 0);
     GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, fake);
-    if (!real_sync) {
-        trc_add_error(command, "Invalid sync handle.");
-        RETURN;
-    }
+    if (!real_sync) ERROR("Invalid sync handle.");
     
     real(real_sync, gl_param_GLbitfield(command, 1), gl_param_GLuint64(command, 2));
 
@@ -2459,10 +2403,7 @@ glDeleteQueries:
 glBeginQuery:
     GLuint id = gl_param_GLuint(command, 1);
     GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
-    if (!real_id) {
-        trc_add_error(command, "Invalid query handle.");
-        RETURN;
-    }
+    if (!real_id) ERROR("Invalid query handle.");
     GLenum target = gl_param_GLenum(command, 0);
     real(target, real_id);
     
@@ -2491,10 +2432,7 @@ glEndQuery:
 glQueryCounter:
     GLuint id = gl_param_GLuint(command, 0);
     GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
-    if (!real_id) {
-        trc_add_error(command, "Invalid query handle.");
-        RETURN;
-    }
+    if (!real_id) ERROR("Invalid query handle.");
     GLenum target = gl_param_GLenum(command, 1);
     real(real_id, target);
     //TODO: This clears any errors
@@ -2560,11 +2498,11 @@ glClearBufferfi:
 glBindFragDataLocation:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
     real(real_program, gl_param_GLuint(command, 1), gl_param_string(command, 2));
 
 glBindFragDataLocationIndexed:
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);
-    if (!real_program) trc_add_error(command, "Invalid program handle.");
+    if (!real_program) ERROR("Invalid program handle.");
     real(real_program, gl_param_GLuint(command, 1), gl_param_GLuint(command, 2), gl_param_string(command, 3));
