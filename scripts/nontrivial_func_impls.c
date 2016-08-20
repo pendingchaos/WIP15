@@ -715,12 +715,12 @@ glMapBufferRange:
     if (access&GL_MAP_READ_BIT && (access&GL_MAP_INVALIDATE_RANGE_BIT ||
                                    access&GL_MAP_INVALIDATE_BUFFER_BIT ||
                                    access&GL_MAP_UNSYNCHRONIZED_BIT))
-        ERROR("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT set");
+        ERROR("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set");
     
     if (access&GL_MAP_FLUSH_EXPLICIT_BIT && !(access&GL_MAP_WRITE_BIT))
         ERROR("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
     
-    if (access&!(GLbitfield)0xff) ERROR("Invalid access");
+    if (access&!(GLbitfield)0xff) ERROR("Invalid access flags");
     
     //TODO:
     //Make sure the access is valid with the buffer's storage flags
@@ -734,6 +734,11 @@ glMapBufferRange:
     if (offset+length > buf.data->uncompressed_size)
         ERROR("offset+length is greater than the buffer's size");
     if (buf.mapped) ERROR("Buffer is already mapped");
+    
+    buf.mapped = true;
+    buf.map_offset = offset;
+    buf.map_length = length;
+    buf.map_access = access;
 
 glUnmapBuffer:
     GLuint target = gl_param_GLenum(command, 0);
