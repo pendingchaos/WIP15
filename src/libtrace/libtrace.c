@@ -980,7 +980,8 @@ static void* get_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint fake) {
     trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
     if (!h) return NULL;
     if (!h->revision_count) return NULL;
-    return (uint8_t*)h->revisions + (h->revision_count-1)*gl_obj_sizes[type];
+    trc_gl_obj_rev_t* rev = (trc_gl_obj_rev_t*)((uint8_t*)h->revisions + (h->revision_count-1)*gl_obj_sizes[type]);
+    return (void*)rev;
 }
 
 static trc_gl_obj_rev_t* get_gl_obj_rev(trc_gl_obj_history_t* h, trc_gl_obj_type_t type, size_t index) {

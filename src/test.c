@@ -88,7 +88,10 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), NULL, GL_STATIC_DRAW);
     void* data = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-    memcpy(data, tex_coords, sizeof(tex_coords));
+    memcpy(data, tex_coords, sizeof(tex_coords)/2);
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    data = glMapBufferRange(GL_ARRAY_BUFFER, 16, 16, GL_MAP_WRITE_BIT);
+    memcpy(data, tex_coords+4, sizeof(tex_coords)/2);
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
     //Position buffer

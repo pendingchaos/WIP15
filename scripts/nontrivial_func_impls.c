@@ -644,8 +644,6 @@ glBufferData:
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) RETURN; //TODO: Error
-    
     buf.data = trc_create_data(ctx->trace, size, data);
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
@@ -752,13 +750,14 @@ glUnmapBuffer:
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
     if (!buf.data) RETURN; //TODO: Error
     
-    if (buf.map_length != extra->size) {
+    printf("%zu %zu %zu\n", buf.map_offset, extra->size, buf.map_length);
+    if (extra->size != buf.data->uncompressed_size) {
         //TODO
     }
     
     if (!buf.mapped) ERROR("Unmapping a buffer that is not mapped");
     
-    F(glBufferSubData)(target, buf.map_offset, extra->size, extra->data);
+    F(glBufferSubData)(target, 0, extra->size, extra->data);
     
     trc_gl_buffer_rev_t old = buf;
     
@@ -768,7 +767,7 @@ glUnmapBuffer:
     memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
     trc_unlock_data(old.data);
     
-    memcpy((uint8_t*)newdata+buf.map_offset, extra->data, extra->size);
+    memcpy(newdata, extra->data, extra->size);
     trc_unlock_data(buf.data);
     
     buf.mapped = false;
