@@ -137,6 +137,8 @@ int main(int argc, char **argv)
     glAttachShader(program, fragment);
     glLinkProgram(program);
     glValidateProgram(program);
+    glDetachShader(program, vertex);
+    glDetachShader(program, fragment);
     
     //Display vertex
     GLuint display_vert = glCreateShader(GL_VERTEX_SHADER);
@@ -167,6 +169,8 @@ int main(int argc, char **argv)
     glAttachShader(dpy_prog, display_frag);
     glLinkProgram(dpy_prog);
     glValidateProgram(dpy_prog);
+    glDetachShader(dpy_prog, display_vert);
+    glDetachShader(dpy_prog, display_frag);
     
     //VAO
     GLuint vao;

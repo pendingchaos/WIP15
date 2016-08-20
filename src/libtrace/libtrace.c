@@ -643,6 +643,18 @@ trace_t *load_trace(const char* filename) {
     trace->inspection.gl_state_revisions[0].bound_vao = 0;
     trace->inspection.gl_state_revisions[0].read_framebuffer = 0;
     trace->inspection.gl_state_revisions[0].draw_framebuffer = 0;
+    trace->inspection.gl_state_revisions[0].samples_passed_query = 0;
+    trace->inspection.gl_state_revisions[0].any_samples_passed_query = 0;
+    trace->inspection.gl_state_revisions[0].any_samples_passed_conservative_query = 0;
+    trace->inspection.gl_state_revisions[0].primitives_generated_query = 0;
+    trace->inspection.gl_state_revisions[0].transform_feedback_primitives_written_query = 0;
+    trace->inspection.gl_state_revisions[0].time_elapsed_query = 0;
+    trace->inspection.gl_state_revisions[0].timestamp_query = 0;
+    trace->inspection.gl_state_revisions[0].active_texture_unit = 0;
+    //TODO All of the texture_* fields
+    //See the TODO in libtrace.h
+    //See generate_replay.py
+    //trace->inspection.gl_state_revisions[0].texture_1d = ;
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
         trace->inspection.gl_obj_history_count[i] = 0;
         trace->inspection.gl_obj_history[i] = NULL;
@@ -676,6 +688,8 @@ void free_trace(trace_t* trace) {
     trc_gl_inspection_t* ti = &trace->inspection;
     
     for (size_t i = 0; i < ti->data_count; i++) free(ti->data[i]->compressed_data);
+    free(ti->data);
+    
     free(ti->gl_state_revisions);
     
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
@@ -911,10 +925,6 @@ void trc_add_error(trace_command_t* command, const char* format, ...) {
     trc_add_attachment(command, attach);
 }
 
-void trc_clear_inspection(trace_t* trace) {
-    //TODO
-}
-
 typedef void (*replay_func_t)(trc_replay_context_t*, trace_command_t*);
 
 void init_replay_gl(trc_replay_context_t* ctx);
@@ -964,7 +974,7 @@ void trc_run_inspection(trace_t* trace) {
         for (size_t j = 0; j < frame->command_count; j++) {
             trace_command_t* cmd = &frame->commands[j];
             funcs[cmd->func_index](&ctx, cmd);
-            cmd->revision = trace->inspection.cur_revision++;
+            cmd->revision = trace->inspection.cur_revision;
         }
     }
     
@@ -1039,10 +1049,9 @@ static void set_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake, co
         h->revisions = NULL;
     }
     
-    if (!(h->revision_count && get_gl_obj_rev(h, type, h->revision_count-1)->revision!=rev->revision))
-        h->revisions = realloc(h->revisions, ++h->revision_count*size);
+    h->revisions = realloc(h->revisions, ++h->revision_count*size);
     memcpy(get_gl_obj_rev(h, type, h->revision_count-1), rev, size);
-    get_gl_obj_rev(h, type, h->revision_count-1)->revision = trace->inspection.cur_revision;
+    get_gl_obj_rev(h, type, h->revision_count-1)->revision = ++trace->inspection.cur_revision;
 }
 
 const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake) {
@@ -1275,14 +1284,37 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
         h->revisions = NULL;
     }
     
-    if (!(h->revision_count && h->revisions[h->revision_count-1].revision!=rev->revision))
-        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t));
+    h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t));
     h->revisions[h->revision_count-1] = *rev;
-    h->revisions[h->revision_count-1].revision = trace->inspection.cur_revision;
+    h->revisions[h->revision_count-1].revision = ++trace->inspection.cur_revision;
 }
 
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
     const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
     if (!rev) return NULL;
     return rev->real;
+}
+
+//TODO: Compression is currently not implemented
+trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
+    trc_data_t* res = malloc(sizeof(trc_data_t));
+    res->uncompressed_size = size;
+    res->compressed_size = size;
+    res->compression = TrcCompression_None;
+    res->compressed_data = malloc(size);
+    if (data) memcpy(res->compressed_data, data, size);
+    
+    trc_gl_inspection_t* ti = &trace->inspection;
+    ti->data = realloc(ti->data, ++ti->data_count*sizeof(trc_data_t*));
+    ti->data[ti->data_count-1] = res;
+    
+    return res;
+}
+
+void* trc_lock_data(trc_data_t* data, bool read, bool write) {
+    return data->compressed_data;
+}
+
+void trc_unlock_data(trc_data_t* trace) {
+    
 }

@@ -119,6 +119,28 @@ typedef struct trc_gl_state_rev_t {
     
     uint read_framebuffer;
     uint draw_framebuffer;
+    
+    uint samples_passed_query;
+    uint any_samples_passed_query;
+    uint any_samples_passed_conservative_query;
+    uint primitives_generated_query;
+    uint transform_feedback_primitives_written_query;
+    uint time_elapsed_query;
+    uint timestamp_query;
+    
+    uint active_texture_unit
+    
+    trc_data_t* texture_1d;
+    trc_data_t* texture_2d;
+    trc_data_t* texture_3d;
+    trc_data_t* texture_1d_array;
+    trc_data_t* texture_2d_array;
+    trc_data_t* texture_rectangle;
+    trc_data_t* texture_cube_map;
+    trc_data_t* texture_cube_map_array;
+    trc_data_t* texture_buffer;
+    trc_data_t* texture_2d_multisample;
+    trc_data_t* texture_2d_multisample_array;
 } trc_gl_state_rev_t;
 
 typedef struct trc_gl_obj_rev_t {
@@ -132,16 +154,37 @@ typedef struct trc_gl_buffer_rev_t {
     trc_data_t* data;
 } trc_gl_buffer_rev_t;
 
+typedef struct trc_gl_sample_params_t {
+    uint min_filter;
+    uint mag_filter;
+    float min_lod;
+    float max_lod;
+    uint wrap_s;
+    uint wrap_t;
+    uint wrap_r;
+    float border_color[4];
+    uint compare_mode;
+    uint compare_func;
+} trc_gl_sample_params_t;
+
 typedef struct trc_gl_sampler_rev_t {
     TRC_GL_OBJ_HEAD
 } trc_gl_sampler_rev_t;
 
 typedef struct trc_gl_texture_rev_t {
     TRC_GL_OBJ_HEAD
+    trc_gl_sample_params_t sample_params;
+    uint depth_stencil_texture_mode;
+    uint base_level;
+    uint max_level;
+    float lod_bias;
+    uint swizzle[4];
 } trc_gl_texture_rev_t;
 
 typedef struct trc_gl_query_rev_t {
     TRC_GL_OBJ_HEAD
+    uint type;
+    int64_t result;
 } trc_gl_query_rev_t;
 
 typedef struct trc_gl_framebuffer_rev_t {
@@ -163,8 +206,15 @@ typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
     size_t uniform_count;
     size_t vertex_attrib_count;
+    //TODO: Move these arrays into trc_data_t(s)
     int* uniforms; //[real0, fake0, real1, fake1, ...]
     int* vertex_attribs; //[real0, fake0, real1, fake1, ...]
+    
+    size_t shader_count;
+    uint* shaders;
+    uint* shader_revisions;
+    
+    char* info_log;
 } trc_gl_program_rev_t;
 
 typedef struct trc_gl_program_pipeline_rev_t {
@@ -226,6 +276,8 @@ typedef struct trc_gl_inspection_t {
     size_t data_count;
     trc_data_t** data;
     
+    //TODO: Instead of an array of revisions, have an array of array of revisions
+    //    (with each array of rev for each context)
     size_t gl_state_revision_count;
     trc_gl_state_rev_t* gl_state_revisions; //Sorted from lowest revision to highest
     
@@ -308,7 +360,6 @@ trace_extra_t* trc_get_extrai(trace_command_t* cmd, const char* name, size_t ind
 void trc_add_info(trace_command_t* command, const char* format, ...);
 void trc_add_warning(trace_command_t* command, const char* format, ...);
 void trc_add_error(trace_command_t* command, const char* format, ...);
-void trc_clear_inspection(trace_t* trace);
 void trc_run_inspection(trace_t* trace);
 
 const trc_gl_state_rev_t* trc_get_gl_state(trace_t* trace);
@@ -369,4 +420,8 @@ trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake);
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev);
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake);
+
+trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
+void* trc_lock_data(trc_data_t* data, bool read, bool write);
+void trc_unlock_data(trc_data_t* data);
 #endif

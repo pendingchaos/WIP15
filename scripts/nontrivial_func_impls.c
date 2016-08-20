@@ -229,6 +229,27 @@ glGenTextures:
         rev.fake_context = ctx->trace->inspection.cur_fake_context;
         rev.ref_count = 1;
         rev.real = textures[i];
+        rev.depth_stencil_texture_mode = GL_DEPTH_COMPONENT;
+        rev.base_level = 0;
+        rev.sample_params.border_color[0] = 0;
+        rev.sample_params.border_color[1] = 0;
+        rev.sample_params.border_color[2] = 0;
+        rev.sample_params.border_color[3] = 0;
+        rev.sample_params.compare_func = GL_LEQUAL;
+        rev.sample_params.compare_mode = GL_NONE;
+        rev.lod_bias = 0;
+        rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
+        rev.sample_params.mag_filter = GL_LINEAR;
+        rev.sample_params.min_lod = -1000;
+        rev.sample_params.max_lod = 1000;
+        rev.max_level = 1000;
+        rev.swizzle[0] = GL_RED;
+        rev.swizzle[1] = GL_GREEN;
+        rev.swizzle[2] = GL_BLUE;
+        rev.swizzle[3] = GL_ALPHA;
+        rev.sample_params.wrap_s = GL_REPEAT;
+        rev.sample_params.wrap_t = GL_REPEAT;
+        rev.sample_params.wrap_r = GL_REPEAT;
         trc_set_gl_texture(ctx->trace, fake[i], &rev);
     }
 
@@ -620,8 +641,12 @@ glBufferData:
     const void* data = gl_param_data(command, 2);
     GLenum usage = gl_param_GLenum(command, 3);
     real(target, size, data, usage);
-    //TODO
-    //inspect_act_buf_data(&command->state, get_bound_buffer(ctx, target), size, data, usage);
+    
+    uint fake = get_bound_buffer(ctx, target);
+    
+    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
+    buf.data = trc_create_data(ctx->trace, size, data);
+    trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glBufferSubData:
     GLuint target = gl_param_GLenum(command, 0);
@@ -629,8 +654,24 @@ glBufferSubData:
     GLsizeiptr size = gl_param_GLsizeiptr(command, 2);
     const void* data = gl_param_data(command, 3);
     real(target, offset, size, data);
-    //TODO
-    //inspect_act_buf_sub_data(&command->state, get_bound_buffer(ctx, target), offset, size, data);
+    
+    uint fake = get_bound_buffer(ctx, target);
+    
+    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf.data) RETURN;
+    
+    trc_gl_buffer_rev_t old = buf;
+    
+    buf.data = trc_create_data(ctx->trace, old.data->uncompressed_size, NULL);
+    void* newdata = trc_lock_data(buf.data, false, true);
+    
+    memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
+    trc_unlock_data(old.data);
+    
+    memcpy((uint8_t*)newdata+offset, data, size);
+    trc_unlock_data(buf.data);
+    
+    trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glUnmapBuffer:
     GLuint target = gl_param_GLenum(command, 0);
@@ -643,8 +684,24 @@ glUnmapBuffer:
         RETURN;
     }
     F(glBufferSubData)(target, 0, extra->size, extra->data);
-    //TODO
-    //inspect_act_buf_sub_data(&command->state, get_bound_buffer(ctx, target), 0, extra->size, extra->data);
+    
+    uint fake = get_bound_buffer(ctx, target);
+    
+    trc_gl_buffer_rev_t buf = *trc_get_gl_buffer(ctx->trace, fake);
+    if (!buf.data) RETURN;
+    
+    trc_gl_buffer_rev_t old = buf;
+    
+    buf.data = trc_create_data(ctx->trace, old.data->uncompressed_size, NULL);
+    void* newdata = trc_lock_data(buf.data, false, true);
+    
+    memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
+    trc_unlock_data(old.data);
+    
+    memcpy(newdata, extra->data, extra->size);
+    trc_unlock_data(buf.data);
+    
+    trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glCreateShader:
     GLenum type = gl_param_GLenum(command, 0);
@@ -685,8 +742,6 @@ glShaderSource:
     }
     
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
-    free(shdr.source_lengths);
-    free(shdr.sources);
     shdr.source_count = count;
     shdr.source_lengths = malloc(count*sizeof(size_t));
     shdr.sources = malloc(count*sizeof(char*));
@@ -726,11 +781,9 @@ glCompileShader:
     
     GLint status;
     F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
-    if (!status)
-        trc_add_error(command, "Failed to compile shader.");
+    if (!status) trc_add_error(command, "Failed to compile shader.");
     
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, fake);
-    free(shdr.info_log);
     
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
@@ -751,6 +804,10 @@ glCreateProgram:
     rev.vertex_attrib_count = 0;
     rev.uniforms = NULL;
     rev.vertex_attribs = NULL;
+    rev.shader_count = 0;
+    rev.shaders = NULL;
+    rev.shader_revisions = NULL;
+    rev.info_log = NULL;
     trc_set_gl_program(ctx->trace, fake, &rev);
 
 glDeleteProgram:
@@ -783,7 +840,19 @@ glAttachShader:
     
     real(real_program, real_shader);
     
-    //TODO inspect_act_attach_shdr(&command->state, fake_program, fake_shader);
+    trc_gl_program_rev_t program = *trc_get_gl_program(ctx->trace, fake_program);
+    trc_gl_program_rev_t old = program;
+    const trc_gl_shader_rev_t* shader = trc_get_gl_shader(ctx->trace, fake_shader);
+    
+    program.shader_count++;
+    program.shaders = malloc(program.shader_count*4);
+    program.shader_revisions = malloc(program.shader_count*4);
+    memcpy(program.shaders, old.shaders, old.shader_count*4);
+    memcpy(program.shader_revisions, old.shader_revisions, old.shader_count*4);
+    program.shaders[program.shader_count-1] = fake_shader;
+    program.shader_revisions[program.shader_count-1] = shader->revision;
+    
+    trc_set_gl_program(ctx->trace, fake_program, &program);
 
 glDetachShader:
     GLuint fake_program = gl_param_GLuint(command, 0);
@@ -803,7 +872,21 @@ glDetachShader:
     
     real(real_program, real_shader);
     
-    //TODO inspect_act_detach_shdr(&command->state, fake_program, fake_shader);
+    trc_gl_program_rev_t program = *trc_get_gl_program(ctx->trace, fake_program);
+    trc_gl_program_rev_t old = program;
+    
+    program.shader_count--;
+    program.shaders = malloc(program.shader_count*4);
+    program.shader_revisions = malloc(program.shader_count*4);
+    
+    size_t next = 0;
+    for (size_t i = 0; i < old.shader_count; i++) {
+        if (old.shaders[i] == fake_shader) continue;
+        program.shaders[next] = old.shaders[i];
+        program.shader_revisions[next++] = old.shader_revisions[i];
+    }
+    
+    trc_set_gl_program(ctx->trace, fake_program, &program);
 
 glLinkProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -819,19 +902,14 @@ glLinkProgram:
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
     if (!status) trc_add_error(command, "Failed to link program.");
     
+    trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, fake);
+    
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
-    char* info_log = malloc(len+1);
-    info_log[len] = 0;
-    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    rev.info_log = malloc(len+1);
+    rev.info_log[len] = 0;
+    F(glGetProgramInfoLog)(real_program, len, NULL, rev.info_log);
     
-    //TODO inspect_act_set_prog_info_log(&command->state, fake, info_log);
-    
-    free(info_log);
-    
-    trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, fake);
-    free(rev.uniforms);
-    free(rev.vertex_attribs);
     rev.uniform_count = 0;
     rev.vertex_attrib_count = 0;
     rev.uniforms = NULL;
@@ -895,15 +973,15 @@ glValidateProgram:
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
     if (!status) trc_add_error(command, "Program validation failed.");
     
+    trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, fake);
+    
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
-    char* info_log = malloc(len+1);
-    info_log[len] = 0;
-    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    rev.info_log = malloc(len+1);
+    rev.info_log[len] = 0;
+    F(glGetProgramInfoLog)(real_program, len, NULL, rev.info_log);
     
-    //TODO inspect_act_set_prog_info_log(&command->state, fake, info_log);
-    
-    free(info_log);
+    trc_set_gl_program(ctx->trace, fake, &rev);
 
 glUseProgram:
     GLuint fake = gl_param_GLuint(command, 0);
@@ -2340,6 +2418,8 @@ glGenQueries:
         rev.fake_context = ctx->trace->inspection.cur_fake_context;
         rev.ref_count = 1;
         rev.real = queries[i];
+        rev.type = 0;
+        rev.result = 0;
         trc_set_gl_query(ctx->trace, fake[i], &rev);
     }
 
@@ -2364,16 +2444,27 @@ glBeginQuery:
     }
     GLenum target = gl_param_GLenum(command, 0);
     real(target, real_id);
-    update_query_type(ctx, command, target);
+    
+    trc_gl_query_rev_t query = *trc_get_gl_query(ctx->trace, id);
+    query.type = target;
+    trc_set_gl_query(ctx->trace, id, &query);
+    
+    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    *get_query_binding_pointer(&state, target) = id;
+    trc_set_gl_state(ctx->trace, &state);
     //TODO: Reference counting
 
 glEndQuery:
     GLenum target = gl_param_GLenum(command, 0);
-    GLint id;
-    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
     real(target);
+    
+    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    GLuint id = *get_query_binding_pointer(&state, target);
+    GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
+    *get_query_binding_pointer(&state, target) = 0;
+    trc_set_gl_state(ctx->trace, &state);
     //TODO: This clears any errors
-    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, target, id);
+    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, target, id, real_id);
     //TODO: Reference counting
 
 glQueryCounter:
@@ -2386,7 +2477,7 @@ glQueryCounter:
     GLenum target = gl_param_GLenum(command, 1);
     real(real_id, target);
     //TODO: This clears any errors
-    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, target, real_id);
+    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, target, id, real_id);
 
 glDrawBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);

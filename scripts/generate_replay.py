@@ -479,6 +479,213 @@ static void replay_get_tex_params(trc_replay_context_t* ctx,
     inspect_act_tex_params(&cmd->state, params.texture, &params);*/
 }
 
+static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* params,
+                                GLenum param, uint32_t count, const double* val) {
+    switch (param) {
+    case GL_TEXTURE_MIN_FILTER:
+    case GL_TEXTURE_MAG_FILTER:
+    case GL_TEXTURE_MIN_LOD:
+    case GL_TEXTURE_MAX_LOD:
+    case GL_TEXTURE_WRAP_S:
+    case GL_TEXTURE_WRAP_T:
+    case GL_TEXTURE_WRAP_R:
+    case GL_TEXTURE_COMPARE_MODE:
+    case GL_TEXTURE_COMPARE_FUNC:
+        if (count != 1) {
+            trc_add_error(command, "Expected 1 value. Got %u.\n", count);
+            return true;
+        }
+        break;
+    case GL_TEXTURE_BORDER_COLOR:
+        if (count != 4) {
+            trc_add_error(command, "Expected 4 values. Got %u.\n", count);
+            return true;
+        }
+        break;
+    }
+    
+    switch (param) {
+    case GL_TEXTURE_MIN_FILTER:
+        if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST && val[0]!=GL_NEAREST_MIPMAP_NEAREST &&
+            val[0]!=GL_LINEAR_MIPMAP_NEAREST && val[0]!=GL_NEAREST_MIPMAP_LINEAR &&
+            val[0]!=GL_LINEAR_MIPMAP_LINEAR) {
+            trc_add_error(command, "Invalid minification filter.\n")
+            return true;
+        }
+        break;
+    case GL_TEXTURE_MAG_FILTER:
+        if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST) {
+            trc_add_error(command, "Invalid magnification filter.\n")
+            return true;
+        }
+        break;
+    case GL_TEXTURE_WRAP_S:
+    case GL_TEXTURE_WRAP_T:
+    case GL_TEXTURE_WRAP_R:
+        if (val[0]!=GL_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_BORDER && val[0]!=GL_MIRRORED_REPEAT &&
+            val[0]!=GL_REPEAT && val[0]!=GL_MIRROR_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_EDGE) {
+            trc_add_error(command, "Invalid wrap mode.\n");
+            return true;
+        }
+        break;
+    case GL_TEXTURE_COMPARE_MODE:
+        if (val[0]!=GL_COMPARE_REF_TO_TEXTURE && val[0]!=GL_NONE) {
+            trc_add_error(command, "Invalid compare mode.\n");
+            return true;
+        }
+        break;
+    case GL_TEXTURE_COMPARE_FUNC:
+        if (val[0]!=GL_LEQUAL && val[0]!=GL_GEQUAL && val[0]!=GL_LESS && val[0]!=GL_GREATER &&
+            val[0]!=GL_EQUAL && val[0]!=GL_NOTEQUAL && val[0]!=GL_ALWAYS && val[0]!=GL_NEVER) {
+            trc_add_error(command, "Invalid compare function.\n");
+            return true;
+        }
+        break;
+    }
+    
+    switch (param) {
+    case GL_TEXTURE_MIN_FILTER: params->min_filter = val[0]; break;
+    case GL_TEXTURE_MAG_FILTER: params->mag_filter = val[0]; break;
+    case GL_TEXTURE_MIN_LOD: params->min_lod = val[0]; break;
+    case GL_TEXTURE_MAX_LOD: params->max_lod = val[0]; break;
+    case GL_TEXTURE_WRAP_S: params->wrap_s = val[0]; break;
+    case GL_TEXTURE_WRAP_T: params->wrap_t = val[0]; break;
+    case GL_TEXTURE_WRAP_R: params->wrap_r = val[0]; break;
+    case GL_TEXTURE_BORDER_COLOR:
+        for (uint i = 0; i < 4; i++) params->border_color[i] = val[i];
+        break;
+    case GL_TEXTURE_COMPARE_MODE: params->compare_mode = val[0]; break;
+    case GL_TEXTURE_COMPARE_FUNC: params->compare_func = val[0]; break;
+    }
+    
+    return false;
+}
+
+static trc_data_t** get_bound_texture_data(trc_gl_state_rev_t* state, GLenum target) {
+    switch (target) {
+    case GL_TEXTURE_1D: return &state->texture_1d;
+    case GL_TEXTURE_2D: return &state->texture_2d;
+    case GL_TEXTURE_3D: return &state->texture_3d;
+    case GL_TEXTURE_1D_ARRAY: return &state->texture_1d_array;
+    case GL_TEXTURE_2D_ARRAY: return &state->texture_2d_array;
+    case GL_TEXTURE_RECTANGLE: return &state->texture_rectangle;
+    case GL_TEXTURE_CUBE_MAP: return &state->texture_cube_map;
+    case GL_TEXTURE_CUBE_MAP_ARRAY: return &state->texture_cube_map_array;
+    case GL_TEXTURE_BUFFER: return &state->texture_buffer;
+    case GL_TEXTURE_2D_MULTISAMPLE: return &state->texture_2d_multisample;
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return &state->texture_2d_multisample_array;
+    }
+}
+
+static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex) {
+    trc_gl_state_t state = trc_get_gl_state(trace);
+    
+    trc_data_t* data = *get_bound_texture_data(state, target);
+    
+    //Copy
+    void* data = trc_lock_data(data, true, false);
+    trc_data_t* new_data = trc_create_data(trace, data->uncompressed_size, data);
+    trc_unlock_data(data);
+    
+    //Modify
+    uint* data = trc_lock_data(new_data, false, true);
+    data[unit<0?state.active_texture_unit:unit] = tex;
+    trc_unlock_data(new_data);
+    
+    //Replace
+    *get_bound_texture_data(&state, target);
+    trc_set_gl_state(trace, &state);
+}
+
+static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
+    trc_data_t* data = *get_bound_texture_data(trc_get_gl_state(trace), target);
+    uint* data = trc_lock_data(data, true, false);
+    uint res = data[unit<0?state.active_texture_unit:unit];
+    trc_unlock_data(data);
+    
+    return res;
+}
+
+//TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
+//TODO: More validation
+static bool texture_param_double(trc_command_t* command, trc_gl_texture_Rev_t* tex,
+                                 GLenum param, uint32_t count, const double* val) {
+    switch (param) {
+    case GL_TEXTURE_MIN_FILTER:
+    case GL_TEXTURE_MAG_FILTER:
+    case GL_TEXTURE_MIN_LOD:
+    case GL_TEXTURE_MAX_LOD:
+    case GL_TEXTURE_WRAP_S:
+    case GL_TEXTURE_WRAP_T:
+    case GL_TEXTURE_WRAP_R:
+    case GL_TEXTURE_COMPARE_MODE:
+    case GL_TEXTURE_COMPARE_FUNC:
+    case GL_TEXTURE_BORDER_COLOR:
+        return sample_param_double(command, &tex->sample_params, param, count, val);
+    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
+    case GL_TEXTURE_BASE_LEVEL:
+    case GL_TEXTURE_MAX_LEVEL:
+    case GL_TEXTURE_LOD_BIAS:
+    case GL_TEXTURE_SWIZZLE_R:
+    case GL_TEXTURE_SWIZZLE_G:
+    case GL_TEXTURE_SWIZZLE_B:
+    case GL_TEXTURE_SWIZZLE_A:
+        if (count != 1) {
+            trc_add_error(command, "Expected 1 value. Got %u.\n", count);
+            return true;
+        }
+        break;
+    case GL_TEXTURE_SWIZZLE_RGBA:
+        if (count != 4) {
+            trc_add_error(command, "Expected 4 values. Got %u.\n", count);
+            return true;
+        }
+        break;
+    }
+    
+    switch (params) {
+    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
+        if (val[0]!=GL_DEPTH_COMPONENT && val[0]!=GL_STENCIL_COMPONENT) {
+            trc_add_error(command, "Invalid depth stencil texture mode.\n");
+            return true;
+        }
+        break;
+    case GL_TEXTURE_SWIZZLE_R:
+    case GL_TEXTURE_SWIZZLE_G:
+    case GL_TEXTURE_SWIZZLE_B:
+    case GL_TEXTURE_SWIZZLE_A:
+        if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
+            trc_add_error(command, "Invalid swizzle\n");
+            return true;
+        }
+        break;
+    case GL_TEXTURE_SWIZZLE_RGBA:
+        for (uint i = 0; i < 4; i++) {
+            if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
+                trc_add_error(command, "Invalid swizzle\n");
+                return true;
+            }
+        }
+        break;
+    }
+    
+    switch (params) {
+    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
+        tex->depth_stencil_texture_mode = val[0];
+        break;
+    case GL_TEXTURE_BASE_LEVEL: tex->base_level = val[0]; break;
+    case GL_TEXTURE_MAX_LEVEL: tex->max_level = val[0]; break;
+    case GL_TEXTURE_LOD_BIAS: tex->lod_bias = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_R: tex->swizzle[0] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_G: tex->swizzle[1] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_B: tex->swizzle[2] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_A: tex->swizzle[3] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_RGBA:
+        for (uint i = 0; i < 4; i++) tex->swizzle[i] = val[i]; break;
+        break;
+    }
+}
+
 static GLenum get_tex_binding(GLenum type) {
     switch (type) {
     case GL_TEXTURE_1D:
@@ -700,23 +907,22 @@ static void update_renderbuffer(trc_replay_context_t* ctx, trace_command_t* cmd)
     }*/
 }
 
-static void update_query_type(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target) {
-    GLint id;
-    F(glGetQueryiv)(target, GL_CURRENT_QUERY, &id);
-    if (!id)
-        return;
-    
-    //TODO
-    /*inspect_query_t query;
-    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
-    query.type = target;
-    query.result = 0;
-    inspect_act_set_query(&cmd->state, &query);*/
+static uint* get_query_binding_pointer(trc_gl_state_rev_t* state, GLenum target) {
+    switch (target) {
+    case GL_SAMPLES_PASSED: return &state->samples_passed_query;
+    case GL_ANY_SAMPLES_PASSED: return &state->any_samples_passed_query;
+    case GL_ANY_SAMPLES_PASSED_CONSERVATIVE: return &state->any_samples_passed_conservative_query;
+    case GL_PRIMITIVES_GENERATED: return &state->primitives_generated_query;
+    case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return &state->transform_feedback_primitives_written_query;
+    case GL_TIME_ELAPSED: return &state->time_elapsed_query;
+    case GL_TIMESTAMP: return &state->timestamp_query;
+    }
+    static uint dummy = 0;
+    return &dummy;
 }
 
-static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint id) {
-    if (!id)
-        return;
+static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint fake_id, GLuint id) {
+    if (!id) return;
     
     GLint res = 0;
     if (target!=GL_TIME_ELAPSED && target!=GL_TIMESTAMP) {
@@ -728,12 +934,9 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
         F(glGetQueryObjectiv)(id, GL_QUERY_RESULT, &res);
     }
     
-    //TODO
-    /*inspect_query_t query;
-    query.fake = replay_get_fake_object(ctx, ReplayObjType_GLQuery, id);
-    query.type = target;
+    trc_gl_query_rev_t query = *trc_get_gl_query(ctx->trace, fake_id);
     query.result = res;
-    inspect_act_set_query(&cmd->state, &query);*/
+    trc_set_gl_query(ctx->trace, fake_id, &query);
 }
 
 static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum buffer, GLint drawbuffer) {

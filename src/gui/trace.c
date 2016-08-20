@@ -106,9 +106,7 @@ static void init_trace_tree(GtkTreeView* tree) {
 void command_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    
-    if (!path)
-        return;
+    if (!path) return;
     
     if (gtk_tree_path_get_depth(path) == 2) {
         gint* indices = gtk_tree_path_get_indices(path);

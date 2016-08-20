@@ -40,8 +40,7 @@ static void update_buffer_view(size_t buf_index) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(content));
     gtk_tree_store_clear(store);
     
-    if (type < 0)
-        return;
+    if (type < 0) return;
     
     size_t type_size = 0;
     switch (type) {
@@ -77,15 +76,20 @@ static void update_buffer_view(size_t buf_index) {
     }
     }
     
-    //TODO
-    /*inspect_buffer_t* buf = get_inspect_buf_vec(inspector->buffers, buf_index);
-    if (!buf)
-        return;
-    if (!buf->data)
-        return;
+    size_t count = 0;
+    trc_gl_buffer_rev_t* buf = NULL;
+    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Buffer]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Buffer][i];
+        buf = (trc_gl_buffer_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
+        if (buf && buf->ref_count) count++;
+        if (count == buf_index+1) break;
+    }
     
-    uint8_t* data = buf->data;
-    size_t buf_size = buf->size;
+    if (!buf) return; //TODO: Is this possible?
+    if (!buf->data) return;
+    
+    uint8_t* data = trc_lock_data(buf->data, true, false);
+    size_t buf_size = buf->data->uncompressed_size;
     while (offset+type_size <= buf_size) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -169,15 +173,16 @@ static void update_buffer_view(size_t buf_index) {
             cur += snprintf(cur, end-cur, "]");
         
         gtk_tree_store_set(store, &row, 0, str, -1);
-    }*/
+    }
+    
+    trc_unlock_data(buf->data);
 }
 
 void update_buffer_view_callback(GObject* obj, gpointer user_data) {
     GObject* buf_tree_view = gtk_builder_get_object(builder, "buffers_treeview");
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(buf_tree_view), &path, NULL);
-    if (!path)
-        return;
+    if (!path) return;
     
     //Initialize params
     size_t index = gtk_tree_path_get_indices(path)[0];
@@ -195,7 +200,7 @@ void init_buffer_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Buffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Buffer][i];
-        trc_gl_buffer_rev_t* buf = (trc_gl_buffer_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
+        trc_gl_obj_rev_t* buf = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
         if (buf && buf->ref_count) {
             char str[64];
             memset(str, 0, 64);

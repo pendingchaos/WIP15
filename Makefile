@@ -39,6 +39,9 @@ all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/leakcheck bin/te
 .%.o: %.c
 	$(CC) -c $< $(CFLAGS) -o $@
 
+src/libtrace/.replay_gl.o: src/libtrace/replay_gl.c
+	$(CC) -c $< $(CFLAGS) -o $@
+
 scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 	cd scripts; python generate_gl_funcs.py
 
@@ -54,7 +57,7 @@ src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_repla
 bin/libgl.so: src/.libgl.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
 
-bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o
+bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o src/libtrace/.replay_gl.o
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` $(COMP_LIBS) $(CFLAGS)
 
 bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libtrace.so
