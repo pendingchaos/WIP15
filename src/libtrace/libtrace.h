@@ -131,7 +131,7 @@ typedef struct trc_gl_sampler_rev_t {
 typedef struct trc_gl_texture_rev_t {
     TRC_GL_OBJ_HEAD
     trc_gl_sample_params_t sample_params;
-    uint depth_stencil_texture_mode;
+    uint depth_stencil_mode;
     uint base_level;
     uint max_level;
     float lod_bias;

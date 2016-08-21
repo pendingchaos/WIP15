@@ -625,7 +625,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     
     switch (param) {
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
-        tex.depth_stencil_texture_mode = val[0];
+        tex.depth_stencil_mode = val[0];
         break;
     case GL_TEXTURE_BASE_LEVEL: tex.base_level = val[0]; break;
     case GL_TEXTURE_MAX_LEVEL: tex.max_level = val[0]; break;

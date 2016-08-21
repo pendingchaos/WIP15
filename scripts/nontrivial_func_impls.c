@@ -213,7 +213,7 @@ glGenTextures:
         rev.fake_context = ctx->trace->inspection.cur_fake_context;
         rev.ref_count = 1;
         rev.real = textures[i];
-        rev.depth_stencil_texture_mode = GL_DEPTH_COMPONENT;
+        rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
         rev.base_level = 0;
         rev.sample_params.border_color[0] = 0;
         rev.sample_params.border_color[1] = 0;
@@ -490,7 +490,7 @@ glTexParameterf:
     GLenum pname = gl_param_GLenum(command, 1);
     GLfloat param = gl_param_GLfloat(command, 2);
     GLdouble double_param = param;
-    if (!texture_param_double(ctx, command, target, param, 1, &double_param))
+    if (!texture_param_double(ctx, command, target, pname, 1, &double_param))
         real(target, pname, param);
 
 glTexParameteri:
@@ -498,7 +498,7 @@ glTexParameteri:
     GLenum pname = gl_param_GLenum(command, 1);
     GLint param = gl_param_GLint(command, 2);
     GLdouble double_param = param;
-    if (!texture_param_double(ctx, command, target, param, 1, &double_param))
+    if (!texture_param_double(ctx, command, target, pname, 1, &double_param))
         real(target, pname, param);
 
 glTexParameterfv:
@@ -750,7 +750,6 @@ glUnmapBuffer:
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
     if (!buf.data) RETURN; //TODO: Error
     
-    printf("%zu %zu %zu\n", buf.map_offset, extra->size, buf.map_length);
     if (extra->size != buf.data->uncompressed_size) {
         //TODO
     }

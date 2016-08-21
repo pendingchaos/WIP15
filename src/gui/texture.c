@@ -7,19 +7,16 @@
 
 extern GtkBuilder* builder;
 extern trace_t* trace;
+extern int64_t revision;
 
 void texture_select_callback(GObject* obj, gpointer user_data) {
-    //TODO
-    /*GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
+    GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_treeview"));
     GtkTreeStore* param_store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
     
     GtkTreeView* image_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_texture_images"));
     GtkTreeStore* image_store = GTK_TREE_STORE(gtk_tree_view_get_model(image_tree));
-    
-    if (!param_store)
-        return;
-    if (!image_store)
-        return;
+    if (!param_store) return;
+    if (!image_store) return;
     
     gtk_tree_store_clear(image_store);
     gtk_tree_store_clear(param_store);
@@ -35,51 +32,49 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     
     //Initialize params
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
-    inspect_texture_t* tex = get_inspect_tex_vec(inspector->textures, tex_index);
-    if (!tex) return;
-    
-    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), tex->layer_count-1);
-    
-    inspect_gl_tex_params_t params = tex->params;
+    size_t count = 0;
+    trc_gl_texture_rev_t* tex = NULL;
+    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
+        tex = (trc_gl_texture_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
+        if (tex && tex->ref_count) count++;
+        if (count == tex_index+1) break;
+    }
+    if (!tex) return; //TODO: Is this possible?
+    //TODO
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count*/1-1);
     
     GtkTreeIter row;
     #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
     gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
-    if (tex->type) {
-        VAL("Type", static_format("%s", get_enum_str("TextureTarget", tex->type)));
-        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, params.depth_stencil_mode)));
-        VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", params.min_filter)));
-        VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", params.mag_filter)));
-        VAL("Min LOD", static_format("%s", format_float(params.min_lod)));
-        VAL("Max LOD", static_format("%s", format_float(params.max_lod)));
-        VAL("LOD bias", static_format("%s", format_float(params.lod_bias)));
-        VAL("Base Level", static_format("%d", params.base_level));
-        VAL("Max Level", static_format("%d", params.max_level));
+    if (/*tex->type TODO*/true) {
+        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, tex->depth_stencil_mode)));
+        VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", tex->sample_params.min_filter)));
+        VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", tex->sample_params.mag_filter)));
+        VAL("Min LOD", static_format("%s", format_float(tex->sample_params.min_lod)));
+        VAL("Max LOD", static_format("%s", format_float(tex->sample_params.max_lod)));
+        VAL("LOD bias", static_format("%s", format_float(tex->lod_bias)));
+        VAL("Base Level", static_format("%d", tex->base_level));
+        VAL("Max Level", static_format("%d", tex->max_level));
         VAL("Swizzle", static_format("[%s, %s, %s, %s]",
-                                     get_enum_str(NULL, params.swizzle[0]),
-                                     get_enum_str(NULL, params.swizzle[1]),
-                                     get_enum_str(NULL, params.swizzle[2]),
-                                     get_enum_str(NULL, params.swizzle[3])));
-        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
-        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
-        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", params.wrap[0])));
+                                     get_enum_str(NULL, tex->swizzle[0]),
+                                     get_enum_str(NULL, tex->swizzle[1]),
+                                     get_enum_str(NULL, tex->swizzle[2]),
+                                     get_enum_str(NULL, tex->swizzle[3])));
+        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_s)));
+        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_t)));
+        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_r)));
         VAL("Border Color", static_format("[%s, %s, %s, %s]",
-                                          format_float(params.border_color[0]),
-                                          format_float(params.border_color[1]),
-                                          format_float(params.border_color[2]),
-                                          format_float(params.border_color[3])));
-        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, params.compare_mode)));
-        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", params.compare_func)));
-        VAL("View Min Level", static_format("%d", params.view_min_level));
-        VAL("View Num Levels", static_format("%u", params.view_num_levels));
-        VAL("View Min Layer", static_format("%d", params.view_min_layer));
-        VAL("View Num Layers", static_format("%u", params.view_num_layers));
-        VAL("Immutable levels", static_format("%u", params.immutable_levels));
-        VAL("Image Format Compat Type", static_format("%s", get_enum_str(NULL, params.image_format_compatibility_type)));
-        VAL("Immutable Format", static_format("%s", get_enum_str(NULL, params.immutable_format)));
+                                          format_float(tex->sample_params.border_color[0]),
+                                          format_float(tex->sample_params.border_color[1]),
+                                          format_float(tex->sample_params.border_color[2]),
+                                          format_float(tex->sample_params.border_color[3])));
+        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, tex->sample_params.compare_mode)));
+        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", tex->sample_params.compare_func)));
     }
     
-    if (tex->mipmaps) {
+    //TODO
+    /*if (tex->mipmaps) {
         VAL("Width", static_format("%zu", tex->width));
         VAL("Height", static_format("%zu", tex->height));
         VAL("Depth", static_format("%zu", tex->depth));
@@ -129,13 +124,16 @@ void init_texture_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)h->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
+        trc_gl_obj_rev_t* shdr = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
+        if (shdr && shdr->ref_count) {
+            char str[64];
+            memset(str, 0, 64);
+            snprintf(str, 64, "%u", (uint)h->fake);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(store, &row, NULL);
+            gtk_tree_store_set(store, &row, 0, str, -1);
+        }
     }
 }
 
