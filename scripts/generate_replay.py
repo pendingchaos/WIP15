@@ -14,6 +14,7 @@ output.write("""#include <X11/Xlib.h>
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <assert.h>
 #include "libtrace/libtrace.h"
 #include "shared/glapi.h"
 
@@ -37,12 +38,16 @@ static const char* gl_param_string(trace_command_t* cmd, size_t index) {
     return *trc_get_str(trc_get_arg(cmd, index));
 }
 
-static char** gl_param_string_array(trace_command_t* cmd, size_t index) {
+static const char*const* gl_param_string_array(trace_command_t* cmd, size_t index) {
     return trc_get_str(trc_get_arg(cmd, index));
 }
 
-static void* gl_param_data(trace_command_t* cmd, size_t index) {
+static const void* gl_param_data(trace_command_t* cmd, size_t index) {
     return *trc_get_data(trc_get_arg(cmd, index));
+}
+
+static size_t gl_param_data_size(trace_command_t* cmd, size_t index) {
+    return *trc_get_data_sizes(trc_get_arg(cmd, index));
 }
 
 static uint64_t gl_param_pointer(trace_command_t* cmd, size_t index) {
@@ -471,7 +476,7 @@ static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex)
     
     //Copy
     uint* dataptr = trc_lock_data(data, true, false);
-    trc_data_t* new_data = trc_create_data(trace, data->uncompressed_size, dataptr);
+    trc_data_t* new_data = trc_create_inspection_data(trace, data->uncompressed_size, dataptr);
     trc_unlock_data(data);
     
     //Modify
@@ -528,7 +533,7 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     //TODO
     uint max_combined_tex_units = 48;
     
-    trc_data_t* bound_tex_data = trc_create_data(ctx->trace, max_combined_tex_units*4, NULL);
+    trc_data_t* bound_tex_data = trc_create_inspection_data(ctx->trace, max_combined_tex_units*4, NULL);
     uint* bound_tex_data_ptr = trc_lock_data(bound_tex_data, false, true);
     for (uint i = 0; i < max_combined_tex_units; i++) bound_tex_data_ptr[i] = 0;
     trc_unlock_data(bound_tex_data);
@@ -548,6 +553,205 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     return rev;
 }
 
+void replay_set_texture_image(trace_t* trace, trace_command_t* command, uint target, uint level,
+                              uint internal_format, uint width, uint height, uint depth, trc_data_t* data) {
+    uint fake = get_bound_texture(trace, target, trc_get_gl_context(trace, 0)->active_texture_unit);
+    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(trace, fake);
+    if (!rev) {
+        trc_add_error(command, "No texture bound or invalid target\\n");
+        return;
+    }
+    
+    trc_gl_texture_image_t img;
+    img.face = 0;
+    if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
+        img.face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    img.level = level;
+    img.internal_format = internal_format;
+    img.width = width;
+    img.height = height;
+    img.depth = depth;
+    img.data = data;
+    
+    size_t img_count = rev->images->uncompressed_size / sizeof(trc_gl_texture_image_t);
+    trc_gl_texture_image_t* newimages = malloc((img_count+1)*sizeof(trc_gl_texture_image_t));
+    
+    trc_gl_texture_image_t* images = trc_lock_data(rev->images, true, false);
+    bool replaced = false;
+    for (size_t i = 0; i < img_count; i++) {
+        if (images[i].face==img.face && images[i].level==img.level) {
+            newimages[i] = img;
+            replaced = true;
+        } else {
+            newimages[i] = images[i];
+        }
+    }
+    trc_unlock_data(rev->images);
+    
+    trc_gl_texture_rev_t newrev = *rev;
+    if (!replaced) newimages[img_count++] = img;
+    
+    size_t size = img_count * sizeof(trc_gl_texture_image_t);
+    newrev.images = trc_create_inspection_data(trace, size, newimages);
+    
+    free(newimages);
+    
+    trc_set_gl_texture(trace, fake, &newrev);
+}
+
+void replay_update_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
+    uint fake = get_bound_texture(ctx->trace, target, trc_get_gl_context(ctx->trace, 0)->active_texture_unit);
+    uint real = trc_get_real_gl_texture(ctx->trace, fake);
+    if (!real) {
+        trc_add_error(command, "No texture bound or invalid target\\n");
+        return;
+    }
+    
+    GLint width, height, depth, internal_format;
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_DEPTH, &depth);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_INTERNAL_FORMAT, &internal_format);
+    if (!width) width = 1;
+    if (!height) height = 1;
+    if (!depth) depth = 1;
+    
+    uint dtype = 0; //0=uint32_t 1=int32_t 2=float 3=float+unused24+uint8
+    uint ftype = 0; //0=normal 1=depth 2=stencil 3=depthstencil
+    uint components = 0;
+    switch (internal_format) {
+    case GL_DEPTH_COMPONENT: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH_COMPONENT16: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH_COMPONENT24: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH_COMPONENT32: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH_COMPONENT32F: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH24_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
+    case GL_DEPTH32F_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
+    case GL_STENCIL_INDEX1: dtype = 0; ftype = 2; components = 1; break;
+    case GL_STENCIL_INDEX4: dtype = 0; ftype = 2; components = 1; break;
+    case GL_STENCIL_INDEX8: dtype = 0; ftype = 2; components = 1; break;
+    case GL_STENCIL_INDEX16: dtype = 0; ftype = 2; components = 1; break;
+    case GL_RED: dtype = 2; components = 1; break;
+    case GL_RG: dtype = 2; components = 2; break;
+    case GL_RGB: dtype = 2; components = 3; break;
+    case GL_RGBA: dtype = 2; components = 4; break;
+    case GL_R8: dtype = 2; components = 1; break;
+    case GL_R8_SNORM: dtype = 2; components = 1; break;
+    case GL_R16: dtype = 2; components = 1; break;
+    case GL_R16_SNORM: dtype = 2; components = 1; break;
+    case GL_RG8: dtype = 2; components = 2; break;
+    case GL_RG8_SNORM: dtype = 2; components = 2; break;
+    case GL_RG16: dtype = 2; components = 2; break;
+    case GL_RG16_SNORM: dtype = 2; components = 2; break;
+    case GL_R3_G3_B2: dtype = 2; components = 3; break;
+    case GL_RGB4: dtype = 2; components = 3; break;
+    case GL_RGB5: dtype = 2; components = 3; break;
+    case GL_RGB8: dtype = 2; components = 3; break;
+    case GL_RGB8_SNORM: dtype = 2; components = 3; break;
+    case GL_RGB10: dtype = 2; components = 3; break;
+    case GL_RGB12: dtype = 2; components = 3; break;
+    case GL_RGB16_SNORM: dtype = 2; components = 3; break;
+    case GL_RGBA2: dtype = 2; components = 4; break;
+    case GL_RGBA4: dtype = 2; components = 4; break;
+    case GL_RGB5_A1: dtype = 2; components = 4; break;
+    case GL_RGBA8: dtype = 2; components = 4; break;
+    case GL_RGBA8_SNORM: dtype = 2; components = 4; break;
+    case GL_RGB10_A2: dtype = 2; components = 4; break;
+    case GL_RGB10_A2UI: dtype = 0; components = 4; break;
+    case GL_RGBA12: dtype = 2; components = 4; break;
+    case GL_RGBA16: dtype = 2; components = 4; break;
+    case GL_SRGB8: dtype = 2; components = 3; break;
+    case GL_SRGB8_ALPHA8: dtype = 2; components = 4; break;
+    case GL_R16F: dtype = 2; components = 1; break;
+    case GL_RG16F: dtype = 2; components = 2; break;
+    case GL_RGB16F: dtype = 2; components = 3; break;
+    case GL_RGBA16F: dtype = 2; components = 4; break;
+    case GL_R32F: dtype = 2; components = 1; break;
+    case GL_RG32F: dtype = 2; components = 2; break;
+    case GL_RGB32F: dtype = 2; components = 3; break;
+    case GL_RGBA32F: dtype = 2; components = 4; break;
+    case GL_R11F_G11F_B10F: dtype = 2; components = 3; break;
+    case GL_RGB9_E5: dtype = 2; components = 3; break;
+    case GL_R8I: dtype = 1; components = 1; break;
+    case GL_R8UI: dtype = 0; components = 1; break;
+    case GL_R16I: dtype = 1; components = 1; break;
+    case GL_R16UI: dtype = 0; components = 1; break;
+    case GL_R32I: dtype = 1; components = 1; break;
+    case GL_R32UI: dtype = 0; components = 1; break;
+    case GL_RG8I: dtype = 1; components = 2; break;
+    case GL_RG8UI: dtype = 0; components = 2; break;
+    case GL_RG16I: dtype = 1; components = 2; break;
+    case GL_RG16UI: dtype = 0; components = 2; break;
+    case GL_RG32I: dtype = 1; components = 2; break;
+    case GL_RG32UI: dtype = 0; components = 2; break;
+    case GL_RGB8I: dtype = 1; components = 3; break;
+    case GL_RGB8UI: dtype = 0; components = 3; break;
+    case GL_RGB16I: dtype = 1; components = 3; break;
+    case GL_RGB16UI: dtype = 0; components = 3; break;
+    case GL_RGB32I: dtype = 1; components = 3; break;
+    case GL_RGB32UI: dtype = 0; components = 3; break;
+    case GL_RGBA8I: dtype = 1; components = 4; break;
+    case GL_RGBA8UI: dtype = 0; components = 4; break;
+    case GL_RGBA16I: dtype = 1; components = 4; break;
+    case GL_RGBA16UI: dtype = 0; components = 4; break;
+    case GL_RGBA32I: dtype = 1; components = 4; break;
+    case GL_RGBA32UI: dtype = 0; components = 4; break;
+    case GL_COMPRESSED_RED: dtype = 2; components = 1; break;
+    case GL_COMPRESSED_RG: dtype = 2; components = 2; break;
+    case GL_COMPRESSED_RGB: dtype = 2; components = 3; break;
+    case GL_COMPRESSED_RGBA: dtype = 2; components = 4; break;
+    case GL_COMPRESSED_SRGB: dtype = 2; components = 3; break;
+    case GL_COMPRESSED_SRGB_ALPHA: dtype = 2; components = 4; break;
+    case GL_COMPRESSED_RED_RGTC1: dtype = 2; components = 1; break;
+    case GL_COMPRESSED_SIGNED_RED_RGTC1: dtype = 2; components = 1; break;
+    case GL_COMPRESSED_RG_RGTC2: dtype = 2; components = 2; break;
+    case GL_COMPRESSED_SIGNED_RG_RGTC2: dtype = 2; components = 2; break;
+    case GL_COMPRESSED_RGBA_BPTC_UNORM: dtype = 2; components = 4; break;
+    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM: dtype = 2; components = 4; break;
+    case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT: dtype = 2; components = 3; break;
+    case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: dtype = 2; components = 3; break;
+    default: assert(false);
+    }
+    
+    size_t data_size = width * height * depth * components * (dtype==3?8:4);
+    trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
+    void* dest = trc_lock_data(data, false, true);
+    
+    GLenum format;
+    switch (ftype) {
+    case 0: //normal
+        format = (GLenum[]){GL_RED, GL_RG, GL_RGB, GL_RGBA}[components-1];
+        break;
+    case 1: //depth
+        format = GL_DEPTH_COMPONENT;
+        break;
+    case 2: //stencil
+        format = GL_STENCIL_INDEX;
+        break;
+    case 3: //depth stencil
+        format = GL_DEPTH_STENCIL;
+        break;
+    }
+    GLenum type;
+    switch (dtype) {
+    case 0: //uint32_t
+        type = GL_UNSIGNED_INT;
+        break;
+    case 1: //int32_t
+        type = GL_INT;
+        break;
+    case 2: //float
+        type = GL_FLOAT;
+        break;
+    case 3: //float+unused24+uint8
+        type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+        break;
+    }
+    F(glGetnTexImage)(target, level, format, type, data_size, dest);
+    
+    trc_unlock_data(data);
+}
+
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
 //TODO: More validation
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* command,
@@ -555,7 +759,6 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     GLuint texid = get_bound_texture(ctx->trace, target, -1);
     const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
     if (!tex_ptr) {
-        printf("%u\\n", texid);
         trc_add_error(command, "No texture bound, invalid texture handle used or invalid target\\n");
         return true;
     }
@@ -635,7 +838,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     case GL_TEXTURE_SWIZZLE_B: tex.swizzle[2] = val[0]; break;
     case GL_TEXTURE_SWIZZLE_A: tex.swizzle[3] = val[0]; break;
     case GL_TEXTURE_SWIZZLE_RGBA:
-        for (uint i = 0; i < 4; i++) tex.swizzle[i] = val[i]; break;
+        for (uint i = 0; i < 4; i++) tex.swizzle[i] = val[i];
         break;
     }
     

@@ -53,14 +53,20 @@ typedef struct {
         bool bl;
         char* str;
         uint64_t ptr;
-        void* data; //TODO: The size is not stored
+        struct {
+            size_t size;
+            void* ptr;
+        } data;
         uint64_t* u64_array;
         int64_t* i64_array;
         double* dbl_array;
         bool* bl_array;
         char** str_array;
         uint64_t* ptr_array;
-        void** data_array; //TODO: The size is not stored
+        struct {
+            size_t* sizes;
+            void** ptrs;
+        } data_array;
     };
     int32_t group_index; //Negative if there is no group
 } trace_value_t;
@@ -128,6 +134,17 @@ typedef struct trc_gl_sampler_rev_t {
     TRC_GL_OBJ_HEAD
 } trc_gl_sampler_rev_t;
 
+typedef struct trc_gl_texture_image_t {
+    uint face; //0 if the texture is not a non-array cubemap
+    uint level;
+    uint internal_format;
+    uint width;
+    uint height;
+    uint depth;
+    uint components;
+    trc_data_t* data; //array of uint32_t, int32_t, float or float+uint32_t depending on the internal format
+} trc_gl_texture_image_t;
+
 typedef struct trc_gl_texture_rev_t {
     TRC_GL_OBJ_HEAD
     trc_gl_sample_params_t sample_params;
@@ -136,6 +153,11 @@ typedef struct trc_gl_texture_rev_t {
     uint max_level;
     float lod_bias;
     uint swizzle[4];
+    
+    bool created;
+    uint type;
+    //array of trc_gl_texture_image_t
+    trc_data_t* images;
 } trc_gl_texture_rev_t;
 
 typedef struct trc_gl_query_rev_t {
@@ -146,6 +168,7 @@ typedef struct trc_gl_query_rev_t {
 
 typedef struct trc_gl_framebuffer_rev_t {
     TRC_GL_OBJ_HEAD
+    
 } trc_gl_framebuffer_rev_t;
 
 typedef struct trc_gl_renderbuffer_rev_t {
@@ -345,13 +368,14 @@ trace_value_t trc_create_double(uint32_t count, double* vals);
 trace_value_t trc_create_bool(uint32_t count, bool* vals);
 trace_value_t trc_create_ptr(uint32_t count, uint64_t* vals);
 trace_value_t trc_create_str(uint32_t count, const char*const* vals);
-uint64_t* trc_get_uint(trace_value_t* val);
-int64_t* trc_get_int(trace_value_t* val);
-double* trc_get_double(trace_value_t* val);
-bool* trc_get_bool(trace_value_t* val);
-uint64_t* trc_get_ptr(trace_value_t* val);
-char** trc_get_str(trace_value_t* val);
-void** trc_get_data(trace_value_t* val);
+const uint64_t* trc_get_uint(const trace_value_t* val);
+const int64_t* trc_get_int(const trace_value_t* val);
+const double* trc_get_double(const trace_value_t* val);
+const bool* trc_get_bool(const trace_value_t* val);
+const uint64_t* trc_get_ptr(const trace_value_t* val);
+const char*const* trc_get_str(const trace_value_t* val);
+const size_t* trc_get_data_sizes(const trace_value_t* val);
+const void*const* trc_get_data(const trace_value_t* val);
 trace_extra_t* trc_get_extra(trace_command_t* cmd, const char* name);
 trace_extra_t* trc_get_extrai(trace_command_t* cmd, const char* name, size_t index);
 void trc_add_info(trace_command_t* command, const char* format, ...);
@@ -416,6 +440,8 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake);
 
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
+trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data);
+void trc_destroy_data(trc_data_t* data);
 void* trc_lock_data(trc_data_t* data, bool read, bool write);
 void trc_unlock_data(trc_data_t* data);
 #endif

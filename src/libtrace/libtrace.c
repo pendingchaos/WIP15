@@ -54,7 +54,7 @@ void trc_free_value(trace_value_t value) {
     if ((value.count == 1) && (value.type == Type_Str))
         free(value.str);
     else if ((value.count == 1) && (value.type == Type_Data))
-        free(value.data);
+        free(value.data.ptr);
     else if (value.count != 1)
         switch (value.type) {
         case Type_UInt:
@@ -65,16 +65,15 @@ void trc_free_value(trace_value_t value) {
             free(value.u64_array);
             break;
         case Type_Str:
-            for (size_t i = 0; i < value.count; ++i) {
+            for (size_t i = 0; i < value.count; ++i)
                 free(value.str_array[i]);
-            }
             free(value.str_array);
             break;
         case Type_Data:
-            for (size_t i = 0; i < value.count; ++i) {
-                free(value.data_array[i]);
-            }
-            free(value.data_array);
+            for (size_t i = 0; i < value.count; ++i)
+                free(value.data_array.ptrs[i]);
+            free(value.data_array.sizes);
+            free(value.data_array.ptrs);
             break;
         case Type_Void:
         case Type_FunctionPtr:
@@ -125,7 +124,7 @@ static char* read_str(FILE* file) {
     return str;
 }
 
-int LZ4_decompress_safe (const char* source, char* dest, int compressedSize, int maxDecompressedSize);
+int LZ4_decompress_safe(const char* source, char* dest, int compressedSize, int maxDecompressedSize);
 
 static void* read_data(FILE* file, size_t* res_size) {
     if (res_size) *res_size = 0;
@@ -362,18 +361,20 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         case BaseType_Data: {
             val->type = Type_Data;
             if (val->count == 1) {
-                val->data = read_data(file, NULL);
-                if (!val->data)
+                val->data.ptr = read_data(file, &val->data.size);
+                if (!val->data.ptr)
                     return false;
             } else {
-                val->data_array = malloc(sizeof(void*)*val->count);
+                val->data_array.sizes = malloc(sizeof(size_t)*val->count);
+                val->data_array.ptrs = malloc(sizeof(void*)*val->count);
                 
                 for (size_t i = 0; i < val->count; i++) {
-                    val->data_array[i] = read_data(file, NULL);
-                    if (!val->data_array[i]) {
+                    val->data_array.ptrs[i] = read_data(file, &val->data_array.sizes[i]);
+                    if (!val->data_array.ptrs[i]) {
                         for (size_t j = 0; j < i; j++)
-                            free(val->data_array[i]);
-                        free(val->data_array);
+                            free(val->data_array.ptrs[i]);
+                        free(val->data_array.sizes);
+                        free(val->data_array.ptrs);
                         return false;
                     }
                 }
@@ -655,7 +656,7 @@ void free_trace(trace_t* trace) {
     
     trc_gl_inspection_t* ti = &trace->inspection;
     
-    for (size_t i = 0; i < ti->data_count; i++) free(ti->data[i]->compressed_data);
+    for (size_t i = 0; i < ti->data_count; i++) trc_destroy_data(ti->data[i]);
     free(ti->data);
     
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
@@ -783,32 +784,36 @@ trace_value_t trc_create_str(uint32_t count, const char*const* vals) {
     return val;
 }
 
-uint64_t* trc_get_uint(trace_value_t* val) {
+const uint64_t* trc_get_uint(const trace_value_t* val) {
     return val->count==1 ? &val->u64 : val->u64_array;
 }
 
-int64_t* trc_get_int(trace_value_t* val) {
+const int64_t* trc_get_int(const trace_value_t* val) {
     return val->count==1 ? &val->i64 : val->i64_array;
 }
 
-double* trc_get_double(trace_value_t* val) {
+const double* trc_get_double(const trace_value_t* val) {
     return val->count==1 ? &val->dbl : val->dbl_array;
 }
 
-bool* trc_get_bool(trace_value_t* val) {
+const bool* trc_get_bool(const trace_value_t* val) {
     return val->count==1 ? &val->bl : val->bl_array;
 }
 
-uint64_t* trc_get_ptr(trace_value_t* val) {
+const uint64_t* trc_get_ptr(const trace_value_t* val) {
     return val->count==1 ? &val->ptr : val->ptr_array;
 }
 
-char** trc_get_str(trace_value_t* val) {
-    return val->count==1 ? &val->str : val->str_array;
+const char*const* trc_get_str(const trace_value_t* val) {
+    return val->count==1 ? (const char*const*)&val->str : (const char*const*)val->str_array;
 }
 
-void** trc_get_data(trace_value_t* val) {
-    return val->count==1 ? &val->data : val->data_array;
+const size_t* trc_get_data_sizes(const trace_value_t* val) {
+    return val->count==1 ? &val->data.size : val->data_array.sizes;
+}
+
+const void*const* trc_get_data(const trace_value_t* val) {
+    return val->count==1 ? (const void*const*)&val->data.ptr : (const void*const*)val->data_array.ptrs;
 }
 
 trace_extra_t* trc_get_extra(trace_command_t* cmd, const char* name) {
@@ -1261,11 +1266,22 @@ trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
     res->compressed_data = malloc(size);
     if (data) memcpy(res->compressed_data, data, size);
     
+    return res;
+}
+
+trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data) {
+    trc_data_t* res = trc_create_data(trace, size, data);
+    
     trc_gl_inspection_t* ti = &trace->inspection;
     ti->data = realloc(ti->data, ++ti->data_count*sizeof(trc_data_t*));
     ti->data[ti->data_count-1] = res;
     
     return res;
+}
+
+void trc_destroy_data(trc_data_t* data) {
+    free(data->compressed_data);
+    free(data);
 }
 
 void* trc_lock_data(trc_data_t* data, bool read, bool write) {

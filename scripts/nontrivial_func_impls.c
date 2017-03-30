@@ -111,7 +111,7 @@ glXCreateContextAttribsARB:
     int flags = 0;
     int profile = 0;
     
-    int64_t* attribs = trc_get_int(trc_get_arg(command, 4));
+    const int64_t* attribs = trc_get_int(trc_get_arg(command, 4));
     while (*attribs) {
         int attr = *(attribs++);
         if (attr == GLX_CONTEXT_MAJOR_VERSION_ARB) {
@@ -204,7 +204,7 @@ glClear:
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, textures);
     
@@ -234,13 +234,16 @@ glGenTextures:
         rev.sample_params.wrap_s = GL_REPEAT;
         rev.sample_params.wrap_t = GL_REPEAT;
         rev.sample_params.wrap_r = GL_REPEAT;
+        rev.created = false;
+        rev.type = 0;
+        rev.images = NULL;
         trc_set_gl_texture(ctx->trace, fake[i], &rev);
     }
 
 glDeleteTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint textures[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(textures[i] = trc_get_real_gl_texture(ctx->trace, fake[i])))
@@ -253,11 +256,14 @@ glBindTexture:
     GLuint target = gl_param_GLenum(command, 0);
     GLuint fake = gl_param_GLuint(command, 1);
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, fake);
-    if (!real_tex && fake) ERROR("Invalid texture handle.");
-    if (!F(glIsTexture)(real_tex)) {
-        //TODO
-        //inspect_act_tex_type(&command->state, fake, target);
-        //replay_set_tex_type(ctx, fake, target);
+    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, fake);
+    if (!rev && fake) ERROR("Invalid texture handle.");
+    if (!rev->created) {
+        trc_gl_texture_rev_t newrev = *rev;
+        newrev.created = true;
+        newrev.type = target;
+        newrev.images = trc_create_inspection_data(ctx->trace, 0, NULL);
+        trc_set_gl_texture(ctx->trace, fake, &newrev);
     }
     //TODO: Reference counting
     real(target, real_tex);
@@ -273,9 +279,7 @@ glTexImage1D:
     GLenum type = gl_param_GLenum(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalFormat, width, border, format, type, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -286,9 +290,7 @@ glCompressedTexImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, internalformat, width, border, imageSize, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, 0, 0, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -299,8 +301,7 @@ glTexSubImage1D:
     GLenum type = gl_param_GLenum(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, type, data);
-    //TODO
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -311,9 +312,7 @@ glCompressedTexSubImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, imageSize, data);
-    //TODO
-    //replay_get_tex_params(ctx, command, target);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -326,9 +325,7 @@ glTexImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -340,9 +337,7 @@ glCompressedTexImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalformat, width, height, border, imageSize, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, height, 0, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -355,8 +350,7 @@ glTexSubImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, type, data);
-    //TODO
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -369,9 +363,7 @@ glCompressedTexSubImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, imageSize, data);
-    //TODO
-    //replay_get_tex_params(ctx, command, target);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -385,9 +377,7 @@ glTexImage3D:
     GLenum type = gl_param_GLenum(command, 8);
     const void* data = gl_param_data(command, 9);
     real(target, level, internalFormat, width, height, depth, border, format, type, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -400,9 +390,7 @@ glCompressedTexImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalformat, width, height, depth, border, imageSize, data);
-    //TODO
-    //replay_alloc_tex(ctx, command, target, level, width, height, depth, 1, 1);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -417,8 +405,7 @@ glTexSubImage3D:
     GLenum type = gl_param_GLenum(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
-    //TODO
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -433,9 +420,7 @@ glCompressedTexSubImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
-    //TODO
-    //replay_get_tex_params(ctx, command, target);
-    //replay_get_tex_data(ctx, command, target, level);
+    replay_update_tex_image(ctx, command, target, level);
 
 glTexImage2DMultisample:
     GLenum target = gl_param_GLenum(command, 0);
@@ -506,7 +491,7 @@ glTexParameterfv:
     GLenum pname = gl_param_GLenum(command, 1);
     
     trace_value_t* paramsv = trc_get_arg(command, 2);
-    double* paramsd = trc_get_double(paramsv);
+    const double* paramsd = trc_get_double(paramsv);
     GLfloat params[paramsv->count];
     for (size_t i = 0; i < paramsv->count; i++) params[i] = paramsd[i];
     if (!texture_param_double(ctx, command, target, pname, paramsv->count, paramsd))
@@ -517,7 +502,7 @@ glTexParameteriv:
     GLenum pname = gl_param_GLenum(command, 1);
     
     trace_value_t* paramsv = trc_get_arg(command, 2);
-    int64_t* params64 = trc_get_int(paramsv);
+    const int64_t* params64 = trc_get_int(paramsv);
     GLint params[paramsv->count];
     double double_params[paramsv->count];
     for (size_t i = 0; i < paramsv->count; i++) params[i] = params64[i];
@@ -531,7 +516,7 @@ glTexParameterIiv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
+    const int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
     GLint params[4];
     if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
         for (size_t i = 0; i < 4; i++) params[i] = params64[i];
@@ -544,7 +529,7 @@ glTexParameterIuiv:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum pname = gl_param_GLenum(command, 1);
     
-    uint64_t* params64 = trc_get_uint(trc_get_arg(command, 2));
+    const uint64_t* params64 = trc_get_uint(trc_get_arg(command, 2));
     GLuint params[4];
     if (pname==GL_TEXTURE_BORDER_COLOR || pname==GL_TEXTURE_SWIZZLE_RGBA)
         for (size_t i = 0; i < 4; i++) params[i] = params64[i];
@@ -555,7 +540,7 @@ glTexParameterIuiv:
 glGenBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, buffers);
     
@@ -577,7 +562,7 @@ glGenBuffers:
 glDeleteBuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint buffers[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i) {
         if (!(buffers[i] = trc_get_real_gl_buffer(ctx->trace, fake[i])))
@@ -644,7 +629,7 @@ glBufferData:
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer handle or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    buf.data = trc_create_data(ctx->trace, size, data);
+    buf.data = trc_create_inspection_data(ctx->trace, size, data);
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glBufferSubData:
@@ -662,7 +647,7 @@ glBufferSubData:
     
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_data(ctx->trace, old.data->uncompressed_size, NULL);
+    buf.data = trc_create_inspection_data(ctx->trace, old.data->uncompressed_size, NULL);
     void* newdata = trc_lock_data(buf.data, false, true);
     
     memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
@@ -760,7 +745,7 @@ glUnmapBuffer:
     
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_data(ctx->trace, old.data->uncompressed_size, NULL);
+    buf.data = trc_create_inspection_data(ctx->trace, old.data->uncompressed_size, NULL);
     void* newdata = trc_lock_data(buf.data, false, true);
     
     memcpy(newdata, trc_lock_data(old.data, true, false), old.data->uncompressed_size);
@@ -803,7 +788,7 @@ glDeleteShader:
 glShaderSource:
     GLuint fake = gl_param_GLuint(command, 0);
     GLsizei count = gl_param_GLsizei(command, 1);
-    char** sources = gl_param_string_array(command, 2);
+    const char*const* sources = gl_param_string_array(command, 2);
     
     GLuint shader = trc_get_real_gl_shader(ctx->trace, fake);
     if (!shader) ERROR("Invalid shader handle.");
@@ -821,7 +806,7 @@ glShaderSource:
             memcpy(shdr.sources[i], sources[i], shdr.source_lengths[i]);
         }
     } else {
-        uint64_t* lengths64 = trc_get_uint(trc_get_arg(command, 3));
+        const uint64_t* lengths64 = trc_get_uint(trc_get_arg(command, 3));
         
         GLint lengths[count];
         for (GLsizei i = 0; i < count; i++) lengths[i] = lengths64[i];
@@ -1669,8 +1654,8 @@ glMultiDrawArrays:
     begin_draw(ctx);
     
     GLenum mode = gl_param_GLenum(command, 0);
-    int64_t* first64 = trc_get_int(trc_get_arg(command, 1));
-    int64_t* count64 = trc_get_int(trc_get_arg(command, 2));
+    const int64_t* first64 = trc_get_int(trc_get_arg(command, 1));
+    const int64_t* count64 = trc_get_int(trc_get_arg(command, 2));
     GLsizei primcount = gl_param_GLsizei(command, 3);
     
     GLint first[primcount];
@@ -1688,9 +1673,9 @@ glMultiDrawElements:
     begin_draw(ctx);
     
     GLenum mode = gl_param_GLenum(command, 0);
-    int64_t* count64 = trc_get_int(trc_get_arg(command, 1));
+    const int64_t* count64 = trc_get_int(trc_get_arg(command, 1));
     GLenum type = gl_param_GLenum(command, 2);
-    uint64_t* indicesi = trc_get_ptr(trc_get_arg(command, 3));
+    const uint64_t* indicesi = trc_get_ptr(trc_get_arg(command, 3));
     GLsizei drawcount = gl_param_GLsizei(command, 4);
     
     GLint count[drawcount];
@@ -1708,11 +1693,11 @@ glMultiDrawElementsBaseVertex:
     begin_draw(ctx);
     
     GLenum mode = gl_param_GLenum(command, 0);
-    int64_t* count64 = trc_get_int(trc_get_arg(command, 1));
+    const int64_t* count64 = trc_get_int(trc_get_arg(command, 1));
     GLenum type = gl_param_GLenum(command, 2);
-    uint64_t* indicesi = trc_get_ptr(trc_get_arg(command, 3));
+    const uint64_t* indicesi = trc_get_ptr(trc_get_arg(command, 3));
     GLsizei drawcount = gl_param_GLsizei(command, 4);
-    int64_t* basevertex64 = trc_get_int(trc_get_arg(command, 5));
+    const int64_t* basevertex64 = trc_get_int(trc_get_arg(command, 5));
     
     GLint count[drawcount];
     const GLvoid* indices[drawcount];
@@ -1845,7 +1830,7 @@ glCurrentTestWIP15:
 glGenVertexArrays:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint arrays[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, arrays);
     
@@ -1879,7 +1864,7 @@ glGenVertexArrays:
 glDeleteVertexArrays:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint arrays[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(arrays[i] = trc_get_real_gl_vao(ctx->trace, fake[i])))
@@ -1994,7 +1979,7 @@ glGetBufferPointerv:
 glGenSamplers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint samplers[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, samplers);
     
@@ -2009,7 +1994,7 @@ glGenSamplers:
 glDeleteSamplers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint samplers[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(samplers[i] = trc_get_real_gl_sampler(ctx->trace, fake[i])))
@@ -2057,7 +2042,7 @@ glSamplerParameterfv:
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
     if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
-    double* paramsd = trc_get_double(trc_get_arg(command, 2));
+    const double* paramsd = trc_get_double(trc_get_arg(command, 2));
     
     GLfloat params[4];
     if (pname == GL_TEXTURE_BORDER_COLOR)
@@ -2071,7 +2056,7 @@ glSamplerParameteriv:
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
     if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
-    int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
+    const int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
     
     GLint params[4];
     if (pname == GL_TEXTURE_BORDER_COLOR)
@@ -2085,7 +2070,7 @@ glSamplerParameterIiv:
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
     if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
-    int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
+    const int64_t* params64 = trc_get_int(trc_get_arg(command, 2));
     
     GLint params[4];
     if (pname == GL_TEXTURE_BORDER_COLOR)
@@ -2099,7 +2084,7 @@ glSamplerParameterIuiv:
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, fake);
     if (!sampler) ERROR("Invalid sampler handle.");
     GLenum pname = gl_param_GLenum(command, 1);
-    uint64_t* params64 = trc_get_uint(trc_get_arg(command, 2));
+    const uint64_t* params64 = trc_get_uint(trc_get_arg(command, 2));
     
     GLuint params[4];
     if (pname == GL_TEXTURE_BORDER_COLOR)
@@ -2111,7 +2096,7 @@ glSamplerParameterIuiv:
 glGenFramebuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint fbs[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, fbs);
     
@@ -2126,7 +2111,7 @@ glGenFramebuffers:
 glDeleteFramebuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint fbs[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(fbs[i] = trc_get_real_gl_framebuffer(ctx->trace, fake[i])))
@@ -2164,7 +2149,7 @@ glBindFramebuffer:
 glGenRenderbuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint rbs[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, rbs);
     
@@ -2179,7 +2164,7 @@ glGenRenderbuffers:
 glDeleteRenderbuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint rbs[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(rbs[i] = trc_get_real_gl_renderbuffer(ctx->trace, fake[i])))
@@ -2235,7 +2220,7 @@ glGetActiveUniformsiv:
     GLuint program = trc_get_real_gl_program(ctx->trace, fake);
     if (!program) ERROR("Invalid program handle.");
     GLsizei uniformCount = gl_param_GLsizei(command, 1);
-    uint64_t* uniformIndices64 = trc_get_uint(trc_get_arg(command, 2));
+    const uint64_t* uniformIndices64 = trc_get_uint(trc_get_arg(command, 2));
     GLenum pname = gl_param_GLenum(command, 3);
     
     GLuint* uniformIndices = malloc(uniformCount*sizeof(GLuint));
@@ -2377,7 +2362,7 @@ glClientWaitSync:
 glGenQueries:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint queries[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     real(n, queries);
     
@@ -2394,7 +2379,7 @@ glGenQueries:
 glDeleteQueries:
     GLsizei n = gl_param_GLsizei(command, 0);
     GLuint queries[n];
-    uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
+    const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < n; ++i)
         if (!(queries[i] = trc_get_real_gl_query(ctx->trace, fake[i])))
