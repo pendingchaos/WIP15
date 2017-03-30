@@ -104,44 +104,40 @@ static void update_buffer_view(size_t buf_index) {
             cur += snprintf(cur, end-cur, "[");
         
         for (size_t i = 0; i < components; i++) {
-            #define CE(v, fle, fbe) (trace->little_endian ? fle(v) : fbe(v))
+            bool at_end = offset+type_size*i+type_size > buf_size;
+            if (at_end) break;
+            if ((i != 0)) cur += snprintf(cur, end-cur, ", ");
             switch (type) {
             case TYPE_UINT8: {
-                cur += snprintf(cur, end-cur, "%"PRIu8, *(uint8_t*)(data+offset));
+                cur += snprintf(cur, end-cur, "%"PRIu8, ((uint8_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_INT8: {
-                cur += snprintf(cur, end-cur, "%"PRId8, *(int8_t*)(data+offset));
+                cur += snprintf(cur, end-cur, "%"PRId8, ((int8_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_UINT16: {
-                uint16_t v = *(uint16_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRIu16, CE(v, le16toh, be16toh));
+                cur += snprintf(cur, end-cur, "%"PRIu16, ((uint16_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_INT16: {
-                int16_t v = *(int16_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRId16, CE(v, le16toh, be16toh));
+                cur += snprintf(cur, end-cur, "%"PRId16, ((int16_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_UINT32: {
-                uint32_t v = *(uint32_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRIu32, CE(v, le32toh, be32toh));
+                cur += snprintf(cur, end-cur, "%"PRIu32, ((uint32_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_INT32: {
-                int32_t v = *(int32_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRId32, CE(v, le32toh, be32toh));
+                cur += snprintf(cur, end-cur, "%"PRId32, ((int32_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_UINT64: {
-                uint64_t v = *(uint64_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRIu64, CE(v, le64toh, be64toh));
+                cur += snprintf(cur, end-cur, "%"PRIu64, ((uint64_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_INT64: {
-                int64_t v = *(int64_t*)(data+offset);
-                cur += snprintf(cur, end-cur, "%"PRId64, CE(v, le64toh, be64toh));
+                cur += snprintf(cur, end-cur, "%"PRId64, ((int64_t*)(data+offset))[i]);
                 break;
             }
             case TYPE_FLOAT16: {
@@ -149,22 +145,14 @@ static void update_buffer_view(size_t buf_index) {
                 break;
             }
             case TYPE_FLOAT32: {
-                cur += snprintf(cur, end-cur, "%s", format_float(*(float*)(data+offset)));
+                cur += snprintf(cur, end-cur, "%s", format_float(((float*)(data+offset))[i]));
                 break;
             }
             case TYPE_FLOAT64: {
-                cur += snprintf(cur, end-cur, "%s", format_float(*(double*)(data+offset)));
+                cur += snprintf(cur, end-cur, "%s", format_float(((double*)(data+offset))[i]));
                 break;
             }
             }
-            
-            bool at_end = offset+type_size > buf_size;
-            
-            if ((i != components-1) && !at_end)
-                cur += snprintf(cur, end-cur, ", ");
-            
-            if (at_end)
-                break;
         }
         
         offset += stride;
