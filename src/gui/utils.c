@@ -155,9 +155,8 @@ void format_command(trace_t* trace, char* str, trace_command_t* cmd, size_t n) {
     size_t count = get_trace_val_vec_count(args);
     for (size_t i = 0; i < count; i++) {
         format_value(trace, str, *get_trace_val_vec(args, i), n);
-        if (i != count-1) {
+        if (i != count-1)
             strncat(str, static_format(", "), n);
-        }
     }
     
     strncat(str, ")", n);

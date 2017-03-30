@@ -4,6 +4,8 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <GL/gl.h>
 
 extern GtkBuilder* builder;
 extern trace_t* trace;
@@ -42,36 +44,101 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     }
     if (!tex) return; //TODO: Is this possible?
     //TODO
-    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count*/1-1);
+    gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count-1*/0);
     
     GtkTreeIter row;
-    #define VAL(name, val) gtk_tree_store_append(param_store, &row, NULL);\
-    gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);
-    if (/*tex->type TODO*/true) {
-        VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, tex->depth_stencil_mode)));
-        VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", tex->sample_params.min_filter)));
-        VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", tex->sample_params.mag_filter)));
-        VAL("Min LOD", static_format("%s", format_float(tex->sample_params.min_lod)));
-        VAL("Max LOD", static_format("%s", format_float(tex->sample_params.max_lod)));
-        VAL("LOD bias", static_format("%s", format_float(tex->lod_bias)));
-        VAL("Base Level", static_format("%d", tex->base_level));
-        VAL("Max Level", static_format("%d", tex->max_level));
-        VAL("Swizzle", static_format("[%s, %s, %s, %s]",
-                                     get_enum_str(NULL, tex->swizzle[0]),
-                                     get_enum_str(NULL, tex->swizzle[1]),
-                                     get_enum_str(NULL, tex->swizzle[2]),
-                                     get_enum_str(NULL, tex->swizzle[3])));
-        VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_s)));
-        VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_t)));
-        VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_r)));
-        VAL("Border Color", static_format("[%s, %s, %s, %s]",
-                                          format_float(tex->sample_params.border_color[0]),
-                                          format_float(tex->sample_params.border_color[1]),
-                                          format_float(tex->sample_params.border_color[2]),
-                                          format_float(tex->sample_params.border_color[3])));
-        VAL("Compare Mode", static_format("%s", get_enum_str(NULL, tex->sample_params.compare_mode)));
-        VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", tex->sample_params.compare_func)));
+    #define VAL(name, val) do {gtk_tree_store_append(param_store, &row, NULL);\
+    gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);} while (0)
+    if (!tex->created) return;
+    
+    VAL("Type", get_enum_str(NULL, tex->type));
+    VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, tex->depth_stencil_mode)));
+    VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", tex->sample_params.min_filter)));
+    VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", tex->sample_params.mag_filter)));
+    VAL("Min LOD", static_format("%s", format_float(tex->sample_params.min_lod)));
+    VAL("Max LOD", static_format("%s", format_float(tex->sample_params.max_lod)));
+    VAL("LOD bias", static_format("%s", format_float(tex->lod_bias)));
+    VAL("Base Level", static_format("%d", tex->base_level));
+    VAL("Max Level", static_format("%d", tex->max_level));
+    VAL("Swizzle", static_format("[%s, %s, %s, %s]",
+                                 get_enum_str(NULL, tex->swizzle[0]),
+                                 get_enum_str(NULL, tex->swizzle[1]),
+                                 get_enum_str(NULL, tex->swizzle[2]),
+                                 get_enum_str(NULL, tex->swizzle[3])));
+    VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_s)));
+    VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_t)));
+    VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_r)));
+    VAL("Border Color", static_format("[%s, %s, %s, %s]",
+                                      format_float(tex->sample_params.border_color[0]),
+                                      format_float(tex->sample_params.border_color[1]),
+                                      format_float(tex->sample_params.border_color[2]),
+                                      format_float(tex->sample_params.border_color[3])));
+    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, tex->sample_params.compare_mode)));
+    VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", tex->sample_params.compare_func)));
+    
+    //TODO: The image should update when the layer spinbutton or face combobox update
+    
+    trc_gl_texture_image_t* images = trc_lock_data(tex->images, true, false);
+    size_t img_count = tex->images->uncompressed_size / sizeof(trc_gl_texture_image_t);
+    
+    uint dims[3] = {0, 0, 0};
+    uint max_level = 0;
+    for (size_t i = 0; i < img_count; i++) {
+        if (images[i].width > dims[0]) dims[0] = images[i].width;
+        if (images[i].height > dims[1]) dims[1] = images[i].height;
+        if (images[i].depth > dims[2]) dims[2] = images[i].depth;
+        if (images[i].level > max_level) max_level = images[i].level;
     }
+    
+    int layers = -1;
+    uint dim_count = 0;
+    uint layers_div = 1;
+    switch (tex->type) {
+    case GL_TEXTURE_1D: dim_count = 1; break;
+    case GL_TEXTURE_2D: dim_count = 2; break;
+    case GL_TEXTURE_3D: dim_count = 3; break;
+    case GL_TEXTURE_1D_ARRAY: dim_count = 1; layers = 1; break;
+    case GL_TEXTURE_2D_ARRAY: dim_count = 2; layers = 2; break;
+    case GL_TEXTURE_RECTANGLE: dim_count = 2; break;
+    case GL_TEXTURE_CUBE_MAP: dim_count = 2; break;
+    case GL_TEXTURE_CUBE_MAP_ARRAY: dim_count = 2; layers = 2; layers_div = 6; break;
+    case GL_TEXTURE_BUFFER: assert(false); break; //TODO
+    case GL_TEXTURE_2D_MULTISAMPLE: dim_count = 2; break;
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: dim_count = 2; break;
+    }
+    if (dim_count > 0) VAL("Width", static_format("%zu", dims[0]));
+    if (dim_count > 1) VAL("Height", static_format("%zu", dims[1]));
+    if (dim_count > 2) VAL("Depth", static_format("%zu", dims[2]));
+    if (layers != -1) VAL("Layers", static_format("%zu", dims[layers]/layers_div));
+    VAL("Mipmap Count", static_format("%zu", max_level+1));
+    
+    //TODO: Currently assumes 2d floating point data
+    for (size_t level = 0; level <= max_level; level++) {
+        for (size_t i = 0; i < img_count; i++) {
+            trc_gl_texture_image_t* img = &images[i];
+            //if (img->face != ) continue; //TODO
+            if (img->level != level) continue;
+            
+            float* imgdata = trc_lock_data(img->data, true, false);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(image_store, &row, NULL);
+            GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, img->width, img->height);
+            uint8_t* dest = (uint8_t*)gdk_pixbuf_get_pixels(pixbuf);
+            for (uint y = 0; y < img->height; y++) {
+                for (uint x = 0; x < img->width; x++) {
+                    for (size_t c = 0; c < 4; c++)
+                        dest[((img->height-1-y)*img->width+x)*4+c] = imgdata[(y*img->width+x)*4+c] * 255;
+                }
+            }
+            gtk_tree_store_set(image_store, &row, 0, static_format("%u", img->level), 1, pixbuf, -1);
+            g_object_unref(pixbuf);
+            
+            trc_unlock_data(img->data);
+        }
+    }
+    
+    trc_unlock_data(tex->images);
     
     //TODO
     /*if (tex->mipmaps) {

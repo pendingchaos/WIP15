@@ -750,6 +750,8 @@ void replay_update_tex_image(trc_replay_context_t* ctx, trace_command_t* command
     F(glGetnTexImage)(target, level, format, type, data_size, dest);
     
     trc_unlock_data(data);
+    
+    replay_set_texture_image(ctx->trace, command, target, level, internal_format, width, height, depth, data);
 }
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
