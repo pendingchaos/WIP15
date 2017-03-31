@@ -754,6 +754,68 @@ void replay_update_tex_image(trc_replay_context_t* ctx, trace_command_t* command
     replay_set_texture_image(ctx->trace, command, target, level, internal_format, width, height, depth, data);
 }
 
+bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuffer_attachment_t* attach) {
+    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(trace, fb);
+    if (!rev) return false;
+    
+    size_t attach_count = rev->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
+    trc_gl_framebuffer_attachment_t* newattachs = malloc((attach_count+1)*sizeof(trc_gl_framebuffer_attachment_t));
+    
+    trc_gl_framebuffer_attachment_t* attachs = trc_lock_data(rev->attachments, true, false);
+    bool replaced = false;
+    for (size_t i = 0; i < attach_count; i++) {
+        if (attachs[i].attachment == attach->attachment) {
+            newattachs[i] = *attach;
+            replaced = true;
+        } else {
+            newattachs[i] = attachs[i];
+        }
+    }
+    trc_unlock_data(rev->attachments);
+    
+    trc_gl_framebuffer_rev_t newrev = *rev;
+    if (!replaced) newattachs[attach_count++] = *attach;
+    
+    size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
+    newrev.attachments = trc_create_inspection_data(trace, size, newattachs);
+    
+    free(newattachs);
+    
+    trc_set_gl_framebuffer(trace, fb, &newrev);
+    
+    return true;
+}
+
+void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment,
+                              uint tex, uint target, uint level, uint layer) {
+    trc_gl_framebuffer_attachment_t attach;
+    memset(&attach, 0, sizeof(attach));
+    attach.has_renderbuffer = false;
+    attach.attachment = attachment;
+    attach.fake_texture = tex;
+    attach.level = level;
+    attach.layer = layer;
+    attach.face = 0;
+    if ((target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X&&target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) ||
+        target==GL_TEXTURE_CUBE_MAP_ARRAY || target==GL_TEXTURE_CUBE_MAP) {
+        attach.face = layer % 6;
+        attach.layer /= 6;
+    }
+    if (!replay_append_fb_attachment(trace, fb, &attach))
+        //TODO: The framebuffer might not come from a binding
+        trc_add_error(cmd, "No framebuffer bound or invalid target\\n");
+}
+
+void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment, uint rb) {
+    trc_gl_framebuffer_attachment_t attach;
+    memset(&attach, 0, sizeof(attach));
+    attach.has_renderbuffer = true;
+    attach.fake_renderbuffer = fb;
+    if (!replay_append_fb_attachment(trace, fb, &attach))
+        //TODO: The framebuffer might not come from a binding
+        trc_add_error(cmd, "No framebuffer bound or invalid target\\n");
+}
+
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
 //TODO: More validation
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* command,
@@ -895,11 +957,11 @@ static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     switch (target) {
     case GL_DRAW_FRAMEBUFFER: 
-        return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+        return state->draw_framebuffer;
     case GL_READ_FRAMEBUFFER: 
-        return trc_get_real_gl_framebuffer(ctx->trace, state->read_framebuffer);
+        return state->read_framebuffer;
     case GL_FRAMEBUFFER: 
-        return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+        return state->draw_framebuffer;
     }
     return 0;
 }

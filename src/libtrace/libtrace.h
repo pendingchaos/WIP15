@@ -166,9 +166,21 @@ typedef struct trc_gl_query_rev_t {
     int64_t result;
 } trc_gl_query_rev_t;
 
+typedef struct trc_gl_framebuffer_attachment_t {
+    uint attachment;
+    bool has_renderbuffer;
+    //when has_renderbuffer == true
+    uint fake_renderbuffer;
+    //when has_renderbuffer == false
+    uint fake_texture;
+    uint level;
+    uint layer;
+    uint face; //0 for non-cubemap or non-cubemap-array textures
+} trc_gl_framebuffer_attachment_t;
+
 typedef struct trc_gl_framebuffer_rev_t {
     TRC_GL_OBJ_HEAD
-    
+    trc_data_t* attachments;
 } trc_gl_framebuffer_rev_t;
 
 typedef struct trc_gl_renderbuffer_rev_t {
@@ -191,6 +203,7 @@ typedef struct trc_gl_program_rev_t {
     int* vertex_attribs; //[real0, fake0, real1, fake1, ...]
     
     size_t shader_count;
+    //TODO: Move these arrays into trc_data_t(s)
     uint* shaders;
     uint* shader_revisions;
     

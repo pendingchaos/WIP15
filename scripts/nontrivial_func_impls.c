@@ -2105,6 +2105,7 @@ glGenFramebuffers:
         rev.fake_context = ctx->trace->inspection.cur_fake_context;
         rev.ref_count = 1;
         rev.real = fbs[i];
+        rev.attachments = trc_create_inspection_data(ctx->trace, 0, NULL);
         trc_set_gl_framebuffer(ctx->trace, fake[i], &rev);
     }
 
@@ -2259,10 +2260,7 @@ glFramebufferRenderbuffer:
     real(target, attachment, renderbuffertarget, real_rb);
     
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
-    
-    //TODO
-    //framebuffer_attachment(command, ctx, fb, attachment, 0, 0);
+    replay_add_fb_attachment_rb(ctx->trace, command, fb, attachment, renderbuffer);
 
 glFramebufferTexture:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2270,17 +2268,16 @@ glFramebufferTexture:
     GLuint texture = gl_param_GLuint(command, 2);
     GLint level = gl_param_GLint(command, 3);
     
-    GLuint real_tex = trc_get_real_gl_texture(ctx->trace, texture);
-    if (!real_tex && texture) ERROR("Invalid texture handle.");
+    const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, texture);
+    if (!texrev && texture) ERROR("Invalid texture handle.");
     //TODO: Reference counting
     
-    real(target, attachment, real_tex, level);
-    
+    real(target, attachment, texrev->real, level);
+        
+    if (!texrev->created) ERROR("Although it has a valid name, the texture has not been created."
+                                "Use glBindTexture or use glCreateTextures instead of glGenTextures.");
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
-    
-    //TODO
-    //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
+    replay_add_fb_attachment(ctx->trace, command, fb, attachment, texture, texrev->type, level, 0);
 
 glFramebufferTexture2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -2289,17 +2286,16 @@ glFramebufferTexture2D:
     GLuint texture = gl_param_GLuint(command, 3);
     GLint level = gl_param_GLint(command, 4);
     
-    GLuint real_tex = trc_get_real_gl_texture(ctx->trace, texture);
-    if (!real_tex && texture) ERROR("Invalid texture handle.");
+    const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, texture);
+    if (!texrev && texture) ERROR("Invalid texture handle.");
     //TODO: Reference counting
     
-    real(target, attachment, textarget, real_tex, level);
+    real(target, attachment, textarget, texrev->real, level);
     
+    if (!texrev->created) ERROR("Although it has a valid name, the texture has not been created."
+                                "Use glBindTexture or use glCreateTextures instead of glGenTextures.");
     GLint fb = get_bound_framebuffer(ctx, target);
-    if (!fb) ERROR("No or invalid framebuffer bound or invalid target.");
-    
-    //TODO
-    //framebuffer_attachment(command, ctx, fb, attachment, texture, level);
+    replay_add_fb_attachment(ctx->trace, command, fb, attachment, texture, textarget, level, 0);
 
 glRenderbufferStorage:
     GLenum target = gl_param_GLenum(command, 0);
