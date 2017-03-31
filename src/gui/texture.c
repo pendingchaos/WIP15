@@ -61,10 +61,10 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     VAL("Base Level", static_format("%d", tex->base_level));
     VAL("Max Level", static_format("%d", tex->max_level));
     VAL("Swizzle", static_format("[%s, %s, %s, %s]",
-                                 get_enum_str(NULL, tex->swizzle[0]),
-                                 get_enum_str(NULL, tex->swizzle[1]),
-                                 get_enum_str(NULL, tex->swizzle[2]),
-                                 get_enum_str(NULL, tex->swizzle[3])));
+                                 get_enum_str(NULL, tex->swizzle[0]), //TODO: The group
+                                 get_enum_str(NULL, tex->swizzle[1]), //TODO: The group
+                                 get_enum_str(NULL, tex->swizzle[2]), //TODO: The group
+                                 get_enum_str(NULL, tex->swizzle[3]))); //TODO: The group
     VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_s)));
     VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_t)));
     VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", tex->sample_params.wrap_r)));
@@ -73,7 +73,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
                                       format_float(tex->sample_params.border_color[1]),
                                       format_float(tex->sample_params.border_color[2]),
                                       format_float(tex->sample_params.border_color[3])));
-    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, tex->sample_params.compare_mode)));
+    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, tex->sample_params.compare_mode))); //TODO: The group
     VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", tex->sample_params.compare_func)));
     
     //TODO: The image should update when the layer spinbutton or face combobox update

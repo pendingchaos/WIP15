@@ -161,19 +161,15 @@ static void add_fb_attachment(GtkTreeStore* store, const char* name, const trc_g
 void framebuffer_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    
     if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
-    GValue page = G_VALUE_INIT;
-    g_value_init(&page, G_TYPE_INT);
-    
     if (!index) { //framebuffer 0 is special
         init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview")));
-        g_value_set_int(&page, 0);
+        gtk_notebook_set_current_page(notebook, 0);
     } else {
-        g_value_set_int(&page, 1);
+        gtk_notebook_set_current_page(notebook, 1);
         
         size_t count = 0;
         trc_gl_framebuffer_rev_t* fb = NULL;
@@ -214,9 +210,6 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
         }
         trc_unlock_data(fb->attachments);
     }
-    
-    GObject* notebook = gtk_builder_get_object(builder, "framebuffer_notebook");
-    g_object_set_property(notebook, "page", &page);
 }
 
 void init_renderbuffers_list(GtkTreeView* tree) {
@@ -229,28 +222,29 @@ void init_renderbuffers_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Renderbuffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Renderbuffer][i];
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)h->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
+        trc_gl_obj_rev_t* rb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Renderbuffer);
+        if (rb && rb->ref_count) {
+            char str[64];
+            memset(str, 0, 64);
+            snprintf(str, 64, "%u", (uint)h->fake);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(store, &row, NULL);
+            gtk_tree_store_set(store, &row, 0, str, -1);
+        }
     }
 }
 
 void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    
     if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
     //TODO
     /*inspect_rb_t* rb = get_inspect_rb_vec(inspector->renderbuffers, index);
-    if (!rb)
-        return;
+    if (!rb) return;
     
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_treeview"));
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
