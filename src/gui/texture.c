@@ -191,8 +191,8 @@ void init_texture_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
-        trc_gl_obj_rev_t* shdr = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
-        if (shdr && shdr->ref_count) {
+        trc_gl_obj_rev_t* tex = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
+        if (tex && tex->ref_count) {
             char str[64];
             memset(str, 0, 64);
             snprintf(str, 64, "%u", (uint)h->fake);

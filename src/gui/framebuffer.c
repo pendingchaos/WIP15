@@ -4,9 +4,11 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
+#include <GL/gl.h>
 
 extern GtkBuilder* builder;
 extern trace_t* trace;
+extern int64_t revision;
 
 void init_framebuffers_list(GtkTreeView* tree) {
     GtkTreeView* content = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview"));
@@ -26,13 +28,16 @@ void init_framebuffers_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Framebuffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Framebuffer][i];
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)h->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
+        trc_gl_obj_rev_t* fb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Framebuffer);
+        if (fb && fb->ref_count) {
+            char str[64];
+            memset(str, 0, 64);
+            snprintf(str, 64, "%u", (uint)h->fake);
+            
+            GtkTreeIter row;
+            gtk_tree_store_append(store, &row, NULL);
+            gtk_tree_store_set(store, &row, 0, str, -1);
+        }
     }
 }
 
@@ -127,68 +132,91 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     }*/
 }
 
-/*static void add_fb_attachment(GtkTreeStore* store, const char* name, const inspect_fb_attach_t* attach) {
+static void add_fb_attachment(GtkTreeStore* store, const char* name, const trc_gl_framebuffer_attachment_t* attach) {
     GtkTreeIter parent;
     gtk_tree_store_append(store, &parent, NULL);
     gtk_tree_store_set(store, &parent, 0, name, -1);
     
     GtkTreeIter row;
-    gtk_tree_store_append(store, &row, &parent);
-    gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", attach->tex), -1);
-    
-    gtk_tree_store_append(store, &row, &parent);
-    gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);
-}*/
+    if (attach->has_renderbuffer) {
+        gtk_tree_store_append(store, &row, &parent);
+        gtk_tree_store_set(store, &row, 0, "Renderbuffer", 1, static_format("%u", attach->fake_renderbuffer), -1);
+    } else {
+        gtk_tree_store_append(store, &row, &parent);
+        gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", attach->fake_texture), -1);
+        
+        gtk_tree_store_append(store, &row, &parent);
+        gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);
+        
+        //TODO: Hide this for non-layered textures
+        gtk_tree_store_append(store, &row, &parent);
+        gtk_tree_store_set(store, &row, 0, "Layer", 1, static_format("%u", attach->level), -1);
+        
+        //TODO: Hide this for non-cube textures
+        gtk_tree_store_append(store, &row, &parent);
+        gtk_tree_store_set(store, &row, 0, "Face", 1, static_format("%u", attach->face), -1);
+    }
+}
 
 void framebuffer_select_callback(GObject* obj, gpointer user_data) {
-    //TODO
-    /*GtkTreePath* path;
+    GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     
-    if (!path)
-        return;
+    if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
     GValue page = G_VALUE_INIT;
     g_value_init(&page, G_TYPE_INT);
     
-    if (!index) { //The first one (framebuffer 0) is special
+    if (!index) { //framebuffer 0 is special
         init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview")));
         g_value_set_int(&page, 0);
     } else {
         g_value_set_int(&page, 1);
-        index -= 1;
-        inspect_fb_t* fb = get_inspect_fb_vec(inspector->framebuffers, index);
         
-        if (!fb)
-            return;
+        size_t count = 0;
+        trc_gl_framebuffer_rev_t* fb = NULL;
+        for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Framebuffer]; i++) {
+            trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Framebuffer][i];
+            fb = (trc_gl_framebuffer_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Framebuffer);
+            if (fb && fb->ref_count) count++;
+            if (count == index) break;
+        }
+        if (!fb) return; //TODO: Is this possible?
         
         GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer_attachments"));
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
         gtk_tree_store_clear(store);
         
-        if (fb->depth.tex)
-            add_fb_attachment(store, "GL_DEPTH_ATTACHMENT", &fb->depth);
-        
-        if (fb->stencil.tex)
-            add_fb_attachment(store, "GL_STENCIL_ATTACHMENT", &fb->stencil);
-        
-        if (fb->depth_stencil.tex)
-            add_fb_attachment(store, "GL_DEPTH_STENCIL_ATTACHMENT", &fb->depth_stencil);
-        
-        inspect_fb_attach_vec_t atts = fb->color;
-        for (inspect_fb_attach_t* att = atts->data; !vec_end(atts, att); att++) {
-            char name[256];
-            memset(name, 0, 256);
-            snprintf(name, 256, "GL_COLOR_ATTACHMENT%u", (uint)(att-(inspect_fb_attach_t*)atts->data));
-            
-            add_fb_attachment(store, name, att);
+        size_t attach_count = fb->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
+        trc_gl_framebuffer_attachment_t* attachs = trc_lock_data(fb->attachments, true, false);
+        for (size_t i = 0; i < attach_count; i++) {
+            switch (attachs[i].attachment) {
+            case GL_DEPTH_ATTACHMENT: {
+                add_fb_attachment(store, "GL_DEPTH_ATTACHMENT", &attachs[i]);
+                break;
+            }
+            case GL_STENCIL_ATTACHMENT: {
+                add_fb_attachment(store, "GL_STENCIL_ATTACHMENT", &attachs[i]);
+                break;
+            }
+            case GL_DEPTH_STENCIL_ATTACHMENT: {
+                add_fb_attachment(store, "GL_DEPTH_STENCIL_ATTACHMENT", &attachs[i]);
+                break;
+            }
+            default: {
+                uint index = attachs[i].attachment-GL_COLOR_ATTACHMENT0;
+                add_fb_attachment(store, static_format("GL_COLOR_ATTACHMENT%u", index), &attachs[i]);
+                break;
+            }
+            }
         }
+        trc_unlock_data(fb->attachments);
     }
     
     GObject* notebook = gtk_builder_get_object(builder, "framebuffer_notebook");
-    g_object_set_property(notebook, "page", &page);*/
+    g_object_set_property(notebook, "page", &page);
 }
 
 void init_renderbuffers_list(GtkTreeView* tree) {
@@ -215,8 +243,7 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     
-    if (!path)
-        return;
+    if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     

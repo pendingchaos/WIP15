@@ -810,6 +810,7 @@ void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, 
     trc_gl_framebuffer_attachment_t attach;
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = true;
+    attach.attachment = attachment;
     attach.fake_renderbuffer = fb;
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
