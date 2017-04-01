@@ -96,7 +96,13 @@ glXCreateContext:
     reload_gl_funcs(ctx);
     
     trc_gl_context_rev_t rev = create_context_rev(ctx, res);
-    trc_set_gl_context(ctx->trace, trc_get_ptr(&command->ret)[0], &rev);
+    uint64_t fake = trc_get_ptr(&command->ret)[0];
+    trc_set_gl_context(ctx->trace, fake, &rev);
+    
+    uint64_t prev_fake = ctx->trace->inspection.cur_fake_context;
+    ctx->trace->inspection.cur_fake_context = fake;
+    replay_update_buffers(ctx, true, true, true, true);
+    ctx->trace->inspection.cur_fake_context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -168,7 +174,13 @@ glXCreateContextAttribsARB:
     reload_gl_funcs(ctx);
     
     trc_gl_context_rev_t rev = create_context_rev(ctx, res);
-    trc_set_gl_context(ctx->trace, trc_get_ptr(&command->ret)[0], &rev);
+    uint64_t fake = trc_get_ptr(&command->ret)[0];
+    trc_set_gl_context(ctx->trace, fake, &rev);
+    
+    uint64_t prev_fake = ctx->trace->inspection.cur_fake_context;
+    ctx->trace->inspection.cur_fake_context = fake;
+    replay_update_buffers(ctx, true, true, true, true);
+    ctx->trace->inspection.cur_fake_context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -192,8 +204,7 @@ glXDestroyContext:
 glXSwapBuffers:
     if (!ctx->trace->inspection.cur_fake_context) ERROR("No current OpenGL context.");
     SDL_GL_SwapWindow(ctx->window);
-    //TODO
-    //replay_get_front_color(ctx, command);
+    replay_update_buffers(ctx, false, true, false, false);
 
 glSetContextCapsWIP15:
     ;
@@ -1933,6 +1944,11 @@ glDrawableSizeWIP15:
     if (h < 0) h = 100;
     
     SDL_SetWindowSize(ctx->window, w, h);
+    
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
+    state.drawable_width = w;
+    state.drawable_height = h;
+    trc_set_gl_context(ctx->trace, 0, &state);
     
     //TODO: This is a hack
     F(glViewport)(0, 0, w, h);

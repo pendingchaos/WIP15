@@ -263,6 +263,9 @@ typedef struct trc_gl_context_rev_t {
     uint64_t revision;
     void* real;
     
+    uint drawable_width;
+    uint drawable_height; 
+    
     uint array_buffer;
     uint atomic_counter_buffer;
     uint copy_read_buffer;
@@ -309,6 +312,11 @@ typedef struct trc_gl_context_rev_t {
     trc_data_t* tex_buffer;
     trc_data_t* tex_2d_multisample;
     trc_data_t* tex_2d_multisample_array;
+    
+    trc_data_t* front_color_buffer; //rgba8
+    trc_data_t* back_color_buffer; //rgba8
+    trc_data_t* back_depth_buffer; //uint32_t
+    trc_data_t* back_stencil_buffer; //uint32_t
 } trc_gl_context_rev_t;
 
 typedef struct trc_gl_context_history_t {

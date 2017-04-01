@@ -898,7 +898,7 @@ void trc_add_error(trace_command_t* command, const char* format, ...) {
     va_start(list, format);
     attach->message = format_str(format, list);
     va_end(list);
-    fprintf(stderr, "%s\n", attach->message);
+    
     trc_add_attachment(command, attach);
 }
 

@@ -503,6 +503,10 @@ static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
 static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* real) {
     trc_gl_context_rev_t rev;
     rev.real = real;
+    int w, h;
+    SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+    rev.drawable_width = w;
+    rev.drawable_height = h;
     rev.array_buffer = 0;
     rev.atomic_counter_buffer = 0;
     rev.copy_read_buffer = 0;
@@ -1040,6 +1044,92 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
     trc_set_gl_query(ctx->trace, fake_id, &query);
 }
 
+static void begin_get_fb0_data(trc_replay_context_t* ctx, GLint prev[10]) {
+    F(glGetIntegerv)(GL_PACK_SWAP_BYTES, &prev[0]);
+    F(glGetIntegerv)(GL_PACK_LSB_FIRST, &prev[1]);
+    F(glGetIntegerv)(GL_PACK_ROW_LENGTH, &prev[2]);
+    F(glGetIntegerv)(GL_PACK_IMAGE_HEIGHT, &prev[3]);
+    F(glGetIntegerv)(GL_PACK_SKIP_PIXELS, &prev[4]);
+    F(glGetIntegerv)(GL_PACK_SKIP_ROWS, &prev[5]);
+    F(glGetIntegerv)(GL_PACK_SKIP_IMAGES, &prev[6]);
+    F(glGetIntegerv)(GL_PACK_ALIGNMENT, &prev[7]);
+    F(glGetIntegerv)(GL_READ_BUFFER, &prev[8]);
+    F(glGetIntegerv)(GL_READ_FRAMEBUFFER_BINDING, &prev[9]);
+    
+    F(glPixelStorei)(GL_PACK_SWAP_BYTES, GL_FALSE);
+    F(glPixelStorei)(GL_PACK_LSB_FIRST, GL_FALSE);
+    F(glPixelStorei)(GL_PACK_ROW_LENGTH, 0);
+    F(glPixelStorei)(GL_PACK_IMAGE_HEIGHT, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_PIXELS, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_ROWS, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_IMAGES, 0);
+    F(glPixelStorei)(GL_PACK_ALIGNMENT, 1);
+    F(glBindFramebuffer)(GL_READ_FRAMEBUFFER, 0);
+}
+
+static void end_get_fb0_data(trc_replay_context_t* ctx, const GLint prev[10]) {
+    F(glBindFramebuffer)(GL_READ_FRAMEBUFFER, prev[9]);
+    F(glReadBuffer)(prev[8]);
+    F(glPixelStorei)(GL_PACK_ALIGNMENT, prev[7]);
+    F(glPixelStorei)(GL_PACK_SKIP_IMAGES, prev[6]);
+    F(glPixelStorei)(GL_PACK_SKIP_ROWS, prev[5]);
+    F(glPixelStorei)(GL_PACK_SKIP_PIXELS, prev[4]);
+    F(glPixelStorei)(GL_PACK_IMAGE_HEIGHT, prev[3]);
+    F(glPixelStorei)(GL_PACK_ROW_LENGTH, prev[2]);
+    F(glPixelStorei)(GL_PACK_LSB_FIRST, prev[1]);
+    F(glPixelStorei)(GL_PACK_SWAP_BYTES, prev[0]);
+}
+
+static trc_data_t* replay_get_fb0_buffer(trc_replay_context_t* ctx, trc_gl_context_rev_t* state,
+                                         GLenum buffer, GLenum format, GLenum type) {
+    F(glReadBuffer)(buffer);
+    
+    size_t data_size = state->drawable_width * state->drawable_height * 4;
+    trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
+    void* dest = trc_lock_data(data, false, true);
+    F(glReadPixels)(0, 0, state->drawable_width, state->drawable_height, format, type, dest);
+    trc_unlock_data(data);
+    
+    return data;
+}
+
+static void store_and_bind_fb(trc_replay_context_t* ctx, GLint* prev, GLuint fb) {
+    F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, prev);
+    F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, fb);
+}
+
+static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor,
+                                  bool depth, bool stencil) {
+    GLint prevfb;
+    store_and_bind_fb(ctx, &prevfb, 0);
+    GLint depth_size, stencil_size;
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_DEPTH,
+                                             GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_size);
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_STENCIL,
+                                             GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencil_size);
+    if (depth_size == 0) depth = false;
+    if (stencil_size == 0) stencil = false;
+    F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, prevfb);
+    
+    GLint prev[10];
+    begin_get_fb0_data(ctx, prev);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
+    if (backcolor) {
+        state.back_color_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_RGBA, GL_UNSIGNED_BYTE);
+    }
+    if (frontcolor) {
+        state.front_color_buffer = replay_get_fb0_buffer(ctx, &state, GL_FRONT, GL_RGBA, GL_UNSIGNED_BYTE);
+    }
+    if (depth) {
+        state.back_depth_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+    }
+    if (stencil) {
+        state.back_stencil_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_STENCIL_INDEX, GL_UNSIGNED_INT);
+    }
+    trc_set_gl_context(ctx->trace, 0, &state);
+    end_get_fb0_data(ctx, prev);
+}
+
 static void begin_draw(trc_replay_context_t* ctx) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, state->bound_vao);
@@ -1100,14 +1190,13 @@ static void begin_draw(trc_replay_context_t* ctx) {
 }
 
 static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    //TODO
-    /*GLint maxbuf;
-    F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &maxbuf);
-    
-    for (GLint i = 0; i < maxbuf; i++) update_drawbuffer(ctx, cmd, GL_COLOR, i);
-    
-    update_drawbuffer(ctx, cmd, GL_DEPTH, 0);
-    update_drawbuffer(ctx, cmd, GL_STENCIL, 0);*/
+    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
+    if (state->draw_framebuffer) {
+        //TODO: Only update buffers that could have been written to
+        replay_update_buffers(ctx, true, false, true, true);
+    } else {
+        //TODO
+    }
 }
 
 static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
