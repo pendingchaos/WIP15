@@ -344,7 +344,6 @@ typedef struct trc_gl_inspection_t {
     
     size_t cur_ctx_revision_count;
     trc_cur_context_rev_t* cur_ctx_revisions;
-    //uint64_t cur_fake_context;
 } trc_gl_inspection_t;
 
 typedef struct {
@@ -420,6 +419,7 @@ void trc_add_warning(trace_command_t* command, const char* format, ...);
 void trc_add_error(trace_command_t* command, const char* format, ...);
 void trc_run_inspection(trace_t* trace);
 
+//The pointers from trc_get_gl_* are invalidated by trc_set_gl_*
 const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake);
 void trc_set_gl_buffer(trace_t* trace, uint fake, const trc_gl_buffer_rev_t* rev);
 uint trc_get_real_gl_buffer(trace_t* trace, uint fake);
@@ -470,13 +470,16 @@ uint trc_get_real_gl_transform_feedback(trace_t* trace, uint fake);
 
 void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //Increase the reference count
 void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //Decrease the reference count
-trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type);
+const trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type);
 
+uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint revision);
 uint64_t trc_get_current_fake_gl_context(trace_t* trace);
 void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
+
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake);
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev);
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake);
+const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision, uint64_t fake);
 
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
 trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data);

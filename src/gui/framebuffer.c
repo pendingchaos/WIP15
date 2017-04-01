@@ -28,7 +28,7 @@ void init_framebuffers_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Framebuffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Framebuffer][i];
-        trc_gl_obj_rev_t* fb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Framebuffer);
+        const trc_gl_obj_rev_t* fb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Framebuffer);
         if (fb && fb->ref_count) {
             char str[64];
             memset(str, 0, 64);
@@ -41,9 +41,65 @@ void init_framebuffers_list(GtkTreeView* tree) {
     }
 }
 
+static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data, bool depth) {
+    uint width = state->drawable_width;
+    uint height = state->drawable_height;
+    
+    uint32_t* img = trc_lock_data(data, true, false);
+    
+    GdkPixbuf* buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, width, height);
+    if (depth) {
+        uint8_t* data = (uint8_t*)gdk_pixbuf_get_pixels(buf);
+        for (size_t y = 0; y < height; y++) {
+            for (size_t x = 0; x < width; x++) {
+                size_t index = (height-1-y)*width + x;
+                uint32_t val = img[y*width+x];
+                val = val / 4294967296.0 * 16777216.0;
+                data[index*4] = val % 256;
+                data[index*4+1] = val % 65536 / 256;
+                data[index*4+2] = val / 65536;
+                data[index*4+3] = 255;
+            }
+        }
+    } else {
+        uint32_t* data = (uint32_t*)gdk_pixbuf_get_pixels(buf);
+        for (size_t y = 0; y < height; y++) {
+            for (size_t x = 0; x < width; x++) {
+                size_t index = (height-1-y)*width + x;
+                data[index] = img[y*width+x] | *(const uint32_t*)"\x00\x00\x00\xff";
+            }
+        }
+    }
+    
+    trc_unlock_data(data);
+    
+    return buf;
+}
+
 static void init_framebuffer_tree(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
+    
+    uint64_t fake = trc_lookup_current_fake_gl_context(trace, revision);
+    const trc_gl_context_rev_t* state = trc_lookup_gl_context(trace, revision, fake);
+    
+    GdkPixbuf* buf = get_pixbuf(state, state->front_color_buffer, false);
+    GtkTreeIter row;
+    gtk_tree_store_append(store, &row, NULL);
+    gtk_tree_store_set(store, &row, 0, "Front", 1, buf, -1);
+    g_object_unref(buf);
+    
+    buf = get_pixbuf(state, state->back_color_buffer, false);
+    gtk_tree_store_append(store, &row, NULL);
+    gtk_tree_store_set(store, &row, 0, "Back", 1, buf, -1);
+    g_object_unref(buf);
+    
+    buf = get_pixbuf(state, state->back_depth_buffer, true);
+    gtk_tree_store_append(store, &row, NULL);
+    gtk_tree_store_set(store, &row, 0, "Depth", 1, buf, -1);
+    g_object_unref(buf);
+    
+    //TODO: Stencil buffer
     
     //TODO
     /*inspect_image_t* front = inspector->front_buf;
@@ -223,7 +279,7 @@ void init_renderbuffers_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Renderbuffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Renderbuffer][i];
-        trc_gl_obj_rev_t* rb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Renderbuffer);
+        const trc_gl_obj_rev_t* rb = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Renderbuffer);
         if (rb && rb->ref_count) {
             char str[64];
             memset(str, 0, 64);

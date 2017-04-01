@@ -1213,7 +1213,7 @@ void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
     free(new_rev);
 }
 
-trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type) {
+const trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type) {
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
         if (trace->inspection.gl_obj_history[type][i].fake != fake) continue;
         trc_gl_obj_history_t* history = &trace->inspection.gl_obj_history[type][i];
@@ -1225,12 +1225,20 @@ trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake
     return NULL;
 }
 
-trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
+static trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
     for (size_t i = 0; i < trace->inspection.gl_context_history_count; i++) {
         if (trace->inspection.gl_context_history[i].fake == fake)
             return &trace->inspection.gl_context_history[i];
     }
     return NULL;
+}
+
+uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint revision) {
+    for (ptrdiff_t i = trace->inspection.cur_ctx_revision_count-1; i >= 0; i--) {
+        if (trace->inspection.cur_ctx_revisions[i].revision <= revision)
+            return trace->inspection.cur_ctx_revisions[i].context;
+    }
+    return 0;
 }
 
 uint64_t trc_get_current_fake_gl_context(trace_t* trace) {
@@ -1276,6 +1284,18 @@ void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
     const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
     if (!rev) return NULL;
     return rev->real;
+}
+
+const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision, uint64_t fake) {
+    for (size_t i = 0; i < trace->inspection.gl_context_history_count; i++) {
+        if (trace->inspection.gl_context_history[i].fake != fake) continue;
+        trc_gl_context_history_t* history = &trace->inspection.gl_context_history[i];
+        for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
+            if (history->revisions[j].revision <= revision)
+                return &history->revisions[j];
+        }
+    }
+    return NULL;
 }
 
 //TODO: Compression is currently not implemented

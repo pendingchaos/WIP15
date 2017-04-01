@@ -188,7 +188,7 @@ void init_buffer_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Buffer]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Buffer][i];
-        trc_gl_obj_rev_t* buf = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
+        const trc_gl_obj_rev_t* buf = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Buffer);
         if (buf && buf->ref_count) {
             char str[64];
             memset(str, 0, 64);

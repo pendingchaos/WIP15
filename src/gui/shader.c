@@ -36,7 +36,7 @@ void init_shader_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Shader]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Shader][i];
-        trc_gl_shader_rev_t* shdr = (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Shader);
+        const trc_gl_shader_rev_t* shdr = (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Shader);
         if (shdr && shdr->ref_count) {
             char str[64];
             memset(str, 0, 64);
@@ -67,7 +67,7 @@ void init_program_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Program]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Program][i];
-        trc_gl_obj_rev_t* shdr = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Program);
+        const trc_gl_obj_rev_t* shdr = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Program);
         if (shdr && shdr->ref_count) {
             char str[64];
             memset(str, 0, 64);
