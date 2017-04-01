@@ -61,7 +61,5 @@ Reduce memory usage during replaying.
 
 add detailed function call on bottom
 
-Disallow inspection of traces when the trace's endianness differs from the tracer's endianness (and vice-versa)
-
 cleanup objects after replay
     don't forget trc_gl_context_rev_t::draw_vao

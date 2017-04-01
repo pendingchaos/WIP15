@@ -449,6 +449,12 @@ trace_t *load_trace(const char* filename) {
         return NULL;
     }
     trace->little_endian = endian == '_';
+    if (trace->little_endian != (SDL_BYTEORDER==SDL_LIL_ENDIAN)) {
+        trace_error = TraceError_Invalid;
+        trace_error_desc = "Trace-platform endianness mismatch";
+        free_trace(trace);
+        return NULL;
+    }
     
     uint8_t version[2];
     if (!readf(version, 2, 1, file)) {
