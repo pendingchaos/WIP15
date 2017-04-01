@@ -214,9 +214,10 @@ glSetContextCapsWIP15:
 glClear:
     GLbitfield mask = gl_param_GLbitfield(command, 0);
     real(mask);
-    //TODO
-    //if (mask & GL_COLOR_BUFFER_BIT) update_drawbuffer(ctx, command, GL_COLOR, 0);
-    //if (mask & GL_DEPTH_BUFFER_BIT) update_drawbuffer(ctx, command, GL_DEPTH, 0);
+    bool color = mask & GL_COLOR_BUFFER_BIT;
+    bool depth = mask & GL_DEPTH_BUFFER_BIT;
+    bool stencil = mask & GL_STENCIL_BUFFER_BIT;
+    replay_update_buffers(ctx, color, false, depth, stencil);
 
 glGenTextures:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -739,6 +740,8 @@ glMapBufferRange:
     buf.map_offset = offset;
     buf.map_length = length;
     buf.map_access = access;
+    
+    trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glUnmapBuffer:
     GLuint target = gl_param_GLenum(command, 0);
@@ -1948,8 +1951,10 @@ glDrawableSizeWIP15:
     SDL_SetWindowSize(ctx->window, w, h);
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
+    if (state.drawable_width==w && state.drawable_height==h) return;
     state.drawable_width = w;
     state.drawable_height = h;
+    replay_create_context_buffers(ctx->trace, &state);
     trc_set_gl_context(ctx->trace, 0, &state);
     
     //TODO: This is a hack
