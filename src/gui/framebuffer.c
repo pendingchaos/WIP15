@@ -243,15 +243,21 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
-    //TODO
-    /*inspect_rb_t* rb = get_inspect_rb_vec(inspector->renderbuffers, index);
-    if (!rb) return;
+    size_t count = 0;
+    trc_gl_renderbuffer_rev_t* rb = NULL;
+    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Renderbuffer]; i++) {
+        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Renderbuffer][i];
+        rb = (trc_gl_renderbuffer_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Renderbuffer);
+        if (rb && rb->ref_count) count++;
+        if (count == index+1) break;
+    }
+    if (!rb) return; //TODO: Is this possible?
     
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "renderbuffer_treeview"));
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    if (rb->internal_format) { //The internal format is 0 when the renderbuffer has not been initialized with glRenderbufferStorage*
+    if (rb->has_storage) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Width", 1, static_format("%zu", rb->width), -1);
@@ -260,20 +266,26 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, "Internal Format", 1, get_enum_str(NULL, rb->internal_format), -1);
         gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Sample Count", 1, static_format("%zu", rb->sample_count), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Red Size", 1, static_format("%zu", rb->red_size), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Green Size", 1, static_format("%zu", rb->green_size), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Blue Size", 1, static_format("%zu", rb->blue_size), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Alpha Size", 1, static_format("%zu", rb->alpha_size), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Depth Size", 1, static_format("%zu", rb->depth_size), -1);
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, "Stencil Size", 1, static_format("%zu", rb->stencil_size), -1);
-    }*/
+        if (rb->sample_count > 1) {
+            gtk_tree_store_set(store, &row, 0, "Sample Count", 1, static_format("%zu", rb->sample_count), -1);
+            gtk_tree_store_append(store, &row, NULL);
+        }
+        const char* names[] = {"Red Bits", "Green Bits", "Blue Bits", "Alpha Bits"};
+        for (size_t i = 0; i < 4; i++) {
+            if (rb->rgba_bits[i]) {
+                gtk_tree_store_set(store, &row, 0, names[i], 1, static_format("%zu", rb->rgba_bits[i]), -1);
+                gtk_tree_store_append(store, &row, NULL);
+            }
+        }
+        if (rb->depth_bits) {
+            gtk_tree_store_set(store, &row, 0, "Depth Bits", 1, static_format("%zu", rb->depth_bits), -1);
+            gtk_tree_store_append(store, &row, NULL);
+        }
+        if (rb->stencil_bits) {
+            gtk_tree_store_set(store, &row, 0, "Stencil Bits", 1, static_format("%zu", rb->stencil_bits), -1);
+            gtk_tree_store_append(store, &row, NULL);
+        }
+    }
 }
 
 void framebuffer_init() {

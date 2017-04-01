@@ -626,8 +626,10 @@ void replay_update_tex_image(trc_replay_context_t* ctx, trace_command_t* command
     case GL_DEPTH_COMPONENT24: dtype = 2; ftype = 1; components = 1; break;
     case GL_DEPTH_COMPONENT32: dtype = 2; ftype = 1; components = 1; break;
     case GL_DEPTH_COMPONENT32F: dtype = 2; ftype = 1; components = 1; break;
+    case GL_DEPTH_STENCIL: dtype = 3; ftype = 3; components = 2; break;
     case GL_DEPTH24_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
     case GL_DEPTH32F_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
+    case GL_STENCIL_INDEX: dtype = 0; ftype = 2; components = 1; break;
     case GL_STENCIL_INDEX1: dtype = 0; ftype = 2; components = 1; break;
     case GL_STENCIL_INDEX4: dtype = 0; ftype = 2; components = 1; break;
     case GL_STENCIL_INDEX8: dtype = 0; ftype = 2; components = 1; break;
@@ -840,6 +842,7 @@ void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbu
     for (size_t i = 0; i < 4; i++) newrev.rgba_bits[i] = bits[i];
     newrev.depth_bits = bits[4];
     newrev.stencil_bits = bits[5];
+    newrev.has_storage = true;
     
     trc_set_gl_renderbuffer(ctx->trace, fake, &newrev);
 }

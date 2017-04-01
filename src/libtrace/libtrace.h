@@ -185,6 +185,7 @@ typedef struct trc_gl_framebuffer_rev_t {
 
 typedef struct trc_gl_renderbuffer_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_storage;
     uint width;
     uint height;
     uint internal_format;

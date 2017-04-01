@@ -2159,6 +2159,7 @@ glGenRenderbuffers:
         rev.fake_context = ctx->trace->inspection.cur_fake_context;
         rev.ref_count = 1;
         rev.real = rbs[i];
+        rev.has_storage = false;
         trc_set_gl_renderbuffer(ctx->trace, fake[i], &rev);
     }
 
