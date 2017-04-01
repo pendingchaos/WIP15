@@ -154,18 +154,22 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < program->shader_count; i++) {
+    size_t shader_count = program->shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* shaders = trc_lock_data(program->shaders, true, false);
+    for (size_t i = 0; i < shader_count; i++) {
         char id[64];
         memset(id, 0, 64);
-        snprintf(id, 64, "%u", program->shaders[i]);
+        snprintf(id, 64, "%u", shaders[i].fake_shader);
         
         trc_gl_shader_rev_t* shdr = (trc_gl_shader_rev_t*)
-            trc_lookup_gl_obj(trace, program->shader_revisions[i], program->shaders[i], TrcGLObj_Shader);
+            trc_lookup_gl_obj(trace, shaders[i].shader_revision, shaders[i].fake_shader, TrcGLObj_Shader);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, id, 1, shader_type_str(shdr->type), -1);
     }
+    
+    trc_unlock_data(program->shaders);
     
     GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
@@ -188,10 +192,12 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     
     if (!selected_program) return;
     
-    uint shdr_rev = selected_program->shader_revisions[shdr_index];
-    uint shdr_id = selected_program->shaders[shdr_index];
+    trc_gl_program_shader_t* shaders = trc_lock_data(selected_program->shaders, true, false);
+    trc_gl_program_shader_t shader = shaders[shdr_index];
+    trc_unlock_data(selected_program->shaders);
+    
     trc_gl_shader_rev_t* shdr =
-        (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, shdr_rev, shdr_id, TrcGLObj_Shader);
+        (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, shader.shader_revision, shader.fake_shader, TrcGLObj_Shader);
     size_t source_len = 0;
     char* source = shdr ? get_shader_source(shdr, &source_len) : malloc(1);
     

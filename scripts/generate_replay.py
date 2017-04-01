@@ -539,6 +539,9 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     for (uint i = 0; i < max_combined_tex_units; i++) bound_tex_data_ptr[i] = 0;
     trc_unlock_data(bound_tex_data);
     
+    F(glGenVertexArrays)(1, &rev.draw_vao);
+    F(glBindVertexArray)(rev.draw_vao);
+    
     rev.tex_1d = bound_tex_data;
     rev.tex_2d = bound_tex_data;
     rev.tex_3d = bound_tex_data;
@@ -750,7 +753,7 @@ void replay_update_tex_image(trc_replay_context_t* ctx, trace_command_t* command
         type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
         break;
     }
-    F(glGetnTexImage)(target, level, format, type, data_size, dest);
+    F(glGetTexImage)(target, level, format, type, dest);
     
     trc_unlock_data(data);
     
@@ -979,8 +982,16 @@ static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
 
 static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
     const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
-    for (size_t i = 0; i < rev->uniform_count; i++)
-        if (rev->uniforms[i*2+1] == gl_param_GLint(cmd, 0)) return rev->uniforms[i*2];
+    size_t uniform_count = rev->uniforms->uncompressed_size / (sizeof(uint)*2);
+    uint* uniforms = trc_lock_data(rev->uniforms, true, false);
+    for (size_t i = 0; i < uniform_count; i++) {
+        if (uniforms[i*2+1] == gl_param_GLint(cmd, 0)) {
+            uint res = uniforms[i*2];
+            trc_unlock_data(rev->uniforms);
+            return res;
+        }
+    }
+    trc_unlock_data(rev->uniforms);
     return -1;
 }
 
@@ -1030,29 +1041,31 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
 }
 
 static void begin_draw(trc_replay_context_t* ctx) {
-    const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
-    const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
+    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
+    const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, state->bound_vao);
+    const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, state->bound_program);
     
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
     
+    size_t prog_vertex_attrib_count = program->vertex_attribs->uncompressed_size / (sizeof(uint)*2);
+    uint* prog_vertex_attribs = trc_lock_data(program->vertex_attribs, true, false);
     for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
-        for (size_t j = 0; j < program->vertex_attrib_count; j++) {
-            if (program->vertex_attribs[j*2+1] == i) {
-                real_loc = program->vertex_attribs[j*2];
+        for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
+            if (prog_vertex_attribs[j*2+1] == i) {
+                real_loc = prog_vertex_attribs[j*2];
                 break;
             }
         }
         if (real_loc < 0) continue;
         
         trc_gl_vao_attrib_t* a = &vao->attribs[i];
-        if (a->enabled) {
-            F(glEnableVertexAttribArray)(real_loc);
-        } else {
+        if (!a->enabled) {
             F(glDisableVertexAttribArray)(real_loc);
             continue;
         }
+        F(glEnableVertexAttribArray)(real_loc);
         
         if (a->buffer) {
             F(glBindBuffer)(GL_ARRAY_BUFFER, a->buffer);
@@ -1077,8 +1090,11 @@ static void begin_draw(trc_replay_context_t* ctx) {
             }
         }
         
+        //TODO: Only do this if OpenGL 3.3+ is used
         F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
+    
+    trc_unlock_data(program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
 }
@@ -1272,6 +1288,7 @@ for name in gl.functions:
     
     if name in nontrivial:
         output.write(nontrivial[name])
+        output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
         output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
         output.write("}\n\n")
         continue

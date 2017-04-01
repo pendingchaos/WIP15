@@ -202,18 +202,17 @@ typedef struct trc_gl_sync_rev_t {
     uint flags;
 } trc_gl_sync_rev_t;
 
+typedef struct trc_gl_program_shader_t {
+    uint fake_shader;
+    uint shader_revision;
+} trc_gl_program_shader_t;
+
 typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
-    size_t uniform_count;
-    size_t vertex_attrib_count;
-    //TODO: Move these arrays into trc_data_t(s)
-    int* uniforms; //[real0, fake0, real1, fake1, ...]
-    int* vertex_attribs; //[real0, fake0, real1, fake1, ...]
+    trc_data_t* uniforms; //int[]{real0, fake0, real1, fake1, ...}
+    trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
     
-    size_t shader_count;
-    //TODO: Move these arrays into trc_data_t(s)
-    uint* shaders;
-    uint* shader_revisions;
+    trc_data_t* shaders; //array of trc_gl_program_shader_t
     
     char* info_log;
 } trc_gl_program_rev_t;
@@ -237,7 +236,7 @@ typedef struct trc_gl_vao_attrib_t {
     bool integer;
     uint size;
     uint stride;
-    uint offset;
+    uint64_t offset;
     uint type;
     uint divisor;
     uint buffer;
@@ -264,7 +263,6 @@ typedef struct trc_gl_context_rev_t {
     uint64_t revision;
     void* real;
     
-    //TODO: Change these names to names like buf_array and buf_atomic_counter
     uint array_buffer;
     uint atomic_counter_buffer;
     uint copy_read_buffer;
@@ -297,6 +295,8 @@ typedef struct trc_gl_context_rev_t {
     uint timestamp_query;
     
     uint active_texture_unit;
+    
+    uint draw_vao; //Used for glDraw* and stuff
     
     trc_data_t* tex_1d;
     trc_data_t* tex_2d;

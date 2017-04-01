@@ -35,8 +35,7 @@ void sync_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     
-    if (!path)
-        return;
+    if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
@@ -48,7 +47,6 @@ void sync_select_callback(GObject* obj, gpointer user_data) {
         if (sync && sync->ref_count) count++;
         if (count == index+1) break;
     }
-    
     if (!sync) return; //TODO: Is this possible?
     
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "sync_treeview"));

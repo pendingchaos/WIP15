@@ -14,6 +14,7 @@ Debugging:
         program pipelines
         program uniforms
         large buffers
+        program's linked shaders (not attached shaders)
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
@@ -33,8 +34,6 @@ Tests:
     Compare expected objects with actual objects
 
 Bugs:
-    Program crashes with optimizations.
-        Seems to be the glGetIntegerv calls in the state tracking code.
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The state, textures, etc will not be updated when opening a trace in the GUI.
     The viewport at the first frame is incorrect.
@@ -63,3 +62,6 @@ Reduce memory usage during replaying.
 add detailed function call on bottom
 
 Disallow inspection of traces when the trace's endianness differs from the tracer's endianness (and vice-versa)
+
+cleanup objects after replay
+    don't forget trc_gl_context_rev_t::draw_vao

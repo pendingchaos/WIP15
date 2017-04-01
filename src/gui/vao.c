@@ -4,6 +4,7 @@
 #include <gtk/gtk.h>
 #include <GL/gl.h>
 #include <string.h>
+#include <inttypes.h>
 
 extern GtkBuilder* builder;
 extern trace_t* trace;
@@ -88,7 +89,7 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         
         char offset_str[64];
         memset(offset_str, 0, 64);
-        snprintf(offset_str, 64, "%u", attr->offset);
+        snprintf(offset_str, 64, "%"PRIu64, attr->offset);
         
         char divisor_str[64];
         memset(divisor_str, 0, 64);
@@ -96,7 +97,7 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         
         char buffer_str[64];
         memset(buffer_str, 0, 64);
-        snprintf(buffer_str, 64, "%u", attr->buffer);
+        if (attr->buffer) snprintf(buffer_str, 64, "%u", attr->buffer);
         
         char value_strs[128][4];
         for (size_t j = 0; j < 4; j++)
@@ -104,37 +105,39 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         
         char value_str[1024];
         memset(value_str, 0, 1024);
-        switch (attr->size) {
-        case 1:
-            snprintf(value_str,
-                     1024,
-                     "%s",
-                     value_strs[0]);
-            break;
-        case 2:
-            snprintf(value_str,
-                     1024,
-                     "[%s %s]",
-                     value_strs[0],
-                     value_strs[1]);
-            break;
-        case 3:
-            snprintf(value_str,
-                     1024,
-                     "[%s %s %s]",
-                     value_strs[0],
-                     value_strs[1],
-                     value_strs[2]);
-            break;
-        case 4:
-            snprintf(value_str,
-                     1024,
-                     "[%s %s %s %s]",
-                     value_strs[0],
-                     value_strs[1],
-                     value_strs[2],
-                     value_strs[3]);
-            break;
+        if (attr->buffer == 0) {
+            switch (attr->size) {
+            case 1:
+                snprintf(value_str,
+                         1024,
+                         "%s",
+                         value_strs[0]);
+                break;
+            case 2:
+                snprintf(value_str,
+                         1024,
+                         "[%s %s]",
+                         value_strs[0],
+                         value_strs[1]);
+                break;
+            case 3:
+                snprintf(value_str,
+                         1024,
+                         "[%s %s %s]",
+                         value_strs[0],
+                         value_strs[1],
+                         value_strs[2]);
+                break;
+            case 4:
+                snprintf(value_str,
+                         1024,
+                         "[%s %s %s %s]",
+                         value_strs[0],
+                         value_strs[1],
+                         value_strs[2],
+                         value_strs[3]);
+                break;
+            }
         }
         
         GtkTreeIter row;
