@@ -164,6 +164,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
     if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
+    GtkNotebook* notebook = GTK_NOTEBOOK(gtk_builder_get_object(builder, "framebuffer_notebook"));
     
     if (!index) { //framebuffer 0 is special
         init_framebuffer_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "framebuffer0_treeview")));

@@ -519,6 +519,7 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     rev.uniform_buffer = 0;
     rev.bound_program = 0;
     rev.bound_vao = 0;
+    rev.bound_renderbuffer = 0;
     rev.read_framebuffer = 0;
     rev.draw_framebuffer = 0;
     rev.samples_passed_query = 0;
@@ -815,6 +816,32 @@ void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, 
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
         trc_add_error(cmd, "No framebuffer bound or invalid target\\n");
+}
+
+void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
+                                uint fake, uint width, uint height, uint internal_format, uint samples) {
+    GLint bits[6];
+    GLint prev;
+    F(glGetIntegerv(GL_RENDERBUFFER_BINDING, &prev));
+    F(glBindRenderbuffer(GL_RENDERBUFFER, rev->real));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_RED_SIZE, &bits[0]));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_GREEN_SIZE, &bits[1]));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_BLUE_SIZE, &bits[2]));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_ALPHA_SIZE, &bits[3]));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_DEPTH_SIZE, &bits[4]));
+    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_STENCIL_SIZE, &bits[5]));
+    F(glBindRenderbuffer(GL_RENDERBUFFER, prev));
+    
+    trc_gl_renderbuffer_rev_t newrev = *rev;
+    newrev.width = width;
+    newrev.height = height;
+    newrev.internal_format = internal_format;
+    newrev.sample_count = samples;
+    for (size_t i = 0; i < 4; i++) newrev.rgba_bits[i] = bits[i];
+    newrev.depth_bits = bits[4];
+    newrev.stencil_bits = bits[5];
+    
+    trc_set_gl_renderbuffer(ctx->trace, fake, &newrev);
 }
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)

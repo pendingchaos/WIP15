@@ -185,6 +185,13 @@ typedef struct trc_gl_framebuffer_rev_t {
 
 typedef struct trc_gl_renderbuffer_rev_t {
     TRC_GL_OBJ_HEAD
+    uint width;
+    uint height;
+    uint internal_format;
+    uint sample_count;
+    uint rgba_bits[4];
+    uint depth_bits;
+    uint stencil_bits;
 } trc_gl_renderbuffer_rev_t;
 
 typedef struct trc_gl_sync_rev_t {
@@ -274,6 +281,7 @@ typedef struct trc_gl_context_rev_t {
     
     uint bound_program;
     uint bound_vao;
+    uint bound_renderbuffer;
     
     uint read_framebuffer;
     uint draw_framebuffer;
