@@ -325,6 +325,11 @@ typedef struct trc_gl_context_history_t {
     trc_gl_context_rev_t* revisions; //Sorted from lowest revision to highest
 } trc_gl_context_history_t;
 
+typedef struct trc_cur_context_rev_t {
+    uint64_t revision;
+    uint64_t context;
+} trc_cur_context_rev_t;
+
 typedef struct trc_gl_inspection_t {
     uint cur_revision;
     
@@ -337,7 +342,9 @@ typedef struct trc_gl_inspection_t {
     size_t gl_context_history_count;
     trc_gl_context_history_t* gl_context_history;
     
-    uint64_t cur_fake_context;
+    size_t cur_ctx_revision_count;
+    trc_cur_context_rev_t* cur_ctx_revisions;
+    //uint64_t cur_fake_context;
 } trc_gl_inspection_t;
 
 typedef struct {
@@ -465,6 +472,8 @@ void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //I
 void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type); //Decrease the reference count
 trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type);
 
+uint64_t trc_get_current_fake_gl_context(trace_t* trace);
+void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake);
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev);
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake);

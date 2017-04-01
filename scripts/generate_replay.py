@@ -1232,7 +1232,7 @@ static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
 output.write("""
 static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
-    if (ctx->trace->inspection.cur_fake_context && F(glGetError)) error = F(glGetError)();
+    if (trc_get_current_fake_gl_context(ctx->trace) && F(glGetError)) error = F(glGetError)();
     //TODO: Are all of these needed?
     switch (error) {
     case GL_NO_ERROR:
@@ -1360,7 +1360,7 @@ for name in gl.functions:
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* command) {\n" % (name))
     
     if not name.startswith("glX"):
-        output.write("""    if (!ctx->trace->inspection.cur_fake_context) {
+        output.write("""    if (!trc_get_current_fake_gl_context(ctx->trace)) {
         trc_add_error(command, "No current OpenGL context.");
         return;
     }

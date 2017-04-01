@@ -636,7 +636,10 @@ trace_t *load_trace(const char* filename) {
     }
     trace->inspection.gl_context_history_count = 0;
     trace->inspection.gl_context_history = NULL;
-    trace->inspection.cur_fake_context = 0;
+    trace->inspection.cur_ctx_revision_count = 1;
+    trace->inspection.cur_ctx_revisions = malloc(sizeof(trc_cur_context_rev_t));
+    trace->inspection.cur_ctx_revisions[0].context = 0;
+    trace->inspection.cur_ctx_revisions[0].revision = ++trace->inspection.cur_revision;
     
     return trace;
     
@@ -662,6 +665,7 @@ void free_trace(trace_t* trace) {
     
     trc_gl_inspection_t* ti = &trace->inspection;
     
+    free(ti->cur_ctx_revisions);
     for (size_t i = 0; i < ti->data_count; i++) trc_destroy_data(ti->data[i]);
     free(ti->data);
     
@@ -1229,8 +1233,20 @@ trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
     return NULL;
 }
 
+uint64_t trc_get_current_fake_gl_context(trace_t* trace) {
+    return trace->inspection.cur_ctx_revisions[trace->inspection.cur_ctx_revision_count-1].context;
+}
+
+void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake) {
+    trc_gl_inspection_t* i = &trace->inspection;
+    size_t size = (i->cur_ctx_revision_count+1)*sizeof(trc_cur_context_rev_t);
+    i->cur_ctx_revisions = realloc(i->cur_ctx_revisions, size);
+    i->cur_ctx_revisions[i->cur_ctx_revision_count].revision = ++i->cur_revision;
+    i->cur_ctx_revisions[i->cur_ctx_revision_count++].context = fake;
+}
+
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
-    if (!fake) fake = trace->inspection.cur_fake_context;
+    if (!fake) fake = trc_get_current_fake_gl_context(trace);
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) return NULL;
     if (!h->revision_count) return NULL;
@@ -1238,7 +1254,7 @@ const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
 }
 
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
-    if (!fake) fake = trace->inspection.cur_fake_context;
+    if (!fake) fake = trc_get_current_fake_gl_context(trace);
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) {
         trc_gl_inspection_t* i = &trace->inspection;
@@ -1257,7 +1273,6 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
 }
 
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
-    if (!fake) fake = trace->inspection.cur_fake_context;
     const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
     if (!rev) return NULL;
     return rev->real;

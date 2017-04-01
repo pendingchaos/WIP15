@@ -11,10 +11,10 @@ glXMakeCurrent:
     
     if (glctx) {
         reload_gl_funcs(ctx);
-        ctx->trace->inspection.cur_fake_context = fake_ctx;
+        trc_set_current_fake_gl_context(ctx->trace, fake_ctx);
     } else {
         reset_gl_funcs(ctx);
-        ctx->trace->inspection.cur_fake_context = 0;
+        trc_set_current_fake_gl_context(ctx->trace, 0);
     }
     
     //Seems to be messing up the front buffer.
@@ -99,10 +99,11 @@ glXCreateContext:
     uint64_t fake = trc_get_ptr(&command->ret)[0];
     trc_set_gl_context(ctx->trace, fake, &rev);
     
-    uint64_t prev_fake = ctx->trace->inspection.cur_fake_context;
-    ctx->trace->inspection.cur_fake_context = fake;
+    uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
+    size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
+    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //A hack
     replay_update_buffers(ctx, true, true, true, true);
-    ctx->trace->inspection.cur_fake_context = prev_fake;
+    ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -177,10 +178,11 @@ glXCreateContextAttribsARB:
     uint64_t fake = trc_get_ptr(&command->ret)[0];
     trc_set_gl_context(ctx->trace, fake, &rev);
     
-    uint64_t prev_fake = ctx->trace->inspection.cur_fake_context;
-    ctx->trace->inspection.cur_fake_context = fake;
+    uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
+    size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
+    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //A hack
     replay_update_buffers(ctx, true, true, true, true);
-    ctx->trace->inspection.cur_fake_context = prev_fake;
+    ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -202,7 +204,7 @@ glXDestroyContext:
     //replay_rel_object(ctx, ReplayObjType_GLXContext, *trc_get_ptr(trc_get_arg(command, 1)));
 
 glXSwapBuffers:
-    if (!ctx->trace->inspection.cur_fake_context) ERROR("No current OpenGL context.");
+    if (!trc_get_current_fake_gl_context(ctx->trace)) ERROR("No current OpenGL context.");
     SDL_GL_SwapWindow(ctx->window);
     replay_update_buffers(ctx, false, true, false, false);
 
@@ -225,7 +227,7 @@ glGenTextures:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_texture_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = textures[i];
         rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
@@ -561,7 +563,7 @@ glGenBuffers:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_buffer_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = buffers[i];
         rev.has_data = false;
@@ -781,7 +783,7 @@ glCreateShader:
     GLuint real_shdr = F(glCreateShader)(type);
     GLuint fake = trc_get_uint(&command->ret)[0];
     trc_gl_shader_rev_t rev;
-    rev.fake_context = ctx->trace->inspection.cur_fake_context;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.real = real_shdr;
     rev.source_count = 0;
@@ -861,7 +863,7 @@ glCreateProgram:
     GLuint real_program = F(glCreateProgram)();
     GLuint fake = trc_get_uint(&command->ret)[0];
     trc_gl_program_rev_t rev;
-    rev.fake_context = ctx->trace->inspection.cur_fake_context;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.real = real_program;
     rev.uniforms = trc_create_inspection_data(ctx->trace, 0, NULL);
@@ -1863,7 +1865,7 @@ glGenVertexArrays:
     F(glGetIntegerv)( GL_MAX_VERTEX_ATTRIBS, &attrib_count);
     for (size_t i = 0; i < n; ++i) {
         trc_gl_vao_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = arrays[i];
         rev.attrib_count = attrib_count;
@@ -2013,7 +2015,7 @@ glGenSamplers:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_sampler_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = samplers[i];
         trc_set_gl_sampler(ctx->trace, fake[i], &rev);
@@ -2130,7 +2132,7 @@ glGenFramebuffers:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_framebuffer_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = fbs[i];
         rev.attachments = trc_create_inspection_data(ctx->trace, 0, NULL);
@@ -2184,7 +2186,7 @@ glGenRenderbuffers:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_renderbuffer_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = rbs[i];
         rev.has_storage = false;
@@ -2361,7 +2363,7 @@ glFenceSync:
     uint64_t fake = *trc_get_ptr(&command->ret);
     
     trc_gl_sync_rev_t rev;
-    rev.fake_context = ctx->trace->inspection.cur_fake_context;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.real = (uint64_t)real_sync;
     rev.type = GL_SYNC_FENCE;
@@ -2401,7 +2403,7 @@ glGenQueries:
     
     for (size_t i = 0; i < n; ++i) {
         trc_gl_query_rev_t rev;
-        rev.fake_context = ctx->trace->inspection.cur_fake_context;
+        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = queries[i];
         rev.type = 0;
