@@ -297,7 +297,7 @@ glTexImage1D:
     GLenum type = gl_param_GLenum(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalFormat, width, border, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -308,7 +308,7 @@ glCompressedTexImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, internalformat, width, border, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -319,7 +319,7 @@ glTexSubImage1D:
     GLenum type = gl_param_GLenum(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage1D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -330,7 +330,7 @@ glCompressedTexSubImage1D:
     GLsizei imageSize = gl_param_GLsizei(command, 5);
     const void* data = gl_param_data(command, 6);
     real(target, level, xoffset, width, format, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -343,7 +343,7 @@ glTexImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalFormat, width, height, border, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -355,7 +355,7 @@ glCompressedTexImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 6);
     const void* data = gl_param_data(command, 7);
     real(target, level, internalformat, width, height, border, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -368,7 +368,7 @@ glTexSubImage2D:
     GLenum type = gl_param_GLenum(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage2D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -381,7 +381,7 @@ glCompressedTexSubImage2D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, xoffset, yoffset, width, height, format, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -395,7 +395,7 @@ glTexImage3D:
     GLenum type = gl_param_GLenum(command, 8);
     const void* data = gl_param_data(command, 9);
     real(target, level, internalFormat, width, height, depth, border, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexImage3D:
     GLenum target = gl_param_GLenum(command, 0); //TODO: Array textures
@@ -408,7 +408,7 @@ glCompressedTexImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 7);
     const void* data = gl_param_data(command, 8);
     real(target, level, internalformat, width, height, depth, border, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -423,7 +423,7 @@ glTexSubImage3D:
     GLenum type = gl_param_GLenum(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glCompressedTexSubImage3D:
     GLenum target = gl_param_GLenum(command, 0);
@@ -438,7 +438,7 @@ glCompressedTexSubImage3D:
     GLsizei imageSize = gl_param_GLsizei(command, 9);
     const void* data = gl_param_data(command, 10);
     real(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, data);
-    replay_update_tex_image(ctx, command, target, level);
+    replay_update_bound_tex_image(ctx, command, target, level);
 
 glTexImage2DMultisample:
     GLenum target = gl_param_GLenum(command, 0);
