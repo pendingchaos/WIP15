@@ -1222,7 +1222,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
 
 static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    if (state->draw_framebuffer) {
+    if (state->draw_framebuffer == 0) {
         //TODO: Only update buffers that could have been written to
         replay_update_buffers(ctx, true, false, true, true);
     } else {

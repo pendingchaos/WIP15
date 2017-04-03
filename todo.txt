@@ -49,7 +49,7 @@ Cube map, 1D array, 2D array, rectangle, buffer, multisample, 1D and 3D textures
 
 Enabling or disabling state depending on OpenGL version and extensions.
 
-glDel* should only flag the objects for deletion.
+glDelete* should handle when objects are in use.
 
 Control over the output trace filename in the GUI.
 
