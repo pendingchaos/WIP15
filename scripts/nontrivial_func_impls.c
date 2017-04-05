@@ -24,9 +24,6 @@ glXMakeCurrent:
 glXSwapIntervalEXT:
     ;
 
-glXSwapIntervalMESA:
-    ;
-
 glXSwapIntervalSGI:
     ;
 
@@ -1217,7 +1214,7 @@ glGetStringi:
 glGetVertexAttribdv:
     ;
 
-glGetVertexAttrivfv:
+glGetVertexAttribfv:
     ;
 
 glGetVertexAttribiv:
@@ -1264,7 +1261,7 @@ glGetIntegeri_v:
 glGetFloati_v:
     ;
 
-glGetDouble_v:
+glGetDoublev:
     ;
 
 glGetInteger64i_v:
@@ -1273,19 +1270,19 @@ glGetInteger64i_v:
 glReadPixels:
     ;
 
-glGetSamplerParamaterfv:
+glGetSamplerParameterfv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
         ERROR("Invalid sampler name.");
 
-glGetSamplerParamateriv:
+glGetSamplerParameteriv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
         ERROR("Invalid sampler name.");
 
-glGetSamplerParamaterIiv:
+glGetSamplerParameterIiv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
         trc_add_error(command, "Invalid sampler name.");
 
-glGetSamplerParamaterIuiv:
+glGetSamplerParameterIuiv:
     if (!trc_get_real_gl_sampler(ctx->trace, gl_param_GLuint(command, 0)))
         ERROR("Invalid sampler name.");
 
@@ -1659,13 +1656,7 @@ glDisableVertexAttribArray:
 
 glDrawArrays:
     begin_draw(ctx);
-    
-    GLenum mode = gl_param_GLenum(command, 0);
-    GLint first = gl_param_GLint(command, 1);
-    GLsizei count = gl_param_GLsizei(command, 2);
-    
-    real(mode, first, count);
-    
+    real(p_mode, p_first, p_count);
     end_draw(ctx, command);
 
 glDrawArraysInstanced:
@@ -1987,7 +1978,7 @@ glGetnUniformdv:
 glGetMultisamplefv:
     ;
 
-glGetInternalFormativ:
+glGetInternalformativ:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum internalformat = gl_param_GLenum(command, 1);
     GLenum pname = gl_param_Glenum(command, 2);
@@ -1995,7 +1986,7 @@ glGetInternalFormativ:
     GLubyte params[bufSize];
     real(target, internalformat, pname, bufSize, params);
 
-glGetInternalFormati64v:
+glGetInternalformati64v:
     GLenum target = gl_param_GLenum(command, 0);
     GLenum internalformat = gl_param_GLenum(command, 1);
     GLenum pname = gl_param_Glenum(command, 2);
