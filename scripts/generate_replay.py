@@ -30,6 +30,7 @@ typedef void (*_func)();
 output.write(gl.typedecls)
 
 output.write("""
+//TODO: Identify types that are pointers like GLsync and change them to uint64_t like with GLsync
 static GLuint* gl_param_GLuint_array(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
@@ -92,10 +93,6 @@ static Bool gl_param_Bool(trace_command_t* cmd, size_t index) {
 
 static GLbitfield gl_param_GLbitfield(trace_command_t* cmd, size_t index) {
     return *trc_get_uint(trc_get_arg(cmd, index));
-}
-
-static uint64_t gl_param_GLsync(trace_command_t* cmd, size_t index) {
-    return *trc_get_ptr(trc_get_arg(cmd, index));
 }
 
 static GLuint gl_param_GLuint(trace_command_t* cmd, size_t index) {
@@ -1411,16 +1408,20 @@ nontrivial = {}
 
 current_name = ""
 current = ""
+print_func = False
 for line in nontrivial_str.split("\n"):
-    if line.endswith(":") and line.startswith("gl"):
+    if line.split('//')[0].rstrip().endswith(":") and line.startswith("gl"):
         if len(current_name) != 0:
             nontrivial[current_name] = current
-        
-        current_name = line[:-1]
+        current_name = line.split('//')[0].rstrip()[:-1]
+        f = gl.functions[current_name]
+        print_func =  '//' not in line
+        if print_func: print '%s: //%s' % (current_name, ', '.join(["%s p_%s"%(p.type_, p.name) for p in f.params]))
         current = ""
     else:
         current += line + "\n"
-if len(current_name) != 0:
+        if print_func: print line
+if current_name != "":
     nontrivial[current_name] = current
 
 for name in gl.functions:
@@ -1442,6 +1443,51 @@ for name in gl.functions:
     
     output.write("    do {(void)sizeof((real));} while (0);\n")
     
+    function = gl.functions[name]
+    
+    for i, param in zip(range(len(function.params)), function.params):
+        arg = "command, %d" % (i)
+        if param.type_[-1] == "]":
+            output.write("%s* p_%s = " % (param.type_.split("[")[0], param.name))
+        elif ('*' in param.type_ and 'GLchar' not in param.type_) or 'GLsync' in param.type_:
+            if name not in nontrivial:
+                #Disabled because of high-volume output
+                #print "Warning:", name, "has pointer parameters but is not implemented as non trivial"
+                output.write("%s p_%s = (%s)" % (param.type_, param.name, param.type_)) #Get it to compile but not to work
+            else:
+                output.write("uint64_t p_%s = " % param.name) #TODO: This should be removed
+        elif 'GLsync' in param.type_:
+            if name in nontrivial:
+                output.write("uint64_t p_%s = " % param.name)
+            else:
+                #Disabled because of high-volume output
+                #print "Warning:", name, "has pointer parameters but is not implemented as non trivial"
+                output.write("%s p_%s = (GLsync)" % (param.type_, param.name)) #Get it to compile but not to work
+        else:
+            output.write("%s p_%s = " % (param.type_, param.name))
+        
+        if param.type_[-1] == "]":
+            output.write("gl_param_%s_array(%s)" % (param.type_.split("[")[0], arg))
+        elif param.type_.replace(" ", "") == "constGLchar*const*":
+            output.write("(%s)gl_param_pointer(%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "constGLchar**":
+            output.write("(%s)gl_param_pointer(%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "constGLcharARB**":
+            output.write("(%s)gl_param_pointer(%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "unsignedint":
+            output.write("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
+        elif param.type_.replace(" ", "") == "unsignedlong":
+            output.write("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
+        elif "*" in param.type_ or 'GLsync' in param.type_:
+            if "GLchar" in param.type_:
+                output.write("(%s)gl_param_string(%s)" % (param.type_, arg))
+            else:
+                output.write("gl_param_pointer(%s)" % arg)
+        else:
+            output.write("(%s)gl_param_%s(%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
+        output.write(";\n")
+        output.write("    do {(void)sizeof((p_%s));} while (0);\n" % param.name)
+    
     if name in nontrivial:
         output.write(nontrivial[name])
         output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
@@ -1449,37 +1495,7 @@ for name in gl.functions:
         output.write("}\n\n")
         continue
     
-    function = gl.functions[name]
-    
-    params = []
-    
-    i = 0
-    for param in function.params:
-        arg = "command, %d" % (i)
-        
-        if param.type_[-1] == "]":
-            params.append("gl_param_%s_array(%s)" % (param.type_.split("[")[0], arg))
-        elif param.type_.replace(" ", "") == "constGLchar*const*":
-            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
-        elif param.type_.replace(" ", "") == "constGLchar**":
-            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
-        elif param.type_.replace(" ", "") == "constGLcharARB**":
-            params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
-        elif param.type_.replace(" ", "") == "unsignedint":
-            params.append("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
-        elif param.type_.replace(" ", "") == "unsignedlong":
-            params.append("(%s)gl_param_unsigned_int(%s)" % (param.type_, arg))
-        elif "*" in param.type_:
-            if "GLchar" in param.type_:
-                params.append("(%s)gl_param_string(%s)" % (param.type_, arg))
-            else:
-                params.append("(%s)gl_param_pointer(%s)" % (param.type_, arg))
-        else:
-            params.append("(%s)gl_param_%s(%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
-        
-        i += 1
-    
-    output.write("    real(%s);\n" % (", ".join(params)))
+    output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in function.params])))
     
     output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
     
