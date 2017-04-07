@@ -120,7 +120,7 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
     
-    gtk_text_buffer_set_text(source_buffer, source, source_len);
+    gtk_text_buffer_set_text(source_buffer, source?source:"", source_len);
     
     free(source);
     
@@ -199,11 +199,11 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     trc_gl_shader_rev_t* shdr =
         (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, shader.shader_revision, shader.fake_shader, TrcGLObj_Shader);
     size_t source_len = 0;
-    char* source = shdr ? get_shader_source(shdr, &source_len) : malloc(1);
+    char* source = shdr ? get_shader_source(shdr, &source_len) : NULL;
     
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shdr_src_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
-    gtk_text_buffer_set_text(source_buffer, source, source_len);
+    gtk_text_buffer_set_text(source_buffer, source?source:"", source_len);
     
     free(source);
 }
