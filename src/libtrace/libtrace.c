@@ -1317,6 +1317,10 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
     return NULL;
 }
 
+#define WIP15_STATE_GEN_IMPL
+#include "libtrace_glstate.h"
+#undef WIP15_STATE_GEN_IMPL
+
 //TODO: Compression is currently not implemented
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
     trc_data_t* res = malloc(sizeof(trc_data_t));

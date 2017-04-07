@@ -277,7 +277,8 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     }
     //TODO: Reference counting
     real(p_target, real_tex);
-    set_bound_texture(ctx->trace, p_target, -1, p_texture);
+    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
+    trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
 glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void * p_pixels
     const void* data = gl_param_data(command, 7);
@@ -460,27 +461,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
 glBindBuffer: //GLenum p_target, GLuint p_buffer
     GLuint real_buf = trc_get_real_gl_buffer(ctx->trace, p_buffer);
     if (!real_buf && p_buffer) ERROR("Invalid buffer name.");
-    
-    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    
-    switch (p_target) {
-    case GL_ARRAY_BUFFER: state.array_buffer = p_buffer; break;
-    case GL_ATOMIC_COUNTER_BUFFER: state.atomic_counter_buffer = p_buffer; break;
-    case GL_COPY_READ_BUFFER: state.copy_read_buffer = p_buffer; break;
-    case GL_COPY_WRITE_BUFFER: state.copy_write_buffer = p_buffer; break;
-    case GL_DISPATCH_INDIRECT_BUFFER: state.dispatch_indirect_buffer = p_buffer; break;
-    case GL_DRAW_INDIRECT_BUFFER: state.draw_indirect_buffer = p_buffer; break;
-    case GL_ELEMENT_ARRAY_BUFFER: state.element_array_buffer = p_buffer; break;
-    case GL_PIXEL_PACK_BUFFER: state.pixel_pack_buffer = p_buffer; break;
-    case GL_PIXEL_UNPACK_BUFFER: state.pixel_unpack_buffer = p_buffer; break;
-    case GL_QUERY_BUFFER: state.query_buffer = p_buffer; break;
-    case GL_SHADER_STORAGE_BUFFER: state.shader_storage_buffer = p_buffer; break;
-    case GL_TEXTURE_BUFFER: state.texture_buffer = p_buffer; break;
-    case GL_TRANSFORM_FEEDBACK_BUFFER: state.transform_feedback_buffer = p_buffer; break;
-    case GL_UNIFORM_BUFFER: state.uniform_buffer = p_buffer; break;
-    }
-    trc_set_gl_context(ctx->trace, 0, &state);
-    
+    trc_gl_state_set_bound_buffer(ctx->trace, p_target, p_buffer);
     real(p_target, real_buf);
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
@@ -1388,7 +1369,7 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
         a->stride = p_stride;
         a->offset = p_pointer;
         a->type = p_type;
-        a->buffer = trc_get_gl_context(ctx->trace, 0)->array_buffer;
+        a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
     }
     trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
@@ -1403,7 +1384,7 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
         a->stride = p_stride;
         a->offset = p_pointer;
         a->type = p_type;
-        a->buffer = trc_get_gl_context(ctx->trace, 0)->array_buffer;
+        a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
     }
     trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
@@ -2035,19 +2016,15 @@ glBeginQuery: //GLenum p_target, GLuint p_id
     query.type = p_target;
     trc_set_gl_query(ctx->trace, p_id, &query);
     
-    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    *get_query_binding_pointer(&state, p_target) = p_id;
-    trc_set_gl_context(ctx->trace, 0, &state);
+    trc_gl_state_set_bound_queries(ctx->trace, p_target, 0, p_id);
     //TODO: Reference counting
 
 glEndQuery: //GLenum p_target
     real(p_target);
     
-    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    GLuint id = *get_query_binding_pointer(&state, p_target);
+    GLuint id = trc_gl_state_get_bound_queries(ctx->trace, p_target, 0);
     GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
-    *get_query_binding_pointer(&state, p_target) = 0;
-    trc_set_gl_context(ctx->trace, 0, &state);
+    trc_gl_state_set_bound_queries(ctx->trace, p_target, 0, 0);
     
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, p_target, id, real_id);

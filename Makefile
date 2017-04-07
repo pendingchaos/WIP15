@@ -33,10 +33,10 @@ all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/leakcheck bin/te
 
 -include $(dep)
 
-.%.d: %.c
+.%.d: %.c src/libtrace/libtrace_glstate.h
 	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
-.%.o: %.c
+.%.o: %.c src/libtrace/libtrace_glstate.h
 	$(CC) -c $< $(CFLAGS) -o $@
 
 src/libtrace/.replay_gl.o: src/libtrace/replay_gl.c
@@ -53,6 +53,9 @@ src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scri
 
 src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_replay.py
 	cd scripts; python generate_replay.py
+
+src/libtrace/libtrace_glstate.h: scripts/generate_libtrace_glstate.py
+	cd scripts; python generate_libtrace_glstate.py
 
 bin/libgl.so: src/.libgl.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
@@ -82,6 +85,7 @@ bin/tests: tests/.main.o
 clean:
 	rm -f scripts/generated_gl_funcs.py
 	rm -f src/libgl.c
+	rm -f src/libtrace/libtrace_glstate.h
 	rm -f src/libtrace/replay_gl.c
 	rm -f src/shared/glapi.c
 	rm -f bin/libtrace.so

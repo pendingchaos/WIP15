@@ -12,6 +12,7 @@
 /src/shared/glapi.c
 /src/libtrace/replay_gl.c
 /src/libgl.c
+/src/libtrace/libtrace_glstate.h
 *.pyc
 *.o
 *.d

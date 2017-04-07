@@ -445,58 +445,6 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
     return false;
 }
 
-static trc_data_t** get_bound_texture_data(trc_gl_context_rev_t* state, GLenum target) {
-    switch (target) {
-    case GL_TEXTURE_1D: return &state->tex_1d;
-    case GL_TEXTURE_2D: return &state->tex_2d;
-    case GL_TEXTURE_3D: return &state->tex_3d;
-    case GL_TEXTURE_1D_ARRAY: return &state->tex_1d_array;
-    case GL_TEXTURE_2D_ARRAY: return &state->tex_2d_array;
-    case GL_TEXTURE_RECTANGLE: return &state->tex_rectangle;
-    case GL_TEXTURE_CUBE_MAP: return &state->tex_cube_map;
-    case GL_TEXTURE_CUBE_MAP_ARRAY: return &state->tex_cube_map_array;
-    case GL_TEXTURE_BUFFER: return &state->tex_buffer;
-    case GL_TEXTURE_2D_MULTISAMPLE: return &state->tex_2d_multisample;
-    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return &state->tex_2d_multisample_array;
-    }
-    return NULL;
-}
-
-static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex) {
-    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);
-    
-    trc_data_t* data = *get_bound_texture_data(&state, target);
-    if (!data) {
-        //TODO: Error
-        return;
-    }
-    
-    //Copy
-    uint* dataptr = trc_lock_data(data, true, false);
-    trc_data_t* new_data = trc_create_inspection_data(trace, data->uncompressed_size, dataptr);
-    trc_unlock_data(data);
-    
-    //Modify
-    dataptr = trc_lock_data(new_data, false, true);
-    dataptr[unit<0?state.active_texture_unit:unit] = tex;
-    trc_unlock_data(new_data);
-    
-    //Replace
-    *get_bound_texture_data(&state, target) = new_data;
-    trc_set_gl_context(trace, 0,&state);
-}
-
-static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
-    const trc_gl_context_rev_t* state = trc_get_gl_context(trace, 0);
-    trc_data_t* data = *get_bound_texture_data((trc_gl_context_rev_t*)state, target);
-    if (!data) return 0;
-    uint* dataptr = trc_lock_data(data, true, false);
-    uint res = dataptr[unit<0?state->active_texture_unit:unit];
-    trc_unlock_data(data);
-    
-    return res;
-}
-
 static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* rev) {
     size_t size = rev->drawable_width * rev->drawable_height * 4;
     rev->front_color_buffer = trc_create_inspection_data(trace, size, NULL);
@@ -528,35 +476,41 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     rev.drawable_width = w;
     rev.drawable_height = h;
-    rev.array_buffer = 0;
-    rev.atomic_counter_buffer = 0;
-    rev.copy_read_buffer = 0;
-    rev.copy_write_buffer = 0;
-    rev.dispatch_indirect_buffer = 0;
-    rev.draw_indirect_buffer = 0;
-    rev.element_array_buffer = 0;
-    rev.pixel_pack_buffer = 0;
-    rev.pixel_unpack_buffer = 0;
-    rev.query_buffer = 0;
-    rev.shader_storage_buffer = 0;
-    rev.texture_buffer = 0;
-    rev.transform_feedback_buffer = 0;
-    rev.uniform_buffer = 0;
+    rev.bound_buffer_GL_ARRAY_BUFFER = 0;
+    rev.bound_buffer_GL_ATOMIC_COUNTER_BUFFER = 0;
+    rev.bound_buffer_GL_COPY_READ_BUFFER = 0;
+    rev.bound_buffer_GL_COPY_WRITE_BUFFER = 0;
+    rev.bound_buffer_GL_DISPATCH_INDIRECT_BUFFER = 0;
+    rev.bound_buffer_GL_DRAW_INDIRECT_BUFFER = 0;
+    rev.bound_buffer_GL_ELEMENT_ARRAY_BUFFER = 0;
+    rev.bound_buffer_GL_PIXEL_PACK_BUFFER = 0;
+    rev.bound_buffer_GL_PIXEL_UNPACK_BUFFER = 0;
+    rev.bound_buffer_GL_QUERY_BUFFER = 0;
+    rev.bound_buffer_GL_SHADER_STORAGE_BUFFER = 0;
+    rev.bound_buffer_GL_TEXTURE_BUFFER = 0;
+    rev.bound_buffer_GL_TRANSFORM_FEEDBACK_BUFFER = 0;
+    rev.bound_buffer_GL_UNIFORM_BUFFER = 0;
     rev.bound_program = 0;
     rev.bound_vao = 0;
     rev.bound_renderbuffer = 0;
     rev.read_framebuffer = 0;
     rev.draw_framebuffer = 0;
-    rev.samples_passed_query = 0;
-    rev.any_samples_passed_query = 0;
-    rev.any_samples_passed_conservative_query = 0;
-    rev.primitives_generated_query = 0;
-    rev.transform_feedback_primitives_written_query = 0;
-    rev.time_elapsed_query = 0;
-    rev.timestamp_query = 0;
     rev.active_texture_unit = 0;
     
-    replay_create_context_buffers(ctx->trace, &rev);
+    //TODO
+    uint max_query_bindings = 64;
+    
+    trc_data_t* bound_query_data = trc_create_inspection_data(ctx->trace, max_query_bindings*4, NULL);
+    uint* bound_query_data_ptr = trc_lock_data(bound_query_data, false, true);
+    for (uint i = 0; i < max_query_bindings; i++) bound_query_data_ptr[i] = 0;
+    trc_unlock_data(bound_query_data);
+    
+    rev.bound_queries_GL_SAMPLES_PASSED = bound_query_data;
+    rev.bound_queries_GL_ANY_SAMPLES_PASSED = bound_query_data;
+    rev.bound_queries_GL_ANY_SAMPLES_PASSED_CONSERVATIVE = bound_query_data;
+    rev.bound_queries_GL_PRIMITIVES_GENERATED = bound_query_data;
+    rev.bound_queries_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN = bound_query_data;
+    rev.bound_queries_GL_TIME_ELAPSED = bound_query_data;
     
     //TODO
     uint max_combined_tex_units = 48;
@@ -569,17 +523,19 @@ static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* 
     F(glGenVertexArrays)(1, &rev.draw_vao);
     F(glBindVertexArray)(rev.draw_vao);
     
-    rev.tex_1d = bound_tex_data;
-    rev.tex_2d = bound_tex_data;
-    rev.tex_3d = bound_tex_data;
-    rev.tex_1d_array = bound_tex_data;
-    rev.tex_2d_array = bound_tex_data;
-    rev.tex_rectangle = bound_tex_data;
-    rev.tex_cube_map = bound_tex_data;
-    rev.tex_cube_map_array = bound_tex_data;
-    rev.tex_buffer = bound_tex_data;
-    rev.tex_2d_multisample = bound_tex_data;
-    rev.tex_2d_multisample_array = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_1D = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_2D = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_3D = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_1D_ARRAY = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_2D_ARRAY = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_RECTANGLE = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_CUBE_MAP = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_CUBE_MAP_ARRAY = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_BUFFER = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_2D_MULTISAMPLE = bound_tex_data;
+    rev.bound_textures_GL_TEXTURE_2D_MULTISAMPLE_ARRAY = bound_tex_data;
+    
+    replay_create_context_buffers(ctx->trace, &rev);
     
     return rev;
 }
@@ -795,7 +751,8 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
 }
 
 void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
-    uint fake = get_bound_texture(ctx->trace, target, trc_get_gl_context(ctx->trace, 0)->active_texture_unit);
+    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
+    uint fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, fake);
     if (!rev) {
         trc_add_error(command, "No texture bound or invalid target\\n");
@@ -902,7 +859,8 @@ void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbu
 //TODO: More validation
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* command,
                                  GLenum target, GLenum param, uint32_t count, const double* val) {
-    GLuint texid = get_bound_texture(ctx->trace, target, -1);
+    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
+    GLuint texid = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
     if (!tex_ptr) {
         trc_add_error(command, "No texture bound, invalid texture handle used or invalid target\\n");
@@ -994,38 +952,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
 }
 
 static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
-    switch (target) {
-    case GL_ARRAY_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->array_buffer;
-    case GL_ATOMIC_COUNTER_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->atomic_counter_buffer;
-    case GL_COPY_READ_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->copy_read_buffer;
-    case GL_COPY_WRITE_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->copy_write_buffer;
-    case GL_DISPATCH_INDIRECT_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->dispatch_indirect_buffer;
-    case GL_DRAW_INDIRECT_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->draw_indirect_buffer;
-    case GL_ELEMENT_ARRAY_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->element_array_buffer;
-    case GL_PIXEL_PACK_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->pixel_pack_buffer;
-    case GL_PIXEL_UNPACK_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->pixel_unpack_buffer;
-    case GL_QUERY_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->query_buffer;
-    case GL_SHADER_STORAGE_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->shader_storage_buffer;
-    case GL_TEXTURE_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->texture_buffer;
-    case GL_TRANSFORM_FEEDBACK_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->transform_feedback_buffer;
-    case GL_UNIFORM_BUFFER:
-        return trc_get_gl_context(ctx->trace, 0)->uniform_buffer;
-    default:
-        return 0;
-    }
+    return trc_gl_state_get_bound_buffer(ctx->trace, target); //TODO: Return 0 on invalid targets
 }
 
 static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
@@ -1054,20 +981,6 @@ static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
         return state->draw_framebuffer;
     }
     return 0;
-}
-
-static uint* get_query_binding_pointer(trc_gl_context_rev_t* state, GLenum target) {
-    switch (target) {
-    case GL_SAMPLES_PASSED: return &state->samples_passed_query;
-    case GL_ANY_SAMPLES_PASSED: return &state->any_samples_passed_query;
-    case GL_ANY_SAMPLES_PASSED_CONSERVATIVE: return &state->any_samples_passed_conservative_query;
-    case GL_PRIMITIVES_GENERATED: return &state->primitives_generated_query;
-    case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return &state->transform_feedback_primitives_written_query;
-    case GL_TIME_ELAPSED: return &state->time_elapsed_query;
-    case GL_TIMESTAMP: return &state->timestamp_query;
-    }
-    static uint dummy = 0;
-    return &dummy;
 }
 
 static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint fake_id, GLuint id) {

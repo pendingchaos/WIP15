@@ -259,65 +259,9 @@ typedef struct trc_gl_obj_history_t {
     void* revisions; //Sorted from lowest revision to highest
 } trc_gl_obj_history_t;
 
-typedef struct trc_gl_context_rev_t {
-    uint64_t revision;
-    void* real;
-    
-    uint drawable_width;
-    uint drawable_height; 
-    
-    uint array_buffer;
-    uint atomic_counter_buffer;
-    uint copy_read_buffer;
-    uint copy_write_buffer;
-    uint dispatch_indirect_buffer;
-    uint draw_indirect_buffer;
-    uint element_array_buffer;
-    uint pixel_pack_buffer;
-    uint pixel_unpack_buffer;
-    uint query_buffer;
-    uint shader_storage_buffer;
-    uint texture_buffer;
-    uint transform_feedback_buffer;
-    uint uniform_buffer;
-    
-    uint bound_program;
-    uint bound_vao;
-    uint bound_renderbuffer;
-    
-    uint read_framebuffer;
-    uint draw_framebuffer;
-    //TODO: Add a GL_FRAMEBUFFER field?
-    
-    uint samples_passed_query;
-    uint any_samples_passed_query;
-    uint any_samples_passed_conservative_query;
-    uint primitives_generated_query;
-    uint transform_feedback_primitives_written_query;
-    uint time_elapsed_query;
-    uint timestamp_query;
-    
-    uint active_texture_unit;
-    
-    uint draw_vao; //Used for glDraw* and stuff
-    
-    trc_data_t* tex_1d;
-    trc_data_t* tex_2d;
-    trc_data_t* tex_3d;
-    trc_data_t* tex_1d_array;
-    trc_data_t* tex_2d_array;
-    trc_data_t* tex_rectangle;
-    trc_data_t* tex_cube_map;
-    trc_data_t* tex_cube_map_array;
-    trc_data_t* tex_buffer;
-    trc_data_t* tex_2d_multisample;
-    trc_data_t* tex_2d_multisample_array;
-    
-    trc_data_t* front_color_buffer; //rgba8
-    trc_data_t* back_color_buffer; //rgba8
-    trc_data_t* back_depth_buffer; //uint32_t
-    trc_data_t* back_stencil_buffer; //uint32_t
-} trc_gl_context_rev_t;
+#define WIP15_STATE_GEN_DECL
+#include "libtrace_glstate.h"
+#undef WIP15_STATE_GEN_DECL
 
 typedef struct trc_gl_context_history_t {
     uint64_t fake;
@@ -480,6 +424,10 @@ const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake);
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev);
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake);
 const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision, uint64_t fake);
+
+#define WIP15_STATE_GEN_FUNC_DECL
+#include "libtrace_glstate.h"
+#undef WIP15_STATE_GEN_FUNC_DECL
 
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
 trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data);
