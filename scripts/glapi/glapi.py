@@ -251,7 +251,6 @@ exec _create_int('GLuint64')
 exec _create_uint('GLhandleARB')
 exec _create_int('GLintptrARB')
 exec _create_int('GLsizeiptr')
-exec _create_uint('GLuintptr')
 exec _create_int('GLint')
 exec _create_int('GLclampx')
 exec _create_int('GLsizeiptrARB')
@@ -284,8 +283,8 @@ class tdouble(_Double): ctype = 'double'
 class tGLclampd(_Double): ctype = 'GLclampd'
 class tGLdouble(_Double): ctype = 'GLdouble'
 
-class tPointer(_Ptr): ctype = 'void*'
-class tMutablePointer(_Ptr): ctype = 'const void*'
+class tPointer(_Ptr): ctype = 'const void*'
+class tMutablePointer(_Ptr): ctype = 'void*'
 class tGLXFBConfig(_Ptr): ctype = 'GLXFBConfig'
 class tGLXFBConfigSGIX(_Ptr): ctype = 'GLXFBConfigSGIX'
 

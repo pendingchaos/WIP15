@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import glapi.glxml
 from gl_state import *
+from glapi.glapi import *
 
 gl = glapi.glxml.GL(False)
 
@@ -23,7 +24,7 @@ output.write("""#include <X11/Xlib.h>
 #define ERROR(...) do {trc_add_error(command, __VA_ARGS__); RETURN;} while (0)
 #define FUNC ""
 
-typedef void (*_func)();
+typedef void (*func_t)();
 
 """)
 
@@ -31,6 +32,8 @@ output.write(gl.typedecls)
 
 output.write("""
 //TODO: Identify types that are pointers like GLsync and change them to uint64_t like with GLsync
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 static GLuint* gl_param_GLuint_array(trace_command_t* cmd, size_t index) {
     return NULL; //TODO
 }
@@ -268,11 +271,12 @@ static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size
 static uint64_t gl_param_GLXContext(trace_command_t* cmd, size_t index) {
     return *trc_get_ptr(trc_get_arg(cmd, index));
 }
+#pragma GCC diagnostic pop
 
 static void reset_gl_funcs(trc_replay_context_t* ctx);
 static void reload_gl_funcs(trc_replay_context_t* ctx);
 
-extern _func glXGetProcAddress(const GLubyte* procName);
+extern func_t glXGetProcAddress(const GLubyte* procName);
 
 """)
 
@@ -287,7 +291,7 @@ for name in gl.functions:
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
 
 output.write("typedef struct {\n")
-for name in gl.functions:
+for name in func_dict.keys():
     output.write("    %s_t real_%s;\n" % (name, name))
 output.write("} replay_gl_funcs_t;\n\n")
 
@@ -1309,11 +1313,11 @@ static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallback)(debug_callback, cmd);
         F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-    } else if (F(glDebugMessageCallbackARB)) {
+    }/* else if (F(glDebugMessageCallbackARB)) {
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallbackARB)(debug_callback, cmd);
         //TODO: glDebugMessageControlARB
-    }
+    }*/
     
     if (F(glGetError)) F(glGetError)();
 }
@@ -1368,79 +1372,8 @@ static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_co
         trc_add_error(cmd, "GL_TABLE_TOO_LARGE");
         break;
     }
-    
-    if (F(glGetIntegerv)) {
+}
 """)
-
-
-ver_to_mask = {(1, 0):"gl1_0",
-               (1, 1):"gl1_1",
-               (1, 2):"gl1_2",
-               (1, 3):"gl1_3",
-               (1, 4):"gl1_4",
-               (1, 5):"gl1_5",
-               (2, 0):"gl2_0",
-               (2, 1):"gl2_1",
-               (3, 0):"gl3_0",
-               (3, 1):"gl3_1",
-               (3, 2):"gl3_2",
-               (3, 3):"gl3_3",
-               (4, 0):"gl4_0",
-               (4, 1):"gl4_1",
-               (4, 2):"gl4_2",
-               (4, 3):"gl4_3",
-               (4, 4):"gl4_4",
-               (4, 5):"gl4_5"}
-
-for get in gl_gets:
-    if get[1] == "P":
-        continue
-    
-    ver_mask = "|".join([ver_to_mask[ver] for ver in get[3]])
-    if len(ver_mask) == 0:
-        ver_mask = "glnone"
-    
-    if get[1] == "S":
-        output.write("""
-        if (((%s) & gl3_0) && F(glGetString))
-            ; //TODO //set_state_str(&cmd->state, \"%s\", F(glGetString)(%s));""" % (ver_mask, get[0], get[0]))
-    else:
-        type = {"B": "GLboolean",
-                "I": "GLint",
-                "I64": "GLint64",
-                "E": "GLint",
-                "F": "GLfloat",
-                "D": "GLdouble"}[get[1]]
-        
-        type_str = {"B": "Boolean",
-                    "I": "Integer",
-                    "I64": "GLint64",
-                    "E": "Integer",
-                    "F": "Float",
-                    "D": "Double"}[get[1]]
-        
-        type_str2 = {"B": "bool",
-                     "I": "int",
-                     "I64": "int64",
-                     "E": "int",
-                     "F": "float",
-                     "D": "double"}[get[1]]
-        
-        output.write("""
-        if (((%s) & gl2_1) && F(glGet%sv)) {
-            //%s v[%d];
-            //F(glGet%sv)(%s, v);
-            //TODO
-            //set_state_%s(&cmd->state, \"%s\", %d, v);
-        }
-            """ % (ver_mask, type_str, type, get[2], type_str, get[0], type_str2, get[0], get[2]))
-
-for v in enable_entries:
-    output.write("            {\n                //GLboolean v = F(glIsEnabled)(%s);\n" % v)
-    output.write("                //TODO //set_state_bool(&cmd->state, \"%s enabled\", 1, &v);\n" % v)
-    output.write("            }\n")
-
-output.write("    }\n}\n\n")
 
 nontrivial_str = open("nontrivial_func_impls.c").read()
 nontrivial = {}
@@ -1463,7 +1396,7 @@ for line in nontrivial_str.split("\n"):
 if current_name != "":
     nontrivial[current_name] = current
 
-for name in gl.functions:
+for name, func in func_dict.iteritems():
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* command) {\n" % (name))
     
     if not name.startswith("glX"):
@@ -1548,7 +1481,7 @@ void init_replay_gl(trc_replay_context_t* ctx) {
     reset_gl_funcs(ctx);
 """)
 
-for name in gl.functions:
+for name in func_dict.keys():
     if not name == "glXGetProcAddress" and name.startswith("glX"):
         output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
 
@@ -1559,7 +1492,7 @@ static void reset_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
-for name in gl.functions:
+for name in func_dict.keys():
     if not name.startswith("glX"):
         output.write("    funcs->real_%s = NULL;\n" % (name))
 
@@ -1569,7 +1502,7 @@ static void reload_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
-for name in gl.functions:
+for name in func_dict.keys():
     if not name.startswith("glX"):
         output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
 
