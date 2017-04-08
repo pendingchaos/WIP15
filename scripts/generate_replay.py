@@ -627,6 +627,16 @@ static void init_context(trc_replay_context_t* ctx) {
     int scissor[4] = {0, 0, 0, 0};
     trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, 4, scissor);
     
+    trc_gl_state_state_enum_init1(trace, GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
+    trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
+    trc_gl_state_state_int_init1(trace, GL_PRIMITIVE_RESTART_INDEX, 0);
+    trc_gl_state_state_enum_init1(trace, GL_POLYGON_MODE, GL_FILL);
+    trc_gl_state_state_enum_init1(trace, GL_CULL_FACE_MODE, GL_BACK);
+    trc_gl_state_state_enum_init1(trace, GL_FRONT_FACE, GL_CCW);
+    trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
+    trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
+    trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
+    
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
     F(glBindVertexArray)(draw_vao);

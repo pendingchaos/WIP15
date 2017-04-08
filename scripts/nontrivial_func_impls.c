@@ -1712,12 +1712,6 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     real(p_unit, real_sampler);
     //TODO: Reference counting
 
-glPointParameterfv: //GLenum p_pname, const GLfloat* p_params
-    F(glPointParameterf)(p_pname, gl_param_GLfloat(command, 1));
-
-glPointParameteriv: //GLenum p_pname, const GLint* p_params
-    F(glPointParameteri)(p_pname, gl_param_GLint(command, 1));
-
 glGetSynciv: //GLsync p_sync, GLenum p_pname, GLsizei p_bufSize, GLsizei* p_length, GLint* p_values
     if (!trc_get_real_gl_sync(ctx->trace, p_sync)) ERROR("Invalid sync name.");
     //TODO: More validation should be done
@@ -2299,3 +2293,61 @@ glScissor: //GLint x, GLint y, GLsizei width, GLsizei height
 glHint: //GLenum p_target, GLenum p_mode
     trc_gl_state_set_hints(ctx->trace, p_target, p_mode);
     real(p_target, p_mode);
+
+glProvokingVertex: //GLenum p_mode
+    trc_gl_state_set_state_enum(ctx->trace, GL_PROVOKING_VERTEX, 0, p_mode);
+    real(p_mode);
+
+glLogicOp: //GLenum p_opcode
+    trc_gl_state_set_state_enum(ctx->trace, GL_LOGIC_OP_MODE, 0, p_opcode);
+    real(p_opcode);
+
+glPrimitiveRestartIndex: //GLuint p_index
+    trc_gl_state_set_state_int(ctx->trace, GL_PRIMITIVE_RESTART_INDEX, 0, p_index);
+    real(p_index);
+
+glPolygonMode: //GLenum p_face, GLenum p_mode
+    trc_gl_state_set_state_enum(ctx->trace, GL_POLYGON_MODE, 0, p_mode);
+    real(p_face, p_mode);
+
+glCullFace: //GLenum p_mode
+    trc_gl_state_set_state_enum(ctx->trace, GL_CULL_FACE_MODE, 0, p_mode);
+    real(p_mode);
+
+glFrontFace: //GLenum p_mode
+    trc_gl_state_set_state_enum(ctx->trace, GL_FRONT_FACE, 0, p_mode);
+    real(p_mode);
+
+glDepthFunc: //GLenum p_func
+    trc_gl_state_set_state_enum(ctx->trace, GL_DEPTH_FUNC, 0, p_func);
+    real(p_func);
+
+glPointParameterf: //GLenum p_pname, GLfloat p_param
+    switch (p_pname) {
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, p_param);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, p_param);
+    }
+    F(glPointParameterf)(p_pname, p_param);
+
+glPointParameteri: //GLenum p_pname, GLint p_param
+    switch (p_pname) {
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, p_param);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, p_param);
+    }
+    F(glPointParameteri)(p_pname, p_param);
+
+glPointParameterfv: //GLenum p_pname, const GLfloat* p_params
+    GLfloat param = gl_param_GLfloat(command, 1);
+    switch (p_pname) {
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, param);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, param);
+    }
+    F(glPointParameterf)(p_pname, param);
+
+glPointParameteriv: //GLenum p_pname, const GLint* p_params
+    GLint param = gl_param_GLint(command, 1);
+    switch (p_pname) {
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, param);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, param);
+    }
+    F(glPointParameteri)(p_pname, param);
