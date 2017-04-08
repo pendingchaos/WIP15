@@ -502,29 +502,25 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_set_active_texture_unit(trace, 0);
     
     uint max_query_bindings = 64; //TODO
-    uint query_bindings[max_query_bindings];
-    memset(query_bindings, 0, sizeof(query_bindings));
-    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, max_query_bindings, query_bindings);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, max_query_bindings, query_bindings);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, max_query_bindings, query_bindings);
-    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, max_query_bindings, query_bindings);
-    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, query_bindings);
-    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, NULL);
     
     uint max_tex_units = 48; //TODO
-    uint texture_bindings[max_tex_units];
-    memset(texture_bindings, 0, sizeof(texture_bindings));
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, texture_bindings);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, NULL);
     
     trc_gl_state_set_enabled(trace, GL_BLEND, false);
     trc_gl_state_set_enabled(trace, GL_COLOR_LOGIC_OP, false);
@@ -557,6 +553,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_bool_init1(trace, GL_DEPTH_WRITEMASK, GL_TRUE);
     bool color_mask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
     trc_gl_state_state_bool_init(trace, GL_COLOR_WRITEMASK, 4, color_mask);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_WRITEMASK, 0xffffffff);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_WRITEMASK, 0xffffffff);
     
     trc_gl_state_state_bool_init1(trace, GL_PACK_SWAP_BYTES, GL_FALSE);
     trc_gl_state_state_bool_init1(trace, GL_PACK_LSB_FIRST, GL_FALSE);
@@ -615,7 +613,12 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_BLEND_EQUATION_RGB, GL_FUNC_ADD);
     trc_gl_state_state_enum_init1(trace, GL_BLEND_EQUATION_ALPHA, GL_FUNC_ADD);
     
-    int viewport[4] = {0, 0, w, h};
+    trc_gl_state_set_hints(trace, GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_DONT_CARE);
+    trc_gl_state_set_hints(trace, GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    trc_gl_state_set_hints(trace, GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
+    trc_gl_state_set_hints(trace, GL_TEXTURE_COMPRESSION_HINT, GL_DONT_CARE);
+    
+    int viewport[4] = {0, 0, 0, 0};
     trc_gl_state_state_int_init(trace, GL_VIEWPORT, 4, viewport);
     int scissor[4] = {0, 0, 0, 0};
     trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, 4, scissor);

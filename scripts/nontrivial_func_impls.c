@@ -2123,6 +2123,22 @@ glColorMask: //GLboolean p_red, GLboolean p_green, GLboolean p_blue, GLboolean p
 
 //TODO: glColorMaski
 
+glStencilMask: //GLuint mask
+    union {int32_t maski; uint32_t masku;} u;
+    u.masku = p_mask;
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_WRITEMASK, 0, u.maski);
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_WRITEMASK, 0, u.maski);
+    real(p_mask);
+
+glStencilMaskSeparate: //GLenum face, GLuint mask
+    union {int32_t maski; uint32_t masku;} u;
+    u.masku = p_mask;
+    if (p_face==GL_FRONT || p_face==GL_FRONT_AND_BACK)
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_WRITEMASK, 0, u.maski);
+    if (p_face==GL_BACK || p_face==GL_FRONT_AND_BACK)
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_WRITEMASK, 0, u.maski);
+    real(p_face, p_mask);
+
 glPixelStoref: //GLenum p_pname, GLfloat p_param
     replay_pixel_store(ctx, command, p_pname, p_param);
 
@@ -2279,3 +2295,7 @@ glScissor: //GLint x, GLint y, GLsizei width, GLsizei height
     real(p_x, p_y, p_width, p_height);
 
 //TODO: glScissorIndexed, glScissorIndexedv and glScissorArrayv
+
+glHint: //GLenum p_target, GLenum p_mode
+    trc_gl_state_set_hints(ctx->trace, p_target, p_mode);
+    real(p_target, p_mode);
