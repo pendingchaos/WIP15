@@ -469,75 +469,196 @@ static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* 
     trc_unlock_data(rev->back_stencil_buffer);
 }
 
-static trc_gl_context_rev_t create_context_rev(trc_replay_context_t* ctx, void* real) {
-    trc_gl_context_rev_t rev;
-    rev.real = real;
+static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
+
+static void init_context(trc_replay_context_t* ctx) {
+    trace_t* trace = ctx->trace;
+    
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-    rev.drawable_width = w;
-    rev.drawable_height = h;
-    rev.bound_buffer_GL_ARRAY_BUFFER = 0;
-    rev.bound_buffer_GL_ATOMIC_COUNTER_BUFFER = 0;
-    rev.bound_buffer_GL_COPY_READ_BUFFER = 0;
-    rev.bound_buffer_GL_COPY_WRITE_BUFFER = 0;
-    rev.bound_buffer_GL_DISPATCH_INDIRECT_BUFFER = 0;
-    rev.bound_buffer_GL_DRAW_INDIRECT_BUFFER = 0;
-    rev.bound_buffer_GL_ELEMENT_ARRAY_BUFFER = 0;
-    rev.bound_buffer_GL_PIXEL_PACK_BUFFER = 0;
-    rev.bound_buffer_GL_PIXEL_UNPACK_BUFFER = 0;
-    rev.bound_buffer_GL_QUERY_BUFFER = 0;
-    rev.bound_buffer_GL_SHADER_STORAGE_BUFFER = 0;
-    rev.bound_buffer_GL_TEXTURE_BUFFER = 0;
-    rev.bound_buffer_GL_TRANSFORM_FEEDBACK_BUFFER = 0;
-    rev.bound_buffer_GL_UNIFORM_BUFFER = 0;
-    rev.bound_program = 0;
-    rev.bound_vao = 0;
-    rev.bound_renderbuffer = 0;
-    rev.read_framebuffer = 0;
-    rev.draw_framebuffer = 0;
-    rev.active_texture_unit = 0;
+    trc_gl_state_set_drawable_width(trace, w);
+    trc_gl_state_set_drawable_height(trace, h);
+    trc_gl_state_set_bound_buffer(trace, GL_ARRAY_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_ATOMIC_COUNTER_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_COPY_READ_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_COPY_WRITE_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_DISPATCH_INDIRECT_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_DRAW_INDIRECT_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_ELEMENT_ARRAY_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_PIXEL_PACK_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_PIXEL_UNPACK_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_QUERY_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_SHADER_STORAGE_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_TEXTURE_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_TRANSFORM_FEEDBACK_BUFFER, 0);
+    trc_gl_state_set_bound_buffer(trace, GL_UNIFORM_BUFFER, 0);
+    trc_gl_state_set_bound_program(trace, 0);
+    trc_gl_state_set_bound_vao(trace, 0);
+    trc_gl_state_set_bound_renderbuffer(trace, 0);
+    trc_gl_state_set_read_framebuffer(trace, 0);
+    trc_gl_state_set_draw_framebuffer(trace, 0);
+    trc_gl_state_set_active_texture_unit(trace, 0);
     
-    //TODO
-    uint max_query_bindings = 64;
+    uint max_query_bindings = 64; //TODO
+    uint query_bindings[max_query_bindings];
+    memset(query_bindings, 0, sizeof(query_bindings));
+    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, query_bindings);
+    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, query_bindings);
     
-    trc_data_t* bound_query_data = trc_create_inspection_data(ctx->trace, max_query_bindings*4, NULL);
-    uint* bound_query_data_ptr = trc_lock_data(bound_query_data, false, true);
-    for (uint i = 0; i < max_query_bindings; i++) bound_query_data_ptr[i] = 0;
-    trc_unlock_data(bound_query_data);
+    uint max_tex_units = 48; //TODO
+    uint texture_bindings[max_tex_units];
+    memset(texture_bindings, 0, sizeof(texture_bindings));
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, texture_bindings);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, texture_bindings);
     
-    rev.bound_queries_GL_SAMPLES_PASSED = bound_query_data;
-    rev.bound_queries_GL_ANY_SAMPLES_PASSED = bound_query_data;
-    rev.bound_queries_GL_ANY_SAMPLES_PASSED_CONSERVATIVE = bound_query_data;
-    rev.bound_queries_GL_PRIMITIVES_GENERATED = bound_query_data;
-    rev.bound_queries_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN = bound_query_data;
-    rev.bound_queries_GL_TIME_ELAPSED = bound_query_data;
+    trc_gl_state_set_enabled(trace, GL_BLEND, false);
+    trc_gl_state_set_enabled(trace, GL_COLOR_LOGIC_OP, false);
+    trc_gl_state_set_enabled(trace, GL_CULL_FACE, false);
+    trc_gl_state_set_enabled(trace, GL_DEBUG_OUTPUT, false);
+    trc_gl_state_set_enabled(trace, GL_DEBUG_OUTPUT_SYNCHRONOUS, false);
+    trc_gl_state_set_enabled(trace, GL_DEPTH_CLAMP, false);
+    trc_gl_state_set_enabled(trace, GL_DEPTH_TEST, false);
+    trc_gl_state_set_enabled(trace, GL_DITHER, true);
+    trc_gl_state_set_enabled(trace, GL_FRAMEBUFFER_SRGB, false);
+    trc_gl_state_set_enabled(trace, GL_LINE_SMOOTH, false);
+    trc_gl_state_set_enabled(trace, GL_MULTISAMPLE, false);
+    trc_gl_state_set_enabled(trace, GL_POLYGON_OFFSET_FILL, false);
+    trc_gl_state_set_enabled(trace, GL_POLYGON_OFFSET_LINE, false);
+    trc_gl_state_set_enabled(trace, GL_POLYGON_OFFSET_POINT, false);
+    trc_gl_state_set_enabled(trace, GL_POLYGON_SMOOTH, false);
+    trc_gl_state_set_enabled(trace, GL_PRIMITIVE_RESTART, false);
+    trc_gl_state_set_enabled(trace, GL_PRIMITIVE_RESTART_FIXED_INDEX, false);
+    trc_gl_state_set_enabled(trace, GL_RASTERIZER_DISCARD, false);
+    trc_gl_state_set_enabled(trace, GL_SAMPLE_ALPHA_TO_COVERAGE, false);
+    trc_gl_state_set_enabled(trace, GL_SAMPLE_ALPHA_TO_ONE, false);
+    trc_gl_state_set_enabled(trace, GL_SAMPLE_COVERAGE, false);
+    trc_gl_state_set_enabled(trace, GL_SAMPLE_SHADING, false);
+    trc_gl_state_set_enabled(trace, GL_SAMPLE_MASK, false);
+    trc_gl_state_set_enabled(trace, GL_SCISSOR_TEST, false);
+    trc_gl_state_set_enabled(trace, GL_STENCIL_TEST, false);
+    trc_gl_state_set_enabled(trace, GL_TEXTURE_CUBE_MAP_SEAMLESS, false);
+    trc_gl_state_set_enabled(trace, GL_PROGRAM_POINT_SIZE, false);
     
-    //TODO
-    uint max_combined_tex_units = 48;
+    trc_gl_state_state_bool_init1(trace, GL_DEPTH_WRITEMASK, GL_TRUE);
+    bool color_mask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
+    trc_gl_state_state_bool_init(trace, GL_COLOR_WRITEMASK, 4, color_mask);
     
-    trc_data_t* bound_tex_data = trc_create_inspection_data(ctx->trace, max_combined_tex_units*4, NULL);
-    uint* bound_tex_data_ptr = trc_lock_data(bound_tex_data, false, true);
-    for (uint i = 0; i < max_combined_tex_units; i++) bound_tex_data_ptr[i] = 0;
-    trc_unlock_data(bound_tex_data);
+    trc_gl_state_state_bool_init1(trace, GL_PACK_SWAP_BYTES, GL_FALSE);
+    trc_gl_state_state_bool_init1(trace, GL_PACK_LSB_FIRST, GL_FALSE);
+    trc_gl_state_state_bool_init1(trace, GL_UNPACK_SWAP_BYTES, GL_FALSE);
+    trc_gl_state_state_bool_init1(trace, GL_UNPACK_LSB_FIRST, GL_FALSE);
     
-    F(glGenVertexArrays)(1, &rev.draw_vao);
-    F(glBindVertexArray)(rev.draw_vao);
+    trc_gl_state_state_int_init1(trace, GL_PACK_ROW_LENGTH, 0);
+    trc_gl_state_state_int_init1(trace, GL_PACK_IMAGE_HEIGHT, 0);
+    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_ROWS, 0);
+    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_PIXELS, 0);
+    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_IMAGES, 0);
+    trc_gl_state_state_int_init1(trace, GL_PACK_ALIGNMENT, 4);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_ROW_LENGTH, 0);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_IMAGE_HEIGHT, 0);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_ROWS, 0);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_PIXELS, 0);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_IMAGES, 0);
+    trc_gl_state_state_int_init1(trace, GL_UNPACK_ALIGNMENT, 4);
     
-    rev.bound_textures_GL_TEXTURE_1D = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_2D = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_3D = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_1D_ARRAY = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_2D_ARRAY = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_RECTANGLE = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_CUBE_MAP = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_CUBE_MAP_ARRAY = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_BUFFER = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_2D_MULTISAMPLE = bound_tex_data;
-    rev.bound_textures_GL_TEXTURE_2D_MULTISAMPLE_ARRAY = bound_tex_data;
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_CLEAR_VALUE, 0);
+    trc_gl_state_state_float_init1(trace, GL_DEPTH_CLEAR_VALUE, 0);
+    float color_clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    trc_gl_state_state_float_init(trace, GL_COLOR_CLEAR_VALUE, 4, color_clear);
     
-    replay_create_context_buffers(ctx->trace, &rev);
+    float depth_range[4] = {0.0f, 1.0f};
+    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, 2, depth_range);
     
-    return rev;
+    trc_gl_state_state_float_init1(trace, GL_POINT_SIZE, 1.0f);
+    trc_gl_state_state_float_init1(trace, GL_LINE_WIDTH, 1.0f);
+    
+    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_UNITS, 0.0f);
+    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_FACTOR, 0.0f);
+    
+    trc_gl_state_state_float_init1(trace, GL_SAMPLE_COVERAGE_VALUE, 1.0f);
+    trc_gl_state_state_bool_init1(trace, GL_SAMPLE_COVERAGE_INVERT, false);
+    
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_FUNC, GL_ALWAYS);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_REF, 0);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_VALUE_MASK, 0xffffffff);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_FUNC, GL_ALWAYS);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_REF, 0);
+    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_VALUE_MASK, 0xffffffff);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_FAIL, GL_KEEP);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_PASS_DEPTH_PASS, GL_KEEP);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_PASS_DEPTH_FAIL, GL_KEEP);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_FAIL, GL_KEEP);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_PASS, GL_KEEP);
+    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_FAIL, GL_KEEP);
+    
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_SRC_RGB, GL_ONE);
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_DST_RGB, GL_ZERO);
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_SRC_ALPHA, GL_ONE);
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_DST_ALPHA, GL_ZERO);
+    float blend_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    trc_gl_state_state_float_init(trace, GL_BLEND_COLOR, 4, blend_color);
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_EQUATION_RGB, GL_FUNC_ADD);
+    trc_gl_state_state_enum_init1(trace, GL_BLEND_EQUATION_ALPHA, GL_FUNC_ADD);
+    
+    int viewport[4] = {0, 0, w, h};
+    trc_gl_state_state_int_init(trace, GL_VIEWPORT, 4, viewport);
+    int scissor[4] = {0, 0, w, h};
+    trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, 4, scissor);
+    
+    uint draw_vao;
+    F(glGenVertexArrays)(1, &draw_vao);
+    F(glBindVertexArray)(draw_vao);
+    trc_gl_state_set_draw_vao(trace, draw_vao);
+    
+    //replay_create_context_buffers(ctx->trace, &rev);
+    replay_update_buffers(ctx, true, true, true, true);
+}
+
+static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum pname, GLint param) {
+    switch (pname) {
+    case GL_PACK_SWAP_BYTES:
+    case GL_PACK_LSB_FIRST:
+    case GL_UNPACK_SWAP_BYTES:
+    case GL_UNPACK_LSB_FIRST: trc_gl_state_set_state_bool(ctx->trace, pname, 0, param!=0); break;
+    case GL_PACK_ROW_LENGTH:
+    case GL_PACK_IMAGE_HEIGHT:
+    case GL_PACK_SKIP_ROWS:
+    case GL_PACK_SKIP_PIXELS:
+    case GL_PACK_SKIP_IMAGES:
+    case GL_UNPACK_ROW_LENGTH:
+    case GL_UNPACK_IMAGE_HEIGHT:
+    case GL_UNPACK_SKIP_ROWS:
+    case GL_UNPACK_SKIP_PIXELS:
+    case GL_UNPACK_SKIP_IMAGES:
+        if (param < 0) {trc_add_error(cmd,"param is negative"); return;}
+        trc_gl_state_set_state_int(ctx->trace, pname, 0, param);
+        break;
+    case GL_PACK_ALIGNMENT:
+    case GL_UNPACK_ALIGNMENT:
+        if (param!=1 && param!=2 && param!=4 && param!=8) {
+            trc_add_error(cmd,"param is not 1, 2, 4, or 8");
+            return;
+        }
+        trc_gl_state_set_state_int(ctx->trace, pname, 0, param);
+        break;
+    default:
+        trc_add_error(cmd, "Invalid parameter");
+        return;
+    }
+    F(glPixelStorei)(pname, param);
 }
 
 static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev, uint level, uint face,

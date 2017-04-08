@@ -92,14 +92,15 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     }
     reload_gl_funcs(ctx);
     
-    trc_gl_context_rev_t rev = create_context_rev(ctx, res);
+    trc_gl_context_rev_t rev;
+    rev.real = res;
     uint64_t fake = trc_get_ptr(&command->ret)[0];
     trc_set_gl_context(ctx->trace, fake, &rev);
     
     uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
     size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
     ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //A hack
-    replay_update_buffers(ctx, true, true, true, true);
+    init_context(ctx);
     ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
@@ -171,14 +172,15 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     }
     reload_gl_funcs(ctx);
     
-    trc_gl_context_rev_t rev = create_context_rev(ctx, res);
+    trc_gl_context_rev_t rev;
+    rev.real = res;
     uint64_t fake = trc_get_ptr(&command->ret)[0];
     trc_set_gl_context(ctx->trace, fake, &rev);
     
     uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
     size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
     ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //A hack
-    replay_update_buffers(ctx, true, true, true, true);
+    init_context(ctx);
     ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
@@ -1621,6 +1623,10 @@ glDrawableSizeWIP15: //GLsizei p_width, GLsizei p_height
     
     //TODO: This is a hack
     F(glViewport)(0, 0, p_width, p_height);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 0, 0);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 1, 0);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 2, p_width);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 3, p_height);
 
 glGetUniformfv: //GLuint p_program, GLint p_location, GLfloat* p_params
     get_uniform(ctx, command);
@@ -2087,3 +2093,179 @@ glBindFragDataLocationIndexed: //GLuint p_program, GLuint p_colorNumber, GLuint 
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name.");
     real(real_program, p_colorNumber, p_index, p_name);
+
+glEnable: //GLenum p_cap
+    trc_gl_state_set_enabled(ctx->trace, p_cap, true);
+
+glDisable: //GLenum p_cap
+    trc_gl_state_set_enabled(ctx->trace, p_cap, true);
+
+//TODO: glEnablei and glDisablei
+
+glDepthMask: //GLboolean p_flag
+    trc_gl_state_set_state_bool(ctx->trace, GL_DEPTH_WRITEMASK, 0, p_flag);
+
+glColorMask: //GLboolean p_red, GLboolean p_green, GLboolean p_blue, GLboolean p_alpha
+    trc_gl_state_set_state_bool(ctx->trace, GL_COLOR_WRITEMASK, 0, p_red);
+    trc_gl_state_set_state_bool(ctx->trace, GL_COLOR_WRITEMASK, 0, p_green);
+    trc_gl_state_set_state_bool(ctx->trace, GL_COLOR_WRITEMASK, 0, p_blue);
+    trc_gl_state_set_state_bool(ctx->trace, GL_COLOR_WRITEMASK, 0, p_alpha);
+
+//TODO: glColorMaski
+
+glPixelStoref: //GLenum p_pname, GLfloat p_param
+    replay_pixel_store(ctx, command, p_pname, p_param);
+
+glPixelStorei: //GLenum p_pname, GLint p_param
+    replay_pixel_store(ctx, command, p_pname, p_param);
+
+glClearStencil: //GLint p_s
+    //TODO: Mask p_s?
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_CLEAR_VALUE, 0, p_s);
+    real(p_s);
+
+glClearColor: //GLfloat p_red, GLfloat p_green, GLfloat p_blue, GLfloat p_alpha
+    trc_gl_state_set_state_float(ctx->trace, GL_COLOR_CLEAR_VALUE, 0, p_red);
+    trc_gl_state_set_state_float(ctx->trace, GL_COLOR_CLEAR_VALUE, 1, p_green);
+    trc_gl_state_set_state_float(ctx->trace, GL_COLOR_CLEAR_VALUE, 2, p_blue);
+    trc_gl_state_set_state_float(ctx->trace, GL_COLOR_CLEAR_VALUE, 3, p_alpha);
+    real(p_red, p_green, p_blue, p_alpha);
+
+glClearDepth: //GLdouble p_depth
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_CLEAR_VALUE, 0, fminf(fmaxf(p_depth, 0.0f), 1.0f));
+    real(p_depth);
+
+glClearDepthf: //GLfloat p_d
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_CLEAR_VALUE, 0, fminf(fmaxf(p_d, 0.0f), 1.0f));
+    real(p_d);
+
+glDepthRange: //GLdouble p_near, GLdouble p_far
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_near);
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_far);
+    real(p_near, p_far);
+
+glDepthRangef: //GLfloat p_n, GLfloat p_f
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_n);
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_f);
+    real(p_n, p_f);
+
+glPointSize: //GLfloat p_size
+    if (p_size <= 0.0f) ERROR("size is not greater than zero");
+    trc_gl_state_set_state_float(ctx->trace, GL_POINT_SIZE, 0, p_size);
+    real(p_size);
+
+glLineWidth: //GLfloat p_width
+    if (p_width <= 0.0f) ERROR("width is not greater than zero");
+    trc_gl_state_set_state_float(ctx->trace, GL_LINE_WIDTH, 0, p_width);
+    real(p_width);
+
+glPolygonOffset: //GLfloat p_factor, GLfloat p_units
+    trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_UNITS, 0, p_units);
+    trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_FACTOR, 0, p_factor);
+    real(p_factor, p_units);
+
+glSampleCoverage: //GLfloat p_value, GLboolean p_invert
+    trc_gl_state_set_state_float(ctx->trace, GL_SAMPLE_COVERAGE_VALUE, 0, p_value);
+    trc_gl_state_set_state_bool(ctx->trace, GL_SAMPLE_COVERAGE_INVERT, 0, p_invert);
+    real(p_value, p_invert);
+
+glStencilFunc: //GLenum p_func, GLint p_ref, GLuint p_mask
+    union {int32_t maski; uint32_t masku;} u;
+    u.masku = p_mask;
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_FUNC, 0, p_func);
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_REF, 0, p_ref);
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_VALUE_MASK, 0, u.maski);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_FUNC, 0, p_func);
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_REF, 0, p_ref);
+    trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_VALUE_MASK, 0, u.maski);
+    real(p_func, p_ref, p_mask);
+
+glStencilFuncSeparate: //GLenum p_face, GLenum p_func, GLint p_ref, GLuint p_mask
+    union {int32_t maski; uint32_t masku;} u;
+    u.masku = p_mask;
+    if (p_face==GL_FRONT || p_face==GL_FRONT_AND_BACK) {
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_FUNC, 0, p_func);
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_REF, 0, p_ref);
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_VALUE_MASK, 0, u.maski);
+    }
+    if (p_face==GL_BACK || p_face==GL_FRONT_AND_BACK) {
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_FUNC, 0, p_func);
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_REF, 0, p_ref);
+        trc_gl_state_set_state_int(ctx->trace, GL_STENCIL_BACK_VALUE_MASK, 0, u.maski);
+    }
+    real(p_face, p_func, p_ref, p_mask);
+
+glStencilOp: //GLenum p_fail, GLenum p_zfail, GLenum p_zpass
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_FAIL, 0, p_fail);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_PASS_DEPTH_FAIL, 0, p_zfail);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_PASS_DEPTH_PASS, 0, p_zpass);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_FAIL, 0, p_fail);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_PASS_DEPTH_FAIL, 0, p_zfail);
+    trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_PASS_DEPTH_PASS, 0, p_zpass);
+    real(p_fail, p_zfail, p_zpass);
+
+glStencilOpSeparate: //GLenum p_face, GLenum p_sfail, GLenum p_dpfail, GLenum p_dppass
+    if (p_face==GL_FRONT || p_face==GL_FRONT_AND_BACK) {
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_FAIL, 0, p_sfail);
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_PASS_DEPTH_FAIL, 0, p_dpfail);
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_PASS_DEPTH_PASS, 0, p_dppass);
+    }
+    if (p_face==GL_BACK || p_face==GL_FRONT_AND_BACK) {
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_FAIL, 0, p_sfail);
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_PASS_DEPTH_FAIL, 0, p_dpfail);
+        trc_gl_state_set_state_enum(ctx->trace, GL_STENCIL_BACK_PASS_DEPTH_PASS, 0, p_dppass);
+    }
+    real(p_face, p_sfail, p_dpfail, p_dppass);
+
+glBlendFunc: //GLenum p_sfactor, GLenum p_dfactor
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_SRC_RGB, 0, p_sfactor);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_DST_RGB, 0, p_dfactor);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_SRC_ALPHA, 0, p_sfactor);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_DST_ALPHA, 0, p_dfactor);
+    real(p_sfactor, p_dfactor);
+
+glBlendFuncSeparate: //GLenum p_sfactorRGB, GLenum p_dfactorRGB, GLenum p_sfactorAlpha, GLenum p_dfactorAlpha
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_SRC_RGB, 0, p_sfactorRGB);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_DST_RGB, 0, p_dfactorRGB);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_SRC_ALPHA, 0, p_sfactorAlpha);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_DST_ALPHA, 0, p_dfactorAlpha);
+    real(p_sfactorRGB, p_dfactorRGB, p_sfactorAlpha, p_dfactorAlpha);
+
+//TODO: glBlendFunci and glBlendFuncSeparatei
+
+glBlendColor: //GLfloat p_red, GLfloat p_green, GLfloat p_blue, GLfloat p_alpha
+    trc_gl_state_set_state_float(ctx->trace, GL_BLEND_COLOR, 0, p_red);
+    trc_gl_state_set_state_float(ctx->trace, GL_BLEND_COLOR, 1, p_green);
+    trc_gl_state_set_state_float(ctx->trace, GL_BLEND_COLOR, 2, p_blue);
+    trc_gl_state_set_state_float(ctx->trace, GL_BLEND_COLOR, 3, p_alpha);
+    real(p_red, p_green, p_blue, p_alpha);
+
+glBlendEquation: //GLenum p_mode
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_EQUATION_RGB, 0, p_mode);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_EQUATION_ALPHA, 0, p_mode);
+    real(p_mode);
+
+glBlendEquationSeparate: //GLenum p_modeRGB, GLenum p_modeAlpha
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_EQUATION_RGB, 0, p_modeRGB);
+    trc_gl_state_set_state_enum(ctx->trace, GL_BLEND_EQUATION_ALPHA, 0, p_modeAlpha);
+    real(p_modeRGB, p_modeAlpha);
+
+//TODO: glBlendEquationi and glBlendEquationSeparatei
+
+glViewport: //GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 0, p_x);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 1, p_y);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 2, p_width);
+    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 3, p_height);
+    real(p_x, p_y, p_width, p_height);
+
+//TODO: glViewportIndexedf and glViewportIndexedfv
+
+glScissor: //GLint x, GLint y, GLsizei width, GLsizei height
+    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 0, p_x);
+    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 1, p_y);
+    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 2, p_width);
+    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 3, p_height);
+    real(p_x, p_y, p_width, p_height);
+
+//TODO: glScissorIndexed, glScissorIndexedv and glScissorArrayv
