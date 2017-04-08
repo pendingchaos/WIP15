@@ -18,7 +18,7 @@ void init_syncs_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Sync]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Sync][i];
-        trc_gl_obj_rev_t* sync = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Sync);
+        const trc_gl_obj_rev_t* sync = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Sync);
         if (sync && sync->ref_count) {
             char str[64];
             memset(str, 0, 64);

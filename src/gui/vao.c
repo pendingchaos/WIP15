@@ -20,7 +20,7 @@ void init_vao_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_VAO]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_VAO][i];
-        trc_gl_obj_rev_t* vao = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_VAO);
+        const trc_gl_obj_rev_t* vao = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_VAO);
         if (vao && vao->ref_count) {
             char str[64];
             memset(str, 0, 64);

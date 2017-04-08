@@ -18,7 +18,7 @@ void init_queries_list(GtkTreeView* tree) {
     
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Query]; i++) {
         trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Query][i];
-        trc_gl_obj_rev_t* query = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Query);
+        const trc_gl_obj_rev_t* query = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Query);
         if (query && query->ref_count) {
             char str[64];
             memset(str, 0, 64);
