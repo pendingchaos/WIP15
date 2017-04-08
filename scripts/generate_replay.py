@@ -474,6 +474,8 @@ static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, boo
 static void init_context(trc_replay_context_t* ctx) {
     trace_t* trace = ctx->trace;
     
+    trc_gl_state_set_made_current_before(trace, false);
+    
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     trc_gl_state_set_drawable_width(trace, w);
@@ -615,7 +617,7 @@ static void init_context(trc_replay_context_t* ctx) {
     
     int viewport[4] = {0, 0, w, h};
     trc_gl_state_state_int_init(trace, GL_VIEWPORT, 4, viewport);
-    int scissor[4] = {0, 0, w, h};
+    int scissor[4] = {0, 0, 0, 0};
     trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, 4, scissor);
     
     uint draw_vao;

@@ -38,6 +38,8 @@ map array query bound_queries
     GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN
     GL_TIME_ELAPSED
 
+bool made_current_before
+
 uint active_texture_unit
 map array texture bound_textures
     GL_TEXTURE_1D

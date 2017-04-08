@@ -12,6 +12,24 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     if (glctx) {
         reload_gl_funcs(ctx);
         trc_set_current_fake_gl_context(ctx->trace, fake_ctx);
+        if (!trc_gl_state_get_made_current_before(ctx->trace)) {
+            trace_extra_t* extra = trc_get_extra(command, "replay/glXMakeCurrent/drawable_size");
+            if (!extra) ERROR("replay/glXMakeCurrent/drawable_size extra not found");
+            if (extra->size != 8) ERROR("replay/glXMakeCurrent/drawable_size is not 8 bytes");
+            int32_t width = ((int32_t*)extra->data)[0];
+            int32_t height = ((int32_t*)extra->data)[1];
+            if (width>=0 && height>=0) {
+                trc_gl_state_set_drawable_width(ctx->trace, width);
+                trc_gl_state_set_drawable_height(ctx->trace, height);
+                trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 2, width);
+                trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 3, height);
+                trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 2, width);
+                trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 3, height);
+                F(glViewport)(0, 0, width, height);
+                F(glScissor)(0, 0, width, height);
+            }
+        }
+        trc_gl_state_set_made_current_before(ctx->trace, true);
     } else {
         reset_gl_funcs(ctx);
         trc_set_current_fake_gl_context(ctx->trace, 0);
@@ -571,7 +589,6 @@ glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLb
 
 glUnmapBuffer: //GLenum p_target
     trace_extra_t* extra = trc_get_extra(command, "replay/glUnmapBuffer/data");
-    
     if (!extra) ERROR("replay/glUnmapBuffer/data extra not found");
     
     uint fake = get_bound_buffer(ctx, p_target);
@@ -1620,13 +1637,6 @@ glDrawableSizeWIP15: //GLsizei p_width, GLsizei p_height
     state.drawable_height = p_height;
     replay_create_context_buffers(ctx->trace, &state);
     trc_set_gl_context(ctx->trace, 0, &state);
-    
-    //TODO: This is a hack
-    F(glViewport)(0, 0, p_width, p_height);
-    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 0, 0);
-    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 1, 0);
-    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 2, p_width);
-    trc_gl_state_set_state_int(ctx->trace, GL_VIEWPORT, 3, p_height);
 
 glGetUniformfv: //GLuint p_program, GLint p_location, GLfloat* p_params
     get_uniform(ctx, command);

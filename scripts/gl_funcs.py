@@ -1093,4 +1093,13 @@ Func(None, 'glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawab
 #Func(None, 'glXGetVisualFromFBConfig', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config')], tPointer)
 
 #TODO: Choose the correct limits
-Func(None, 'glXMakeCurrent', [P(tMutablePointer, 'dpy', None), P(tGLXDrawable, 'drawable', None), P(tGLXContext, 'ctx', None)], tBool).trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs(); update_drawable_size();'
+f = Func(None, 'glXMakeCurrent', [P(tMutablePointer, 'dpy', None), P(tGLXDrawable, 'drawable', None), P(tGLXContext, 'ctx', None)], tBool)
+f.trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs();'
+f.trace_extras_code = '''
+int32_t size[2] = {-1, -1};
+if (dpy && drawable!=None) {
+    F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &size[0]);
+    F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &size[1]);
+}
+gl_add_extra("replay/glXMakeCurrent/drawable_size", 8, size);
+'''
