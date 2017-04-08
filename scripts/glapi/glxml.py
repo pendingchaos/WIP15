@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 import urllib2
 import os.path
 import copy
