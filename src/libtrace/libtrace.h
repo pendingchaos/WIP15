@@ -119,6 +119,7 @@ typedef struct trc_gl_state_rev_t {
     
     uint read_framebuffer;
     uint draw_framebuffer;
+    //TODO: Add a GL_FRAMEBUFFER field?
     
     uint samples_passed_query;
     uint any_samples_passed_query;
@@ -128,19 +129,19 @@ typedef struct trc_gl_state_rev_t {
     uint time_elapsed_query;
     uint timestamp_query;
     
-    uint active_texture_unit
+    uint active_texture_unit;
     
-    trc_data_t* texture_1d;
-    trc_data_t* texture_2d;
-    trc_data_t* texture_3d;
-    trc_data_t* texture_1d_array;
-    trc_data_t* texture_2d_array;
-    trc_data_t* texture_rectangle;
-    trc_data_t* texture_cube_map;
-    trc_data_t* texture_cube_map_array;
-    trc_data_t* texture_buffer;
-    trc_data_t* texture_2d_multisample;
-    trc_data_t* texture_2d_multisample_array;
+    trc_data_t* tex_1d;
+    trc_data_t* tex_2d;
+    trc_data_t* tex_3d;
+    trc_data_t* tex_1d_array;
+    trc_data_t* tex_2d_array;
+    trc_data_t* tex_rectangle;
+    trc_data_t* tex_cube_map;
+    trc_data_t* tex_cube_map_array;
+    trc_data_t* tex_buffer;
+    trc_data_t* tex_2d_multisample;
+    trc_data_t* tex_2d_multisample_array;
 } trc_gl_state_rev_t;
 
 typedef struct trc_gl_obj_rev_t {

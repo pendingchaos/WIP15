@@ -479,7 +479,7 @@ static void replay_get_tex_params(trc_replay_context_t* ctx,
     inspect_act_tex_params(&cmd->state, params.texture, &params);*/
 }
 
-static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* params,
+static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t* params,
                                 GLenum param, uint32_t count, const double* val) {
     switch (param) {
     case GL_TEXTURE_MIN_FILTER:
@@ -492,13 +492,13 @@ static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* 
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COMPARE_FUNC:
         if (count != 1) {
-            trc_add_error(command, "Expected 1 value. Got %u.\n", count);
+            trc_add_error(command, "Expected 1 value. Got %u.\\n", count);
             return true;
         }
         break;
     case GL_TEXTURE_BORDER_COLOR:
         if (count != 4) {
-            trc_add_error(command, "Expected 4 values. Got %u.\n", count);
+            trc_add_error(command, "Expected 4 values. Got %u.\\n", count);
             return true;
         }
         break;
@@ -509,13 +509,13 @@ static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* 
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST && val[0]!=GL_NEAREST_MIPMAP_NEAREST &&
             val[0]!=GL_LINEAR_MIPMAP_NEAREST && val[0]!=GL_NEAREST_MIPMAP_LINEAR &&
             val[0]!=GL_LINEAR_MIPMAP_LINEAR) {
-            trc_add_error(command, "Invalid minification filter.\n")
+            trc_add_error(command, "Invalid minification filter.\\n");
             return true;
         }
         break;
     case GL_TEXTURE_MAG_FILTER:
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST) {
-            trc_add_error(command, "Invalid magnification filter.\n")
+            trc_add_error(command, "Invalid magnification filter.\\n");
             return true;
         }
         break;
@@ -524,20 +524,20 @@ static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* 
     case GL_TEXTURE_WRAP_R:
         if (val[0]!=GL_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_BORDER && val[0]!=GL_MIRRORED_REPEAT &&
             val[0]!=GL_REPEAT && val[0]!=GL_MIRROR_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_EDGE) {
-            trc_add_error(command, "Invalid wrap mode.\n");
+            trc_add_error(command, "Invalid wrap mode.\\n");
             return true;
         }
         break;
     case GL_TEXTURE_COMPARE_MODE:
         if (val[0]!=GL_COMPARE_REF_TO_TEXTURE && val[0]!=GL_NONE) {
-            trc_add_error(command, "Invalid compare mode.\n");
+            trc_add_error(command, "Invalid compare mode.\\n");
             return true;
         }
         break;
     case GL_TEXTURE_COMPARE_FUNC:
         if (val[0]!=GL_LEQUAL && val[0]!=GL_GEQUAL && val[0]!=GL_LESS && val[0]!=GL_GREATER &&
             val[0]!=GL_EQUAL && val[0]!=GL_NOTEQUAL && val[0]!=GL_ALWAYS && val[0]!=GL_NEVER) {
-            trc_add_error(command, "Invalid compare function.\n");
+            trc_add_error(command, "Invalid compare function.\\n");
             return true;
         }
         break;
@@ -563,44 +563,45 @@ static bool sample_param_double(trc_command_t* command, trc_gl_sample_params_t* 
 
 static trc_data_t** get_bound_texture_data(trc_gl_state_rev_t* state, GLenum target) {
     switch (target) {
-    case GL_TEXTURE_1D: return &state->texture_1d;
-    case GL_TEXTURE_2D: return &state->texture_2d;
-    case GL_TEXTURE_3D: return &state->texture_3d;
-    case GL_TEXTURE_1D_ARRAY: return &state->texture_1d_array;
-    case GL_TEXTURE_2D_ARRAY: return &state->texture_2d_array;
-    case GL_TEXTURE_RECTANGLE: return &state->texture_rectangle;
-    case GL_TEXTURE_CUBE_MAP: return &state->texture_cube_map;
-    case GL_TEXTURE_CUBE_MAP_ARRAY: return &state->texture_cube_map_array;
-    case GL_TEXTURE_BUFFER: return &state->texture_buffer;
-    case GL_TEXTURE_2D_MULTISAMPLE: return &state->texture_2d_multisample;
-    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return &state->texture_2d_multisample_array;
+    case GL_TEXTURE_1D: return &state->tex_1d;
+    case GL_TEXTURE_2D: return &state->tex_2d;
+    case GL_TEXTURE_3D: return &state->tex_3d;
+    case GL_TEXTURE_1D_ARRAY: return &state->tex_1d_array;
+    case GL_TEXTURE_2D_ARRAY: return &state->tex_2d_array;
+    case GL_TEXTURE_RECTANGLE: return &state->tex_rectangle;
+    case GL_TEXTURE_CUBE_MAP: return &state->tex_cube_map;
+    case GL_TEXTURE_CUBE_MAP_ARRAY: return &state->tex_cube_map_array;
+    case GL_TEXTURE_BUFFER: return &state->tex_buffer;
+    case GL_TEXTURE_2D_MULTISAMPLE: return &state->tex_2d_multisample;
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return &state->tex_2d_multisample_array;
     }
 }
 
 static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex) {
-    trc_gl_state_t state = trc_get_gl_state(trace);
+    trc_gl_state_rev_t state = *trc_get_gl_state(trace);
     
-    trc_data_t* data = *get_bound_texture_data(state, target);
+    trc_data_t* data = *get_bound_texture_data(&state, target);
     
     //Copy
-    void* data = trc_lock_data(data, true, false);
-    trc_data_t* new_data = trc_create_data(trace, data->uncompressed_size, data);
+    uint* dataptr = trc_lock_data(data, true, false);
+    trc_data_t* new_data = trc_create_data(trace, data->uncompressed_size, dataptr);
     trc_unlock_data(data);
     
     //Modify
-    uint* data = trc_lock_data(new_data, false, true);
-    data[unit<0?state.active_texture_unit:unit] = tex;
+    dataptr = trc_lock_data(new_data, false, true);
+    dataptr[unit<0?state.active_texture_unit:unit] = tex;
     trc_unlock_data(new_data);
     
     //Replace
-    *get_bound_texture_data(&state, target);
+    *get_bound_texture_data(&state, target) = new_data;
     trc_set_gl_state(trace, &state);
 }
 
 static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
-    trc_data_t* data = *get_bound_texture_data(trc_get_gl_state(trace), target);
-    uint* data = trc_lock_data(data, true, false);
-    uint res = data[unit<0?state.active_texture_unit:unit];
+    const trc_gl_state_rev_t* state = trc_get_gl_state(trace);
+    trc_data_t* data = *get_bound_texture_data((trc_gl_state_rev_t*)state, target);
+    uint* dataptr = trc_lock_data(data, true, false);
+    uint res = dataptr[unit<0?state->active_texture_unit:unit];
     trc_unlock_data(data);
     
     return res;
@@ -608,7 +609,7 @@ static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
 //TODO: More validation
-static bool texture_param_double(trc_command_t* command, trc_gl_texture_Rev_t* tex,
+static bool texture_param_double(trace_command_t* command, trc_gl_texture_rev_t* tex,
                                  GLenum param, uint32_t count, const double* val) {
     switch (param) {
     case GL_TEXTURE_MIN_FILTER:
@@ -622,7 +623,7 @@ static bool texture_param_double(trc_command_t* command, trc_gl_texture_Rev_t* t
     case GL_TEXTURE_COMPARE_FUNC:
     case GL_TEXTURE_BORDER_COLOR:
         return sample_param_double(command, &tex->sample_params, param, count, val);
-    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
+    case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
     case GL_TEXTURE_MAX_LEVEL:
     case GL_TEXTURE_LOD_BIAS:
@@ -631,22 +632,22 @@ static bool texture_param_double(trc_command_t* command, trc_gl_texture_Rev_t* t
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A:
         if (count != 1) {
-            trc_add_error(command, "Expected 1 value. Got %u.\n", count);
+            trc_add_error(command, "Expected 1 value. Got %u.\\n", count);
             return true;
         }
         break;
     case GL_TEXTURE_SWIZZLE_RGBA:
         if (count != 4) {
-            trc_add_error(command, "Expected 4 values. Got %u.\n", count);
+            trc_add_error(command, "Expected 4 values. Got %u.\\n", count);
             return true;
         }
         break;
     }
     
-    switch (params) {
-    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
-        if (val[0]!=GL_DEPTH_COMPONENT && val[0]!=GL_STENCIL_COMPONENT) {
-            trc_add_error(command, "Invalid depth stencil texture mode.\n");
+    switch (param) {
+    case GL_DEPTH_STENCIL_TEXTURE_MODE:
+        if (val[0]!=GL_DEPTH_COMPONENT && val[0]!=GL_STENCIL_INDEX) {
+            trc_add_error(command, "Invalid depth stencil texture mode.\\n");
             return true;
         }
         break;
@@ -655,22 +656,22 @@ static bool texture_param_double(trc_command_t* command, trc_gl_texture_Rev_t* t
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A:
         if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
-            trc_add_error(command, "Invalid swizzle\n");
+            trc_add_error(command, "Invalid swizzle.\\n");
             return true;
         }
         break;
     case GL_TEXTURE_SWIZZLE_RGBA:
         for (uint i = 0; i < 4; i++) {
             if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
-                trc_add_error(command, "Invalid swizzle\n");
+                trc_add_error(command, "Invalid swizzle.\\n");
                 return true;
             }
         }
         break;
     }
     
-    switch (params) {
-    case GL_TEXTURE_DEPTH_STENCIL_TEXTURE_MODE:
+    switch (param) {
+    case GL_DEPTH_STENCIL_TEXTURE_MODE:
         tex->depth_stencil_texture_mode = val[0];
         break;
     case GL_TEXTURE_BASE_LEVEL: tex->base_level = val[0]; break;
@@ -833,6 +834,17 @@ static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
 }
 
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
+    trc_gl_state_rev_t* state = trc_get_gl_state(ctx->trace);
+    
+    switch (target) {
+    case GL_DRAW_FRAMEBUFFER: 
+        return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+    case GL_READ_FRAMEBUFFER: 
+        return trc_get_real_gl_framebuffer(ctx->trace, state->read_framebuffer);
+    case GL_FRAMEBUFFER: 
+        return trc_get_real_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+    }
+    
     GLint fb;
     switch (target) {
     case GL_DRAW_FRAMEBUFFER:
@@ -940,7 +952,8 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
 }
 
 static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum buffer, GLint drawbuffer) {
-    GLint fb;
+    return; //TODO
+    /*GLint fb;
     F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &fb);
     
     //TODO: Support depth stencil attachments
@@ -988,7 +1001,7 @@ static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, G
                                                      GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
                                                      &level);
             
-            return; //TODO
+            
             GLenum type = 0; //replay_get_tex_type(ctx, replay_get_fake_object(ctx, ReplayObjType_GLTexture, tex));
             if (!type) return;
             
@@ -996,8 +1009,7 @@ static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, G
             F(glGetIntegerv)(get_tex_binding(type), &last);
             F(glBindTexture)(type, tex);
             
-            //TODO
-            //replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
+            replay_get_tex_data(ctx, cmd, GL_TEXTURE_2D, level);
             
             F(glBindTexture)(type, last);
         }
@@ -1012,7 +1024,7 @@ static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, G
         case GL_STENCIL:
             break;
         }
-    }
+    }*/
 }
 
 static void begin_draw(trc_replay_context_t* ctx) {
@@ -1022,7 +1034,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
     for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < program->vertex_attrib_count; j++) {
-            if (program->vertex_attribs[j*2+1] == j) {
+            if (program->vertex_attribs[j*2+1] == i) {
                 real_loc = program->vertex_attribs[j*2];
                 break;
             }
@@ -1030,8 +1042,12 @@ static void begin_draw(trc_replay_context_t* ctx) {
         if (real_loc < 0) continue;
         
         trc_gl_vao_attrib_t* a = &vao->attribs[i];
-        if (a->enabled) F(glEnableVertexAttribArray)(real_loc);
-        else F(glDisableVertexAttribArray)(real_loc);
+        if (a->enabled) {
+            F(glEnableVertexAttribArray)(real_loc);
+        } else {
+            F(glDisableVertexAttribArray)(real_loc);
+            continue;
+        }
         
         if (a->buffer) {
             GLint last_buf;
@@ -1075,7 +1091,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
 }
 
 static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
-    if (F(glDebugMessageCallback)) {
+    /*if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallback)(debug_callback, cmd);
@@ -1086,7 +1102,7 @@ static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_
         //TODO: glDebugMessageControlARB
     }
     
-    if (F(glGetError)) F(glGetError)();
+    if (F(glGetError)) F(glGetError)();*/
 }
 
 static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
@@ -1104,7 +1120,7 @@ static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
 
 output.write("""
 static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
-    GLenum error = GL_NO_ERROR;
+    /*GLenum error = GL_NO_ERROR;
     if (ctx->trace->inspection.cur_fake_context && F(glGetError))
         error = F(glGetError)();
     switch (error) {
@@ -1137,7 +1153,7 @@ static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_co
     case GL_TABLE_TOO_LARGE: //TODO: Get rid of this?
         trc_add_error(cmd, "GL_TABLE_TOO_LARGE");
         break;
-    }
+    }*/
     
     if (F(glGetIntegerv)) {
 """)
@@ -1199,7 +1215,7 @@ for get in gl_gets:
         output.write("""
         if (((%s) & gl2_1) && F(glGet%sv)) {
             %s v[%d];
-            F(glGet%sv)(%s, v);
+            //F(glGet%sv)(%s, v);
             //TODO
             //set_state_%s(&cmd->state, \"%s\", %d, v);
         }
