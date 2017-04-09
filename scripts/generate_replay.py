@@ -561,7 +561,7 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
     return false;
 }
 
-static trc_data_t** get_bound_texture_data(trc_gl_state_rev_t* state, GLenum target) {
+static trc_data_t** get_bound_texture_data(trc_gl_context_rev_t* state, GLenum target) {
     switch (target) {
     case GL_TEXTURE_1D: return &state->tex_1d;
     case GL_TEXTURE_2D: return &state->tex_2d;
@@ -578,7 +578,7 @@ static trc_data_t** get_bound_texture_data(trc_gl_state_rev_t* state, GLenum tar
 }
 
 static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex) {
-    trc_gl_state_rev_t state = *trc_get_gl_state(trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);
     
     trc_data_t* data = *get_bound_texture_data(&state, target);
     
@@ -594,12 +594,12 @@ static void set_bound_texture(trace_t* trace, GLenum target, int unit, uint tex)
     
     //Replace
     *get_bound_texture_data(&state, target) = new_data;
-    trc_set_gl_state(trace, &state);
+    trc_set_gl_context(trace, 0,&state);
 }
 
 static uint get_bound_texture(trace_t* trace, GLenum target, int unit) {
-    const trc_gl_state_rev_t* state = trc_get_gl_state(trace);
-    trc_data_t* data = *get_bound_texture_data((trc_gl_state_rev_t*)state, target);
+    const trc_gl_context_rev_t* state = trc_get_gl_context(trace, 0);
+    trc_data_t* data = *get_bound_texture_data((trc_gl_context_rev_t*)state, target);
     uint* dataptr = trc_lock_data(data, true, false);
     uint res = dataptr[unit<0?state->active_texture_unit:unit];
     trc_unlock_data(data);
@@ -794,47 +794,47 @@ static void replay_get_tex_data(trc_replay_context_t* ctx,
 static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
     switch (target) {
     case GL_ARRAY_BUFFER:
-        return trc_get_gl_state(ctx->trace)->array_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->array_buffer;
     case GL_ATOMIC_COUNTER_BUFFER:
-        return trc_get_gl_state(ctx->trace)->atomic_counter_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->atomic_counter_buffer;
     case GL_COPY_READ_BUFFER:
-        return trc_get_gl_state(ctx->trace)->copy_read_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->copy_read_buffer;
     case GL_COPY_WRITE_BUFFER:
-        return trc_get_gl_state(ctx->trace)->copy_write_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->copy_write_buffer;
     case GL_DISPATCH_INDIRECT_BUFFER:
-        return trc_get_gl_state(ctx->trace)->dispatch_indirect_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->dispatch_indirect_buffer;
     case GL_DRAW_INDIRECT_BUFFER:
-        return trc_get_gl_state(ctx->trace)->draw_indirect_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->draw_indirect_buffer;
     case GL_ELEMENT_ARRAY_BUFFER:
-        return trc_get_gl_state(ctx->trace)->element_array_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->element_array_buffer;
     case GL_PIXEL_PACK_BUFFER:
-        return trc_get_gl_state(ctx->trace)->pixel_pack_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->pixel_pack_buffer;
     case GL_PIXEL_UNPACK_BUFFER:
-        return trc_get_gl_state(ctx->trace)->pixel_unpack_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->pixel_unpack_buffer;
     case GL_QUERY_BUFFER:
-        return trc_get_gl_state(ctx->trace)->query_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->query_buffer;
     case GL_SHADER_STORAGE_BUFFER:
-        return trc_get_gl_state(ctx->trace)->shader_storage_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->shader_storage_buffer;
     case GL_TEXTURE_BUFFER:
-        return trc_get_gl_state(ctx->trace)->texture_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->texture_buffer;
     case GL_TRANSFORM_FEEDBACK_BUFFER:
-        return trc_get_gl_state(ctx->trace)->transform_feedback_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->transform_feedback_buffer;
     case GL_UNIFORM_BUFFER:
-        return trc_get_gl_state(ctx->trace)->uniform_buffer;
+        return trc_get_gl_context(ctx->trace, 0)->uniform_buffer;
     default:
         return 0;
     }
 }
 
 static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_state(ctx->trace)->bound_program);
+    const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
     for (size_t i = 0; i < rev->uniform_count; i++)
         if (rev->uniforms[i*2+1] == gl_param_GLint(cmd, 0)) return rev->uniforms[i*2];
     return -1;
 }
 
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
-    trc_gl_state_rev_t* state = trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     
     switch (target) {
     case GL_DRAW_FRAMEBUFFER: 
@@ -919,7 +919,7 @@ static void update_renderbuffer(trc_replay_context_t* ctx, trace_command_t* cmd)
     }*/
 }
 
-static uint* get_query_binding_pointer(trc_gl_state_rev_t* state, GLenum target) {
+static uint* get_query_binding_pointer(trc_gl_context_rev_t* state, GLenum target) {
     switch (target) {
     case GL_SAMPLES_PASSED: return &state->samples_passed_query;
     case GL_ANY_SAMPLES_PASSED: return &state->any_samples_passed_query;
@@ -1028,8 +1028,8 @@ static void update_drawbuffer(trc_replay_context_t* ctx, trace_command_t* cmd, G
 }
 
 static void begin_draw(trc_replay_context_t* ctx) {
-    const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
-    const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, trc_get_gl_state(ctx->trace)->bound_program);
+    const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
+    const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
     
     for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
@@ -1214,7 +1214,7 @@ for get in gl_gets:
         
         output.write("""
         if (((%s) & gl2_1) && F(glGet%sv)) {
-            %s v[%d];
+            //%s v[%d];
             //F(glGet%sv)(%s, v);
             //TODO
             //set_state_%s(&cmd->state, \"%s\", %d, v);

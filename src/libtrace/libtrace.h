@@ -95,55 +95,6 @@ typedef struct trc_data_t {
     void* compressed_data;
 } trc_data_t;
 
-typedef struct trc_gl_state_rev_t {
-    uint64_t revision;
-    uint64_t fake_context;
-    
-    uint array_buffer;
-    uint atomic_counter_buffer;
-    uint copy_read_buffer;
-    uint copy_write_buffer;
-    uint dispatch_indirect_buffer;
-    uint draw_indirect_buffer;
-    uint element_array_buffer;
-    uint pixel_pack_buffer;
-    uint pixel_unpack_buffer;
-    uint query_buffer;
-    uint shader_storage_buffer;
-    uint texture_buffer;
-    uint transform_feedback_buffer;
-    uint uniform_buffer;
-    
-    uint bound_program;
-    uint bound_vao;
-    
-    uint read_framebuffer;
-    uint draw_framebuffer;
-    //TODO: Add a GL_FRAMEBUFFER field?
-    
-    uint samples_passed_query;
-    uint any_samples_passed_query;
-    uint any_samples_passed_conservative_query;
-    uint primitives_generated_query;
-    uint transform_feedback_primitives_written_query;
-    uint time_elapsed_query;
-    uint timestamp_query;
-    
-    uint active_texture_unit;
-    
-    trc_data_t* tex_1d;
-    trc_data_t* tex_2d;
-    trc_data_t* tex_3d;
-    trc_data_t* tex_1d_array;
-    trc_data_t* tex_2d_array;
-    trc_data_t* tex_rectangle;
-    trc_data_t* tex_cube_map;
-    trc_data_t* tex_cube_map_array;
-    trc_data_t* tex_buffer;
-    trc_data_t* tex_2d_multisample;
-    trc_data_t* tex_2d_multisample_array;
-} trc_gl_state_rev_t;
-
 typedef struct trc_gl_obj_rev_t {
     TRC_GL_OBJ_HEAD
 } trc_gl_obj_rev_t;
@@ -263,6 +214,51 @@ typedef struct trc_gl_obj_history_t {
 typedef struct trc_gl_context_rev_t {
     uint64_t revision;
     void* real;
+    
+    //TODO: Change these names to names like buf_array and buf_atomic_counter
+    uint array_buffer;
+    uint atomic_counter_buffer;
+    uint copy_read_buffer;
+    uint copy_write_buffer;
+    uint dispatch_indirect_buffer;
+    uint draw_indirect_buffer;
+    uint element_array_buffer;
+    uint pixel_pack_buffer;
+    uint pixel_unpack_buffer;
+    uint query_buffer;
+    uint shader_storage_buffer;
+    uint texture_buffer;
+    uint transform_feedback_buffer;
+    uint uniform_buffer;
+    
+    uint bound_program;
+    uint bound_vao;
+    
+    uint read_framebuffer;
+    uint draw_framebuffer;
+    //TODO: Add a GL_FRAMEBUFFER field?
+    
+    uint samples_passed_query;
+    uint any_samples_passed_query;
+    uint any_samples_passed_conservative_query;
+    uint primitives_generated_query;
+    uint transform_feedback_primitives_written_query;
+    uint time_elapsed_query;
+    uint timestamp_query;
+    
+    uint active_texture_unit;
+    
+    trc_data_t* tex_1d;
+    trc_data_t* tex_2d;
+    trc_data_t* tex_3d;
+    trc_data_t* tex_1d_array;
+    trc_data_t* tex_2d_array;
+    trc_data_t* tex_rectangle;
+    trc_data_t* tex_cube_map;
+    trc_data_t* tex_cube_map_array;
+    trc_data_t* tex_buffer;
+    trc_data_t* tex_2d_multisample;
+    trc_data_t* tex_2d_multisample_array;
 } trc_gl_context_rev_t;
 
 typedef struct trc_gl_context_history_t {
@@ -276,11 +272,6 @@ typedef struct trc_gl_inspection_t {
     
     size_t data_count;
     trc_data_t** data;
-    
-    //TODO: Instead of an array of revisions, have an array of array of revisions
-    //    (with each array of rev for each context)
-    size_t gl_state_revision_count;
-    trc_gl_state_rev_t* gl_state_revisions; //Sorted from lowest revision to highest
     
     size_t gl_obj_history_count[TrcGLObj_Max];
     trc_gl_obj_history_t* gl_obj_history[TrcGLObj_Max];
@@ -362,9 +353,6 @@ void trc_add_info(trace_command_t* command, const char* format, ...);
 void trc_add_warning(trace_command_t* command, const char* format, ...);
 void trc_add_error(trace_command_t* command, const char* format, ...);
 void trc_run_inspection(trace_t* trace);
-
-const trc_gl_state_rev_t* trc_get_gl_state(trace_t* trace);
-void trc_set_gl_state(trace_t* trace, const trc_gl_state_rev_t* rev);
 
 const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake);
 void trc_set_gl_buffer(trace_t* trace, uint fake, const trc_gl_buffer_rev_t* rev);

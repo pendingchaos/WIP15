@@ -103,6 +103,33 @@ glXCreateContext:
     
     trc_gl_context_rev_t rev;
     rev.real = res;
+    rev.array_buffer = 0;
+    rev.atomic_counter_buffer = 0;
+    rev.copy_read_buffer = 0;
+    rev.copy_write_buffer = 0;
+    rev.dispatch_indirect_buffer = 0;
+    rev.draw_indirect_buffer = 0;
+    rev.element_array_buffer = 0;
+    rev.pixel_pack_buffer = 0;
+    rev.pixel_unpack_buffer = 0;
+    rev.query_buffer = 0;
+    rev.shader_storage_buffer = 0;
+    rev.texture_buffer = 0;
+    rev.transform_feedback_buffer = 0;
+    rev.uniform_buffer = 0;
+    rev.bound_program = 0;
+    rev.bound_vao = 0;
+    rev.read_framebuffer = 0;
+    rev.draw_framebuffer = 0;
+    rev.samples_passed_query = 0;
+    rev.any_samples_passed_query = 0;
+    rev.any_samples_passed_conservative_query = 0;
+    rev.primitives_generated_query = 0;
+    rev.transform_feedback_primitives_written_query = 0;
+    rev.time_elapsed_query = 0;
+    rev.timestamp_query = 0;
+    rev.active_texture_unit = 0;
+    //TODO All of the texture_* fields
     trc_set_gl_context(ctx->trace, trc_get_ptr(&command->ret)[0], &rev);
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
@@ -589,7 +616,7 @@ glBindBuffer:
         RETURN;
     }
     
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     
     switch (target) {
     case GL_ARRAY_BUFFER: state.array_buffer = fake; break;
@@ -607,7 +634,7 @@ glBindBuffer:
     case GL_TRANSFORM_FEEDBACK_BUFFER: state.transform_feedback_buffer = fake; break;
     case GL_UNIFORM_BUFFER: state.uniform_buffer = fake; break;
     }
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
     
     real(target, real_buf);
 
@@ -991,11 +1018,11 @@ glUseProgram:
         RETURN;
     }
     
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_Program);
     trc_rel_gl_obj(ctx->trace, state.bound_program, TrcGLObj_Program);
     state.bound_program = fake;
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
     
     real(real_program);
 
@@ -1568,7 +1595,7 @@ glVertexAttribPointer:
          gl_param_GLboolean(command, 3),
          gl_param_GLsizei(command, 4),
          (const GLvoid*)gl_param_pointer(command, 5));
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
     if (gl_param_GLint(command, 0) < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[gl_param_GLint(command, 0)];
         a->normalized = gl_param_GLboolean(command, 3);
@@ -1577,9 +1604,9 @@ glVertexAttribPointer:
         a->stride = gl_param_GLsizei(command, 4);
         a->offset = gl_param_pointer(command, 5);
         a->type = gl_param_GLenum(command, 2);
-        a->buffer = trc_get_gl_state(ctx->trace)->array_buffer;
+        a->buffer = trc_get_gl_context(ctx->trace, 0)->array_buffer;
     }
-    trc_set_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
 glVertexAttribIPointer:
     real(gl_param_GLint(command, 0),
@@ -1587,7 +1614,7 @@ glVertexAttribIPointer:
          gl_param_GLenum(command, 2),
          gl_param_GLsizei(command, 3),
          (const GLvoid*)gl_param_pointer(command, 4));
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
     if (gl_param_GLint(command, 0) < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[gl_param_GLint(command, 0)];
         a->integer = true;
@@ -1595,23 +1622,23 @@ glVertexAttribIPointer:
         a->stride = gl_param_GLsizei(command, 3);
         a->offset = gl_param_pointer(command, 4);
         a->type = gl_param_GLenum(command, 2);
-        a->buffer = trc_get_gl_state(ctx->trace)->array_buffer;
+        a->buffer = trc_get_gl_context(ctx->trace, 0)->array_buffer;
     }
-    trc_set_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
 glEnableVertexAttribArray:
     real(gl_param_GLint(command, 0));
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
     if (gl_param_GLint(command, 0) < rev.attrib_count)
         rev.attribs[gl_param_GLint(command, 0)].enabled = true;
-    trc_set_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
 glDisableVertexAttribArray:
     real(gl_param_GLint(command, 0));
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao);
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
     if (gl_param_GLint(command, 0) < rev.attrib_count)
         rev.attribs[gl_param_GLint(command, 0)].enabled = false;
-    trc_set_gl_vao(ctx->trace, trc_get_gl_state(ctx->trace)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
 glDrawArrays:
     begin_draw(ctx);
@@ -1864,11 +1891,11 @@ glBindVertexArray:
     GLuint real_vao = trc_get_real_gl_vao(ctx->trace, fake);
     if (!real_vao && fake) trc_add_error(command, "Invalid vertex array handle.");
     
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_VAO);
     trc_rel_gl_obj(ctx->trace, state.bound_vao, TrcGLObj_VAO);
     state.bound_vao = fake;
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
     
     real(real_vao);
 
@@ -2143,7 +2170,7 @@ glBindFramebuffer:
     case GL_READ_FRAMEBUFFER: draw = false; break;
     case GL_DRAW_FRAMEBUFFER: read = false; break;
     }
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     if (read) {
         trc_grab_gl_obj(ctx->trace, fake, TrcGLObj_Framebuffer);
         trc_rel_gl_obj(ctx->trace, state.read_framebuffer, TrcGLObj_Framebuffer);
@@ -2154,7 +2181,7 @@ glBindFramebuffer:
         trc_rel_gl_obj(ctx->trace, state.draw_framebuffer, TrcGLObj_Framebuffer);
         state.draw_framebuffer = fake;
     }
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
 
 glGenRenderbuffers:
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -2449,20 +2476,20 @@ glBeginQuery:
     query.type = target;
     trc_set_gl_query(ctx->trace, id, &query);
     
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     *get_query_binding_pointer(&state, target) = id;
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
     //TODO: Reference counting
 
 glEndQuery:
     GLenum target = gl_param_GLenum(command, 0);
     real(target);
     
-    trc_gl_state_rev_t state = *trc_get_gl_state(ctx->trace);
+    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     GLuint id = *get_query_binding_pointer(&state, target);
     GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
     *get_query_binding_pointer(&state, target) = 0;
-    trc_set_gl_state(ctx->trace, &state);
+    trc_set_gl_context(ctx->trace, 0, &state);
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, target, id, real_id);
     //TODO: Reference counting

@@ -623,38 +623,6 @@ trace_t *load_trace(const char* filename) {
     trace->inspection.cur_revision = 0;
     trace->inspection.data_count = 0;
     trace->inspection.data = NULL;
-    trace->inspection.gl_state_revision_count = 1;
-    trace->inspection.gl_state_revisions = malloc(sizeof(trc_gl_state_rev_t));
-    trace->inspection.gl_state_revisions[0].array_buffer = 0;
-    trace->inspection.gl_state_revisions[0].atomic_counter_buffer = 0;
-    trace->inspection.gl_state_revisions[0].copy_read_buffer = 0;
-    trace->inspection.gl_state_revisions[0].copy_write_buffer = 0;
-    trace->inspection.gl_state_revisions[0].dispatch_indirect_buffer = 0;
-    trace->inspection.gl_state_revisions[0].draw_indirect_buffer = 0;
-    trace->inspection.gl_state_revisions[0].element_array_buffer = 0;
-    trace->inspection.gl_state_revisions[0].pixel_pack_buffer = 0;
-    trace->inspection.gl_state_revisions[0].pixel_unpack_buffer = 0;
-    trace->inspection.gl_state_revisions[0].query_buffer = 0;
-    trace->inspection.gl_state_revisions[0].shader_storage_buffer = 0;
-    trace->inspection.gl_state_revisions[0].texture_buffer = 0;
-    trace->inspection.gl_state_revisions[0].transform_feedback_buffer = 0;
-    trace->inspection.gl_state_revisions[0].uniform_buffer = 0;
-    trace->inspection.gl_state_revisions[0].bound_program = 0;
-    trace->inspection.gl_state_revisions[0].bound_vao = 0;
-    trace->inspection.gl_state_revisions[0].read_framebuffer = 0;
-    trace->inspection.gl_state_revisions[0].draw_framebuffer = 0;
-    trace->inspection.gl_state_revisions[0].samples_passed_query = 0;
-    trace->inspection.gl_state_revisions[0].any_samples_passed_query = 0;
-    trace->inspection.gl_state_revisions[0].any_samples_passed_conservative_query = 0;
-    trace->inspection.gl_state_revisions[0].primitives_generated_query = 0;
-    trace->inspection.gl_state_revisions[0].transform_feedback_primitives_written_query = 0;
-    trace->inspection.gl_state_revisions[0].time_elapsed_query = 0;
-    trace->inspection.gl_state_revisions[0].timestamp_query = 0;
-    trace->inspection.gl_state_revisions[0].active_texture_unit = 0;
-    //TODO All of the texture_* fields
-    //See the TODO in libtrace.h
-    //See generate_replay.py
-    //trace->inspection.gl_state_revisions[0].texture_1d = ;
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
         trace->inspection.gl_obj_history_count[i] = 0;
         trace->inspection.gl_obj_history[i] = NULL;
@@ -689,8 +657,6 @@ void free_trace(trace_t* trace) {
     
     for (size_t i = 0; i < ti->data_count; i++) free(ti->data[i]->compressed_data);
     free(ti->data);
-    
-    free(ti->gl_state_revisions);
     
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
         for (size_t j = 0; j < ti->gl_obj_history_count[i]; j++)
@@ -987,19 +953,6 @@ void trc_run_inspection(trace_t* trace) {
     free(funcs);
 }
 
-const trc_gl_state_rev_t* trc_get_gl_state(trace_t* trace) {
-    trc_gl_inspection_t* i = &trace->inspection;
-    if (!i->gl_state_revision_count) return NULL;
-    return &i->gl_state_revisions[i->gl_state_revision_count-1];
-}
-
-void trc_set_gl_state(trace_t* trace, const trc_gl_state_rev_t* rev) {
-    trc_gl_inspection_t* i = &trace->inspection;
-    i->gl_state_revisions = realloc(i->gl_state_revisions,
-                                    (i->gl_state_revision_count+1)*sizeof(trc_gl_state_rev_t));
-    i->gl_state_revisions[i->gl_state_revision_count++] = *rev;
-}
-
 trc_gl_obj_history_t* find_gl_obj_history(trace_t* trace, trc_gl_obj_type_t type, uint fake) {
     for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
         if (trace->inspection.gl_obj_history[type][i].fake == fake)
@@ -1265,6 +1218,7 @@ trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
 }
 
 const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
+    if (!fake) fake = trace->inspection.cur_fake_context;
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) return NULL;
     if (!h->revision_count) return NULL;
@@ -1272,6 +1226,7 @@ const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
 }
 
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
+    if (!fake) fake = trace->inspection.cur_fake_context;
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) {
         trc_gl_inspection_t* i = &trace->inspection;
@@ -1290,6 +1245,7 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
 }
 
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
+    if (!fake) fake = trace->inspection.cur_fake_context;
     const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
     if (!rev) return NULL;
     return rev->real;
