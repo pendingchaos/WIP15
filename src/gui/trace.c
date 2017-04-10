@@ -85,24 +85,6 @@ static void init_trace_tree(GtkTreeView* tree) {
     }
 }
 
-//TODO
-/*static void init_state_tree(GtkTreeView* tree,
-                            inspect_gl_state_t* state) {
-    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
-    gtk_tree_store_clear(store);
-    
-    inspect_gl_state_vec_t entries = state->entries;
-    for (inspect_gl_state_entry_t* entry = entries->data; !vec_end(entries, entry); entry++) {
-        char val_str[1024];
-        memset(val_str, 0, 1024);
-        format_value(trace, val_str, entry->val, 1024);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, entry->name, 1, val_str, -1);
-    }
-}*/
-
 static uint8_t* get_state(trc_data_t* data) {
     static uint8_t res[8192];
     size_t srcsize = data->uncompressed_size;

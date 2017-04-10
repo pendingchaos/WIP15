@@ -646,6 +646,7 @@ glCreateShader: //GLenum p_type
     trc_set_gl_shader(ctx->trace, fake, &rev);
 
 glDeleteShader: //GLuint p_shader
+    if (p_shader == 0) RETURN;
     GLuint real_shdr = trc_get_real_gl_shader(ctx->trace, p_shader);
     if (!real_shdr) ERROR("Invalid shader name.");
     
@@ -721,10 +722,19 @@ glCreateProgram: //
     trc_set_gl_program(ctx->trace, fake, &rev);
 
 glDeleteProgram: //GLuint p_program
-    GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
-    if (!real_program) ERROR("Invalid program name.");
+    if (p_program == 0) RETURN;
+    trc_gl_program_rev_t rev = trc_get_gl_program(ctx->trace, p_program);
+    if (!rev.real) ERROR("Invalid program name.");
+    real(rev.real);
     
-    real(real_program);
+    size_t shader_count = rev.shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* shaders = trc_lock_data(rev.shaders, true, false);
+    for (size_t i = 0; i < shader_count; i++)
+        trc_rel_gl_obj(ctx->trace, shaders[i].fake_shader, TrcGLObj_Shader);
+    trc_unlock_data(rev.shaders);
+    
+    rev.shaders = trc_create_inspection_data(ctx->trace, 0, NULL);
+    trc_set_gl_program(ctx->trace, rev);
     
     trc_rel_gl_obj(ctx->trace, p_program, TrcGLObj_Program);
 
@@ -734,7 +744,6 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     
     GLuint real_shader = trc_get_real_gl_shader(ctx->trace, p_shader);
     if (!real_shader) ERROR("Invalid shader name.");
-    //TODO: Reference counting
     
     real(real_program, real_shader);
     
@@ -743,10 +752,16 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     const trc_gl_shader_rev_t* shader = trc_get_gl_shader(ctx->trace, p_shader);
     
     size_t shader_count = program.shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* src = trc_lock_data(old.shaders, true, false);
+    
+    for (size_t i = 0; i < shader_count; i++) {
+        if (src[i].fake_shader == p_shader) ERROR("Shader is already attached");
+    }
+    trc_grab_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
+    
     program.shaders = trc_create_inspection_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL);
     
     trc_gl_program_shader_t* dest = trc_lock_data(program.shaders, false, true);
-    trc_gl_program_shader_t* src = trc_lock_data(old.shaders, true, false);
     memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
     dest[shader_count].fake_shader = p_shader;
     dest[shader_count].shader_revision = shader->revision;
@@ -761,7 +776,6 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     
     GLuint real_shader = trc_get_real_gl_shader(ctx->trace, p_shader);
     if (!real_shader) ERROR("Invalid shader name.");
-    //TODO: Reference counting
     
     real(real_program, real_shader);
     
@@ -774,12 +788,16 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_shader_t* dest = trc_lock_data(program.shaders, false, true);
     trc_gl_program_shader_t* src = trc_lock_data(old.shaders, true, false);
     size_t next = 0;
+    bool found = false;
     for (size_t i = 0; i < shader_count; i++) {
-        if (src[i].fake_shader == p_shader) continue;
+        if (src[i].fake_shader == p_shader) {found = true; continue;}
         dest[next++] = src[i];
     }
     trc_unlock_data(old.shaders);
     trc_unlock_data(program.shaders);
+    if (!found) ERROR("Shader is not attached to program");
+    
+    trc_rel_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
     
     trc_set_gl_program(ctx->trace, p_program, &program);
 
@@ -1593,10 +1611,13 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     GLuint arrays[p_n];
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
-    for (size_t i = 0; i < p_n; ++i)
+    for (size_t i = 0; i < p_n; ++i) {
+        if (arrays[i] && arrays[i]==trc_gl_state_get_bound_vao(ctx->trace))
+            trc_gl_state_set_bound_vao(ctx->trace, 0);
         if (!(arrays[i] = trc_get_real_gl_vao(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid vertex array name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_VAO);
+    }
     
     real(p_n, arrays);
 
@@ -1605,8 +1626,6 @@ glBindVertexArray: //GLuint p_array
     if (!real_vao && p_array) ERROR("Invalid vertex array name.");
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    trc_grab_gl_obj(ctx->trace, p_array, TrcGLObj_VAO);
-    trc_rel_gl_obj(ctx->trace, state.bound_vao, TrcGLObj_VAO);
     state.bound_vao = p_array;
     trc_set_gl_context(ctx->trace, 0, &state);
 
@@ -1800,10 +1819,15 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint fbs[p_n];
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
-    for (size_t i = 0; i < p_n; ++i)
+    for (size_t i = 0; i < p_n; ++i) {
+        if (fake[i] && fake[i]==trc_gl_state_get_read_framebuffer(ctx->trace))
+            trc_gl_state_set_read_framebuffer(ctx->trace, 0);
+        if (fake[i] && fake[i]==trc_gl_state_get_draw_framebuffer(ctx->trace))
+            trc_gl_state_set_draw_framebuffer(ctx->trace, 0);
         if (!(fbs[i] = trc_get_real_gl_framebuffer(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid framebuffer name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Framebuffer);
+    }
     
     real(p_n, fbs);
 
@@ -1818,18 +1842,8 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     case GL_READ_FRAMEBUFFER: draw = false; break;
     case GL_DRAW_FRAMEBUFFER: read = false; break;
     }
-    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    if (read) {
-        trc_grab_gl_obj(ctx->trace, p_framebuffer, TrcGLObj_Framebuffer);
-        trc_rel_gl_obj(ctx->trace, state.read_framebuffer, TrcGLObj_Framebuffer);
-        state.read_framebuffer = p_framebuffer;
-    }
-    if (draw) {
-        trc_grab_gl_obj(ctx->trace, p_framebuffer, TrcGLObj_Framebuffer);
-        trc_rel_gl_obj(ctx->trace, state.draw_framebuffer, TrcGLObj_Framebuffer);
-        state.draw_framebuffer = p_framebuffer;
-    }
-    trc_set_gl_context(ctx->trace, 0, &state);
+    if (read) trc_gl_state_set_read_framebuffer(ctx->trace, p_framebuffer);
+    if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, p_framebuffer);
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     GLsizei n = gl_param_GLsizei(command, 0);
@@ -1851,10 +1865,15 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     GLuint rbs[p_n];
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
-    for (size_t i = 0; i < p_n; ++i)
+    for (size_t i = 0; i < p_n; ++i) {
+        if (rbs[i] && rbs[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
+            trc_gl_state_set_bound_renderbuffer(ctx->trace, 0);
+        //TODO: Detach from bound framebuffers
+        //TODO: What to do with renderbuffers attached to non-bound framebuffers?
         if (!(rbs[i] = trc_get_real_gl_renderbuffer(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid renderbuffer name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Renderbuffer);
+    }
     
     real(p_n, rbs);
 
@@ -1990,6 +2009,7 @@ glWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
     GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, p_sync);
     if (!real_sync) ERROR("Invalid sync name.");
     real(real_sync, p_flags, p_timeout);
+    //TODO: grab the object and release it once the wait is over
 
 glClientWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
     GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, p_sync);
@@ -2017,6 +2037,7 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < p_n; ++i) {
+        //TODO: Handle when queries are in use
         if (!(queries[i] = trc_get_real_gl_query(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid query name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Query);
