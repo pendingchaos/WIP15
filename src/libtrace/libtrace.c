@@ -9,6 +9,9 @@
 #ifdef ZLIB_ENABLED
 #include <zlib.h>
 #endif
+#ifdef LZ4_ENABLED
+#include <lz4.h>
+#endif
 
 typedef enum {
     BaseType_Void = 0,
@@ -123,8 +126,6 @@ static char* read_str(FILE* file) {
     
     return str;
 }
-
-int LZ4_decompress_safe(const char* source, char* dest, int compressedSize, int maxDecompressedSize);
 
 static void* read_data(FILE* file, size_t* res_size) {
     if (res_size) *res_size = 0;
@@ -1321,14 +1322,40 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_IMPL
 
-//TODO: Compression is currently not implemented
+static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data) {
+    void* dest = malloc(data->uncompressed_size);
+    int res = LZ4_compress_default(src, dest, data->uncompressed_size, data->uncompressed_size);
+    if (res==0 || res==data->uncompressed_size) {
+        data->compression = TrcCompression_None;
+        data->compressed_size = data->uncompressed_size;
+        if (can_own) {
+            free(dest);
+            data->compressed_data = src;
+            if (owns_data) *owns_data = true;
+        } else {
+            data->compressed_data = dest;
+            memcpy(dest, src, data->uncompressed_size);
+            if (owns_data) *owns_data = false;
+        }
+    } else {
+        data->compression = TrcCompression_LZ4;
+        data->compressed_data = malloc(res);
+        memcpy(data->compressed_data, dest, res);
+        free(dest);
+        data->compressed_size = res;
+    }
+}
+
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
     trc_data_t* res = malloc(sizeof(trc_data_t));
     res->uncompressed_size = size;
-    res->compressed_size = size;
-    res->compression = TrcCompression_None;
-    res->compressed_data = malloc(size);
-    if (data) memcpy(res->compressed_data, data, size);
+    if (data == NULL) {
+        void* zdata = calloc(size, 1);
+        set_data(res, zdata, false, NULL);
+        free(zdata);
+    } else {
+        set_data(res, (void*)data, false, NULL);
+    }
     
     return res;
 }
@@ -1349,9 +1376,37 @@ void trc_destroy_data(trc_data_t* data) {
 }
 
 void* trc_lock_data(trc_data_t* data, bool read, bool write) {
-    return data->compressed_data;
+    data->lock_write = write;
+    switch (data->compression) {
+    case TrcCompression_None: {
+        data->uncompressed_data = data->compressed_data;
+        return data->compressed_data;
+    }
+    #if LZ4_ENABLED
+    case TrcCompression_LZ4: {
+        data->uncompressed_data = malloc(data->uncompressed_size);
+        if (read) {
+            if (LZ4_decompress_fast(data->compressed_data, data->uncompressed_data, data->uncompressed_size) < 0)
+                assert(false);
+        }
+        return data->uncompressed_data;
+    }
+    #endif
+    default: assert(false);
+    }
 }
 
-void trc_unlock_data(trc_data_t* trace) {
+void trc_unlock_data(trc_data_t* data) {
+    if (data->lock_write) {
+        bool owns_data;
+        set_data(data, data->uncompressed_data, true, &owns_data);
+        if (owns_data) data->uncompressed_data = NULL;
+    }
     
+    switch (data->compression) {
+    case TrcCompression_None: break;
+    case TrcCompression_LZ4: free(data->uncompressed_data); break;
+    default: assert(false); break;
+    }
+    data->uncompressed_data = NULL;
 }

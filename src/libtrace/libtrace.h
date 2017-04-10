@@ -99,6 +99,8 @@ typedef struct trc_data_t {
     size_t compressed_size;
     trc_compression_t compression;
     void* compressed_data;
+    void* uncompressed_data; //only available when locked
+    bool lock_write;
 } trc_data_t;
 
 typedef struct trc_gl_obj_rev_t {

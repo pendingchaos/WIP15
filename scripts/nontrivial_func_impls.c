@@ -723,7 +723,7 @@ glCreateProgram: //
 
 glDeleteProgram: //GLuint p_program
     if (p_program == 0) RETURN;
-    trc_gl_program_rev_t rev = trc_get_gl_program(ctx->trace, p_program);
+    trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, p_program);
     if (!rev.real) ERROR("Invalid program name.");
     real(rev.real);
     
@@ -734,7 +734,7 @@ glDeleteProgram: //GLuint p_program
     trc_unlock_data(rev.shaders);
     
     rev.shaders = trc_create_inspection_data(ctx->trace, 0, NULL);
-    trc_set_gl_program(ctx->trace, rev);
+    trc_set_gl_program(ctx->trace, p_program, &rev);
     
     trc_rel_gl_obj(ctx->trace, p_program, TrcGLObj_Program);
 
