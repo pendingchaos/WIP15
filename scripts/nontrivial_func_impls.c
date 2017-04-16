@@ -382,6 +382,26 @@ glTexImage3DMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internal
     //TODO
     //replay_get_tex_params(ctx, command, target);
 
+glCopyTexImage1D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLint p_x, GLint p_y, GLsizei p_width, GLint p_border
+    real(p_target, p_level, p_internalformat, p_x, p_y, p_width, p_border);
+    replay_update_bound_tex_image(ctx, command, p_target, p_level);
+
+glCopyTexImage2D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height, GLint p_border
+    real(p_target, p_level, p_internalformat, p_x, p_y, p_width, p_height, p_border);
+    replay_update_bound_tex_image(ctx, command, p_target, p_level);
+
+glCopyTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_x, GLint p_y, GLsizei p_width
+    real(p_target, p_level, p_xoffset, p_x, p_y, p_width);
+    replay_update_bound_tex_image(ctx, command, p_target, p_level);
+
+glCopyTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height
+    real(p_target, p_level, p_xoffset, p_yoffset, p_x, p_y, p_width, p_height);
+    replay_update_bound_tex_image(ctx, command, p_target, p_level);
+
+glCopyTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height
+    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_x, p_y, p_width, p_height);
+    replay_update_bound_tex_image(ctx, command, p_target, p_level);
+
 glGenerateMipmap: //GLenum p_target
     real(p_target);
     

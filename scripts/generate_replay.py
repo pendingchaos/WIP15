@@ -282,7 +282,7 @@ extern func_t glXGetProcAddress(const GLubyte* procName);
 
 output.write("\n")
 
-for name in gl.functions:
+for name in func_dict.keys():
     function = gl.functions[name]
     params = []
     for param in function.params:
