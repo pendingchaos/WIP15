@@ -583,8 +583,11 @@ trace_t *load_trace(const char* filename) {
                 ERROR("Undeclared function used");
             
             command.args = alloc_trace_val_vec(decl->arg_count);
-            for (trace_value_t* a = command.args->data; !vec_end(command.args, a); a++)
+            for (trace_value_t* a = command.args->data; !vec_end(command.args, a); a++) {
+                memset(a, 0, sizeof(trace_value_t));
                 a->type = Type_Void;
+            }
+            memset(&command.ret.type, 0, sizeof(trace_value_t));
             command.ret.type = Type_Void;
             
             for (size_t i = 0; i < decl->arg_count; i++)
@@ -707,6 +710,7 @@ const char *trc_get_error_desc() {
 
 trace_value_t trc_create_uint(uint32_t count, uint64_t* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_UInt;
     val.count = count;
     val.group_index = -1;
@@ -721,6 +725,7 @@ trace_value_t trc_create_uint(uint32_t count, uint64_t* vals) {
 
 trace_value_t trc_create_int(uint32_t count, int64_t* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_Int;
     val.count = count;
     val.group_index = -1;
@@ -735,6 +740,7 @@ trace_value_t trc_create_int(uint32_t count, int64_t* vals) {
 
 trace_value_t trc_create_double(uint32_t count, double* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_Double;
     val.count = count;
     val.group_index = -1;
@@ -749,6 +755,7 @@ trace_value_t trc_create_double(uint32_t count, double* vals) {
 
 trace_value_t trc_create_bool(uint32_t count, bool* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_Boolean;
     val.count = count;
     val.group_index = -1;
@@ -763,6 +770,7 @@ trace_value_t trc_create_bool(uint32_t count, bool* vals) {
 
 trace_value_t trc_create_ptr(uint32_t count, uint64_t* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_Ptr;
     val.count = count;
     val.group_index = -1;
@@ -777,6 +785,7 @@ trace_value_t trc_create_ptr(uint32_t count, uint64_t* vals) {
 
 trace_value_t trc_create_str(uint32_t count, const char*const* vals) {
     trace_value_t val;
+    memset(&val, 0, sizeof(val));
     val.type = Type_Str;
     val.count = count;
     val.group_index = -1;

@@ -840,6 +840,7 @@ glLinkProgram: //GLuint p_program
             uniforms[uniform_count].dim[0] = 0;
             uniforms[uniform_count].dim[1] = 0;
             trace_value_t val;
+            memset(&val, 0, sizeof(val));
             val.type = Type_Void;
             val.count = 0;
             val.group_index = -1;
@@ -1897,7 +1898,7 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < p_n; ++i) {
-        if (rbs[i] && rbs[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
+        if (fake[i] && fake[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
             trc_gl_state_set_bound_renderbuffer(ctx->trace, 0);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
