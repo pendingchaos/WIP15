@@ -176,10 +176,19 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     trc_gl_program_uniform_t* uniforms = trc_lock_data(program->uniforms, true, false);
     for (size_t i = 0; i < uniform_count; i++) {
         char val[1024] = {0};
-        if (uniforms[i].value.type == Type_Void)
+        if (uniforms[i].dim[0] == 0) {
             strcpy(val, "<unset>");
-        else
-            format_value(trace, val, uniforms[i].value, sizeof(val));
+        } else {
+            size_t count = uniforms[i].value->uncompressed_size / sizeof(double);
+            double* vals = trc_lock_data(uniforms[i].value, true, false);
+            if (count>1 || uniforms[i].count!=0) strncat(val, "[", sizeof(val)-1);
+            for (size_t i = 0; i < count; i++) {
+                strncat(val, static_format("%g", vals[i]), sizeof(val)-1);
+                if (i != count-1) strncat(val, ", ", sizeof(val)-1);
+            }
+            if (count>1 || uniforms[i].count!=0) strncat(val, "]", sizeof(val)-1);
+            trc_unlock_data(uniforms[i].value);
+        }
         
         const char* location = static_format("%u", uniforms[i].fake);
         

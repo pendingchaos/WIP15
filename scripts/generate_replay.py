@@ -1146,16 +1146,17 @@ static GLint uniformf(trc_replay_context_t* ctx, trace_command_t* cmd, uint coun
     if (count == 0) {
         double val[comp];
         for (uint i = 0; i < comp; i++) val[i] = va_arg(list, double);
-        uniform->value = trc_create_double(comp, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
     } else {
         double* val = malloc(comp*count*sizeof(double));
         const float* src = va_arg(list, const float*);
         for (uint i = 0; i < comp*count; i++) val[i] = src[i];
-        uniform->value = trc_create_double(comp*count, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), val);
         free(val);
     }
     uniform->dim[0] = comp;
     uniform->dim[1] = 1;
+    uniform->count = count;
     va_end(list);
     END_UNIFORM
 }
@@ -1165,18 +1166,19 @@ static GLint uniformi(trc_replay_context_t* ctx, trace_command_t* cmd, uint coun
     va_list list;
     va_start(list, comp);
     if (count == 0) {
-        int64_t val[comp];
+        double val[comp];
         for (uint i = 0; i < comp; i++) val[i] = va_arg(list, int);
-        uniform->value = trc_create_int(comp, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
     } else {
-        int64_t* val = malloc(comp*count*sizeof(int64_t));
+        double* val = malloc(comp*count*sizeof(int64_t));
         const int* src = va_arg(list, const int*);
         for (uint i = 0; i < comp*count; i++) val[i] = src[i];
-        uniform->value = trc_create_int(comp*count, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), val);
         free(val);
     }
     uniform->dim[0] = comp;
     uniform->dim[1] = 1;
+    uniform->count = count;
     va_end(list);
     END_UNIFORM
 }
@@ -1186,18 +1188,19 @@ static GLint uniformui(trc_replay_context_t* ctx, trace_command_t* cmd, uint cou
     va_list list;
     va_start(list, comp);
     if (count == 0) {
-        uint64_t val[comp];
+        double val[comp];
         for (uint i = 0; i < comp; i++) val[i] = va_arg(list, uint);
-        uniform->value = trc_create_uint(comp, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
     } else {
-        uint64_t* val = malloc(comp*count*sizeof(uint64_t));
+        double* val = malloc(comp*count*sizeof(uint64_t));
         const uint* src = va_arg(list, const uint*);
         for (uint i = 0; i < comp*count; i++) val[i] = src[i];
-        uniform->value = trc_create_uint(comp*count, val);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), val);
         free(val);
     }
     uniform->dim[0] = comp;
     uniform->dim[1] = 1;
+    uniform->count = count;
     va_end(list);
     END_UNIFORM
 }
@@ -1213,10 +1216,11 @@ static GLint uniformmatf(trc_replay_context_t* ctx, trace_command_t* cmd, bool t
             }
         }
     }
-    uniform->value = trc_create_double(dimx*dimy*count, val);
+    uniform->value = trc_create_inspection_data(ctx->trace, dimx*dimy*count*sizeof(double), val);
     free(val);
     uniform->dim[0] = dimx;
     uniform->dim[1] = dimy;
+    uniform->count = count;
     END_UNIFORM
 }
 

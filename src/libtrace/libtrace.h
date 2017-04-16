@@ -209,10 +209,11 @@ typedef struct trc_gl_program_shader_t {
 } trc_gl_program_shader_t;
 
 typedef struct trc_gl_program_uniform_t {
-    uint real;
-    uint fake;
+    uint real; //real location
+    uint fake; //fake location
     uint dim[2];
-    trace_value_t value;
+    uint count; //for non-matrices: 0 -> non-array
+    trc_data_t* value; //array of double
 } trc_gl_program_uniform_t;
 
 typedef struct trc_gl_program_rev_t {

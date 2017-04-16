@@ -855,16 +855,14 @@ glLinkProgram: //GLuint p_program
             trc_add_error(command, "Nonexistent or inactive uniform while adding uniforms.");
         } else {
             uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
-            uniforms[uniform_count].real = real_loc;
-            uniforms[uniform_count].fake = fake_loc;
-            uniforms[uniform_count].dim[0] = 0;
-            uniforms[uniform_count].dim[1] = 0;
-            trace_value_t val;
-            memset(&val, 0, sizeof(val));
-            val.type = Type_Void;
-            val.count = 0;
-            val.group_index = -1;
-            uniforms[uniform_count++].value = val;
+            trc_gl_program_uniform_t uni;
+            uni.real = real_loc;
+            uni.fake = fake_loc;
+            uni.dim[0] = 0;
+            uni.dim[1] = 0;
+            uni.count = 0;
+            uni.value = NULL;
+            uniforms[uniform_count++] = uni;
         }
         
         free(name);
