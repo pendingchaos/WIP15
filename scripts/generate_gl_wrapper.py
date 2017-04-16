@@ -29,11 +29,6 @@ gl = glapi.glxml.GL(False)
 
 gl_c.write(gl.typedecls)
 
-for fname, func in func_dict.iteritems():
-    for param in func.params:
-        if isinstance(param.dtype, tGLenum) and param.group==None:
-            print "Warning: Parameter %s of %s is probably missing a group" % (param.name, fname)
-
 for k, v, in gl.enumValues.iteritems():
     gl_c.write("#define %s %s\n" % (k, v))
 

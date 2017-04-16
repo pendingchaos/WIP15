@@ -38,6 +38,8 @@ Bugs:
 
 Various TODOs in the source code.
 
+Vertex attribute indices need to work with matrices.
+
 Dramatically reduce memory usage and size of trace files.
 
 Cube map, 1D array, 2D array, rectangle, buffer, multisample, 1D and 3D textures.
