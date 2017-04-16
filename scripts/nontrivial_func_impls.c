@@ -291,6 +291,9 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     
     real(p_n, textures);
 
+glActiveTexture: //GLenum p_texture
+    trc_gl_state_set_active_texture_unit(ctx->trace, p_texture-GL_TEXTURE0);
+
 glBindTexture: //GLenum p_target, GLuint p_texture
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, p_texture);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, p_texture);
@@ -905,6 +908,15 @@ glUseProgram: //GLuint p_program
     
     real(real_program);
 
+glFlush: //
+    real();
+
+glFinish: //
+    real();
+
+glIsEnabled: //GLenum p_cap
+    ;
+
 glIsBuffer: //GLuint p_buffer
     ;
 
@@ -988,6 +1000,9 @@ glGetProgramInfoLog: //GLuint p_program, GLsizei p_bufSize, GLsizei* p_length, G
 glGetProgramiv: //GLuint p_program, GLenum p_pname, GLint* p_params
     GLuint real_prog = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_prog) ERROR("Invalid program name.");
+
+glGetError: //
+    ;
 
 glGetTexLevelParameterfv: //GLenum p_target, GLint p_level, GLenum p_pname, GLfloat* p_params
     ;
@@ -2074,6 +2089,9 @@ glQueryCounter: //GLuint p_id, GLenum p_target
     real(real_id, p_target);
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, command, p_target, p_id, real_id);
+
+glDrawBuffer: //GLenum p_buf
+    real(p_buf);
 
 glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     GLuint* bufs = malloc(sizeof(GLuint)*p_n);
