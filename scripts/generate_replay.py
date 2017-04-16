@@ -380,13 +380,13 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COMPARE_FUNC:
         if (count != 1) {
-            trc_add_error(command, "Expected 1 value. Got %u.\\n", count);
+            trc_add_error(command, "Expected 1 value. Got %u.", count);
             return true;
         }
         break;
     case GL_TEXTURE_BORDER_COLOR:
         if (count != 4) {
-            trc_add_error(command, "Expected 4 values. Got %u.\\n", count);
+            trc_add_error(command, "Expected 4 values. Got %u.", count);
             return true;
         }
         break;
@@ -397,13 +397,13 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST && val[0]!=GL_NEAREST_MIPMAP_NEAREST &&
             val[0]!=GL_LINEAR_MIPMAP_NEAREST && val[0]!=GL_NEAREST_MIPMAP_LINEAR &&
             val[0]!=GL_LINEAR_MIPMAP_LINEAR) {
-            trc_add_error(command, "Invalid minification filter.\\n");
+            trc_add_error(command, "Invalid minification filter.");
             return true;
         }
         break;
     case GL_TEXTURE_MAG_FILTER:
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST) {
-            trc_add_error(command, "Invalid magnification filter.\\n");
+            trc_add_error(command, "Invalid magnification filter.");
             return true;
         }
         break;
@@ -412,20 +412,20 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
     case GL_TEXTURE_WRAP_R:
         if (val[0]!=GL_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_BORDER && val[0]!=GL_MIRRORED_REPEAT &&
             val[0]!=GL_REPEAT && val[0]!=GL_MIRROR_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_EDGE) {
-            trc_add_error(command, "Invalid wrap mode.\\n");
+            trc_add_error(command, "Invalid wrap mode.");
             return true;
         }
         break;
     case GL_TEXTURE_COMPARE_MODE:
         if (val[0]!=GL_COMPARE_REF_TO_TEXTURE && val[0]!=GL_NONE) {
-            trc_add_error(command, "Invalid compare mode.\\n");
+            trc_add_error(command, "Invalid compare mode.");
             return true;
         }
         break;
     case GL_TEXTURE_COMPARE_FUNC:
         if (val[0]!=GL_LEQUAL && val[0]!=GL_GEQUAL && val[0]!=GL_LESS && val[0]!=GL_GREATER &&
             val[0]!=GL_EQUAL && val[0]!=GL_NOTEQUAL && val[0]!=GL_ALWAYS && val[0]!=GL_NEVER) {
-            trc_add_error(command, "Invalid compare function.\\n");
+            trc_add_error(command, "Invalid compare function.");
             return true;
         }
         break;
@@ -704,7 +704,6 @@ static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, 
 static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev, uint level, uint face,
                                      uint internal_format, uint width, uint height, uint depth, trc_data_t* data) {
     trc_gl_texture_image_t img;
-    img.face = 0;
     img.face = face;
     img.level = level;
     img.internal_format = internal_format;
@@ -916,7 +915,7 @@ void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* c
     uint fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, fake);
     if (!rev) {
-        trc_add_error(command, "No texture bound or invalid target\\n");
+        trc_add_error(command, "No texture bound or invalid target");
         return;
     }
     
@@ -975,7 +974,7 @@ void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uin
     }
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
-        trc_add_error(cmd, "No framebuffer bound or invalid target\\n");
+        trc_add_error(cmd, "No framebuffer bound or invalid target");
 }
 
 void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment, uint rb) {
@@ -986,7 +985,7 @@ void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, 
     attach.fake_renderbuffer = fb;
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
-        trc_add_error(cmd, "No framebuffer bound or invalid target\\n");
+        trc_add_error(cmd, "No framebuffer bound or invalid target");
 }
 
 void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
@@ -1024,7 +1023,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     GLuint texid = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
     if (!tex_ptr) {
-        trc_add_error(command, "No texture bound, invalid texture handle used or invalid target\\n");
+        trc_add_error(command, "No texture bound, invalid texture handle used or invalid target");
         return true;
     }
     trc_gl_texture_rev_t tex = *tex_ptr;
@@ -1052,13 +1051,13 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A: {
         if (count != 1) {
-            trc_add_error(command, "Expected 1 value. Got %u.\\n", count);
+            trc_add_error(command, "Expected 1 value. Got %u.", count);
             return true;
         }
         break;
     } case GL_TEXTURE_SWIZZLE_RGBA: {
         if (count != 4) {
-            trc_add_error(command, "Expected 4 values. Got %u.\\n", count);
+            trc_add_error(command, "Expected 4 values. Got %u.", count);
             return true;
         }
         break;
@@ -1068,7 +1067,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     switch (param) {
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
         if (val[0]!=GL_DEPTH_COMPONENT && val[0]!=GL_STENCIL_INDEX) {
-            trc_add_error(command, "Invalid depth stencil texture mode.\\n");
+            trc_add_error(command, "Invalid depth stencil texture mode.");
             return true;
         }
         break;
@@ -1077,14 +1076,14 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A:
         if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
-            trc_add_error(command, "Invalid swizzle.\\n");
+            trc_add_error(command, "Invalid swizzle.");
             return true;
         }
         break;
     case GL_TEXTURE_SWIZZLE_RGBA:
         for (uint i = 0; i < 4; i++) {
             if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA) {
-                trc_add_error(command, "Invalid swizzle.\\n");
+                trc_add_error(command, "Invalid swizzle.");
                 return true;
             }
         }
@@ -1118,6 +1117,10 @@ static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
 
 static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
     const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
+    if (!rev) {
+        trc_add_error(cmd, "No current program");
+        return -1;
+    }
     size_t uniform_count = rev->uniforms->uncompressed_size / (sizeof(uint)*2);
     uint* uniforms = trc_lock_data(rev->uniforms, true, false);
     for (size_t i = 0; i < uniform_count; i++) {
@@ -1320,7 +1323,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     } else {
         const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
         if (!rev) {
-            trc_add_error(cmd, "No framebuffer bound to GL_DRAW_FRAMEBUFFER\\n");
+            trc_add_error(cmd, "No framebuffer bound to GL_DRAW_FRAMEBUFFER");
             return;
         }
         
@@ -1458,7 +1461,8 @@ for name, func in func_dict.iteritems():
                 #print "Warning:", name, "has pointer parameters but is not implemented as non trivial"
                 output.write("%s p_%s = (%s)" % (param.type_, param.name, param.type_)) #Get it to compile but not to work
             else:
-                output.write("uint64_t p_%s = " % param.name) #TODO: This should be removed
+                if param.type_ == 'GLsync': output.write("uint64_t p_%s = " % param.name)
+                else: continue
         elif 'GLsync' in param.type_:
             if name in nontrivial:
                 output.write("uint64_t p_%s = " % param.name)

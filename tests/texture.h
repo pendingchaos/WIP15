@@ -1,8 +1,8 @@
 void draw_texture1d(GLuint prog) {
     glEnableVertexAttribArray(glGetAttribLocation(prog, "pos"));
     glVertexAttribPointer(glGetAttribLocation(prog, "pos"), 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)0);
-    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glUseProgram(prog);
+    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -10,8 +10,8 @@ void draw_texture1d(GLuint prog) {
 void draw_texture2d(GLuint prog) {
     glEnableVertexAttribArray(glGetAttribLocation(prog, "pos"));
     glVertexAttribPointer(glGetAttribLocation(prog, "pos"), 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)0);
-    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glUseProgram(prog);
+    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -19,8 +19,8 @@ void draw_texture2d(GLuint prog) {
 void draw_texture3d(GLuint prog) {
     glEnableVertexAttribArray(glGetAttribLocation(prog, "pos"));
     glVertexAttribPointer(glGetAttribLocation(prog, "pos"), 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)0);
-    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glUseProgram(prog);
+    glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -92,14 +92,17 @@ void texture_test() {
     glBindTexture(GL_TEXTURE_3D, tex3d);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
+    //TODO: GL_DEPTH_COMPONENT
+    
     GLenum formats[] = {GL_RED, GL_RG, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA,
-                        GL_RED_INTEGER, GL_RG_INTEGER, GL_RGB_INTEGER,
-                        GL_BGR_INTEGER, GL_RGBA_INTEGER, GL_BGRA_INTEGER,
-                        GL_DEPTH_COMPONENT};
+                        //TODO: Integral formats require integral internal formats
+                        /*GL_RED_INTEGER, GL_RG_INTEGER, GL_RGB_INTEGER,
+                        GL_BGR_INTEGER, GL_RGBA_INTEGER, GL_BGRA_INTEGER,*/
+                        /*GL_DEPTH_COMPONENT*/};
     
     GLenum internal_formats[] = {GL_RED, GL_RG, GL_RGB, GL_RGB, GL_RGBA,
                                  GL_RGBA, GL_RED, GL_RG, GL_RGB, GL_RGB,
-                                 GL_RGBA, GL_RGBA, GL_DEPTH_COMPONENT};
+                                 GL_RGBA, GL_RGBA/*, GL_DEPTH_COMPONENT*/};
     
     GLenum types[] = {GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_SHORT, GL_SHORT,
                       GL_UNSIGNED_INT, GL_INT, GL_FLOAT/*, GL_UNSIGNED_BYTE_3_3_2, //TODO: One of these is causing an invalid read of size 4
@@ -129,6 +132,7 @@ void texture_test() {
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
+                                   "#version 130\n"
                                    "uniform sampler1D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"
@@ -143,6 +147,7 @@ void texture_test() {
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
+                                   "#version 130\n"
                                    "uniform sampler2D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"
@@ -157,6 +162,7 @@ void texture_test() {
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
+                                   "#version 130\n"
                                    "uniform sampler3D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"

@@ -143,7 +143,6 @@ typedef struct trc_gl_texture_image_t {
     uint width;
     uint height;
     uint depth;
-    uint components;
     trc_data_t* data; //array of uint32_t, int32_t, float or float+uint32_t depending on the internal format
 } trc_gl_texture_image_t;
 

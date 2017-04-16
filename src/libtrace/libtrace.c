@@ -1286,6 +1286,7 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
         h->revision_count = 1;
         h->revisions = malloc(sizeof(trc_gl_context_rev_t));
         *h->revisions = *rev;
+        h->revisions->revision = trace->inspection.cur_revision;
         return;
     }
     
@@ -1343,6 +1344,7 @@ static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data)
         memcpy(data->compressed_data, dest, res);
         free(dest);
         data->compressed_size = res;
+        if (owns_data) *owns_data = false;
     }
 }
 
@@ -1385,10 +1387,8 @@ void* trc_lock_data(trc_data_t* data, bool read, bool write) {
     #if LZ4_ENABLED
     case TrcCompression_LZ4: {
         data->uncompressed_data = malloc(data->uncompressed_size);
-        if (read) {
-            if (LZ4_decompress_fast(data->compressed_data, data->uncompressed_data, data->uncompressed_size) < 0)
-                assert(false);
-        }
+        if (LZ4_decompress_fast(data->compressed_data, data->uncompressed_data, data->uncompressed_size) < 0)
+            assert(false);
         return data->uncompressed_data;
     }
     #endif

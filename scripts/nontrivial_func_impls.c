@@ -657,7 +657,7 @@ glDeleteShader: //GLuint p_shader
     
     trc_rel_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
 
-glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar  *const* p_string, const GLint* p_length
+glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string, const GLint* p_length
     const char*const* sources = gl_param_string_array(command, 2);
     
     GLuint shader = trc_get_real_gl_shader(ctx->trace, p_shader);
@@ -697,10 +697,6 @@ glCompileShader: //GLuint p_shader
     
     real(real_shdr);
     
-    GLint status;
-    F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
-    if (!status) ERROR("Failed to compile shader.");
-    
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, p_shader);
     
     GLint len;
@@ -710,6 +706,10 @@ glCompileShader: //GLuint p_shader
     F(glGetShaderInfoLog)(real_shdr, len, NULL, shdr.info_log);
     
     trc_set_gl_shader(ctx->trace, p_shader, &shdr);
+    
+    GLint status;
+    F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
+    if (!status) ERROR("Failed to compile shader.");
 
 glCreateProgram: //
     GLuint real_program = F(glCreateProgram)();
@@ -760,7 +760,6 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     for (size_t i = 0; i < shader_count; i++) {
         if (src[i].fake_shader == p_shader) ERROR("Shader is already attached");
     }
-    trc_grab_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
     
     program.shaders = trc_create_inspection_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL);
     
@@ -771,6 +770,7 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     trc_unlock_data(old.shaders);
     trc_unlock_data(program.shaders);
     
+    trc_grab_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
     trc_set_gl_program(ctx->trace, p_program, &program);
 
 glDetachShader: //GLuint p_program, GLuint p_shader
@@ -809,10 +809,6 @@ glLinkProgram: //GLuint p_program
     if (!real_program) ERROR("Invalid program name.");
     
     real(real_program);
-    
-    GLint status;
-    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Failed to link program.");
     
     trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, p_program);
     
@@ -875,16 +871,16 @@ glLinkProgram: //GLuint p_program
                                                     vertex_attribs);
     
     trc_set_gl_program(ctx->trace, p_program, &rev);
+    
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status) ERROR("Failed to link program.");
 
 glValidateProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name.");
     
     real(real_program);
-    
-    GLint status;
-    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Program validation failed.");
     
     trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, p_program);
     
@@ -895,6 +891,10 @@ glValidateProgram: //GLuint p_program
     F(glGetProgramInfoLog)(real_program, len, NULL, rev.info_log);
     
     trc_set_gl_program(ctx->trace, p_program, &rev);
+    
+    GLint status;
+    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    if (!status) ERROR("Program validation failed.");
 
 glUseProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -1416,7 +1416,8 @@ glUniformMatrix4x3fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose
     
     real(loc, p_count, p_transpose, values);
 
-glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void * p_pointer
+glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
+    uint64_t p_pointer = gl_param_pointer(command, 5);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
@@ -1432,7 +1433,8 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
     }
     trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
 
-glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void * p_pointer
+glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
+    uint64_t p_pointer = gl_param_pointer(command, 4);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
@@ -1525,32 +1527,38 @@ glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p
     
     end_draw(ctx, command);
 
-glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void * p_indices
+glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices
+    uint64_t p_indices = gl_param_pointer(command, 3);
     begin_draw(ctx);
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, command);
 
-glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void * p_indices, GLint p_basevertex
+glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
+    uint64_t p_indices = gl_param_pointer(command, 3);
     begin_draw(ctx);
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, command);
 
-glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void * p_indices, GLsizei p_instancecount
+glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount
+    uint64_t p_indices = gl_param_pointer(command, 3);
     begin_draw(ctx);
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount);
     end_draw(ctx, command);
 
-glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void * p_indices, GLsizei p_instancecount, GLint p_basevertex
+glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
+    uint64_t p_indices = gl_param_pointer(command, 3);
     begin_draw(ctx);
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
     end_draw(ctx, command);
 
-glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void * p_indices
+glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
+    uint64_t p_indices = gl_param_pointer(command, 5);
     begin_draw(ctx);
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, command);
 
-glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void * p_indices, GLint p_basevertex
+glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
+    uint64_t p_indices = gl_param_pointer(command, 5);
     begin_draw(ctx);
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, command);
@@ -1627,9 +1635,9 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
     for (size_t i = 0; i < p_n; ++i) {
-        if (arrays[i] && arrays[i]==trc_gl_state_get_bound_vao(ctx->trace))
+        if (fake[i] && fake[i]==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
-        if (!(arrays[i] = trc_get_real_gl_vao(ctx->trace, fake[i])))
+        if (!(arrays[i]=trc_get_real_gl_vao(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid vertex array name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_VAO);
     }
@@ -1740,10 +1748,11 @@ glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint samplers[p_count];
     const uint64_t* fake = trc_get_uint(trc_get_arg(command, 1));
     
-    for (size_t i = 0; i < p_count; ++i)
+    for (size_t i = 0; i < p_count; ++i) {
         if (!(samplers[i] = trc_get_real_gl_sampler(ctx->trace, fake[i])))
             trc_add_error(command, "Invalid sampler name.");
         else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Sampler);
+    }
     
     real(p_count, samplers);
 
