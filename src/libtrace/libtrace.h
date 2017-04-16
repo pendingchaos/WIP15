@@ -208,9 +208,16 @@ typedef struct trc_gl_program_shader_t {
     uint shader_revision;
 } trc_gl_program_shader_t;
 
+typedef struct trc_gl_program_uniform_t {
+    uint real;
+    uint fake;
+    uint dim[2];
+    trace_value_t value;
+} trc_gl_program_uniform_t;
+
 typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
-    trc_data_t* uniforms; //int[]{real0, fake0, real1, fake1, ...}
+    trc_data_t* uniforms; //array of trc_gl_program_uniform_t
     trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
     
     trc_data_t* shaders; //array of trc_gl_program_shader_t

@@ -1115,23 +1115,108 @@ static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
     return trc_gl_state_get_bound_buffer(ctx->trace, target); //TODO: Return 0 on invalid targets
 }
 
-static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);
-    if (!rev) {
-        trc_add_error(cmd, "No current program");
-        return -1;
+#define BEGIN_UNIFORM const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program);\
+if (!rev) {\
+    trc_add_error(cmd, "No current program");\
+    return -1;\
+}\
+size_t uniform_count = rev->uniforms->uncompressed_size / sizeof(trc_gl_program_uniform_t);\
+trc_gl_program_uniform_t* uniforms = trc_lock_data(rev->uniforms, true, true);\
+for (size_t i = 0; i < uniform_count; i++) {\
+    if (uniforms[i].fake == gl_param_GLint(cmd, 0)) {\
+        uint res = uniforms[i].real;\
+        trc_unlock_data(rev->uniforms);
+
+#define END_UNIFORM return res;\
+    }\
+}\
+trc_unlock_data(rev->uniforms);\
+return -1;
+
+/*static GLint uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
+    BEGIN_UNIFORM
+    END_UNIFORM
+}*/
+
+static GLint uniformf(trc_replay_context_t* ctx, trace_command_t* cmd, uint count, uint comp, ...) {
+    BEGIN_UNIFORM
+    va_list list;
+    va_start(list, comp);
+    if (count == 0) {
+        double val[comp];
+        for (uint i = 0; i < comp; i++) val[i] = va_arg(list, double);
+        uniforms[i].value = trc_create_double(comp, val);
+    } else {
+        double* val = malloc(comp*count);
+        const float* src = va_arg(list, const float*);
+        for (uint i = 0; i < comp*count; i++) val[i] = src[i];
+        uniforms[i].value = trc_create_double(comp*count, val);
+        free(val);
     }
-    size_t uniform_count = rev->uniforms->uncompressed_size / (sizeof(uint)*2);
-    uint* uniforms = trc_lock_data(rev->uniforms, true, false);
-    for (size_t i = 0; i < uniform_count; i++) {
-        if (uniforms[i*2+1] == gl_param_GLint(cmd, 0)) {
-            uint res = uniforms[i*2];
-            trc_unlock_data(rev->uniforms);
-            return res;
+    uniforms[i].dim[0] = comp;
+    uniforms[i].dim[1] = 1;
+    va_end(list);
+    END_UNIFORM
+}
+
+static GLint uniformi(trc_replay_context_t* ctx, trace_command_t* cmd, uint count, uint comp, ...) {
+    BEGIN_UNIFORM
+    va_list list;
+    va_start(list, comp);
+    if (count == 0) {
+        int64_t val[comp];
+        for (uint i = 0; i < comp; i++) val[i] = va_arg(list, int);
+        uniforms[i].value = trc_create_int(comp, val);
+    } else {
+        int64_t* val = malloc(comp*count);
+        const int* src = va_arg(list, const int*);
+        for (uint i = 0; i < comp*count; i++) val[i] = src[i];
+        uniforms[i].value = trc_create_int(comp*count, val);
+        free(val);
+    }
+    uniforms[i].dim[0] = comp;
+    uniforms[i].dim[1] = 1;
+    va_end(list);
+    END_UNIFORM
+}
+
+static GLint uniformui(trc_replay_context_t* ctx, trace_command_t* cmd, uint count, uint comp, ...) {
+    BEGIN_UNIFORM
+    va_list list;
+    va_start(list, comp);
+    if (count == 0) {
+        uint64_t val[comp];
+        for (uint i = 0; i < comp; i++) val[i] = va_arg(list, uint);
+        uniforms[i].value = trc_create_uint(comp, val);
+    } else {
+        uint64_t* val = malloc(comp*count);
+        const uint* src = va_arg(list, const uint*);
+        for (uint i = 0; i < comp*count; i++) val[i] = src[i];
+        uniforms[i].value = trc_create_uint(comp*count, val);
+        free(val);
+    }
+    uniforms[i].dim[0] = comp;
+    uniforms[i].dim[1] = 1;
+    va_end(list);
+    END_UNIFORM
+}
+
+static GLint uniformmatf(trc_replay_context_t* ctx, trace_command_t* cmd, bool transpose, uint count, uint dimx, uint dimy, const float* mat) {
+    BEGIN_UNIFORM
+    double* val = malloc(dimx*dimy*count);
+    for (uint i = 0; i < count; i++) {
+        for (uint x = 0; x < dimx; x++) {
+            for (uint y = 0; y < dimy; y++) {
+                if (transpose) val[i] = mat[i*dimx*dimy+y*dimx+x];
+                else val[i] = mat[i*dimx*dimy+x*dimy+y];
+            }
         }
     }
-    trc_unlock_data(rev->uniforms);
-    return -1;
+    uniforms[i].value = trc_create_double(dimx*dimy*count, val);
+    free(val);
+    uniforms[i].dim[0] = dimx;
+    uniforms[i].dim[1] = dimy;
+    END_UNIFORM
 }
 
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
