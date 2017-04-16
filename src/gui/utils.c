@@ -42,7 +42,7 @@ const char* get_enum_str(const char* group_name, uint val) {
     }
 }
 
-char* static_format(const char* format, ...) {
+const char* static_format(const char* format, ...) {
     static char data[1024];
     memset(data, 0, 1024);
     
@@ -54,7 +54,7 @@ char* static_format(const char* format, ...) {
     return data;
 }
 
-char* format_float(double val) {
+const char* format_float(double val) {
     static char data[128];
     memset(data, 0, 128);
     

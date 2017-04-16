@@ -153,7 +153,6 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeView* view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_shaders_view"));
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
-    
     size_t shader_count = program->shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* shaders = trc_lock_data(program->shaders, true, false);
     for (size_t i = 0; i < shader_count; i++) {
@@ -168,8 +167,27 @@ void program_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, id, 1, shader_type_str(shdr->type), -1);
     }
-    
     trc_unlock_data(program->shaders);
+    
+    view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_uniforms_view"));
+    store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
+    gtk_tree_store_clear(store);
+    size_t uniform_count = program->uniforms->uncompressed_size / sizeof(trc_gl_program_uniform_t);
+    trc_gl_program_uniform_t* uniforms = trc_lock_data(program->uniforms, true, false);
+    for (size_t i = 0; i < uniform_count; i++) {
+        char val[1024] = {0};
+        if (uniforms[i].value.type == Type_Void)
+            strcpy(val, "<unset>");
+        else
+            format_value(trace, val, uniforms[i].value, sizeof(val));
+        
+        const char* location = static_format("%u", uniforms[i].fake);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, location, 1, "", 2, val, -1);
+    }
+    trc_unlock_data(program->uniforms);
     
     GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
@@ -212,4 +230,5 @@ void shader_init() {
     init_treeview(builder, "shader_list_treeview", 2);
     init_treeview(builder, "program_list_view", 1);
     init_treeview(builder, "program_shaders_view", 2);
+    init_treeview(builder, "program_uniforms_view", 3);
 }
