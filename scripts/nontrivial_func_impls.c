@@ -856,6 +856,7 @@ glLinkProgram: //GLuint p_program
         } else {
             uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
             trc_gl_program_uniform_t uni;
+            memset(&uni, 0, sizeof(uni)); //initialize padding to zero - it might be compressed
             uni.real = real_loc;
             uni.fake = fake_loc;
             uni.dim[0] = 0;
