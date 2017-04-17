@@ -129,26 +129,29 @@ static char* read_str(FILE* file) {
 
 static void* read_data(FILE* file, size_t* res_size) {
     if (res_size) *res_size = 0;
-    
+    printf("AAAA\n");
+    printf("off: %ld\n", ftell(file));
     uint8_t compression_method;
     if (!readf(&compression_method, 1, 1, file)) return NULL;
-    
+    printf("BBBB\n");
     uint32_t size;
     if (!readf(&size, 4, 1, file)) return NULL;
     size = le32toh(size);
-    
+    printf("CCCC\n");
     uint32_t compressed_size;
     if (!readf(&compressed_size, 4, 1, file)) return NULL;
     compressed_size = le32toh(compressed_size);
-    
+    printf("DDDD\n");
     void* compressed_data = malloc(compressed_size);
     if (!readf(compressed_data, compressed_size, 1, file)) {
         free(compressed_data);
+        printf("EEEE %u %u %u\n", compression_method, size, compressed_size);
         return NULL;
     }
-    
+    printf("FFFF\n");
     if (compression_method == 0) {
         if (res_size) *res_size = size;
+        printf("GGGG\n");
         return compressed_data;
     }
     #ifdef ZLIB_ENABLED
@@ -593,12 +596,12 @@ trace_t *load_trace(const char* filename) {
             for (size_t i = 0; i < decl->arg_count; i++)
                 if (!read_val(file, get_trace_val_vec(command.args, i), decl->args+i, trace)) {
                     free_command(&command);
-                    goto error;
+                    ERROR("Failed to read argument");
                 }
             
             if (!read_val(file, &command.ret, &decl->result, trace)) {
                 free_command(&command);
-                goto error;
+                ERROR("Failed to read command result");
             }
             
             if (!readf(&command.extra_count, 4, 1, file))

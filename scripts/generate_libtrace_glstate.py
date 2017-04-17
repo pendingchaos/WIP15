@@ -279,7 +279,6 @@ map array int state_int
 //    GL_MAX_COMBINED_ATOMIC_COUNTERS
 //    GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE
 
-//TODO: GL_DRAW_BUFFER*
 map array enum state_enum
     GL_POLYGON_MODE
     GL_CULL_FACE_MODE

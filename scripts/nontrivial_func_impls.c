@@ -1017,7 +1017,7 @@ glGetShaderSource: //GLuint p_shader, GLsizei p_bufSize, GLsizei* p_length, GLch
     if (!real_shdr) ERROR("Invalid shader name.");
 
 glGetQueryiv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ;
+    ; //TODO: Validation
 
 glGetQueryObjectiv: //GLuint p_id, GLenum p_pname, GLint* p_params
     GLuint real_query = trc_get_real_gl_query(ctx->trace, p_id);
@@ -1038,6 +1038,7 @@ glGetProgramiv: //GLuint p_program, GLenum p_pname, GLint* p_params
 glGetError: //
     ;
 
+//TODO: Validation for these
 glGetTexLevelParameterfv: //GLenum p_target, GLint p_level, GLenum p_pname, GLfloat* p_params
     ;
 
@@ -1048,6 +1049,18 @@ glGetTexParameterfv: //GLenum p_target, GLenum p_pname, GLfloat* p_params
     ;
 
 glGetTexParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
+    ;
+
+glGetTexParameterIiv: //GLenum p_target, GLenum p_pname, GLint* p_params
+    ;
+
+glGetTexParameterIuiv: //GLenum p_target, GLenum p_pname, GLuint* p_params
+    ;
+
+glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length GLsizei* p_size, GLenum* p_type, GLchar* p_name
+    ;
+
+glCheckFramebufferStatus: //GLenum p_target
     ;
 
 glGetPointerv: //GLenum p_pname, void ** p_params
@@ -1114,6 +1127,15 @@ glGetVertexAttribfv: //GLuint p_index, GLenum p_pname, GLfloat* p_params
     ;
 
 glGetVertexAttribiv: //GLuint p_index, GLenum p_pname, GLint* p_params
+    ;
+
+glGetVertexAttribIiv: //GLuint p_index, GLenum p_pname, GLint* p_params
+    ;
+
+glGetVertexAttribIuiv: //GLuint p_index, GLenum p_pname, GLuint* p_params
+    ;
+
+glGetVertexAttribLdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
     ;
 
 glGetVertexAttribPointerv: //GLuint p_index, GLenum p_pname, void ** p_pointer
@@ -2483,7 +2505,6 @@ glGetRenderbufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
 glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
     GLuint real_rb = trc_get_real_gl_renderbuffer(ctx->trace, p_renderbuffer);
     if (!real_rb && p_renderbuffer) ERROR("Invalid renderbuffer name.");
-    //TODO: Reference counting
     
     real(p_target, p_attachment, p_renderbuffertarget, real_rb);
     
@@ -2493,7 +2514,6 @@ glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_rend
 glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, GLint p_level
     const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, p_texture);
     if (!texrev && p_texture) ERROR("Invalid texture name.");
-    //TODO: Reference counting
     
     real(p_target, p_attachment, texrev?texrev->real:0, p_level);
         
@@ -2502,10 +2522,9 @@ glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, 
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, texrev->type, p_level, 0);
 
-glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
+glFramebufferTexture1D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
     const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, p_texture);
     if (!texrev && p_texture) ERROR("Invalid texture name.");
-    //TODO: Reference counting
     
     real(p_target, p_attachment, p_textarget, texrev?texrev->real:0, p_level);
     
@@ -2513,6 +2532,28 @@ glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
                                 "Use glBindTexture or use glCreateTextures instead of glGenTextures.");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
+
+glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
+    const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, p_texture);
+    if (!texrev && p_texture) ERROR("Invalid texture name.");
+    
+    real(p_target, p_attachment, p_textarget, texrev?texrev->real:0, p_level);
+    
+    if (!texrev->created) ERROR("Although it has a valid name, the texture has not been created."
+                                "Use glBindTexture or use glCreateTextures instead of glGenTextures.");
+    GLint fb = get_bound_framebuffer(ctx, p_target);
+    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
+
+glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level, GLint p_zoffset
+    const trc_gl_texture_rev_t* texrev = trc_get_gl_texture(ctx->trace, p_texture);
+    if (!texrev && p_texture) ERROR("Invalid texture name.");
+    
+    real(p_target, p_attachment, p_textarget, texrev?texrev->real:0, p_level, p_zoffset);
+    
+    if (!texrev->created) ERROR("Although it has a valid name, the texture has not been created."
+                                "Use glBindTexture or use glCreateTextures instead of glGenTextures.");
+    GLint fb = get_bound_framebuffer(ctx, p_target);
+    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, p_zoffset);
 
 glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
@@ -2626,6 +2667,9 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     for (GLsizei i = 0; i < p_n; i++) bufs[i] = trc_get_uint(trc_get_arg(cmd, 1))[i];
     real(p_n, bufs);
     free(bufs);
+
+glReadBuffer: //GLenum p_src
+    real(p_src);
 
 glClearBufferiv: //GLenum p_buffer, GLint p_drawbuffer, const GLint* p_value
     size_t count = p_buffer == GL_COLOR ? 4 : 1;
@@ -2981,6 +3025,9 @@ glFrontFace: //GLenum p_mode
 glDepthFunc: //GLenum p_func
     trc_gl_state_set_state_enum(ctx->trace, GL_DEPTH_FUNC, 0, p_func);
     real(p_func);
+
+glClampColor: //GLenum p_target, GLenum p_clamp
+    real(p_target, p_clamp);
 
 glPointParameterf: //GLenum p_pname, GLfloat p_param
     switch (p_pname) {
