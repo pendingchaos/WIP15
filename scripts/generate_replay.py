@@ -1147,6 +1147,7 @@ for (size_t i = 0; i < uniform_count; i++) {\
 trc_unlock_data(rev->uniforms);\
 return -1;
 
+//TODO: There is a lot of code duplication in uniform*
 static GLint uniformf(trc_replay_context_t* ctx, trace_command_t* cmd, uint count, uint comp, ...) {
     BEGIN_UNIFORM
     va_list list;
@@ -1178,7 +1179,7 @@ static GLint uniformi(trc_replay_context_t* ctx, trace_command_t* cmd, uint coun
         for (uint i = 0; i < comp; i++) val[i] = va_arg(list, int);
         uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
     } else {
-        double* val = malloc(comp*count*sizeof(int64_t));
+        double* val = malloc(comp*count*sizeof(double));
         const int* src = va_arg(list, const int*);
         for (uint i = 0; i < comp*count; i++) val[i] = src[i];
         uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), val);
@@ -1200,7 +1201,7 @@ static GLint uniformui(trc_replay_context_t* ctx, trace_command_t* cmd, uint cou
         for (uint i = 0; i < comp; i++) val[i] = va_arg(list, uint);
         uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
     } else {
-        double* val = malloc(comp*count*sizeof(uint64_t));
+        double* val = malloc(comp*count*sizeof(double));
         const uint* src = va_arg(list, const uint*);
         for (uint i = 0; i < comp*count; i++) val[i] = src[i];
         uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), val);
@@ -1213,7 +1214,45 @@ static GLint uniformui(trc_replay_context_t* ctx, trace_command_t* cmd, uint cou
     END_UNIFORM
 }
 
+static GLint uniformd(trc_replay_context_t* ctx, trace_command_t* cmd, uint count, uint comp, ...) {
+    BEGIN_UNIFORM
+    va_list list;
+    va_start(list, comp);
+    if (count == 0) {
+        double val[comp];
+        for (uint i = 0; i < comp; i++) val[i] = va_arg(list, double);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*sizeof(double), val);
+    } else {
+        const double* src = va_arg(list, const double*);
+        uniform->value = trc_create_inspection_data(ctx->trace, comp*count*sizeof(double), src);
+    }
+    uniform->dim[0] = comp;
+    uniform->dim[1] = 1;
+    uniform->count = count;
+    va_end(list);
+    END_UNIFORM
+}
+
 static GLint uniformmatf(trc_replay_context_t* ctx, trace_command_t* cmd, bool transpose, uint count, uint dimx, uint dimy, const float* mat) {
+    BEGIN_UNIFORM
+    double* val = malloc(dimx*dimy*count*sizeof(double));
+    for (uint i = 0; i < count; i++) {
+        for (uint x = 0; x < dimx; x++) {
+            for (uint y = 0; y < dimy; y++) {
+                if (transpose) val[i] = mat[i*dimx*dimy+y*dimx+x];
+                else val[i] = mat[i*dimx*dimy+x*dimy+y];
+            }
+        }
+    }
+    uniform->value = trc_create_inspection_data(ctx->trace, dimx*dimy*count*sizeof(double), val);
+    free(val);
+    uniform->dim[0] = dimx;
+    uniform->dim[1] = dimy;
+    uniform->count = count;
+    END_UNIFORM
+}
+
+static GLint uniformmatd(trc_replay_context_t* ctx, trace_command_t* cmd, bool transpose, uint count, uint dimx, uint dimy, const double* mat) {
     BEGIN_UNIFORM
     double* val = malloc(dimx*dimy*count*sizeof(double));
     for (uint i = 0; i < count; i++) {

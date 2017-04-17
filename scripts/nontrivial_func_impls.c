@@ -1233,6 +1233,26 @@ glUniform4ui: //GLint p_location, GLuint p_v0, GLuint p_v1, GLuint p_v2, GLuint 
     if ((loc=uniformui(ctx, command, 0, 4, p_v0, p_v1, p_v2, p_v3))<0) RETURN;
     real(loc, p_v0, p_v1, p_v2, p_v3);
 
+glUniform1d: //GLint p_location, GLdouble p_x
+    GLint loc;
+    if ((loc=uniformd(ctx, command, 0, 1, p_x))<0) RETURN;
+    real(loc, p_x);
+
+glUniform2d: //GLint p_location, GLdouble p_x, GLdouble p_y
+    GLint loc;
+    if ((loc=uniformd(ctx, command, 0, 2, p_x, p_y))<0) RETURN;
+    real(loc, p_x, p_y);
+
+glUniform3d: //GLint p_location, GLdouble p_x, GLdouble p_y, GLdouble p_z
+    GLint loc;
+    if ((loc=uniformd(ctx, command, 0, 3, p_x, p_y, p_z))<0) RETURN;
+    real(loc, p_x, p_y, p_z);
+
+glUniform4d: //GLint p_location, GLdouble p_x, GLdouble p_y, GLdouble p_z, GLdouble p_w
+    GLint loc;
+    if ((loc=uniformd(ctx, command, 0, 4, p_x, p_y, p_z, p_w))<0) RETURN;
+    real(loc, p_x, p_y, p_z, p_w);
+
 glUniform1fv: //GLint p_location, GLsizei p_count, const GLfloat* p_value
     GLfloat values[p_count];
     for (GLsizei i = 0; i < p_count; i++)
@@ -1353,6 +1373,30 @@ glUniform4uiv: //GLint p_location, GLsizei p_count, const GLuint* p_value
     
     real(loc, p_count, values);
 
+glUniform1dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 2));
+    GLint loc;
+    if ((loc=uniformd(ctx, command, p_count, 1, values))<0) RETURN;
+    real(loc, p_count, values);
+
+glUniform2dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 2));
+    GLint loc;
+    if ((loc=uniformd(ctx, command, p_count, 2, values))<0) RETURN;
+    real(loc, p_count, values);
+
+glUniform3dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 2));
+    GLint loc;
+    if ((loc=uniformd(ctx, command, p_count, 3, values))<0) RETURN;
+    real(loc, p_count, values);
+
+glUniform4dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 2));
+    GLint loc;
+    if ((loc=uniformd(ctx, command, p_count, 4, values))<0) RETURN;
+    real(loc, p_count, values);
+
 glUniformMatrix2fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
     GLfloat values[p_count*4];
     for (GLsizei i = 0 ; i < p_count*4; i++)
@@ -1441,6 +1485,60 @@ glUniformMatrix4x3fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose
     GLint loc;
     if ((loc=uniformmatf(ctx, command, p_transpose, p_count, 4, 3, values))<0) RETURN;
     
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 2, 2, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 3, 3, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 4, 4, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix2x3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 2, 3, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix3x2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 3, 2, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix2x4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 2, 4, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix4x2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 4, 2, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix3x4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 3, 4, values))<0) RETURN;
+    real(loc, p_count, p_transpose, values);
+
+glUniformMatrix4x3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
+    const double* values = trc_get_double(trc_get_arg(command, 3));
+    GLint loc;
+    if ((loc=uniformmatd(ctx, command, p_transpose, p_count, 4, 3, values))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
