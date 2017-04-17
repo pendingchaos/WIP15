@@ -147,6 +147,8 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(tree)));
     gtk_tree_store_clear(store);
     
+    if (!ctx) return;
+    
     //TODO: The current context
     value(store, "Drawable Size", static_format("%ux%u", ctx->drawable_width, ctx->drawable_height));
     

@@ -1514,9 +1514,7 @@ static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
     if (!status) trc_add_error(command, "Program not successfully linked.");
 }
-""")
 
-output.write("""
 static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
     GLenum error = GL_NO_ERROR;
     if (trc_get_current_fake_gl_context(ctx->trace) && F(glGetError)) error = F(glGetError)();

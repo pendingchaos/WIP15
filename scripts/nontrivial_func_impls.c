@@ -21,6 +21,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
             if (width>=0 && height>=0) {
                 trc_gl_state_set_drawable_width(ctx->trace, width);
                 trc_gl_state_set_drawable_height(ctx->trace, height);
+                SDL_SetWindowSize(ctx->window, width, height);
                 for (size_t i = 0; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_VIEWPORTS, 0); i++) {
                     trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, i*4+2, width);
                     trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, i*4+3, height);
@@ -944,6 +945,9 @@ glFinish: //
 glIsEnabled: //GLenum p_cap
     ;
 
+glIsEnabledi: //GLenum p_target, GLuint p_index
+    ;
+
 glIsBuffer: //GLuint p_buffer
     ;
 
@@ -963,6 +967,9 @@ glIsVertexArray: //GLuint p_array
     ;
 
 glIsProgramPipeline: //GLuint p_pipeline
+    ;
+
+glIsFramebuffer: //GLuint p_framebuffer
     ;
 
 glIsRenderbuffer: //GLuint p_renderbuffer
