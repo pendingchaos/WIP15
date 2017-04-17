@@ -1124,7 +1124,8 @@ static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
 }
 
 static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
-                   bool array, uint dimx, uint dimy, GLenum type, void* data_) {
+                   bool array, uint dimx, uint dimy, GLenum type, void* data_,
+                   uint* realprogram) {
     uint8_t* data = data_;
     
     uint arg_pos = 0;
@@ -1138,6 +1139,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
         trc_add_error(cmd, dsa?"Invalid program":"No current program");
         return -1;
     }
+    if (realprogram) *realprogram = rev->real;
     
     int location = gl_param_GLint(cmd, arg_pos++);
     
