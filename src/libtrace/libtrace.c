@@ -1386,7 +1386,7 @@ void trc_destroy_data(trc_data_t* data) {
     free(data);
 }
 
-void* trc_lock_data(trc_data_t* data, bool read, bool write) {
+void* trc_map_data(trc_data_t* data, bool read, bool write) {
     data->lock_write = write;
     switch (data->compression) {
     case TrcCompression_None: {
@@ -1405,7 +1405,7 @@ void* trc_lock_data(trc_data_t* data, bool read, bool write) {
     }
 }
 
-void trc_unlock_data(trc_data_t* data) {
+void trc_unmap_data(trc_data_t* data) {
     if (data->lock_write) {
         bool owns_data;
         set_data(data, data->uncompressed_data, true, &owns_data);

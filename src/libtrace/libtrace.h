@@ -440,6 +440,6 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
 trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data);
 void trc_destroy_data(trc_data_t* data);
-void* trc_lock_data(trc_data_t* data, bool read, bool write);
-void trc_unlock_data(trc_data_t* data);
+void* trc_map_data(trc_data_t* data, bool read, bool write);
+void trc_unmap_data(trc_data_t* data);
 #endif

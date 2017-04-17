@@ -88,7 +88,7 @@ static void update_buffer_view(size_t buf_index) {
     if (!buf) return; //TODO: Is this possible?
     if (!buf->data) return;
     
-    uint8_t* data = trc_lock_data(buf->data, true, false);
+    uint8_t* data = trc_map_data(buf->data, true, false);
     size_t buf_size = buf->data->uncompressed_size;
     while (offset+type_size <= buf_size) {
         GtkTreeIter row;
@@ -163,7 +163,7 @@ static void update_buffer_view(size_t buf_index) {
         gtk_tree_store_set(store, &row, 0, str, -1);
     }
     
-    trc_unlock_data(buf->data);
+    trc_unmap_data(buf->data);
 }
 
 void update_buffer_view_callback(GObject* obj, gpointer user_data) {

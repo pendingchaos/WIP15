@@ -88,9 +88,9 @@ static void init_trace_tree(GtkTreeView* tree) {
 static uint8_t* get_state(trc_data_t* data) {
     static uint8_t res[8192];
     size_t srcsize = data->uncompressed_size;
-    void* ptr = trc_lock_data(data, true, false);
+    void* ptr = trc_map_data(data, true, false);
     memcpy(res, ptr, srcsize<8192?srcsize:8192);
-    trc_unlock_data(data);
+    trc_unmap_data(data);
     return res;
 }
 
@@ -281,14 +281,14 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     end_category();
     
     begin_category(store, "GL_CURRENT_VERTEX_ATTRIB");
-    double* cur_vertex_attrib = trc_lock_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB, true, false);
+    double* cur_vertex_attrib = trc_map_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB, true, false);
     size_t count = ctx->state_double_GL_CURRENT_VERTEX_ATTRIB->uncompressed_size/sizeof(double)/4 + 1;
     for (uint i = 1; i < count; i++) {
         double v[4];
         for (uint j = 0; j < 4; j++) v[j] = cur_vertex_attrib[(i-1)*4+j];
         value(store, static_format("%u", i), "%g %g %g %g", v[0], v[1], v[2], v[3]);
     }
-    trc_unlock_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB);
+    trc_unmap_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB);
     end_category();
     
     begin_category(store, "Pack");

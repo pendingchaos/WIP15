@@ -45,7 +45,7 @@ static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data
     uint width = state->drawable_width;
     uint height = state->drawable_height;
     
-    uint32_t* img = trc_lock_data(data, true, false);
+    uint32_t* img = trc_map_data(data, true, false);
     
     GdkPixbuf* buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, width, height);
     if (depth) {
@@ -71,7 +71,7 @@ static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data
         }
     }
     
-    trc_unlock_data(data);
+    trc_unmap_data(data);
     
     return buf;
 }
@@ -243,7 +243,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_clear(store);
         
         size_t attach_count = fb->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
-        trc_gl_framebuffer_attachment_t* attachs = trc_lock_data(fb->attachments, true, false);
+        trc_gl_framebuffer_attachment_t* attachs = trc_map_data(fb->attachments, true, false);
         for (size_t i = 0; i < attach_count; i++) {
             switch (attachs[i].attachment) {
             case GL_DEPTH_ATTACHMENT: {
@@ -265,7 +265,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
             }
             }
         }
-        trc_unlock_data(fb->attachments);
+        trc_unmap_data(fb->attachments);
     }
 }
 

@@ -78,7 +78,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     
     //TODO: The image should update when the layer spinbutton or face combobox update
     
-    trc_gl_texture_image_t* images = trc_lock_data(tex->images, true, false);
+    trc_gl_texture_image_t* images = trc_map_data(tex->images, true, false);
     size_t img_count = tex->images->uncompressed_size / sizeof(trc_gl_texture_image_t);
     
     uint dims[3] = {0, 0, 0};
@@ -119,7 +119,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
             //if (img->face != ) continue; //TODO
             if (img->level != level) continue;
             
-            float* imgdata = trc_lock_data(img->data, true, false);
+            float* imgdata = trc_map_data(img->data, true, false);
             
             GtkTreeIter row;
             gtk_tree_store_append(image_store, &row, NULL);
@@ -134,11 +134,11 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
             gtk_tree_store_set(image_store, &row, 0, static_format("%u", img->level), 1, pixbuf, -1);
             g_object_unref(pixbuf);
             
-            trc_unlock_data(img->data);
+            trc_unmap_data(img->data);
         }
     }
     
-    trc_unlock_data(tex->images);
+    trc_unmap_data(tex->images);
     
     //TODO
     /*if (tex->mipmaps) {

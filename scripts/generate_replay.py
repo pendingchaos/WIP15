@@ -20,8 +20,8 @@ output.write("""#include <X11/Xlib.h>
 #include "shared/glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
-#define RETURN do {replay_end_cmd(ctx, FUNC, command);return;} while(0)
-#define ERROR(...) do {trc_add_error(command, __VA_ARGS__); RETURN;} while (0)
+#define RETURN do {replay_end_cmd(ctx, FUNC, cmd);return;} while(0)
+#define ERROR(...) do {trc_add_error(cmd, __VA_ARGS__); RETURN;} while (0)
 #define FUNC ""
 
 typedef void (*func_t)();
@@ -456,21 +456,21 @@ static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* 
     rev->back_depth_buffer = trc_create_inspection_data(trace, size, NULL);
     rev->back_stencil_buffer = trc_create_inspection_data(trace, size, NULL);
     
-    void* data = trc_lock_data(rev->front_color_buffer, false, true);
+    void* data = trc_map_data(rev->front_color_buffer, false, true);
     memset(data, 0, size);
-    trc_unlock_data(rev->front_color_buffer);
+    trc_unmap_data(rev->front_color_buffer);
     
-    data = trc_lock_data(rev->back_color_buffer, false, true);
+    data = trc_map_data(rev->back_color_buffer, false, true);
     memset(data, 0, size);
-    trc_unlock_data(rev->back_color_buffer);
+    trc_unmap_data(rev->back_color_buffer);
     
-    data = trc_lock_data(rev->back_depth_buffer, false, true);
+    data = trc_map_data(rev->back_depth_buffer, false, true);
     memset(data, 0, size);
-    trc_unlock_data(rev->back_depth_buffer);
+    trc_unmap_data(rev->back_depth_buffer);
     
-    data = trc_lock_data(rev->back_stencil_buffer, false, true);
+    data = trc_map_data(rev->back_stencil_buffer, false, true);
     memset(data, 0, size);
-    trc_unlock_data(rev->back_stencil_buffer);
+    trc_unmap_data(rev->back_stencil_buffer);
 }
 
 static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
@@ -723,7 +723,7 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
     size_t img_count = rev->images->uncompressed_size / sizeof(trc_gl_texture_image_t);
     trc_gl_texture_image_t* newimages = malloc((img_count+1)*sizeof(trc_gl_texture_image_t));
     
-    trc_gl_texture_image_t* images = trc_lock_data(rev->images, true, false);
+    trc_gl_texture_image_t* images = trc_map_data(rev->images, true, false);
     bool replaced = false;
     for (size_t i = 0; i < img_count; i++) {
         if (images[i].face==img.face && images[i].level==img.level) {
@@ -733,7 +733,7 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
             newimages[i] = images[i];
         }
     }
-    trc_unlock_data(rev->images);
+    trc_unmap_data(rev->images);
     
     trc_gl_texture_rev_t newrev = *rev;
     if (!replaced) newimages[img_count++] = img;
@@ -876,7 +876,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     
     size_t data_size = width * height * depth * components * (dtype==3?8:4);
     trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
-    void* dest = trc_lock_data(data, false, true);
+    void* dest = trc_map_data(data, false, true);
     
     GLenum format;
     switch (ftype) {
@@ -913,7 +913,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     F(glGetTexImage)(target, level, format, type, dest);
     F(glBindTexture)(tex->type, prev);
     
-    trc_unlock_data(data);
+    trc_unmap_data(data);
     
     replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
 }
@@ -940,7 +940,7 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
     size_t attach_count = rev->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
     trc_gl_framebuffer_attachment_t* newattachs = malloc((attach_count+1)*sizeof(trc_gl_framebuffer_attachment_t));
     
-    trc_gl_framebuffer_attachment_t* attachs = trc_lock_data(rev->attachments, true, false);
+    trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, true, false);
     bool replaced = false;
     for (size_t i = 0; i < attach_count; i++) {
         if (attachs[i].attachment == attach->attachment) {
@@ -950,7 +950,7 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
             newattachs[i] = attachs[i];
         }
     }
-    trc_unlock_data(rev->attachments);
+    trc_unmap_data(rev->attachments);
     
     trc_gl_framebuffer_rev_t newrev = *rev;
     if (!replaced) newattachs[attach_count++] = *attach;
@@ -1148,7 +1148,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     size_t uniform_count = rev->uniforms->uncompressed_size /
                            sizeof(trc_gl_program_uniform_t);
     trc_gl_program_uniform_t* uniforms =
-        trc_lock_data(rev->uniforms, true, false);
+        trc_map_data(rev->uniforms, true, false);
     uint uniform_index = 0;
     for (; uniform_index < uniform_count; uniform_index++) {
         if (uniforms[uniform_index].fake == location) {
@@ -1156,7 +1156,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
             goto success;
         }
     }
-    trc_unlock_data(rev->uniforms);
+    trc_unmap_data(rev->uniforms);
     return -1;
     success: ;
     
@@ -1166,7 +1166,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     uniform.value = trc_create_inspection_data(ctx->trace,
                                                count*dimx*dimy*sizeof(double),
                                                NULL);
-    double* res = trc_lock_data(uniform.value, false, true);
+    double* res = trc_map_data(uniform.value, false, true);
     for (uint i = 0; i < count; i++) {
         for (uint x = 0; x < dimx; x++) {
             for (uint y = 0; y < dimy; y++) {
@@ -1211,20 +1211,20 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
             }
         }
     }
-    trc_unlock_data(uniform.value);
+    trc_unmap_data(uniform.value);
     uniform.dim[0] = dimx;
     uniform.dim[1] = dimy;
     uniform.count = count;
     
     trc_data_t* new_uniforms = trc_create_inspection_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms);
-    trc_unlock_data(rev->uniforms);
+    trc_unmap_data(rev->uniforms);
     
     trc_gl_program_rev_t newrev = *rev;
     newrev.uniforms = new_uniforms;
     
-    trc_gl_program_uniform_t* dest = trc_lock_data(new_uniforms, true, true);
+    trc_gl_program_uniform_t* dest = trc_map_data(new_uniforms, true, true);
     dest[uniform_index] = uniform;
-    trc_unlock_data(new_uniforms);
+    trc_unmap_data(new_uniforms);
     
     trc_set_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program, &newrev);
     
@@ -1373,9 +1373,9 @@ static trc_data_t* replay_get_fb0_buffer(trc_replay_context_t* ctx, trc_gl_conte
     
     size_t data_size = state->drawable_width * state->drawable_height * 4;
     trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
-    void* dest = trc_lock_data(data, false, true);
+    void* dest = trc_map_data(data, false, true);
     F(glReadPixels)(0, 0, state->drawable_width, state->drawable_height, format, type, dest);
-    trc_unlock_data(data);
+    trc_unmap_data(data);
     
     return data;
 }
@@ -1428,7 +1428,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
     
     size_t prog_vertex_attrib_count = program->vertex_attribs->uncompressed_size / (sizeof(uint)*2);
-    uint* prog_vertex_attribs = trc_lock_data(program->vertex_attribs, true, false);
+    uint* prog_vertex_attribs = trc_map_data(program->vertex_attribs, true, false);
     for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
@@ -1456,7 +1456,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
         F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
     
-    trc_unlock_data(program->vertex_attribs);
+    trc_unmap_data(program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
 }
@@ -1474,7 +1474,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
         }
         
         size_t attach_count = rev->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
-        const trc_gl_framebuffer_attachment_t* attachs = trc_lock_data(rev->attachments, true, false);
+        const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, true, false);
         for (size_t i = 0; i < attach_count; i++) {
             const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
             if (attach->has_renderbuffer) continue;
@@ -1482,7 +1482,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
             assert(tex);
             replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
         }
-        trc_unlock_data(rev->attachments);
+        trc_unmap_data(rev->attachments);
     }
 }
 
@@ -1577,16 +1577,16 @@ if current_name != "":
     nontrivial[current_name] = current
 
 for name, func in func_dict.iteritems():
-    output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* command) {\n" % (name))
+    output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
     
     if not name.startswith("glX"):
         output.write("""    if (!trc_get_current_fake_gl_context(ctx->trace)) {
-        trc_add_error(command, "No current OpenGL context.");
+        trc_add_error(cmd, "No current OpenGL context.");
         return;
     }
     """)
     
-    output.write("replay_begin_cmd(ctx, \"%s\", command);\n" % (name))
+    output.write("replay_begin_cmd(ctx, \"%s\", cmd);\n" % (name))
     
     if name == "glXGetProcAddress":
         output.write("    %s_t real = &%s;" % (name, name))
@@ -1598,7 +1598,7 @@ for name, func in func_dict.iteritems():
     function = gl.functions[name]
     
     for i, param in zip(range(len(function.params)), function.params):
-        arg = "command, %d" % (i)
+        arg = "cmd, %d" % (i)
         if param.type_[-1] == "]":
             output.write("%s* p_%s = " % (param.type_.split("[")[0], param.name))
         elif ('*' in param.type_ and 'GLchar' not in param.type_) or 'GLsync' in param.type_:
@@ -1643,14 +1643,14 @@ for name, func in func_dict.iteritems():
     
     if name in nontrivial:
         output.write(nontrivial[name])
-        output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
+        output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
         output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
         output.write("}\n\n")
         continue
     
     output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in function.params])))
     
-    output.write("replay_end_cmd(ctx, \"%s\", command);\n" % (name))
+    output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
     
     output.write("}\n\n")
 

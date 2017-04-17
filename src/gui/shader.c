@@ -154,7 +154,7 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
     size_t shader_count = program->shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* shaders = trc_lock_data(program->shaders, true, false);
+    trc_gl_program_shader_t* shaders = trc_map_data(program->shaders, true, false);
     for (size_t i = 0; i < shader_count; i++) {
         char id[64];
         memset(id, 0, 64);
@@ -167,27 +167,27 @@ void program_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, id, 1, shader_type_str(shdr->type), -1);
     }
-    trc_unlock_data(program->shaders);
+    trc_unmap_data(program->shaders);
     
     view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_uniforms_view"));
     store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
     size_t uniform_count = program->uniforms->uncompressed_size / sizeof(trc_gl_program_uniform_t);
-    trc_gl_program_uniform_t* uniforms = trc_lock_data(program->uniforms, true, false);
+    trc_gl_program_uniform_t* uniforms = trc_map_data(program->uniforms, true, false);
     for (size_t i = 0; i < uniform_count; i++) {
         char val[1024] = {0};
         if (uniforms[i].dim[0] == 0) {
             strcpy(val, "<unset>");
         } else {
             size_t count = uniforms[i].value->uncompressed_size / sizeof(double);
-            double* vals = trc_lock_data(uniforms[i].value, true, false);
+            double* vals = trc_map_data(uniforms[i].value, true, false);
             if (count>1 || uniforms[i].count!=0) strncat(val, "[", sizeof(val)-1);
             for (size_t i = 0; i < count; i++) {
                 strncat(val, static_format("%g", vals[i]), sizeof(val)-1);
                 if (i != count-1) strncat(val, ", ", sizeof(val)-1);
             }
             if (count>1 || uniforms[i].count!=0) strncat(val, "]", sizeof(val)-1);
-            trc_unlock_data(uniforms[i].value);
+            trc_unmap_data(uniforms[i].value);
         }
         
         const char* location = static_format("%u", uniforms[i].fake);
@@ -196,7 +196,7 @@ void program_select_callback(GObject* obj, gpointer user_data) {
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, location, 1, "", 2, val, -1);
     }
-    trc_unlock_data(program->uniforms);
+    trc_unmap_data(program->uniforms);
     
     GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
@@ -219,9 +219,9 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     
     if (!selected_program) return;
     
-    trc_gl_program_shader_t* shaders = trc_lock_data(selected_program->shaders, true, false);
+    trc_gl_program_shader_t* shaders = trc_map_data(selected_program->shaders, true, false);
     trc_gl_program_shader_t shader = shaders[shdr_index];
-    trc_unlock_data(selected_program->shaders);
+    trc_unmap_data(selected_program->shaders);
     
     trc_gl_shader_rev_t* shdr =
         (trc_gl_shader_rev_t*)trc_lookup_gl_obj(trace, shader.shader_revision, shader.fake_shader, TrcGLObj_Shader);
