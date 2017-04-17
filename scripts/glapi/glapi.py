@@ -132,13 +132,13 @@ class Func(object):
         
         res += indent(self.trace_prologue_code, 1) + '\n'
         
-        res += '    gl_start_call(%d);\n' % self.func_id
-        
         params = ', '.join([param.name for param in self.params])
         if self.rettype != None:
             res += '    %s result = gl_%s(%s);\n' % (self.rettype.gen_type_code(), self.name, params)
         else:
             res += '    gl_%s(%s);\n' % (self.name, params)
+        
+        res += '    gl_start_call(%d);\n' % self.func_id
         
         for param in self.params:
             res += indent(param.gen_write_code(), 1) + ';\n'
