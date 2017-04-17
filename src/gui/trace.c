@@ -280,6 +280,17 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_INT(state_int, GL_STENCIL_BACK_WRITEMASK);
     end_category();
     
+    begin_category(store, "GL_CURRENT_VERTEX_ATTRIB");
+    double* cur_vertex_attrib = trc_lock_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB, true, false);
+    size_t count = ctx->state_double_GL_CURRENT_VERTEX_ATTRIB->uncompressed_size/sizeof(double)/4 + 1;
+    for (uint i = 1; i < count; i++) {
+        double v[4];
+        for (uint j = 0; j < 4; j++) v[j] = cur_vertex_attrib[(i-1)*4+j];
+        value(store, static_format("%u", i), "%g %g %g %g", v[0], v[1], v[2], v[3]);
+    }
+    trc_unlock_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB);
+    end_category();
+    
     begin_category(store, "Pack");
     STATE_BOOL(state_bool, GL_PACK_SWAP_BYTES);
     STATE_BOOL(state_bool, GL_PACK_LSB_FIRST);

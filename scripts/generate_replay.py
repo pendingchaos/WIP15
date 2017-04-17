@@ -530,13 +530,16 @@ static void init_context(trc_replay_context_t* ctx) {
     GLint max_clip_distances;
     GLint max_draw_buffers;
     GLint max_viewports;
+    GLint max_vertex_attribs;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
     trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, max_viewports);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
     
     trc_gl_state_enabled_init(trace, GL_BLEND, max_draw_buffers, NULL);
     trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, max_clip_distances, NULL);
@@ -657,6 +660,11 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
     trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
     trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
+    
+    double* va = malloc((max_vertex_attribs-1)*4*sizeof(double));
+    for (size_t i = 0; i < (max_vertex_attribs-1)*4; i++) va[i] = i%4==3 ? 1 : 0;
+    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, (max_vertex_attribs-1)*4, va);
+    free(va);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
@@ -1224,6 +1232,72 @@ static GLint uniformmatf(trc_replay_context_t* ctx, trace_command_t* cmd, bool t
     END_UNIFORM
 }
 
+//type in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_INT]
+//internal in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_INT, GL_INT]
+static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint comp,
+                          GLenum type, bool array, bool normalized, GLenum internal) {
+    uint index = gl_param_GLuint(cmd, 0);
+    if (index==0 || index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0)) {
+        trc_add_error(cmd, "Invalid vertex attribute index");
+        return;
+    }
+    index--;
+    uint i = 0;
+    for (; i < comp; i++) {
+        double val = 0;
+        if (array) {
+            switch (type) {
+            case GL_UNSIGNED_BYTE:
+            case GL_UNSIGNED_SHORT:
+            case GL_UNSIGNED_INT: val = trc_get_int(trc_get_arg(cmd, 1))[i]; break;
+            case GL_BYTE:
+            case GL_SHORT:
+            case GL_INT: val = trc_get_uint(trc_get_arg(cmd, 1))[i]; break;
+            case GL_FLOAT:
+            case GL_DOUBLE: val = trc_get_double(trc_get_arg(cmd, 1))[i]; break;
+            }
+        } else {
+            switch (type) {
+            case GL_UNSIGNED_BYTE:
+            case GL_UNSIGNED_SHORT:
+            case GL_UNSIGNED_INT: val = trc_get_int(trc_get_arg(cmd, i+1))[0]; break;
+            case GL_BYTE:
+            case GL_SHORT:
+            case GL_INT: val = trc_get_uint(trc_get_arg(cmd, i+1))[0]; break;
+            case GL_FLOAT:
+            case GL_DOUBLE: val = trc_get_double(trc_get_arg(cmd, i+1))[0]; break;
+            }
+        }
+        if (internal==GL_FLOAT) val = (float)val;
+        if (normalized) {
+            switch (type) {
+            case GL_UNSIGNED_BYTE: val /= UINT8_MAX; break;
+            case GL_UNSIGNED_SHORT: val /= UINT16_MAX; break;
+            case GL_UNSIGNED_INT: val /= UINT32_MAX; break;
+            case GL_BYTE: val = val<0 ? val/-(double)INT8_MIN : val/INT8_MAX; break;
+            case GL_SHORT: val = val<0 ? val/-(double)INT16_MIN : val/INT16_MAX; break;
+            case GL_INT: val = val<0 ? val/-(double)INT32_MIN : val/INT32_MAX; break;
+            }
+        }
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
+    }
+    for (; i < 3; i++)
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
+    for (; i < 4; i++)
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 1);
+    
+    double vals[4];
+    for (i = 0; i < 4; i++)
+        vals[i] = trc_gl_state_get_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i);
+    
+    switch (internal) {
+    case GL_FLOAT: F(glVertexAttrib4dv(index+1, vals)); break;
+    case GL_DOUBLE: F(glVertexAttribL4dv(index+1, vals)); break;
+    case GL_UNSIGNED_INT: F(glVertexAttribI4ui(index, vals[0], vals[1], vals[2], vals[3])); break;
+    case GL_INT: F(glVertexAttribI4i(index, vals[0], vals[1], vals[2], vals[3])); break;
+    }
+}
+
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     switch (target) {
@@ -1373,28 +1447,11 @@ static void begin_draw(trc_replay_context_t* ctx) {
         }
         F(glEnableVertexAttribArray)(real_loc);
         
-        if (a->buffer) {
-            F(glBindBuffer)(GL_ARRAY_BUFFER, a->buffer);
-            if (a->integer)
-                F(glVertexAttribIPointer)(real_loc, a->size, a->type, a->stride, (const void*)(uintptr_t)a->offset);
-            else
-                F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, a->stride, (const void*)(uintptr_t)a->offset);
-        } else {
-            switch (a->size) {
-            case 1:
-                F(glVertexAttrib1d)(real_loc, a->value[0]);
-                break;
-            case 2:
-                F(glVertexAttrib2d)(real_loc, a->value[0], a->value[1]);
-                break;
-            case 3:
-                F(glVertexAttrib3d)(real_loc, a->value[0], a->value[1], a->value[2]);
-                break;
-            case 4:
-                F(glVertexAttrib4d)(real_loc, a->value[0], a->value[1], a->value[2], a->value[3]);
-                break;
-            }
-        }
+        F(glBindBuffer)(GL_ARRAY_BUFFER, a->buffer);
+        if (a->integer)
+            F(glVertexAttribIPointer)(real_loc, a->size, a->type, a->stride, (const void*)(uintptr_t)a->offset);
+        else
+            F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, a->stride, (const void*)(uintptr_t)a->offset);
         
         //TODO: Only do this if OpenGL 3.3+ is used
         F(glVertexAttribDivisor)(real_loc, a->divisor);

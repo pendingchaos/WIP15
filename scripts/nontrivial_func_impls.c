@@ -1447,7 +1447,7 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
-    if (gl_param_GLint(command, 0) < rev.attrib_count) {
+    if (p_index < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[gl_param_GLint(command, 0)];
         a->normalized = p_normalized;
         a->integer = false;
@@ -1464,7 +1464,7 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
-    if (gl_param_GLint(command, 0) < rev.attrib_count) {
+    if (p_index < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[p_index];
         a->integer = true;
         a->size = p_size;
@@ -1488,6 +1488,198 @@ glDisableVertexAttribArray: //GLuint p_index
     if (gl_param_GLint(command, 0) < rev.attrib_count)
         rev.attribs[p_index].enabled = false;
     trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
+
+glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
+    vertex_attrib(ctx, command, 1, GL_FLOAT, false, false, GL_FLOAT);
+
+glVertexAttrib1s: //GLuint p_index, GLshort p_v0
+    vertex_attrib(ctx, command, 1, GL_INT, false, false, GL_FLOAT);
+
+glVertexAttrib1d: //GLuint p_index, GLdouble p_v0
+    vertex_attrib(ctx, command, 1, GL_DOUBLE, false, false, GL_FLOAT);
+
+glVertexAttribI1i: //GLuint p_index, GLint p_v0
+    vertex_attrib(ctx, command, 1, GL_INT, false, false, GL_INT);
+
+glVertexAttribI1ui: //GLuint p_index, GLuint p_v0
+    vertex_attrib(ctx, command, 1, GL_UNSIGNED_INT, false, false, GL_UNSIGNED_INT);
+
+glVertexAttribL1d: //GLuint p_index, GLdouble p_v0
+    vertex_attrib(ctx, command, 1, GL_DOUBLE, false, false, GL_DOUBLE);
+
+glVertexAttrib2f: //GLuint p_index, GLfloat p_v0, GLfloat p_v1
+    vertex_attrib(ctx, command, 2, GL_FLOAT, false, false, GL_FLOAT);
+
+glVertexAttrib2s: //GLuint p_index, GLshort p_v0, GLshort p_v1
+    vertex_attrib(ctx, command, 2, GL_INT, false, false, GL_FLOAT);
+
+glVertexAttrib2d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1
+    vertex_attrib(ctx, command, 2, GL_DOUBLE, false, false, GL_FLOAT);
+
+glVertexAttribI2i: //GLuint p_index, GLint p_v0, GLint p_v1
+    vertex_attrib(ctx, command, 2, GL_INT, false, false, GL_INT);
+
+glVertexAttribI2ui: //GLuint p_index, GLuint p_v0, GLuint p_v1
+    vertex_attrib(ctx, command, 2, GL_UNSIGNED_INT, false, false, GL_UNSIGNED_INT);
+
+glVertexAttribL2d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1
+    vertex_attrib(ctx, command, 2, GL_DOUBLE, false, false, GL_DOUBLE);
+
+glVertexAttrib3f: //GLuint p_index, GLfloat p_v0, GLfloat p_v1, GLfloat p_v2
+    vertex_attrib(ctx, command, 3, GL_FLOAT, false, false, GL_FLOAT);
+
+glVertexAttrib3s: //GLuint p_index, GLshort p_v0, GLshort p_v1, GLshort p_v2
+    vertex_attrib(ctx, command, 3, GL_INT, false, false, GL_FLOAT);
+
+glVertexAttrib3d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1, GLdouble p_v2
+    vertex_attrib(ctx, command, 3, GL_DOUBLE, false, false, GL_FLOAT);
+
+glVertexAttribI3i: //GLuint p_index, GLint p_v0, GLint p_v1, GLint p_v2
+    vertex_attrib(ctx, command, 3, GL_INT, false, false, GL_INT);
+
+glVertexAttribI3ui: //GLuint p_index, GLuint p_v0, GLuint p_v1, GLuint p_v2
+    vertex_attrib(ctx, command, 3, GL_UNSIGNED_INT, false, false, GL_UNSIGNED_INT);
+
+glVertexAttribL3d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1, GLdouble p_v2
+    vertex_attrib(ctx, command, 3, GL_DOUBLE, false, false, GL_DOUBLE);
+
+glVertexAttrib4f: //GLuint p_index, GLfloat p_v0, GLfloat p_v1, GLfloat p_v2, GLfloat p_v3
+    vertex_attrib(ctx, command, 4, GL_FLOAT, false, false, GL_FLOAT);
+
+glVertexAttrib4s: //GLuint p_index, GLshort p_v0, GLshort p_v1, GLshort p_v2, GLshort p_v3
+    vertex_attrib(ctx, command, 4, GL_INT, false, false, GL_FLOAT);
+
+glVertexAttrib4d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1, GLdouble p_v2, GLdouble p_v3
+    vertex_attrib(ctx, command, 4, GL_DOUBLE, false, false, GL_FLOAT);
+
+glVertexAttribI4i: //GLuint p_index, GLint p_v0, GLint p_v1, GLint p_v2, GLint p_v3
+    vertex_attrib(ctx, command, 4, GL_INT, false, false, GL_INT);
+
+glVertexAttribI4ui: //GLuint p_index, GLuint p_v0, GLuint p_v1, GLuint p_v2, GLuint p_v3
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_INT, false, false, GL_UNSIGNED_INT);
+
+glVertexAttribL4d: //GLuint p_index, GLdouble p_v0, GLdouble p_v1, GLdouble p_v2, GLdouble p_v3
+    vertex_attrib(ctx, command, 4, GL_DOUBLE, false, false, GL_DOUBLE);
+
+glVertexAttrib1dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 1, GL_DOUBLE, true, false, GL_FLOAT);
+
+glVertexAttrib1fv: //GLuint p_index, const GLfloat* p_v
+    vertex_attrib(ctx, command, 1, GL_FLOAT, true, false, GL_FLOAT);
+
+glVertexAttrib1sv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 1, GL_SHORT, true, false, GL_FLOAT);
+
+glVertexAttrib2dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 2, GL_DOUBLE, true, false, GL_FLOAT);
+
+glVertexAttrib2fv: //GLuint p_index, const GLfloat* p_v
+    vertex_attrib(ctx, command, 2, GL_FLOAT, true, false, GL_FLOAT);
+
+glVertexAttrib2sv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 2, GL_SHORT, true, false, GL_FLOAT);
+
+glVertexAttrib3dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 3, GL_DOUBLE, true, false, GL_FLOAT);
+
+glVertexAttrib3fv: //GLuint p_index, const GLfloat* p_v
+    vertex_attrib(ctx, command, 3, GL_FLOAT, true, false, GL_FLOAT);
+
+glVertexAttrib3sv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 3, GL_SHORT, true, false, GL_FLOAT);
+
+glVertexAttrib4Nbv: //GLuint p_index, const GLbyte* p_v
+    vertex_attrib(ctx, command, 4, GL_BYTE, true, true, GL_FLOAT);
+
+glVertexAttrib4Niv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 4, GL_INT, true, true, GL_FLOAT);
+
+glVertexAttrib4Nsv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 4, GL_SHORT, true, true, GL_FLOAT);
+
+glVertexAttrib4Nubv: //GLuint p_index, const GLubyte* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_BYTE, true, true, GL_FLOAT);
+
+glVertexAttrib4Nuiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_INT, true, true, GL_FLOAT);
+
+glVertexAttrib4Nusv: //GLuint p_index, const GLushort* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_SHORT, false, false, GL_DOUBLE);
+
+glVertexAttrib4bv: //GLuint p_index, const GLbyte* p_v
+    vertex_attrib(ctx, command, 4, GL_BYTE, false, false, GL_DOUBLE);
+
+glVertexAttrib4dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 4, GL_DOUBLE, false, false, GL_DOUBLE);
+
+glVertexAttrib4fv: //GLuint p_index, const GLfloat* p_v
+    vertex_attrib(ctx, command, 4, GL_FLOAT, false, false, GL_DOUBLE);
+
+glVertexAttrib4iv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 4, GL_INT, false, false, GL_DOUBLE);
+
+glVertexAttrib4sv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 4, GL_SHORT, false, false, GL_DOUBLE);
+
+glVertexAttrib4ubv: //GLuint p_index, const GLubyte* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_BYTE, false, false, GL_DOUBLE);
+
+glVertexAttrib4uiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_INT, false, false, GL_DOUBLE);
+
+glVertexAttrib4usv: //GLuint p_index, const GLushort* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_SHORT, false, false, GL_DOUBLE);
+
+glVertexAttrib4Nub: //GLuint p_index, GLubyte p_x, GLubyte p_y, GLubyte p_z, GLubyte p_w
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_BYTE, false, true, GL_FLOAT);
+
+glVertexAttribI4ubv: //GLuint p_index, const GLubyte* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_SHORT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribI4usv: //GLuint p_index, const GLushort* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_SHORT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribI4sv: //GLuint p_index, const GLshort* p_v
+    vertex_attrib(ctx, command, 4, GL_SHORT, true, false, GL_INT);
+
+glVertexAttribI3iv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 3, GL_INT, true, false, GL_INT);
+
+glVertexAttribI4iv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 4, GL_INT, true, false, GL_INT);
+
+glVertexAttribI2uiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 2, GL_UNSIGNED_INT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribI4uiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 4, GL_UNSIGNED_INT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribI4bv: //GLuint p_index, const GLbyte* p_v
+    vertex_attrib(ctx, command, 4, GL_BYTE, true, false, GL_INT);
+
+glVertexAttribI1iv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 1, GL_INT, true, false, GL_INT);
+
+glVertexAttribI2iv: //GLuint p_index, const GLint* p_v
+    vertex_attrib(ctx, command, 2, GL_INT, true, false, GL_INT);
+
+glVertexAttribI3uiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 3, GL_UNSIGNED_INT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribI1uiv: //GLuint p_index, const GLuint* p_v
+    vertex_attrib(ctx, command, 1, GL_UNSIGNED_INT, true, false, GL_UNSIGNED_INT);
+
+glVertexAttribL1dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 1, GL_DOUBLE, true, false, GL_DOUBLE);
+
+glVertexAttribL2dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 2, GL_DOUBLE, true, false, GL_DOUBLE);
+
+glVertexAttribL3dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 3, GL_DOUBLE, true, false, GL_DOUBLE);
+
+glVertexAttribL4dv: //GLuint p_index, const GLdouble* p_v
+    vertex_attrib(ctx, command, 4, GL_DOUBLE, true, false, GL_DOUBLE);
 
 glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
     begin_draw(ctx);
@@ -1629,8 +1821,7 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
     
     real(p_n, arrays);
     
-    GLint attrib_count;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &attrib_count);
+    int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
     for (size_t i = 0; i < p_n; ++i) {
         trc_gl_vao_rev_t rev;
         rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
@@ -1648,10 +1839,6 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
             rev.attribs[j].type = GL_FLOAT;
             rev.attribs[j].divisor = 0;
             rev.attribs[j].buffer = 0;
-            rev.attribs[j].value[0] = 0;
-            rev.attribs[j].value[1] = 0;
-            rev.attribs[j].value[2] = 0;
-            rev.attribs[j].value[3] = 1;
         }
         trc_set_gl_vao(ctx->trace, fake[i], &rev);
     }

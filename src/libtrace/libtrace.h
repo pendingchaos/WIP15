@@ -249,7 +249,6 @@ typedef struct trc_gl_vao_attrib_t {
     uint type;
     uint divisor;
     uint buffer;
-    double value[4];
 } trc_gl_vao_attrib_t;
 
 typedef struct trc_gl_vao_rev_t {

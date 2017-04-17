@@ -166,7 +166,7 @@ map array int state_int
 //    GL_NUM_COMPRESSED_TEXTURE_FORMATS
 //    GL_NUM_PROGRAM_BINARY_FORMATS
     GL_MAX_DRAW_BUFFERS
-//    GL_MAX_VERTEX_ATTRIBS
+    GL_MAX_VERTEX_ATTRIBS
 //    GL_MAX_TESS_CONTROL_INPUT_COMPONENTS
 //    GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS
 //    GL_MAX_TEXTURE_IMAGE_UNITS
@@ -350,6 +350,9 @@ map array float state_float
 //    GL_PATCH_DEFAULT_INNER_LEVEL
 //    GL_PATCH_DEFAULT_OUTER_LEVEL
 
+map array double state_double
+    GL_CURRENT_VERTEX_ATTRIB
+
 map array char state_ascii_string
 //    GL_VENDOR
 //    GL_RENDERER
@@ -382,6 +385,7 @@ class Property(object):
                        'bool': 'bool',
                        'uint8': 'uint8_t',
                        'float': 'float',
+                       'double': 'double',
                        'texture': 'uint',
                        'buffer': 'uint',
                        'program': 'uint',
@@ -396,6 +400,7 @@ class Property(object):
                            'bool': 'false',
                            'uint8': '0',
                            'float': '0.0f',
+                           'double': '0.0',
                            'texture': '0',
                            'buffer': '0',
                            'program': '0',

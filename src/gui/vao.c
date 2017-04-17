@@ -57,7 +57,6 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         if (vao && vao->ref_count) count++;
         if (count == index+1) break;
     }
-    
     if (!vao) return; //TODO: Is this possible?
     
     for (size_t i = 0; i < vao->attrib_count; i++) {
@@ -99,47 +98,6 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         memset(buffer_str, 0, 64);
         if (attr->buffer) snprintf(buffer_str, 64, "%u", attr->buffer);
         
-        char value_strs[128][4];
-        for (size_t j = 0; j < 4; j++)
-            strncpy(value_strs[j], format_float(attr->value[j]), 128);
-        
-        char value_str[1024];
-        memset(value_str, 0, 1024);
-        if (attr->buffer == 0) {
-            switch (attr->size) {
-            case 1:
-                snprintf(value_str,
-                         1024,
-                         "%s",
-                         value_strs[0]);
-                break;
-            case 2:
-                snprintf(value_str,
-                         1024,
-                         "[%s %s]",
-                         value_strs[0],
-                         value_strs[1]);
-                break;
-            case 3:
-                snprintf(value_str,
-                         1024,
-                         "[%s %s %s]",
-                         value_strs[0],
-                         value_strs[1],
-                         value_strs[2]);
-                break;
-            case 4:
-                snprintf(value_str,
-                         1024,
-                         "[%s %s %s %s]",
-                         value_strs[0],
-                         value_strs[1],
-                         value_strs[2],
-                         value_strs[3]);
-                break;
-            }
-        }
-        
         GtkTreeIter row;
         gtk_tree_store_append(attr_store, &row, NULL);
         gtk_tree_store_set(attr_store, &row,
@@ -153,12 +111,11 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
                            7, attr->integer ? "true" : "false",
                            8, divisor_str,
                            9, buffer_str,
-                           10, value_str,
                            -1);
     }
 }
 
 void vao_init() {
     init_treeview(builder, "vao_treeview", 1);
-    init_treeview(builder, "vao_attributes", 11);
+    init_treeview(builder, "vao_attributes", 10);
 }

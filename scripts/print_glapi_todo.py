@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glapi.glxml
+import math
 from gl_state import *
 from glapi.glapi import *
 
@@ -48,4 +49,4 @@ for ver in versions:
         print 'Other:'
     else:
         print '%d.%d:' % ver
-    print '    %.0f%c functions implemented' % (num_implemented[ver]/float(num_implemented[ver]+num_not_implemented[ver])*100, '%')
+    print '    %.0f%c functions implemented' % (math.floor(num_implemented[ver]/float(num_implemented[ver]+num_not_implemented[ver])*100), '%')
