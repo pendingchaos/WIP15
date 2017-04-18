@@ -299,7 +299,7 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, p_texture);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, p_texture);
     if (!rev && p_texture) ERROR("Invalid texture name.");
-    if (!rev->created) {
+    if (rev && !rev->created) {
         trc_gl_texture_rev_t newrev = *rev;
         newrev.created = true;
         newrev.type = p_target;
@@ -1774,7 +1774,8 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
     uint64_t p_pointer = gl_param_pointer(cmd, 5);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
+    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[gl_param_GLint(cmd, 0)];
         a->normalized = p_normalized;
@@ -1785,13 +1786,14 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
         a->type = p_type;
         a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
     }
-    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
     uint64_t p_pointer = gl_param_pointer(cmd, 4);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
+    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attrib_count) {
         trc_gl_vao_attrib_t* a = &rev.attribs[p_index];
         a->integer = true;
@@ -1801,21 +1803,23 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
         a->type = p_type;
         a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
     }
-    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glEnableVertexAttribArray: //GLuint p_index
     real(p_index);
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
+    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (gl_param_GLint(cmd, 0) < rev.attrib_count)
         rev.attribs[p_index].enabled = true;
-    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glDisableVertexAttribArray: //GLuint p_index
     real(p_index);
-    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao);
+    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (gl_param_GLint(cmd, 0) < rev.attrib_count)
         rev.attribs[p_index].enabled = false;
-    trc_set_gl_vao(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_vao, &rev);
+    trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
     vertex_attrib(ctx, cmd, 1, GL_FLOAT, false, false, GL_FLOAT);
@@ -2188,10 +2192,7 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
 glBindVertexArray: //GLuint p_array
     GLuint real_vao = trc_get_real_gl_vao(ctx->trace, p_array);
     if (!real_vao && p_array) ERROR("Invalid vertex array name.");
-    
-    trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
-    state.bound_vao = p_array;
-    trc_set_gl_context(ctx->trace, 0, &state);
+    trc_gl_state_set_bound_vao(ctx->trace, p_array);
 
 glPatchParameterfv: //GLenum p_pname, const GLfloat* p_values
     GLfloat values[trc_get_arg(cmd, 1)->count];
@@ -2446,10 +2447,7 @@ glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
     GLuint rb = trc_get_real_gl_renderbuffer(ctx->trace, p_renderbuffer);
     if (!rb && p_renderbuffer) ERROR("Invalid renderbuffer name.");
     real(p_target, rb);
-    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    trc_gl_context_rev_t newstate = *state;
-    newstate.bound_renderbuffer = p_renderbuffer;
-    trc_set_gl_context(ctx->trace, 0, &newstate);
+    trc_gl_state_set_bound_renderbuffer(ctx->trace, p_renderbuffer);
 
 glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
     GLuint program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -2556,18 +2554,18 @@ glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, p_zoffset);
 
 glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, state->bound_renderbuffer);
+    uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, rb);
     if (!rev) ERROR("Invalid renderbuffer name");
     real(p_target, p_internalformat, p_width, p_height);
-    replay_update_renderbuffer(ctx, rev, state->bound_renderbuffer, p_width, p_height, p_internalformat, 1);
+    replay_update_renderbuffer(ctx, rev, rb, p_width, p_height, p_internalformat, 1);
 
 glRenderbufferStorageMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, state->bound_renderbuffer);
+    uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, rb);
     if (!rev) ERROR("Invalid renderbuffer name");
     real(p_target, p_samples, p_internalformat, p_width, p_height);
-    replay_update_renderbuffer(ctx, rev, state->bound_renderbuffer, p_width, p_height, p_internalformat, p_samples);
+    replay_update_renderbuffer(ctx, rev, rb, p_width, p_height, p_internalformat, p_samples);
 
 glFenceSync: //GLenum p_condition, GLbitfield p_flags
     GLsync real_sync = real(p_condition, p_flags);

@@ -975,7 +975,7 @@ void trc_run_inspection(trace_t* trace) {
     
     SDL_DestroyWindow(ctx.window);
     if (!sdl_was_init)
-        SDL_Quit();
+        SDL_Quit(); //TODO: Only quit the video subsystem
     
     free(funcs);
 }
@@ -1334,8 +1334,10 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 
 static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data) {
     void* dest = malloc(data->uncompressed_size);
+    #if LZ4_ENABLED
     int res = LZ4_compress_default(src, dest, data->uncompressed_size, data->uncompressed_size);
     if (res==0 || res==data->uncompressed_size) {
+    #endif
         data->compression = TrcCompression_None;
         data->compressed_size = data->uncompressed_size;
         if (can_own) {
@@ -1347,6 +1349,7 @@ static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data)
             memcpy(dest, src, data->uncompressed_size);
             if (owns_data) *owns_data = false;
         }
+    #if LZ4_ENABLED
     } else {
         data->compression = TrcCompression_LZ4;
         data->compressed_data = malloc(res);
@@ -1355,6 +1358,7 @@ static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data)
         data->compressed_size = res;
         if (owns_data) *owns_data = false;
     }
+    #endif
 }
 
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
