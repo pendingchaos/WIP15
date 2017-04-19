@@ -249,35 +249,35 @@ glGenTextures: //GLsizei p_n, GLuint* p_textures
     
     real(p_n, textures);
     
+    trc_gl_texture_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
+    rev.base_level = 0;
+    rev.sample_params.border_color[0] = 0;
+    rev.sample_params.border_color[1] = 0;
+    rev.sample_params.border_color[2] = 0;
+    rev.sample_params.border_color[3] = 0;
+    rev.sample_params.compare_func = GL_LEQUAL;
+    rev.sample_params.compare_mode = GL_NONE;
+    rev.lod_bias = 0;
+    rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
+    rev.sample_params.mag_filter = GL_LINEAR;
+    rev.sample_params.min_lod = -1000;
+    rev.sample_params.max_lod = 1000;
+    rev.max_level = 1000;
+    rev.swizzle[0] = GL_RED;
+    rev.swizzle[1] = GL_GREEN;
+    rev.swizzle[2] = GL_BLUE;
+    rev.swizzle[3] = GL_ALPHA;
+    rev.sample_params.wrap_s = GL_REPEAT;
+    rev.sample_params.wrap_t = GL_REPEAT;
+    rev.sample_params.wrap_r = GL_REPEAT;
+    rev.created = false;
+    rev.type = 0;
+    rev.images = NULL;
     for (size_t i = 0; i < p_n; ++i) {
-        trc_gl_texture_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = textures[i];
-        rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
-        rev.base_level = 0;
-        rev.sample_params.border_color[0] = 0;
-        rev.sample_params.border_color[1] = 0;
-        rev.sample_params.border_color[2] = 0;
-        rev.sample_params.border_color[3] = 0;
-        rev.sample_params.compare_func = GL_LEQUAL;
-        rev.sample_params.compare_mode = GL_NONE;
-        rev.lod_bias = 0;
-        rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
-        rev.sample_params.mag_filter = GL_LINEAR;
-        rev.sample_params.min_lod = -1000;
-        rev.sample_params.max_lod = 1000;
-        rev.max_level = 1000;
-        rev.swizzle[0] = GL_RED;
-        rev.swizzle[1] = GL_GREEN;
-        rev.swizzle[2] = GL_BLUE;
-        rev.swizzle[3] = GL_ALPHA;
-        rev.sample_params.wrap_s = GL_REPEAT;
-        rev.sample_params.wrap_t = GL_REPEAT;
-        rev.sample_params.wrap_r = GL_REPEAT;
-        rev.created = false;
-        rev.type = 0;
-        rev.images = NULL;
         trc_set_gl_texture(ctx->trace, fake[i], &rev);
     }
 
@@ -303,7 +303,7 @@ glBindTexture: //GLenum p_target, GLuint p_texture
         trc_gl_texture_rev_t newrev = *rev;
         newrev.created = true;
         newrev.type = p_target;
-        newrev.images = trc_create_inspection_data(ctx->trace, 0, NULL);
+        newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
         trc_set_gl_texture(ctx->trace, p_texture, &newrev);
     }
     //TODO: Reference counting
@@ -482,18 +482,18 @@ glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     
     real(p_n, buffers);
     
+    trc_gl_buffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_data = false;
+    rev.data_usage = 0;
+    rev.data = NULL;
+    rev.mapped = false;
+    rev.map_offset = 0;
+    rev.map_length = 0;
+    rev.map_access = 0;
     for (size_t i = 0; i < p_n; ++i) {
-        trc_gl_buffer_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = buffers[i];
-        rev.has_data = false;
-        rev.data_usage = 0;
-        rev.data = NULL;
-        rev.mapped = false;
-        rev.map_offset = 0;
-        rev.map_length = 0;
-        rev.map_access = 0;
         trc_set_gl_buffer(ctx->trace, fake[i], &rev);
     }
 
@@ -533,7 +533,7 @@ glBufferData: //GLenum p_target, GLsizeiptr p_size, const void * p_data, GLenum 
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    buf.data = trc_create_inspection_data(ctx->trace, p_size, data);
+    buf.data = trc_create_data(ctx->trace, p_size, data, TRC_DATA_IMMUTABLE);
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void * p_data
@@ -548,14 +548,15 @@ glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const 
     
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_inspection_data(ctx->trace, old.data->uncompressed_size, NULL);
-    void* newdata = trc_map_data(buf.data, false, true);
+    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
+    void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
     
-    memcpy(newdata, trc_map_data(old.data, true, false), old.data->uncompressed_size);
+    void* olddata = trc_map_data(old.data, TRC_MAP_READ);
+    memcpy(newdata, olddata, old.data->size);
     trc_unmap_data(old.data);
     
     memcpy((uint8_t*)newdata+p_offset, data, p_size);
-    trc_unmap_data(buf.data);
+    trc_unmap_freeze_data(ctx->trace, buf.data);
     
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
@@ -573,7 +574,7 @@ glMapBuffer: //GLenum p_target, GLenum p_access
     
     buf.mapped = true;
     buf.map_offset = 0;
-    buf.map_length = buf.data->uncompressed_size;
+    buf.map_length = buf.data->size;
     switch (p_access) {
     case GL_READ_ONLY: buf.map_access = GL_MAP_READ_BIT; break;
     case GL_WRITE_ONLY: buf.map_access = GL_MAP_WRITE_BIT; break;
@@ -607,7 +608,7 @@ glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLb
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
     if (!buf.data) RETURN; //TODO: Error
     
-    if (p_offset+p_length > buf.data->uncompressed_size)
+    if (p_offset+p_length > buf.data->size)
         ERROR("offset+length is greater than the buffer's size");
     if (buf.mapped) ERROR("Buffer is already mapped");
     
@@ -628,7 +629,7 @@ glUnmapBuffer: //GLenum p_target
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
     if (!buf.data) RETURN; //TODO: Error
     
-    if (extra->size != buf.data->uncompressed_size) {
+    if (extra->size != buf.data->size) {
         //TODO
     }
     
@@ -639,14 +640,15 @@ glUnmapBuffer: //GLenum p_target
     
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_inspection_data(ctx->trace, old.data->uncompressed_size, NULL);
-    void* newdata = trc_map_data(buf.data, false, true);
+    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
+    void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
     
-    memcpy(newdata, trc_map_data(old.data, true, false), old.data->uncompressed_size);
+    void* olddata = trc_map_data(old.data, TRC_MAP_READ);
+    memcpy(newdata, olddata, old.data->size);
     trc_unmap_data(old.data);
     
     memcpy(newdata, extra->data, extra->size);
-    trc_unmap_data(buf.data);
+    trc_unmap_freeze_data(ctx->trace, buf.data);
     
     buf.mapped = false;
     buf.map_offset = 0;
@@ -739,9 +741,9 @@ glCreateProgram: //
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.real = real_program;
-    rev.uniforms = trc_create_inspection_data(ctx->trace, 0, NULL);
-    rev.vertex_attribs = trc_create_inspection_data(ctx->trace, 0, NULL);
-    rev.shaders = trc_create_inspection_data(ctx->trace, 0, NULL);
+    rev.uniforms = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.vertex_attribs = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.info_log = NULL;
     trc_set_gl_program(ctx->trace, fake, &rev);
 
@@ -751,13 +753,13 @@ glDeleteProgram: //GLuint p_program
     if (!rev.real) ERROR("Invalid program name.");
     real(rev.real);
     
-    size_t shader_count = rev.shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, true, false);
+    size_t shader_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
         trc_rel_gl_obj(ctx->trace, shaders[i].fake_shader, TrcGLObj_Shader);
     trc_unmap_data(rev.shaders);
     
-    rev.shaders = trc_create_inspection_data(ctx->trace, 0, NULL);
+    rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     trc_set_gl_program(ctx->trace, p_program, &rev);
     
     trc_rel_gl_obj(ctx->trace, p_program, TrcGLObj_Program);
@@ -775,21 +777,21 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_rev_t old = program;
     const trc_gl_shader_rev_t* shader = trc_get_gl_shader(ctx->trace, p_shader);
     
-    size_t shader_count = program.shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* src = trc_map_data(old.shaders, true, false);
+    size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
     
     for (size_t i = 0; i < shader_count; i++) {
         if (src[i].fake_shader == p_shader) ERROR("Shader is already attached");
     }
     
-    program.shaders = trc_create_inspection_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL);
+    program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL, 0);
     
-    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, false, true);
+    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
     memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
     dest[shader_count].fake_shader = p_shader;
     dest[shader_count].shader_revision = shader->revision;
     trc_unmap_data(old.shaders);
-    trc_unmap_data(program.shaders);
+    trc_unmap_freeze_data(ctx->trace, program.shaders);
     
     trc_grab_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
     trc_set_gl_program(ctx->trace, p_program, &program);
@@ -806,11 +808,11 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_rev_t program = *trc_get_gl_program(ctx->trace, p_program);
     trc_gl_program_rev_t old = program;
     
-    size_t shader_count = program.shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
-    program.shaders = trc_create_inspection_data(ctx->trace, (shader_count-1)*sizeof(trc_gl_program_shader_t), NULL);
+    size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
+    program.shaders = trc_create_data(ctx->trace, (shader_count-1)*sizeof(trc_gl_program_shader_t), NULL, 0);
     
-    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, false, true);
-    trc_gl_program_shader_t* src = trc_map_data(old.shaders, true, false);
+    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
+    trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
     size_t next = 0;
     bool found = false;
     for (size_t i = 0; i < shader_count; i++) {
@@ -818,7 +820,7 @@ glDetachShader: //GLuint p_program, GLuint p_shader
         dest[next++] = src[i];
     }
     trc_unmap_data(old.shaders);
-    trc_unmap_data(program.shaders);
+    trc_unmap_freeze_data(ctx->trace, program.shaders);
     if (!found) ERROR("Shader is not attached to program");
     
     trc_rel_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
@@ -894,9 +896,8 @@ glLinkProgram: //GLuint p_program
         free(name);
     }
     
-    rev.uniforms = trc_create_inspection_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms);
-    rev.vertex_attribs = trc_create_inspection_data(ctx->trace, vertex_attrib_count*2*sizeof(uint),
-                                                    vertex_attribs);
+    rev.uniforms = trc_create_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
+    rev.vertex_attribs = trc_create_data(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_program(ctx->trace, p_program, &rev);
     
@@ -2160,6 +2161,7 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
         rev.ref_count = 1;
         rev.real = arrays[i];
         rev.attrib_count = attrib_count;
+        //TODO: use trc_data_t
         rev.attribs = malloc(attrib_count*sizeof(trc_gl_vao_attrib_t));
         for (size_t j = 0; j < attrib_count; j++) {
             rev.attribs[j].enabled = false;
@@ -2278,10 +2280,10 @@ glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     
     real(p_count, samplers);
     
+    trc_gl_sampler_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
     for (size_t i = 0; i < p_count; ++i) {
-        trc_gl_sampler_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = samplers[i];
         trc_set_gl_sampler(ctx->trace, fake[i], &rev);
     }
@@ -2372,12 +2374,12 @@ glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     
     real(p_n, fbs);
     
+    trc_gl_framebuffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.attachments = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     for (size_t i = 0; i < p_n; ++i) {
-        trc_gl_framebuffer_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = fbs[i];
-        rev.attachments = trc_create_inspection_data(ctx->trace, 0, NULL);
         trc_set_gl_framebuffer(ctx->trace, fake[i], &rev);
     }
 
@@ -2418,12 +2420,12 @@ glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     
     real(n, rbs);
     
+    trc_gl_renderbuffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_storage = false;
     for (size_t i = 0; i < n; ++i) {
-        trc_gl_renderbuffer_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = rbs[i];
-        rev.has_storage = false;
         trc_set_gl_renderbuffer(ctx->trace, fake[i], &rev);
     }
 
@@ -2604,13 +2606,13 @@ glGenQueries: //GLsizei p_n, GLuint* p_ids
     
     real(p_n, queries);
     
+    trc_gl_query_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.type = 0;
+    rev.result = 0;
     for (size_t i = 0; i < p_n; ++i) {
-        trc_gl_query_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
         rev.real = queries[i];
-        rev.type = 0;
-        rev.result = 0;
         trc_set_gl_query(ctx->trace, fake[i], &rev);
     }
 

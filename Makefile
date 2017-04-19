@@ -61,7 +61,7 @@ bin/libgl.so: src/.libgl.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
 
 bin/libtrace.so: $(libtrace_obj) src/shared/.vec.o src/libtrace/.replay_gl.o
-	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` $(COMP_LIBS) $(CFLAGS)
+	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
 bin/inspect-gui: $(gui_obj) src/shared/.vec.o src/shared/.glapi.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)

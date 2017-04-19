@@ -88,8 +88,8 @@ static void update_buffer_view(size_t buf_index) {
     if (!buf) return; //TODO: Is this possible?
     if (!buf->data) return;
     
-    uint8_t* data = trc_map_data(buf->data, true, false);
-    size_t buf_size = buf->data->uncompressed_size;
+    uint8_t* data = trc_map_data(buf->data, TRC_MAP_READ);
+    size_t buf_size = buf->data->size;
     while (offset+type_size <= buf_size) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);

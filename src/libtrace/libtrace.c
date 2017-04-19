@@ -1,10 +1,13 @@
 #include "libtrace/libtrace.h"
 
+#include <malloc.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <endian.h>
 #include <dlfcn.h>
+#include <unistd.h>
 #include <SDL2/SDL.h>
 #ifdef ZLIB_ENABLED
 #include <zlib.h>
@@ -47,6 +50,30 @@ typedef struct {
 
 static trace_error_t trace_error = TraceError_None;
 static const char *trace_error_desc = "";
+
+#define MAX_THREADS 1024
+
+#define MAX_MAPPINGS 1024
+typedef struct data_mapping_t {
+    trc_data_t* data;
+    uint32_t flags;
+    bool free_ptr;
+    void* ptr;
+} data_mapping_t;
+static uint8_t mapping_mutex = 0;
+static data_mapping_t mappings[MAX_MAPPINGS];
+
+static void mutex_lock(uint8_t* mutex) {
+    uint8_t expected = 0;
+    while (!atomic_compare_exchange_strong(mutex, &expected, 1))
+        expected = 0;
+}
+
+static void mutex_unlock(uint8_t* mutex) {
+    atomic_store(mutex, 0);
+}
+
+static void* compress_thread(void* userdata);
 
 static size_t readf(void* ptr, size_t size, size_t count, FILE* stream) {
     size_t res = fread(ptr, size, count, stream);
@@ -151,7 +178,7 @@ static void* read_data(FILE* file, size_t* res_size) {
         if (res_size) *res_size = size;
         return compressed_data;
     }
-    #ifdef ZLIB_ENABLED
+    #if ZLIB_ENABLED
     if (compression_method == 1) {
         void* data = malloc(size);
         
@@ -168,7 +195,7 @@ static void* read_data(FILE* file, size_t* res_size) {
         return data;
     }
     #endif
-    #ifdef LZ4_ENABLED
+    #if LZ4_ENABLED
     if (compression_method == 2) {
         void* data = malloc(size);
         
@@ -647,6 +674,18 @@ trace_t *load_trace(const char* filename) {
     
     trace->inspection.cur_revision++;
     
+    trace->data_queue_mutex = 0;
+    trace->data_queue_start = NULL;
+    trace->data_queue_end = NULL;
+    
+    trace->thread_count = sysconf(_SC_NPROCESSORS_ONLN);
+    if (trace->thread_count > MAX_THREADS) trace->thread_count = MAX_THREADS;
+    
+    atomic_store(&trace->threads_running, true);
+    trace->threads = malloc(sizeof(pthread_t)*trace->thread_count);
+    for (size_t i = 0; i < trace->thread_count; i++)
+        pthread_create(&trace->threads[i], NULL, &compress_thread, trace);
+    
     return trace;
     
     error:
@@ -659,6 +698,10 @@ trace_t *load_trace(const char* filename) {
 }
 
 void free_trace(trace_t* trace) {
+    atomic_store(&trace->threads_running, false);
+    for (size_t i = 0; i < trace->thread_count; i++)
+        pthread_join(trace->threads[i], NULL);
+    
     for (size_t i = 0; i < trace->func_name_count; ++i) free(trace->func_names[i]);
     
     for (size_t i = 0; i < trace->group_name_count; ++i) free(trace->group_names[i]);
@@ -672,7 +715,17 @@ void free_trace(trace_t* trace) {
     trc_gl_inspection_t* ti = &trace->inspection;
     
     free(ti->cur_ctx_revisions);
-    for (size_t i = 0; i < ti->data_count; i++) trc_destroy_data(ti->data[i]);
+    
+    mutex_lock(&trace->data_queue_mutex);
+    for (size_t i = 0; i < ti->data_count; i++) {
+        trc_data_t* data = ti->data[i];
+        switch (data->storage_type) {
+        case TrcStorage_Plain: free(data->plain); break;
+        case TrcStorage_External: free(data->external->data); free(data->external); break;
+        }
+        free(data);
+    }
+    mutex_unlock(&trace->data_queue_mutex);
     free(ti->data);
     
     for (size_t i = 0; i < TrcGLObj_Max; i++) {
@@ -1332,94 +1385,201 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_IMPL
 
-static void set_data(trc_data_t* data, void* src, bool can_own, bool* owns_data) {
-    void* dest = malloc(data->uncompressed_size);
-    #if LZ4_ENABLED
-    int res = LZ4_compress_default(src, dest, data->uncompressed_size, data->uncompressed_size);
-    if (res==0 || res==data->uncompressed_size) {
-    #endif
-        data->compression = TrcCompression_None;
-        data->compressed_size = data->uncompressed_size;
-        if (can_own) {
-            free(dest);
-            data->compressed_data = src;
-            if (owns_data) *owns_data = true;
-        } else {
-            data->compressed_data = dest;
-            memcpy(dest, src, data->uncompressed_size);
-            if (owns_data) *owns_data = false;
-        }
-    #if LZ4_ENABLED
-    } else {
-        data->compression = TrcCompression_LZ4;
-        data->compressed_data = malloc(res);
-        memcpy(data->compressed_data, dest, res);
-        free(dest);
-        data->compressed_size = res;
-        if (owns_data) *owns_data = false;
-    }
-    #endif
+static void queue_push_to_back(trace_t* trace, trc_data_t* data) {
+    mutex_lock(&trace->data_queue_mutex);
+    if (trace->data_queue_end != NULL)
+        trace->data_queue_end->queue_next = data;
+    trace->data_queue_end = data;
+    if (trace->data_queue_start == NULL)
+        trace->data_queue_start = trace->data_queue_end;
+    mutex_unlock(&trace->data_queue_mutex);
 }
 
-trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data) {
-    trc_data_t* res = malloc(sizeof(trc_data_t));
-    res->uncompressed_size = size;
-    if (data == NULL) {
-        void* zdata = calloc(size, 1);
-        set_data(res, zdata, false, NULL);
-        free(zdata);
-    } else {
-        set_data(res, (void*)data, false, NULL);
+static trc_data_t* queue_pop_from_front(trace_t* trace) {
+    mutex_lock(&trace->data_queue_mutex);
+    trc_data_t* data = NULL;
+    if (trace->data_queue_start != NULL) {
+        data = trace->data_queue_start;
+        trace->data_queue_start = trace->data_queue_start->queue_next;
+        if (trace->data_queue_start == NULL) trace->data_queue_end = NULL;
+        data->queue_next = NULL;
+    }
+    mutex_unlock(&trace->data_queue_mutex);
+    return data;
+}
+
+static void compress_data(trc_data_t* data) {
+    void* compressed = malloc(data->size);
+    trc_compression_t compression = TrcCompression_Zlib;
+    #ifdef ZLIB_ENABLED
+    uLongf compressed_size = data->size;
+    if (compress2(compressed, &compressed_size, data->plain, data->size, 9) != Z_OK) {
+    #else
+    int compressed_size;
+    #endif
+    #ifdef LZ4_ENABLED
+        compression = TrcCompression_LZ4;
+        if (!(compressed_size=LZ4_compress_default(data->plain, compressed, data->size, data->size))) {
+    #endif
+            free(compressed);
+            data->flags |= TRC_DATA_NO_COMPRESS;
+            return;
+    #ifdef LZ4_ENABLED
+        }
+    #endif
+    #ifdef ZLIB_ENABLED
+    }
+    #endif
+    
+    trc_data_external_storage_t* storage = malloc(sizeof(trc_data_external_storage_t));
+    storage->compression = compression;
+    storage->size = compressed_size;
+    storage->data = malloc(compressed_size);
+    memcpy(storage->data, compressed, compressed_size);
+    free(compressed);
+    
+    free(data->plain);
+    
+    if (data->size > 16384) malloc_trim(0);
+    
+    data->storage_type = TrcStorage_External;
+    data->external = storage;
+}
+
+static void* compress_thread(void* userdata) {
+    trace_t* trace = userdata;
+    while (atomic_load(&trace->threads_running)) {
+        trc_data_t* data = queue_pop_from_front(trace);
+        if (!data) goto wait;
+        mutex_lock(&data->mutex);
+        
+        assert(data->storage_type == TrcStorage_Plain);
+        
+        compress_data(data);
+        
+        mutex_unlock(&data->mutex);
+        continue;
+        wait:;
+            struct timespec sleep_time;
+            sleep_time.tv_sec = 0;
+            sleep_time.tv_nsec = 1000;
+            nanosleep(&sleep_time, NULL);
     }
     
-    return res;
+    return NULL;
 }
 
-trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data) {
-    trc_data_t* res = trc_create_data(trace, size, data);
+trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags) {
+    trc_data_t* res = malloc(sizeof(trc_data_t));
+    res->mutex = 0;
+    res->flags = flags;
+    res->storage_type = TrcStorage_Plain;
+    res->size = size;
+    if (data) {
+        res->plain = malloc(size);
+        memcpy(res->plain, data, size);
+    } else {
+        res->plain = calloc(size, 1);
+    }
+    res->queue_next = NULL;
     
     trc_gl_inspection_t* ti = &trace->inspection;
     ti->data = realloc(ti->data, ++ti->data_count*sizeof(trc_data_t*));
     ti->data[ti->data_count-1] = res;
     
+    if (res->flags&TRC_DATA_IMMUTABLE && !(res->flags&TRC_DATA_NO_COMPRESS)) {
+        if (trace->thread_count == 0) compress_data(res);
+        else queue_push_to_back(trace, res);
+    }
+    
     return res;
 }
 
-void trc_destroy_data(trc_data_t* data) {
-    free(data->compressed_data);
-    free(data);
-}
-
-void* trc_map_data(trc_data_t* data, bool read, bool write) {
-    data->lock_write = write;
-    switch (data->compression) {
-    case TrcCompression_None: {
-        data->uncompressed_data = data->compressed_data;
-        return data->compressed_data;
+void* trc_map_data(trc_data_t* data, uint32_t flags) {
+    mutex_lock(&data->mutex);
+    if ((flags&TRC_MAP_MODIFY||flags&TRC_MAP_REPLACE) && data->flags&TRC_DATA_IMMUTABLE)
+        assert(false);
+    switch (data->storage_type) {
+    case TrcStorage_Plain: {
+        return data->plain;
     }
-    #if LZ4_ENABLED
-    case TrcCompression_LZ4: {
-        data->uncompressed_data = malloc(data->uncompressed_size);
-        if (LZ4_decompress_fast(data->compressed_data, data->uncompressed_data, data->uncompressed_size) < 0)
-            assert(false);
-        return data->uncompressed_data;
+    case TrcStorage_External: {
+        data_mapping_t mapping;
+        mapping.data = data;
+        mapping.flags = flags;
+        mapping.free_ptr = true;
+        switch (data->external->compression) {
+        case TrcCompression_None: {
+            return data->external->data;
+        }
+        #if LZ4_ENABLED
+        case TrcCompression_LZ4: {
+            mapping.ptr = malloc(data->size);
+            if (LZ4_decompress_fast(data->external->data, mapping.ptr, data->size) < 0)
+                assert(false);
+            break;
+        }
+        #endif
+        #if ZLIB_ENABLED
+        case TrcCompression_Zlib: {
+            mapping.ptr = malloc(data->size);
+            uLongf _ = data->size;
+            if (uncompress(mapping.ptr, &_, data->external->data, data->external->size) != Z_OK)
+                assert(false);
+            break;
+        }
+        #endif
+        }
+        mutex_lock(&mapping_mutex);
+        for (size_t i = 0; i < MAX_MAPPINGS; i++) {
+            if (mappings[i].data == NULL) {
+                mappings[i] = mapping;
+                goto success;
+            }
+        }
+        assert(false);
+        success:
+        mutex_unlock(&mapping_mutex);
+        return mapping.ptr;
     }
-    #endif
-    default: assert(false);
+    default: {
+        assert(false);
+        return NULL;
+    }
     }
 }
 
 void trc_unmap_data(trc_data_t* data) {
-    if (data->lock_write) {
-        bool owns_data;
-        set_data(data, data->uncompressed_data, true, &owns_data);
-        if (owns_data) data->uncompressed_data = NULL;
+    mutex_lock(&mapping_mutex);
+    
+    data_mapping_t* mapping = NULL;
+    for (size_t i = 0; i < MAX_MAPPINGS; i++) {
+        if (mappings[i].data == data) {
+            mapping = &mappings[i];
+            break;
+        }
+    }
+    if (mapping) {
+        free(mapping->free_ptr ? mapping->ptr : NULL);
+        mapping->data = NULL;
     }
     
-    switch (data->compression) {
-    case TrcCompression_None: break;
-    case TrcCompression_LZ4: free(data->uncompressed_data); break;
-    default: assert(false); break;
+    mutex_unlock(&mapping_mutex);
+    mutex_unlock(&data->mutex);
+}
+
+void trc_freeze_data(trace_t* trace, trc_data_t* data) {
+    mutex_lock(&data->mutex);
+    data->flags |= TRC_DATA_IMMUTABLE;
+    bool no_compress = !(data->flags&TRC_DATA_NO_COMPRESS);
+    mutex_unlock(&data->mutex);
+    if (no_compress) {
+        if (trace->thread_count == 0) compress_data(data);
+        else queue_push_to_back(trace, data);
     }
-    data->uncompressed_data = NULL;
+}
+
+void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data) {
+    trc_unmap_data(data);
+    trc_freeze_data(trace, data);
 }

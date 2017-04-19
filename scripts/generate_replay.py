@@ -451,26 +451,26 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
 
 static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* rev) {
     size_t size = rev->drawable_width * rev->drawable_height * 4;
-    rev->front_color_buffer = trc_create_inspection_data(trace, size, NULL);
-    rev->back_color_buffer = trc_create_inspection_data(trace, size, NULL);
-    rev->back_depth_buffer = trc_create_inspection_data(trace, size, NULL);
-    rev->back_stencil_buffer = trc_create_inspection_data(trace, size, NULL);
+    rev->front_color_buffer = trc_create_data(trace, size, NULL, 0);
+    rev->back_color_buffer = trc_create_data(trace, size, NULL, 0);
+    rev->back_depth_buffer = trc_create_data(trace, size, NULL, 0);
+    rev->back_stencil_buffer = trc_create_data(trace, size, NULL, 0);
     
-    void* data = trc_map_data(rev->front_color_buffer, false, true);
+    void* data = trc_map_data(rev->front_color_buffer, TRC_MAP_REPLACE);
     memset(data, 0, size);
-    trc_unmap_data(rev->front_color_buffer);
+    trc_unmap_freeze_data(trace, rev->front_color_buffer);
     
-    data = trc_map_data(rev->back_color_buffer, false, true);
+    data = trc_map_data(rev->back_color_buffer, TRC_MAP_REPLACE);
     memset(data, 0, size);
-    trc_unmap_data(rev->back_color_buffer);
+    trc_unmap_freeze_data(trace, rev->back_color_buffer);
     
-    data = trc_map_data(rev->back_depth_buffer, false, true);
+    data = trc_map_data(rev->back_depth_buffer, TRC_MAP_REPLACE);
     memset(data, 0, size);
-    trc_unmap_data(rev->back_depth_buffer);
+    trc_unmap_freeze_data(trace, rev->back_depth_buffer);
     
-    data = trc_map_data(rev->back_stencil_buffer, false, true);
+    data = trc_map_data(rev->back_stencil_buffer, TRC_MAP_REPLACE);
     memset(data, 0, size);
-    trc_unmap_data(rev->back_stencil_buffer);
+    trc_unmap_freeze_data(trace, rev->back_stencil_buffer);
 }
 
 static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
@@ -720,10 +720,10 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
     img.depth = depth;
     img.data = data;
     
-    size_t img_count = rev->images->uncompressed_size / sizeof(trc_gl_texture_image_t);
+    size_t img_count = rev->images->size / sizeof(trc_gl_texture_image_t);
     trc_gl_texture_image_t* newimages = malloc((img_count+1)*sizeof(trc_gl_texture_image_t));
     
-    trc_gl_texture_image_t* images = trc_map_data(rev->images, true, false);
+    trc_gl_texture_image_t* images = trc_map_data(rev->images, TRC_MAP_READ);
     bool replaced = false;
     for (size_t i = 0; i < img_count; i++) {
         if (images[i].face==img.face && images[i].level==img.level) {
@@ -739,7 +739,7 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
     if (!replaced) newimages[img_count++] = img;
     
     size_t size = img_count * sizeof(trc_gl_texture_image_t);
-    newrev.images = trc_create_inspection_data(trace, size, newimages);
+    newrev.images = trc_create_data(trace, size, newimages, TRC_DATA_IMMUTABLE);
     
     free(newimages);
     
@@ -875,8 +875,8 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     }
     
     size_t data_size = width * height * depth * components * (dtype==3?8:4);
-    trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
-    void* dest = trc_map_data(data, false, true);
+    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, 0);
+    void* dest = trc_map_data(data, TRC_MAP_REPLACE);
     
     GLenum format;
     switch (ftype) {
@@ -913,7 +913,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     F(glGetTexImage)(target, level, format, type, dest);
     F(glBindTexture)(tex->type, prev);
     
-    trc_unmap_data(data);
+    trc_unmap_freeze_data(ctx->trace, data);
     
     replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
 }
@@ -937,10 +937,10 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
     const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(trace, fb);
     if (!rev) return false;
     
-    size_t attach_count = rev->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
+    size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
     trc_gl_framebuffer_attachment_t* newattachs = malloc((attach_count+1)*sizeof(trc_gl_framebuffer_attachment_t));
     
-    trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, true, false);
+    trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);
     bool replaced = false;
     for (size_t i = 0; i < attach_count; i++) {
         if (attachs[i].attachment == attach->attachment) {
@@ -956,7 +956,7 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
     if (!replaced) newattachs[attach_count++] = *attach;
     
     size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
-    newrev.attachments = trc_create_inspection_data(trace, size, newattachs);
+    newrev.attachments = trc_create_data(trace, size, newattachs, TRC_DATA_IMMUTABLE);
     
     free(newattachs);
     
@@ -1145,10 +1145,9 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     
     trc_gl_program_uniform_t uniform;
     
-    size_t uniform_count = rev->uniforms->uncompressed_size /
+    size_t uniform_count = rev->uniforms->size /
                            sizeof(trc_gl_program_uniform_t);
-    trc_gl_program_uniform_t* uniforms =
-        trc_map_data(rev->uniforms, true, false);
+    trc_gl_program_uniform_t* uniforms = trc_map_data(rev->uniforms, TRC_MAP_READ);
     uint uniform_index = 0;
     for (; uniform_index < uniform_count; uniform_index++) {
         if (uniforms[uniform_index].fake == location) {
@@ -1163,10 +1162,8 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     uint count = array ? gl_param_GLsizei(cmd, arg_pos++) : 1;
     bool transpose = dimy==1 ? false : gl_param_GLboolean(cmd, arg_pos++);
     
-    uniform.value = trc_create_inspection_data(ctx->trace,
-                                               count*dimx*dimy*sizeof(double),
-                                               NULL);
-    double* res = trc_map_data(uniform.value, false, true);
+    uniform.value = trc_create_data(ctx->trace, count*dimx*dimy*sizeof(double), NULL, 0);
+    double* res = trc_map_data(uniform.value, TRC_MAP_REPLACE);
     for (uint i = 0; i < count; i++) {
         for (uint x = 0; x < dimx; x++) {
             for (uint y = 0; y < dimy; y++) {
@@ -1211,20 +1208,20 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
             }
         }
     }
-    trc_unmap_data(uniform.value);
+    trc_unmap_freeze_data(ctx->trace, uniform.value);
     uniform.dim[0] = dimx;
     uniform.dim[1] = dimy;
     uniform.count = count;
     
-    trc_data_t* new_uniforms = trc_create_inspection_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms);
+    trc_data_t* new_uniforms = trc_create_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, 0);
     trc_unmap_data(rev->uniforms);
     
     trc_gl_program_rev_t newrev = *rev;
     newrev.uniforms = new_uniforms;
     
-    trc_gl_program_uniform_t* dest = trc_map_data(new_uniforms, true, true);
+    trc_gl_program_uniform_t* dest = trc_map_data(new_uniforms, TRC_MAP_MODIFY);
     dest[uniform_index] = uniform;
-    trc_unmap_data(new_uniforms);
+    trc_unmap_freeze_data(ctx->trace, new_uniforms);
     
     trc_set_gl_program(ctx->trace, trc_get_gl_context(ctx->trace, 0)->bound_program, &newrev);
     
@@ -1372,10 +1369,10 @@ static trc_data_t* replay_get_fb0_buffer(trc_replay_context_t* ctx, trc_gl_conte
     F(glReadBuffer)(buffer);
     
     size_t data_size = state->drawable_width * state->drawable_height * 4;
-    trc_data_t* data = trc_create_inspection_data(ctx->trace, data_size, NULL);
-    void* dest = trc_map_data(data, false, true);
+    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, 0);
+    void* dest = trc_map_data(data, TRC_MAP_REPLACE);
     F(glReadPixels)(0, 0, state->drawable_width, state->drawable_height, format, type, dest);
-    trc_unmap_data(data);
+    trc_unmap_freeze_data(ctx->trace, data);
     
     return data;
 }
@@ -1427,8 +1424,8 @@ static void begin_draw(trc_replay_context_t* ctx) {
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
     
-    size_t prog_vertex_attrib_count = program->vertex_attribs->uncompressed_size / (sizeof(uint)*2);
-    uint* prog_vertex_attribs = trc_map_data(program->vertex_attribs, true, false);
+    size_t prog_vertex_attrib_count = program->vertex_attribs->size / (sizeof(uint)*2);
+    uint* prog_vertex_attribs = trc_map_data(program->vertex_attribs, TRC_MAP_READ);
     for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
@@ -1455,7 +1452,6 @@ static void begin_draw(trc_replay_context_t* ctx) {
         //TODO: Only do this if OpenGL 3.3+ is used
         F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
-    
     trc_unmap_data(program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
@@ -1473,8 +1469,8 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
             return;
         }
         
-        size_t attach_count = rev->attachments->uncompressed_size / sizeof(trc_gl_framebuffer_attachment_t);
-        const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, true, false);
+        size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
+        const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);
         for (size_t i = 0; i < attach_count; i++) {
             const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
             if (attach->has_renderbuffer) continue;

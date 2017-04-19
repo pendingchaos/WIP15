@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 #include "shared/vec.h"
 #include "shared/uint.h"
@@ -12,6 +13,12 @@
 uint64_t fake_context;\
 uint64_t real;\
 uint ref_count;\
+
+#define TRC_DATA_IMMUTABLE (1<<0)
+#define TRC_DATA_NO_COMPRESS (1<<1)
+#define TRC_MAP_READ (1<<0)
+#define TRC_MAP_MODIFY (1<<1)
+#define TRC_MAP_REPLACE (1<<2)
 
 typedef enum {
     Type_Void,
@@ -36,6 +43,11 @@ typedef enum trc_attachment_type_t {
     TrcAttachType_Warning,
     TrcAttachType_Error
 } trc_attachment_type_t;
+
+typedef enum trc_storage_type_t {
+    TrcStorage_Plain,
+    TrcStorage_External
+} trc_storage_type_t;
 
 typedef struct trc_attachment_t {
     trc_attachment_type_t type;
@@ -94,13 +106,22 @@ typedef enum trc_gl_obj_type_t {
     TrcGLObj_Max
 } trc_gl_obj_type_t;
 
+typedef struct trc_data_external_storage_t {
+    trc_compression_t compression:32;
+    uint32_t size;
+    void* data;
+} trc_data_external_storage_t;
+
 typedef struct trc_data_t {
-    size_t uncompressed_size;
-    size_t compressed_size;
-    trc_compression_t compression;
-    void* compressed_data;
-    void* uncompressed_data; //only available when locked
-    bool lock_write;
+    uint8_t mutex;
+    uint8_t flags;
+    trc_storage_type_t storage_type:16;
+    uint32_t size;
+    union {
+        void* plain;
+        trc_data_external_storage_t* external; //only for immutable data
+    };
+    struct trc_data_t* queue_next; //this is not guarded by trc_data_t::mutex
 } trc_data_t;
 
 typedef struct trc_gl_obj_rev_t {
@@ -334,6 +355,14 @@ typedef struct trace_t {
     trace_frame_t* frames;
     
     trc_gl_inspection_t inspection;
+    
+    uint8_t data_queue_mutex;
+    trc_data_t* data_queue_start;
+    trc_data_t* data_queue_end;
+    
+    bool threads_running;
+    size_t thread_count;
+    pthread_t* threads;
 } trace_t;
 
 typedef struct trc_replay_context_t {
@@ -437,9 +466,9 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_FUNC_DECL
 
-trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data);
-trc_data_t* trc_create_inspection_data(trace_t* trace, size_t size, const void* data);
-void trc_destroy_data(trc_data_t* data);
-void* trc_map_data(trc_data_t* data, bool read, bool write);
+trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
+void* trc_map_data(trc_data_t* data, uint32_t flags);
 void trc_unmap_data(trc_data_t* data);
+void trc_freeze_data(trace_t* trace, trc_data_t* data);
+void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data);
 #endif

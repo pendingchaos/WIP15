@@ -541,7 +541,7 @@ for prop in properties:
     else:
         print '    return trc_get_gl_context(trace, 0)->%s;' % prop.name
     if prop.array:
-        print '    %s* data = trc_map_data(arr, true, false);' % prop.c_type
+        print '    %s* data = trc_map_data(arr, TRC_MAP_READ);' % prop.c_type
         print '    %s res = data[index];' % (prop.c_type)
         print '    trc_unmap_data(arr);'
         print '    return res;'
@@ -567,12 +567,12 @@ for prop in properties:
     else:
         print '    state.%s = val;' % prop.name
     if prop.array:
-        print '    void* olddata = trc_map_data(*arr, true, false);'
-        print '    trc_data_t* newdata = trc_create_inspection_data(trace, (*arr)->uncompressed_size, olddata);'
+        print '    void* olddata = trc_map_data(*arr, TRC_MAP_READ);'
+        print '    trc_data_t* newdata = trc_create_data(trace, (*arr)->size, olddata, 0);'
         print '    trc_unmap_data(*arr);'
-        print '    %s* data = trc_map_data(newdata, false, true);' % prop.c_type
+        print '    %s* data = trc_map_data(newdata, TRC_MAP_MODIFY);' % prop.c_type
         print '    data[index] = val;'
-        print '    trc_unmap_data(newdata);'
+        print '    trc_unmap_freeze_data(trace, newdata);'
         print '    *arr = newdata;'
     print '    trc_set_gl_context(trace, 0, &state);'
     print '}'
@@ -585,11 +585,11 @@ for prop in properties:
     if prop.map:
         print '    switch (key) {'
         for key in prop.map_keys:
-            print '    case %s: return trc_get_gl_context(trace, 0)->%s_%s->uncompressed_size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
+            print '    case %s: return trc_get_gl_context(trace, 0)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
         print '    default: assert(false); return 0;'
         print '    }'
     else:
-        print '    return trc_get_gl_context(trace, 0)->%s->uncompressed_size / sizeof(%s);' % (prop.name, prop.c_type)
+        print '    return trc_get_gl_context(trace, 0)->%s->size / sizeof(%s);' % (prop.name, prop.c_type)
     print '}'
     print
     
@@ -603,11 +603,7 @@ for prop in properties:
         print '    }'
     else:
         print '    trc_data_t** arr = &state.%s;' % prop.name;
-    print '    *arr = trc_create_inspection_data(trace, count*sizeof(%s), data);' % prop.c_type
-    print '    if (data == NULL) {'
-    print '        memset(trc_map_data(*arr, false, true), 0, (*arr)->uncompressed_size);'
-    print '        trc_unmap_data(*arr);'
-    print '    }'
+    print '    *arr = trc_create_data(trace, count*sizeof(%s), data, TRC_DATA_IMMUTABLE);' % prop.c_type
     print '    trc_set_gl_context(trace, 0, &state);'
     print '}'
     print
@@ -630,14 +626,14 @@ for prop in properties:
         print '    }'
     else:
         print '    trc_data_t** arr = &state.%s;' % prop.name;
-    print '    size_t count = (*arr)->uncompressed_size / sizeof(%s);' % prop.c_type
-    print '    trc_data_t* newarr = trc_create_inspection_data(trace, (count+1)*sizeof(%s), NULL);' % prop.c_type
-    print '    %s* olddata = trc_map_data(*arr, true, false);' % prop.c_type
-    print '    %s* newdata = trc_map_data(newarr, false, true);' % prop.c_type
+    print '    size_t count = (*arr)->size / sizeof(%s);' % prop.c_type
+    print '    trc_data_t* newarr = trc_create_data(trace, (count+1)*sizeof(%s), NULL, 0);' % prop.c_type
+    print '    %s* olddata = trc_map_data(*arr, TRC_MAP_READ);' % prop.c_type
+    print '    %s* newdata = trc_map_data(newarr, TRC_MAP_REPLACE);' % prop.c_type
     print '    memcpy(newdata, olddata, before*sizeof(%s));' % prop.c_type
     print '    newdata[before] = value;'
     print '    memcpy(newdata+before+1, olddata+before, (count-before)*sizeof(%s));' % prop.c_type
-    print '    trc_unmap_data(newarr);'
+    print '    trc_unmap_freeze_data(trace, newarr);'
     print '    trc_unmap_data(*arr);'
     print '    *arr = newarr;'
     print '    trc_set_gl_context(trace, 0, &state);'
@@ -654,13 +650,13 @@ for prop in properties:
         print '    }'
     else:
         print '    trc_data_t** arr = &state.%s;' % prop.name;
-    print '    size_t count = (*arr)->uncompressed_size / sizeof(%s);' % prop.c_type
-    print '    trc_data_t* newarr = trc_create_inspection_data(trace, (count-1)*sizeof(%s), NULL);' % prop.c_type
-    print '    %s* olddata = trc_map_data(*arr, true, false);' % prop.c_type
-    print '    %s* newdata = trc_map_data(newarr, false, true);' % prop.c_type
+    print '    size_t count = (*arr)->size / sizeof(%s);' % prop.c_type
+    print '    trc_data_t* newarr = trc_create_data(trace, (count-1)*sizeof(%s), NULL, 0);' % prop.c_type
+    print '    %s* olddata = trc_map_data(*arr, TRC_MAP_READ);' % prop.c_type
+    print '    %s* newdata = trc_map_data(newarr, TRC_MAP_REPLACE);' % prop.c_type
     print '    memcpy(newdata, olddata, index*sizeof(%s));' % prop.c_type
     print '    memcpy(newdata+index, olddata+index+1, (count-index-1)*sizeof(%s));' % prop.c_type
-    print '    trc_unmap_data(newarr);'
+    print '    trc_unmap_freeze_data(trace, newarr);'
     print '    trc_unmap_data(*arr);'
     print '    *arr = newarr;'
     print '    trc_set_gl_context(trace, 0, &state);'

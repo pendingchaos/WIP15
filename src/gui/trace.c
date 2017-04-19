@@ -87,8 +87,8 @@ static void init_trace_tree(GtkTreeView* tree) {
 
 static uint8_t* get_state(trc_data_t* data) {
     static uint8_t res[8192];
-    size_t srcsize = data->uncompressed_size;
-    void* ptr = trc_map_data(data, true, false);
+    size_t srcsize = data->size;
+    void* ptr = trc_map_data(data, TRC_MAP_READ);
     memcpy(res, ptr, srcsize<8192?srcsize:8192);
     trc_unmap_data(data);
     return res;
@@ -172,7 +172,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     
     #define STATE(prefix, name, getfunc, type, fmt, get) do {\
         type* val = getfunc(ctx->prefix##_##name);\
-        size_t count = ctx->prefix##_##name->uncompressed_size/sizeof(uint);\
+        size_t count = ctx->prefix##_##name->size/sizeof(uint);\
         if (count == 1) {\
             size_t i = 0;\
             value(store, #name, fmt, get);\
@@ -223,7 +223,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_BOOL(enabled, GL_BLEND);
     {
         bool* val = get_stateb(ctx->enabled_GL_CLIP_DISTANCE0);
-        size_t count = ctx->enabled_GL_CLIP_DISTANCE0->uncompressed_size / sizeof(bool);
+        size_t count = ctx->enabled_GL_CLIP_DISTANCE0->size / sizeof(bool);
         for (size_t i = 0; i < count; i++)
             value(store, static_format("GL_CLIP_DISTANCE%zu", i), val[i]?"true":"false");
     }
@@ -283,8 +283,8 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     end_category();
     
     begin_category(store, "GL_CURRENT_VERTEX_ATTRIB");
-    double* cur_vertex_attrib = trc_map_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB, true, false);
-    size_t count = ctx->state_double_GL_CURRENT_VERTEX_ATTRIB->uncompressed_size/sizeof(double)/4 + 1;
+    double* cur_vertex_attrib = trc_map_data(ctx->state_double_GL_CURRENT_VERTEX_ATTRIB, TRC_MAP_READ);
+    size_t count = ctx->state_double_GL_CURRENT_VERTEX_ATTRIB->size/sizeof(double)/4 + 1;
     for (uint i = 1; i < count; i++) {
         double v[4];
         for (uint j = 0; j < 4; j++) v[j] = cur_vertex_attrib[(i-1)*4+j];

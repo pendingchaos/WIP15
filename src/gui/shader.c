@@ -153,8 +153,8 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeView* view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_shaders_view"));
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
-    size_t shader_count = program->shaders->uncompressed_size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* shaders = trc_map_data(program->shaders, true, false);
+    size_t shader_count = program->shaders->size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_shader_t* shaders = trc_map_data(program->shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++) {
         char id[64];
         memset(id, 0, 64);
@@ -172,15 +172,15 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     view = GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_uniforms_view"));
     store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     gtk_tree_store_clear(store);
-    size_t uniform_count = program->uniforms->uncompressed_size / sizeof(trc_gl_program_uniform_t);
-    trc_gl_program_uniform_t* uniforms = trc_map_data(program->uniforms, true, false);
+    size_t uniform_count = program->uniforms->size / sizeof(trc_gl_program_uniform_t);
+    trc_gl_program_uniform_t* uniforms = trc_map_data(program->uniforms, TRC_MAP_READ);
     for (size_t i = 0; i < uniform_count; i++) {
         char val[1024] = {0};
         if (uniforms[i].dim[0] == 0) {
             strcpy(val, "<unset>");
         } else {
-            size_t count = uniforms[i].value->uncompressed_size / sizeof(double);
-            double* vals = trc_map_data(uniforms[i].value, true, false);
+            size_t count = uniforms[i].value->size / sizeof(double);
+            double* vals = trc_map_data(uniforms[i].value, TRC_MAP_READ);
             if (count>1 || uniforms[i].count!=0) strncat(val, "[", sizeof(val)-1);
             for (size_t i = 0; i < count; i++) {
                 strncat(val, static_format("%g", vals[i]), sizeof(val)-1);
@@ -219,7 +219,7 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     
     if (!selected_program) return;
     
-    trc_gl_program_shader_t* shaders = trc_map_data(selected_program->shaders, true, false);
+    trc_gl_program_shader_t* shaders = trc_map_data(selected_program->shaders, TRC_MAP_READ);
     trc_gl_program_shader_t shader = shaders[shdr_index];
     trc_unmap_data(selected_program->shaders);
     
