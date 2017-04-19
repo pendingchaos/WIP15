@@ -1426,7 +1426,8 @@ static void begin_draw(trc_replay_context_t* ctx) {
     
     size_t prog_vertex_attrib_count = program->vertex_attribs->size / (sizeof(uint)*2);
     uint* prog_vertex_attribs = trc_map_data(program->vertex_attribs, TRC_MAP_READ);
-    for (size_t i = 0; i < (vao?vao->attrib_count:0); i++) {
+    trc_gl_vao_attrib_t* vao_attribs = vao ? trc_map_data(vao->attribs, TRC_MAP_READ) : NULL;
+    for (size_t i = 0; i < (vao?vao->attribs->size/sizeof(trc_gl_vao_attrib_t):0); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
             if (prog_vertex_attribs[j*2+1] == i) {
@@ -1436,7 +1437,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
         }
         if (real_loc < 0) continue;
         
-        trc_gl_vao_attrib_t* a = &vao->attribs[i];
+        trc_gl_vao_attrib_t* a = &vao_attribs[i];
         if (!a->enabled) {
             F(glDisableVertexAttribArray)(real_loc);
             continue;
@@ -1452,6 +1453,7 @@ static void begin_draw(trc_replay_context_t* ctx) {
         //TODO: Only do this if OpenGL 3.3+ is used
         F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
+    trc_unmap_data(vao->attribs);
     trc_unmap_data(program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);

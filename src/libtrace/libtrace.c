@@ -701,6 +701,7 @@ void free_trace(trace_t* trace) {
     atomic_store(&trace->threads_running, false);
     for (size_t i = 0; i < trace->thread_count; i++)
         pthread_join(trace->threads[i], NULL);
+    free(trace->threads);
     
     for (size_t i = 0; i < trace->func_name_count; ++i) free(trace->func_names[i]);
     
@@ -1497,7 +1498,7 @@ trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint3
 
 void* trc_map_data(trc_data_t* data, uint32_t flags) {
     mutex_lock(&data->mutex);
-    if ((flags&TRC_MAP_MODIFY||flags&TRC_MAP_REPLACE) && data->flags&TRC_DATA_IMMUTABLE)
+    if ((flags&TRC_MAP_WRITE) && data->flags&TRC_DATA_IMMUTABLE)
         assert(false);
     switch (data->storage_type) {
     case TrcStorage_Plain: {
@@ -1515,17 +1516,21 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
         #if LZ4_ENABLED
         case TrcCompression_LZ4: {
             mapping.ptr = malloc(data->size);
-            if (LZ4_decompress_fast(data->external->data, mapping.ptr, data->size) < 0)
-                assert(false);
+            if (flags & TRC_MAP_READ) {
+                if (LZ4_decompress_fast(data->external->data, mapping.ptr, data->size) < 0)
+                    assert(false);
+            }
             break;
         }
         #endif
         #if ZLIB_ENABLED
         case TrcCompression_Zlib: {
             mapping.ptr = malloc(data->size);
-            uLongf _ = data->size;
-            if (uncompress(mapping.ptr, &_, data->external->data, data->external->size) != Z_OK)
-                assert(false);
+            if (flags & TRC_MAP_READ) {
+                uLongf _ = data->size;
+                if (uncompress(mapping.ptr, &_, data->external->data, data->external->size) != Z_OK)
+                    assert(false);
+            }
             break;
         }
         #endif

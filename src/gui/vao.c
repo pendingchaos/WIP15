@@ -59,8 +59,9 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
     }
     if (!vao) return; //TODO: Is this possible?
     
-    for (size_t i = 0; i < vao->attrib_count; i++) {
-        trc_gl_vao_attrib_t* attr = &vao->attribs[i];
+    trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
+    for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
+        trc_gl_vao_attrib_t* attr = &attribs[i];
         
         const char* type_str = "Unknown";
         switch (attr->type) {
@@ -113,6 +114,7 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
                            9, buffer_str,
                            -1);
     }
+    trc_unmap_data(vao->attribs);
 }
 
 void vao_init() {

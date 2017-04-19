@@ -17,8 +17,9 @@ uint ref_count;\
 #define TRC_DATA_IMMUTABLE (1<<0)
 #define TRC_DATA_NO_COMPRESS (1<<1)
 #define TRC_MAP_READ (1<<0)
-#define TRC_MAP_MODIFY (1<<1)
-#define TRC_MAP_REPLACE (1<<2)
+#define TRC_MAP_WRITE (1<<1)
+#define TRC_MAP_MODIFY (TRC_MAP_READ|TRC_MAP_WRITE)
+#define TRC_MAP_REPLACE TRC_MAP_WRITE
 
 typedef enum {
     Type_Void,
@@ -244,7 +245,7 @@ typedef struct trc_gl_program_rev_t {
     
     trc_data_t* shaders; //array of trc_gl_program_shader_t
     
-    char* info_log;
+    trc_data_t* info_log; //null-terminated ascii
 } trc_gl_program_rev_t;
 
 typedef struct trc_gl_program_pipeline_rev_t {
@@ -254,10 +255,8 @@ typedef struct trc_gl_program_pipeline_rev_t {
 typedef struct trc_gl_shader_rev_t {
     TRC_GL_OBJ_HEAD
     uint type;
-    size_t source_count;
-    size_t* source_lengths;
-    char** sources;
-    char* info_log;
+    trc_data_t* sources; //concatenated null-terminated ascii
+    trc_data_t* info_log; //null-terminated ascii
 } trc_gl_shader_rev_t;
 
 typedef struct trc_gl_vao_attrib_t {
@@ -274,8 +273,7 @@ typedef struct trc_gl_vao_attrib_t {
 
 typedef struct trc_gl_vao_rev_t {
     TRC_GL_OBJ_HEAD
-    size_t attrib_count;
-    trc_gl_vao_attrib_t* attribs;
+    trc_data_t* attribs; //array of trc_gl_vao_attrib_t
 } trc_gl_vao_rev_t;
 
 typedef struct trc_gl_transform_feedback_rev_t {
