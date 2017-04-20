@@ -2197,6 +2197,8 @@ glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GL
 glTestFBWIP15: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_depth
     F(glFinish)();
     
+    //TODO: Save, modify and restore more state (e.g. pack parameters)
+    
     GLint last_buf;
     F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
     
@@ -2214,13 +2216,8 @@ glTestFBWIP15: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_de
     
     if (memcmp(back, gl_param_data(cmd, 1), w*h*4) != 0)
         fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
-    
-    //TODO
-    /*for (int32_t i = 0; i < 100*100; i++)
-        if ((int64_t)depth[i] - (int64_t)((int32_t*)gl_param_data(cmd, 2))[i] > 16843009) {
-            fprintf(stderr, "%s did not result in the correct depth buffer (test: %s).\n", p_name, ctx->current_test_name);
-            break;
-        }*/
+    if (memcmp(depth, gl_param_data(cmd, 2), w*h*4) != 0)
+        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
     
     free(back);
     free(depth);

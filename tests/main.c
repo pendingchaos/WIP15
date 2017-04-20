@@ -76,6 +76,8 @@ int main(int argc, char** argv) {
         if (!glCurrentTestWIP15)
             glCurrentTestWIP15 = &null_current_test;
         
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+        
         tests[i]();
         SDL_GL_SwapWindow(window);
         
