@@ -41,9 +41,18 @@ GLuint create_program(const char* vert, const char* frag) {
     return program;
 }
 
+GLuint buffer(GLenum target, size_t size, void* data) {
+    GLuint buf;
+    glGenBuffers(1, &buf);
+    glBindBuffer(target, buf);
+    glBufferData(target, size, data, GL_STATIC_DRAW);
+    return buf;
+}
+
 #include "draw.h"
 #include "buffer.h"
 #include "texture.h"
+#include "uniform.h"
 
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -55,8 +64,11 @@ int main(int argc, char** argv) {
                                           SDL_WINDOW_OPENGL |
                                           SDL_WINDOW_SHOWN);
     
-    void (*tests[])() = {&draw_test, &buffer_test, &texture_test};
+    void (*tests[])() = {&draw_test, &buffer_test, &texture_test,
+                         &uniform_test};
     
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
         
@@ -69,11 +81,14 @@ int main(int argc, char** argv) {
         
         /*bool running = true;
         SDL_Event event;
-        while (running)
-            while (SDL_PollEvent(&event))
-                if (event.type == SDL_KEYDOWN)
+        while (running) {
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_KEYUP) {
                     if (event.key.keysym.sym == SDLK_SPACE)
-                        running = false;*/
+                        running = false;
+                }
+            }
+        }*/
         
         SDL_GL_DeleteContext(context);
     }

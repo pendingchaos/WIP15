@@ -239,10 +239,17 @@ typedef struct trc_gl_program_uniform_t {
     trc_data_t* value; //array of double
 } trc_gl_program_uniform_t;
 
+typedef struct trc_gl_program_uniform_block_t {
+    uint real; //real index
+    uint fake; //fake index
+    uint binding;
+} trc_gl_program_uniform_block_t;
+
 typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
     trc_data_t* uniforms; //array of trc_gl_program_uniform_t
     trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
+    trc_data_t* uniform_blocks; //array of trc_gl_program_uniform_block_t
     
     trc_data_t* shaders; //array of trc_gl_program_shader_t
     

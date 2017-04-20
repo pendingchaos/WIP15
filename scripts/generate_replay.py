@@ -513,18 +513,16 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, NULL);
     trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, NULL);
     
-    GLint max_clip_distances;
-    GLint max_draw_buffers;
-    GLint max_viewports;
-    GLint max_vertex_attribs;
-    GLint max_color_attachments;
-    GLint max_tex_units;
+    GLint max_clip_distances, max_draw_buffers, max_viewports;
+    GLint max_vertex_attribs, max_color_attachments, max_tex_units;
+    GLint max_uniform_buffer_bindings;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
     F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
+    F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
@@ -532,6 +530,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
     trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, max_color_attachments);
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
+    trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -1137,10 +1136,8 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     
     uint arg_pos = 0;
     uint program;
-    if (dsa)
-        program = gl_param_GLuint(cmd, arg_pos++);
-    else
-        program = trc_gl_state_get_bound_program(ctx->trace);
+    if (dsa) program = gl_param_GLuint(cmd, arg_pos++);
+    else program = trc_gl_state_get_bound_program(ctx->trace);
     const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, program);
     if (!rev) {
         trc_add_error(cmd, dsa?"Invalid program":"No current program");
@@ -1177,6 +1174,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                 double val = 0;
                 if (array) {
                     uint si = transpose ? y*dimx+x : x*dimy+y;
+                    si += dimx * dimy * i;
                     switch (type) {
                     case GL_FLOAT:
                         val = trc_get_double(trc_get_arg(cmd, arg_pos))[si];
@@ -1423,10 +1421,12 @@ static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, boo
     end_get_fb0_data(ctx, prev);
 }
 
-static void begin_draw(trc_replay_context_t* ctx) {
+static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, state->bound_vao);
+    if (vao == NULL) {trc_add_error(cmd, "No VAO bound"); return false;}
     const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, state->bound_program);
+    if (program == NULL) {trc_add_error(cmd, "No program bound"); return false;}
     
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
@@ -1464,6 +1464,8 @@ static void begin_draw(trc_replay_context_t* ctx) {
     trc_unmap_data(program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
+    
+    return true;
 }
 
 static bool not_one_of(int val, ...) {
@@ -1553,7 +1555,7 @@ static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_
     if (F(glGetError)) F(glGetError)();
 }
 
-static void get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
+static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* command) {
     //TODO: Don't use glGetProgramiv to get the link status
     GLuint fake = gl_param_GLuint(command, 0);
     GLuint real_program = trc_get_real_gl_program(ctx->trace, fake);

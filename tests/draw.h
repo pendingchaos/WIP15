@@ -1,10 +1,3 @@
-void buffer(GLenum target, size_t size, void* data) {
-    GLuint buf;
-    glGenBuffers(1, &buf);
-    glBindBuffer(target, buf);
-    glBufferData(target, size, data, GL_STATIC_DRAW);
-}
-
 void draw(GLuint program, GLenum pos_type, GLenum col_type, void* pos, void* col, size_t pos_size, size_t col_size) {
     GLubyte ubyte_indices[] = {0, 1, 2};
     GLushort ushort_indices[] = {0, 1, 2};
@@ -68,27 +61,25 @@ void draw_test() {
     GLfloat float_colors[] = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     GLdouble double_colors[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
     
-    GLuint program = create_program("#version 130\n"
-                                     "in vec2 pos;\n"
-                                     "in vec3 col;\n"
-                                     "out vec4 frag_color;\n"
-                                     "void main() {\n"
-                                     "    gl_Position = vec4(pos, 0.0, 1.0);\n"
-                                     "    frag_color = vec4(col, 1.0);\n"
-                                     "}\n",
-                                     "#version 130\n"
-                                     "in vec4 frag_color;\n"
-                                     "out vec4 color;\n"
-                                     "void main() {"
-                                     "    color = frag_color;\n"
-                                     "}\n");
+    GLuint program = create_program("#version 150\n"
+                                    "in vec2 pos;\n"
+                                    "in vec3 col;\n"
+                                    "out vec4 frag_color;\n"
+                                    "void main() {\n"
+                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
+                                    "    frag_color = vec4(col, 1.0);\n"
+                                    "}\n",
+                                    "#version 150\n"
+                                    "in vec4 frag_color;\n"
+                                    "out vec4 color;\n"
+                                    "void main() {\n"
+                                    "    color = frag_color;\n"
+                                    "}\n");
     
     glUseProgram(program);
     
     GLuint vao;
     glGenVertexArrays(1, &vao);
-    
-    //With VAO
     glBindVertexArray(vao);
     glEnableVertexAttribArray(glGetAttribLocation(program, "pos"));
     glEnableVertexAttribArray(glGetAttribLocation(program, "col"));

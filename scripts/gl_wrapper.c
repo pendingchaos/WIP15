@@ -887,24 +887,14 @@ size_t glx_attrib_int_count(const int* attribs) {
     return count + 1;
 }
 
-static void add_uniform(const char* name, uint32_t loc) {
+static void add_program_extra(const char* type, const char* name, uint32_t val) {
     uint8_t data[strlen(name)+8];
-    loc = htole32(loc);
+    val = htole32(val);
     uint32_t len = htole32(strlen(name));
-    memcpy(data, &loc, 4);
+    memcpy(data, &val, 4);
     memcpy(data+4, &len, 4);
     memcpy(data+8, name, strlen(name));
-    gl_add_extra("replay/program/uniform", strlen(name)+8, data);
-}
-
-static void add_vertex_attrib(const char* name, uint32_t idx) {
-    uint8_t data[strlen(name)+8];
-    idx = htole32(idx);
-    uint32_t len = htole32(strlen(name));
-    memcpy(data, &idx, 4);
-    memcpy(data+4, &len, 4);
-    memcpy(data+8, name, strlen(name));
-    gl_add_extra("replay/program/vertex_attrib", strlen(name)+8, data);
+    gl_add_extra(type, strlen(name)+8, data);
 }
 
 static void link_program_extras(GLuint program) {
@@ -915,24 +905,21 @@ static void link_program_extras(GLuint program) {
     for (size_t i = 0; i < count; i++) {
         GLchar name[maxNameLen+1];
         memset(name, 0, maxNameLen+1);
-        
         GLint size;
         GLenum type;
-        
         F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
+        GLint loc = F(glGetUniformLocation)(program, name);
+        if (loc < 0) continue; //Probably part of a uniform block or something
         
-        if (!strncmp(name, "_main_0_gp5vp", 13)) continue; //TODO: This is a hack
-        if (!strncmp(name, "gl_", 3)) continue;
+        if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
+            name[strlen(name)-3] = 0;
         
-        if (size == 1) {
-            add_uniform(name, F(glGetUniformLocation)(program, name));
-        } else {
-            for (size_t j = 0; j < size; j++) {
-                GLchar new_name[maxNameLen+1];
-                memset(new_name, 0, maxNameLen+1);
-                snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                add_uniform(new_name, F(glGetUniformLocation)(program, name));
-            }
+        add_program_extra("replay/program/uniform", name, F(glGetUniformLocation)(program, name));
+        for (size_t j = 1; j < size; j++) {
+            GLchar new_name[maxNameLen+16];
+            memset(new_name, 0, maxNameLen+16);
+            snprintf(new_name, maxNameLen+16, "%s[%zu]", name, j);
+            add_program_extra("replay/program/uniform", new_name, F(glGetUniformLocation)(program, new_name));
         }
     }
     
@@ -941,25 +928,31 @@ static void link_program_extras(GLuint program) {
     for (size_t i = 0; i < count; i++) {
         GLchar name[maxNameLen+1];
         memset(name, 0, maxNameLen+1);
-        
         GLint size;
         GLenum type;
-        
         F(glGetActiveAttrib)(program, i, maxNameLen, NULL, &size, &type, name);
         
-        if (!strncmp(name, "gl_", 3))
-            continue;
+        if (strncmp(name, "gl_", 3) == 0) continue; //TODO: Remove this?
         
         if (size == 1) {
-            add_vertex_attrib(name, F(glGetAttribLocation)(program, name));
+            add_program_extra("replay/program/vertex_attrib", name, F(glGetAttribLocation)(program, name));
         } else {
             for (size_t j = 0; j < size; j++) {
                 GLchar new_name[maxNameLen+1];
                 memset(new_name, 0, maxNameLen+1);
                 snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                add_vertex_attrib(new_name, F(glGetAttribLocation)(program, name));
+                add_program_extra("replay/program/vertex_attrib", new_name, F(glGetAttribLocation)(program, name));
             }
         }
+    }
+    
+    F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_BLOCKS, &count);
+    F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxNameLen);
+    for (size_t i = 0; i < count; i++) {
+        GLchar name[maxNameLen+1];
+        memset(name, 0, maxNameLen+1);
+        F(glGetActiveUniformBlockName)(program, i, maxNameLen+1, NULL, name);
+        add_program_extra("replay/program/uniform_block", name, F(glGetUniformBlockIndex)(program, name));
     }
 }
 

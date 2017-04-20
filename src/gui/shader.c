@@ -86,10 +86,13 @@ void init_program_list(GtkTreeView* tree) {
 
 static char* get_shader_source(trc_gl_shader_rev_t* shdr) {
     char* source = calloc(shdr->sources->size==0?1:shdr->sources->size, 1);
-    for (char* c = trc_map_data(shdr->sources, TRC_MAP_READ); *c; c++) {
-        if (*c != 0) source[strlen(source)] = *c;
+    char* sourcesource = trc_map_data(shdr->sources, TRC_MAP_READ);
+    for (size_t i = 0; i < shdr->sources->size; i++) {
+        if (sourcesource[i] != 0)
+            source[strlen(source)] = sourcesource[i];
     }
     trc_unmap_data(shdr->sources);
+    
     return source;
 }
 
@@ -116,7 +119,7 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
     
-    gtk_text_buffer_set_text(source_buffer, source?source:"", -1);
+    gtk_text_buffer_set_text(source_buffer, source, -1);
     
     free(source);
     

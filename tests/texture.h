@@ -125,14 +125,14 @@ void texture_test() {
     glBindBuffer(GL_ARRAY_BUFFER, buf);
     glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
     
-    GLuint prog1d = create_program("#version 130\n"
+    GLuint prog1d = create_program("#version 150\n"
                                    "in vec2 pos;\n"
                                    "out vec2 tex_coord;\n"
                                    "void main() {\n"
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
-                                   "#version 130\n"
+                                   "#version 150\n"
                                    "uniform sampler1D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"
@@ -140,14 +140,14 @@ void texture_test() {
                                    "    color = texture(tex, tex_coord.x);\n"
                                    "}\n");
     
-    GLuint prog2d = create_program("#version 130\n"
+    GLuint prog2d = create_program("#version 150\n"
                                    "in vec2 pos;\n"
                                    "out vec2 tex_coord;\n"
                                    "void main() {\n"
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
-                                   "#version 130\n"
+                                   "#version 150\n"
                                    "uniform sampler2D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"
@@ -155,14 +155,14 @@ void texture_test() {
                                    "    color = texture(tex, tex_coord);\n"
                                    "}\n");
     
-    GLuint prog3d = create_program("#version 130\n"
+    GLuint prog3d = create_program("#version 150\n"
                                    "in vec2 pos;\n"
                                    "out vec2 tex_coord;\n"
                                    "void main() {\n"
                                    "    gl_Position = vec4(pos, 0.0, 1.0);\n"
                                    "    tex_coord = pos*0.5 + 0.5;\n"
                                    "}\n",
-                                   "#version 130\n"
+                                   "#version 150\n"
                                    "uniform sampler3D tex;\n"
                                    "in vec2 tex_coord;\n"
                                    "out vec4 color;\n"

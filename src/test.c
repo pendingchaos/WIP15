@@ -115,7 +115,7 @@ int main(int argc, char **argv)
                                      "in mat4 mvp;\n"
                                      "out vec2 frag_texCoord;\n"
                                      "void main() {\n"
-                                     "    gl_Position = vec4(position, 1.0);"
+                                     "    gl_Position = vec4(position, 1.0);\n"
                                      "    frag_texCoord = texCoord;\n"
                                      "}\n";
     glShaderSource(vertex, 1, &vert_source, NULL);

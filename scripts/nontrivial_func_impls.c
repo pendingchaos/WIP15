@@ -692,8 +692,9 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
         real(shader, p_count, (const GLchar*const*)sources, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+strlen(sources[i])+1);
+            memset(res_sources+res_sources_size, 0, strlen(sources[i])+1);
             strcpy(res_sources+res_sources_size, sources[i]);
-            res_sources_size += strlen(sources[i]);
+            res_sources_size += strlen(sources[i]) + 1;
         }
     } else {
         const uint64_t* lengths64 = trc_get_uint(trc_get_arg(cmd, 3));
@@ -704,9 +705,10 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
         
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+lengths[i]+1);
+            memset(res_sources+res_sources_size, 0, lengths[i]+1);
             memcpy(res_sources+res_sources_size, sources[i], lengths[i]);
             res_sources[res_sources_size+lengths[i]+1] = 0;
-            res_sources_size += lengths[i] + 0;
+            res_sources_size += lengths[i] + 1;
         }
     }
     
@@ -747,6 +749,7 @@ glCreateProgram: //
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.uniforms = empty_data;
     rev.vertex_attribs = empty_data;
+    rev.uniform_blocks = empty_data;
     rev.shaders = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
     trc_set_gl_program(ctx->trace, fake, &rev);
@@ -859,7 +862,7 @@ glLinkProgram: //GLuint p_program
         
         GLint real_loc = F(glGetUniformLocation)(real_program, name);
         if (real_loc < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive uniform while adding uniforms.");
+            trc_add_error(cmd, "Nonexistent or inactive uniform while adding uniforms", name);
         } else {
             uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
             trc_gl_program_uniform_t uni;
@@ -883,25 +886,55 @@ glLinkProgram: //GLuint p_program
     while ((attrib=trc_get_extrai(cmd, "replay/program/vertex_attrib", i++))) {
         if (attrib->size < 8) continue;
         void* data = attrib->data;
-        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
+        uint32_t fake_idx = le32toh(((uint32_t*)data)[0]);
         uint32_t len = le32toh(((uint32_t*)data)[1]);
         char* name = calloc(1, len+1);
         memcpy(name, (uint8_t*)data+8, len);
         
-        GLint real_loc = F(glGetAttribLocation)(real_program, name);
-        if (real_loc < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive uniform while adding vertex attributes.");
+        GLint real_idx = F(glGetAttribLocation)(real_program, name);
+        if (real_idx < 0) {
+            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attributes");
         } else {
             vertex_attribs = realloc(vertex_attribs, (vertex_attrib_count+1)*sizeof(uint)*2);
-            vertex_attribs[vertex_attrib_count*2] = real_loc;
-            vertex_attribs[vertex_attrib_count++*2+1] = fake_loc;
+            vertex_attribs[vertex_attrib_count*2] = real_idx;
+            vertex_attribs[vertex_attrib_count++*2+1] = fake_idx;
         }
         
         free(name);
     }
     
-    rev.uniforms = trc_create_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
+    size_t uniform_block_count = 0;
+    trc_gl_program_uniform_block_t* uniform_blocks = NULL;
+    trace_extra_t* uniform_block = NULL;
+    i = 0;
+    while ((uniform_block=trc_get_extrai(cmd, "replay/program/uniform_block", i++))) {
+        if (uniform_block->size < 8) continue;
+        void* data = uniform_block->data;
+        uint32_t fake_idx = le32toh(((uint32_t*)data)[0]);
+        uint32_t len = le32toh(((uint32_t*)data)[1]);
+        char* name = calloc(1, len+1);
+        memcpy(name, (uint8_t*)data+8, len);
+        
+        GLint real_idx = F(glGetUniformBlockIndex)(real_program, name);
+        if (real_idx < 0) {
+            trc_add_error(cmd, "Nonexistent or inactive uniform block while adding uniform blocks");
+        } else {
+            uniform_blocks = realloc(uniform_blocks, (uniform_block_count+1)*sizeof(uint)*2);
+            trc_gl_program_uniform_block_t block;
+            memset(&block, 0, sizeof(block)); //initialize padding to zero - it might be compressed
+            block.real = real_idx;
+            block.fake = fake_idx;
+            block.binding = 0;
+            uniform_blocks[uniform_block_count++] = block;
+        }
+        
+        free(name);
+    }
+    
+    rev.uniform_blocks = trc_create_data(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
     rev.vertex_attribs = trc_create_data(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
+    rev.uniforms = trc_create_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
+    free(uniform_blocks);
     free(vertex_attribs);
     free(uniforms);
     
@@ -1208,6 +1241,23 @@ glGetSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, GLint* p_params
 glGetSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, GLuint* p_params
     if (!trc_get_real_gl_sampler(ctx->trace, p_sampler))
         ERROR("Invalid sampler name.");
+
+glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_uniformBlockBinding
+    const trc_gl_program_rev_t* rev = trc_get_gl_program(ctx->trace, p_program);
+    if (!rev) ERROR("Invalid program name");
+    if (p_uniformBlockBinding >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, 0))
+        ERROR("Invalid binding");
+    uint uniform_block_count = rev->uniform_blocks->size / sizeof(trc_gl_program_uniform_block_t);
+    trc_gl_program_uniform_block_t* blocks = trc_map_data(rev->uniform_blocks, TRC_MAP_READ);
+    for (uint i = 0; i < uniform_block_count; i++) {
+        if (blocks[i].fake == p_uniformBlockIndex) {
+            real(p_program, blocks[i].real, p_uniformBlockBinding);
+            goto success;
+        }
+    }
+    trc_add_error(cmd, "No such uniform block");
+    success:
+    trc_unmap_data(rev->uniform_blocks);
 
 glUniform1f: //GLint p_location, GLfloat p_v0
     GLint loc;
@@ -2045,17 +2095,17 @@ glVertexAttribL4dv: //GLuint p_index, const GLdouble* p_v
     vertex_attrib(ctx, cmd, 4, GL_DOUBLE, true, false, GL_DOUBLE);
 
 glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_first, p_count);
     end_draw(ctx, cmd);
 
 glDrawArraysInstanced: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_first, p_count, p_instancecount);
     end_draw(ctx, cmd);
 
 glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count, GLsizei p_drawcount
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     
     const int64_t* first64 = trc_get_int(trc_get_arg(cmd, 1));
     const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 2));
@@ -2072,7 +2122,7 @@ glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count
     end_draw(ctx, cmd);
 
 glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     
     const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 1));
     const uint64_t* indicesi = trc_get_ptr(trc_get_arg(cmd, 3));
@@ -2089,7 +2139,7 @@ glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, con
     end_draw(ctx, cmd);
 
 glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount, const GLint* p_basevertex
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     
     const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 1));
     const uint64_t* indicesi = trc_get_ptr(trc_get_arg(cmd, 3));
@@ -2110,37 +2160,37 @@ glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p
 
 glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices
     uint64_t p_indices = gl_param_pointer(cmd, 3);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
     uint64_t p_indices = gl_param_pointer(cmd, 3);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount
     uint64_t p_indices = gl_param_pointer(cmd, 3);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount);
     end_draw(ctx, cmd);
 
 glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
     uint64_t p_indices = gl_param_pointer(cmd, 3);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
     uint64_t p_indices = gl_param_pointer(cmd, 5);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
     uint64_t p_indices = gl_param_pointer(cmd, 5);
-    begin_draw(ctx);
+    if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
@@ -2262,28 +2312,28 @@ glDrawableSizeWIP15: //GLsizei p_width, GLsizei p_height
     trc_set_gl_context(ctx->trace, 0, &state);
 
 glGetUniformfv: //GLuint p_program, GLint p_location, GLfloat* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetUniformiv: //GLuint p_program, GLint p_location, GLint* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetUniformuiv: //GLuint p_program, GLint p_location, GLuint* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetUniformdv: //GLuint p_program, GLint p_location, GLdouble* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetnUniformfv: //GLuint p_program, GLint p_location, GLsizei p_bufSize, GLfloat* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetnUniformiv: //GLuint p_program, GLint p_location, GLsizei p_bufSize, GLint* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetnUniformuiv: //GLuint p_program, GLint p_location, GLsizei p_bufSize, GLuint* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetnUniformdv: //GLuint p_program, GLint p_location, GLsizei p_bufSize, GLdouble* p_params
-    get_uniform(ctx, cmd);
+    validate_get_uniform(ctx, cmd);
 
 glGetMultisamplefv: //GLenum p_pname, GLuint p_index, GLfloat* p_val
     ; //TODO: More validation should be done
