@@ -513,8 +513,26 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, NULL);
     trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, NULL);
     
+    GLint max_clip_distances;
+    GLint max_draw_buffers;
+    GLint max_viewports;
+    GLint max_vertex_attribs;
+    GLint max_color_attachments;
     GLint max_tex_units;
+    F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
+    F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
+    F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
+    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
+    F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
+    
+    trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
+    trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, max_viewports);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
+    trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, max_color_attachments);
+    trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
+    
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, max_tex_units, NULL);
@@ -526,20 +544,6 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, NULL);
-    
-    GLint max_clip_distances;
-    GLint max_draw_buffers;
-    GLint max_viewports;
-    GLint max_vertex_attribs;
-    F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
-    F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
-    F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
-    
-    trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
-    trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, max_viewports);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
     
     trc_gl_state_enabled_init(trace, GL_BLEND, max_draw_buffers, NULL);
     trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, max_clip_distances, NULL);
@@ -665,6 +669,11 @@ static void init_context(trc_replay_context_t* ctx) {
     for (size_t i = 0; i < (max_vertex_attribs-1)*4; i++) va[i] = i%4==3 ? 1 : 0;
     trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, (max_vertex_attribs-1)*4, va);
     free(va);
+    
+    GLenum draw_buffers[max_draw_buffers];
+    memset(draw_buffers, 0, max_draw_buffers*sizeof(GLenum));
+    draw_buffers[0] = GL_BACK;
+    trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, max_draw_buffers, draw_buffers);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
@@ -1459,6 +1468,48 @@ static void begin_draw(trc_replay_context_t* ctx) {
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
 }
 
+static bool not_one_of(int val, ...) {
+    va_list list;
+    va_start(list, val);
+    while (true) {
+        int v = va_arg(list, int);
+        if (v == -1) break;
+        if (v == val) return false;
+    }
+    va_end(list);
+    return true;
+}
+
+#define PARTIAL_VALIDATE_CLEAR_BUFFER int max_draw_buffers = trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0);\
+if (p_drawbuffer<0 || (p_drawbuffer==0&&p_buffer!=GL_COLOR) || p_drawbuffer>=max_draw_buffers)\
+    ERROR("Invalid buffer");
+
+static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint drawbuffer) {
+    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
+    if (state->draw_framebuffer == 0) {
+        switch (buffer) {
+        case GL_COLOR: replay_update_buffers(ctx, true, false, false, false); break;
+        case GL_DEPTH: replay_update_buffers(ctx, false, false, true, false); break;
+        case GL_STENCIL: replay_update_buffers(ctx, false, false, false, true); break;
+        }
+    } else {
+        const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+        uint attachment = trc_gl_state_get_state_enum(ctx->trace, GL_DRAW_BUFFER, drawbuffer);
+        
+        size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
+        const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);
+        for (size_t i = 0; i < attach_count; i++) {
+            const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
+            if (attach->attachment+GL_COLOR_ATTACHMENT0 != attachment) continue;
+            if (attach->has_renderbuffer) continue;
+            const trc_gl_texture_rev_t* tex = trc_get_gl_texture(ctx->trace, attach->fake_texture);
+            assert(tex);
+            replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
+        }
+        trc_unmap_data(rev->attachments);
+    }
+}
+
 static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     //TODO: Only update buffers that could have been written to
@@ -1466,10 +1517,6 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
         replay_update_buffers(ctx, true, false, true, true);
     } else {
         const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
-        if (!rev) {
-            trc_add_error(cmd, "No framebuffer bound to GL_DRAW_FRAMEBUFFER");
-            return;
-        }
         
         size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
         const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);

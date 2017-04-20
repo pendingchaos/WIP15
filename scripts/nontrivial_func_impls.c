@@ -293,7 +293,10 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     real(p_n, textures);
 
 glActiveTexture: //GLenum p_texture
+    if (p_texture<GL_TEXTURE0 || p_texture-GL_TEXTURE0>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
+        ERROR("No such texture unit");
     trc_gl_state_set_active_texture_unit(ctx->trace, p_texture-GL_TEXTURE0);
+    real(p_texture);
 
 glBindTexture: //GLenum p_target, GLuint p_texture
     GLuint real_tex = trc_get_real_gl_texture(ctx->trace, p_texture);
@@ -305,7 +308,8 @@ glBindTexture: //GLenum p_target, GLuint p_texture
         newrev.type = p_target;
         newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
         trc_set_gl_texture(ctx->trace, p_texture, &newrev);
-    }
+    } else if (rev && rev->type!=p_target)
+        ERROR("Invalid target for texture");
     //TODO: Reference counting
     real(p_target, real_tex);
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
@@ -406,26 +410,25 @@ glCopyTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_
 glGenerateMipmap: //GLenum p_target
     real(p_target);
     
-    //TODO
-    /*GLint w, h, d;
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_WIDTH, &w);
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_HEIGHT, &h);
-    F(glGetTexLevelParameteriv)(target, 0, GL_TEXTURE_DEPTH, &d);
-    switch (target) {
-    case GL_TEXTURE_1D:
-    case GL_TEXTURE_1D_ARRAY:
-        for (GLsizei i = 0; w; i++, w/=2)
-            replay_get_tex_data(ctx, cmd, target, i);
-    case GL_TEXTURE_2D:
-    case GL_TEXTURE_2D_ARRAY:
-    case GL_TEXTURE_CUBE_MAP:
-    case GL_TEXTURE_CUBE_MAP_ARRAY:
-        for (GLsizei i = 0; w && h; i++, w/=2, h/=2)
-            replay_get_tex_data(ctx, cmd, target, i);
-    case GL_TEXTURE_3D:
-        for (GLsizei i = 0; w && h && d; i++, w/=2, h/=2, d/=2)
-            replay_get_tex_data(ctx, cmd, target, i);
-    }*/
+    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
+    uint fake = trc_gl_state_get_bound_textures(ctx->trace, p_target, unit);
+    if (!fake) ERROR("No texture bound or invalid target");
+    
+    GLint base;
+    F(glGetTexParameteriv)(p_target, GL_TEXTURE_BASE_LEVEL, &base);
+    GLint w, h, d;
+    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_WIDTH, &w);
+    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_HEIGHT, &h);
+    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_DEPTH, &d);
+    uint level = base;
+    while (w || h || d) {
+        if (level != base)
+            replay_update_bound_tex_image(ctx, cmd, p_target, level);
+        w /= 2;
+        h /= 2;
+        d /= 2;
+        level++;
+    }
 
 glTexParameterf: //GLenum p_target, GLenum p_pname, GLfloat p_param
     GLdouble double_param = p_param;
@@ -544,7 +547,7 @@ glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const 
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) RETURN; //TODO: Error
+    if (!buf.data) ERROR("Buffer has no data");
     
     trc_gl_buffer_rev_t old = buf;
     
@@ -568,7 +571,7 @@ glMapBuffer: //GLenum p_target, GLenum p_access
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) RETURN; //TODO: Error
+    if (!buf.data) ERROR("Buffer has no data");
     
     if (buf.mapped) ERROR("Buffer is already mapped");
     
@@ -606,7 +609,7 @@ glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLb
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) RETURN; //TODO: Error
+    if (!buf.data) ERROR("Buffer has no data");
     
     if (p_offset+p_length > buf.data->size)
         ERROR("offset+length is greater than the buffer's size");
@@ -627,28 +630,27 @@ glUnmapBuffer: //GLenum p_target
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) RETURN; //TODO: Error
+    if (!buf.data) ERROR("Buffer has no data");
     
-    if (extra->size != buf.data->size) {
-        //TODO
-    }
+    if (extra->size != buf.data->size) ERROR("Invalid trace");
     
     if (!buf.mapped) ERROR("Unmapping a buffer that is not mapped");
     
-    //TODO: Only do this if the buffer is mapped for writing
-    F(glBufferSubData)(p_target, 0, extra->size, extra->data);
-    
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
-    void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
-    
-    void* olddata = trc_map_data(old.data, TRC_MAP_READ);
-    memcpy(newdata, olddata, old.data->size);
-    trc_unmap_data(old.data);
-    
-    memcpy(newdata, extra->data, extra->size);
-    trc_unmap_freeze_data(ctx->trace, buf.data);
+    if (buf.map_access & GL_MAP_WRITE_BIT) {
+        F(glBufferSubData)(p_target, 0, extra->size, extra->data);
+        
+        buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
+        void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
+        
+        void* olddata = trc_map_data(old.data, TRC_MAP_READ);
+        memcpy(newdata, olddata, old.data->size);
+        trc_unmap_data(old.data);
+        
+        memcpy(newdata, extra->data, extra->size);
+        trc_unmap_freeze_data(ctx->trace, buf.data);
+    }
     
     buf.mapped = false;
     buf.map_offset = 0;
@@ -2691,48 +2693,80 @@ glDrawBuffer: //GLenum p_buf
     real(p_buf);
 
 glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
-    GLuint* bufs = malloc(sizeof(GLuint)*p_n);
+    if (p_n < 0) ERROR("buffer count is less than zero");
+    if (p_n > trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0))
+        ERROR("buffer count is greater than GL_MAX_DRAW_BUFFERS");
+    
+    GLuint bufs[p_n];
     for (GLsizei i = 0; i < p_n; i++) bufs[i] = trc_get_uint(trc_get_arg(cmd, 1))[i];
+    
+    GLuint fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
+    
+    uint color_min = GL_COLOR_ATTACHMENT0;
+    uint color_max = GL_COLOR_ATTACHMENT0 + trc_gl_state_get_state_int(ctx->trace, GL_MAX_COLOR_ATTACHMENTS, 0);
+    for (uint i = 0; i < p_n; i++) {
+        if (fb==0 && not_one_of(bufs[i], GL_NONE, GL_FRONT_LEFT, GL_FRONT_RIGHT, GL_BACK_LEFT, GL_BACK_RIGHT, -1))
+            ERROR("Invalid buffer");
+        else if (fb>0 && (bufs[i]<color_min||bufs[i]>color_max) && bufs[i]!=GL_NONE)
+            ERROR("Invalid buffer");
+        for (uint j = 0; j < p_n; j++) {
+            if (bufs[j]==bufs[i] && i!=j && bufs[i]!=GL_NONE)
+                ERROR("Buffer %u appears more than once", j);
+        }
+        if (bufs[i]==GL_BACK && p_n!=1)
+            ERROR("GL_BACK can only be a buffer is the buffer count is one");
+    }
+    //TODO: From reference:
+    //    GL_INVALID_OPERATION is generated if any of the entries in bufs (other than GL_NONE)
+    //    indicates a color buffer that does not exist in the current GL context.
+    
+    GLsizei i = 0;
+    for (; i < p_n; i++)
+        trc_gl_state_set_state_enum(ctx->trace, GL_DRAW_BUFFER, i, bufs[i]);
+    for (; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0); i++)
+        trc_gl_state_set_state_enum(ctx->trace, GL_DRAW_BUFFER, i, GL_NONE);
+    
     real(p_n, bufs);
-    free(bufs);
 
 glReadBuffer: //GLenum p_src
     real(p_src);
+    //TODO
 
 glClearBufferiv: //GLenum p_buffer, GLint p_drawbuffer, const GLint* p_value
+    //if (not_one_of(p_buffer, GL_COLOR, GL_STENCIL, -1))
+    //    ERROR("Buffer is not one of GL_COLOR or GL_STENCIL");
+    PARTIAL_VALIDATE_CLEAR_BUFFER
     size_t count = p_buffer == GL_COLOR ? 4 : 1;
     GLint value[count];
     for (size_t i = 0; i < count; i++) value[i] = trc_get_int(trc_get_arg(cmd, 2))[i];
     real(p_buffer, p_drawbuffer, value);
-    
-    //TODO
-    //update_drawbuffer(ctx, cmd, buffer, drawbuffer);
+    update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferuiv: //GLenum p_buffer, GLint p_drawbuffer, const GLuint* p_value
-    size_t count = p_buffer == GL_COLOR ? 4 : 1;
-    GLuint value[count];
-    for (size_t i = 0; i < count; i++) value[i] = trc_get_uint(trc_get_arg(cmd, 2))[i];
+    //if (p_buffer != GL_COLOR) ERROR("Buffer is not GL_COLOR");
+    PARTIAL_VALIDATE_CLEAR_BUFFER
+    GLuint value[4];
+    for (size_t i = 0; i < 4; i++) value[i] = trc_get_uint(trc_get_arg(cmd, 2))[i];
     real(p_buffer, p_drawbuffer, value);
-    
-    //TODO
-    //update_drawbuffer(ctx, cmd, buffer, drawbuffer);
+    update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferfv: //GLenum p_buffer, GLint p_drawbuffer, const GLfloat* p_value
+    //if (not_one_of(p_buffer, GL_COLOR, GL_DEPTH, -1))
+    //    ERROR("Buffer is not one of GL_COLOR or GL_DEPTH");
+    PARTIAL_VALIDATE_CLEAR_BUFFER
     size_t count = p_buffer == GL_COLOR ? 4 : 1;
     GLfloat value[count];
     for (size_t i = 0; i < count; i++)
         value[i] = trc_get_double(trc_get_arg(cmd, 2))[i];
     real(p_buffer, p_drawbuffer, value);
-    
-    //TODO
-    //update_drawbuffer(ctx, cmd, buffer, drawbuffer);
+    update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferfi: //GLenum p_buffer, GLint p_drawbuffer, GLfloat p_depth, GLint p_stencil
+    //if (p_buffer != GL_DEPTH_STENCIL) ERROR("Buffer is not GL_DEPTH_STENCIL");
+    PARTIAL_VALIDATE_CLEAR_BUFFER
     real(p_buffer, p_drawbuffer, p_depth, p_stencil);
-    
-    //TODO
-    //update_drawbuffer(ctx, cmd, GL_DEPTH, 0);
-    //update_drawbuffer(ctx, cmd, GL_STENCIL, 0);
+    update_drawbuffer(ctx, GL_DEPTH, p_drawbuffer);
+    update_drawbuffer(ctx, GL_STENCIL, p_drawbuffer);
 
 glBindFragDataLocation: //GLuint p_program, GLuint p_color, const GLchar* p_name
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
