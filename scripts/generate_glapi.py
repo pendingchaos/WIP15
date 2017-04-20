@@ -69,8 +69,8 @@ for name, group in group_dict.iteritems():
                  (i,
                   ", ".join(["&entry_%d_%d" % (i, id(vn)) for vn in group.vals.keys()])))
     
-    output.write("static const glapi_group_t group_%d = {false, \"%s\", %d, entries_%d};\n" %
-                 (id(group),
+    output.write("static const glapi_group_t group_%s = {false, \"%s\", %d, entries_%d};\n" %
+                 (group.name,
                   name,
                   len(group.vals.keys()),
                   i))
@@ -81,7 +81,7 @@ i = 0
 
 for name, func in func_dict.iteritems():
     for arg in func.params:
-        group = ("&group_%d" % id(group_dict[arg.group])) if arg.group != None else "NULL"
+        group = ("&group_%s" % arg.group.name) if arg.group != None else "NULL"
         
         output.write("static const glapi_arg_t arg_%d = {\"%s\", %s};\n" %
                      (id(arg),
@@ -115,7 +115,7 @@ for name, func in func_dict.iteritems():
     i += 1
 
 output.write("static glapi_group_t*const* groups[] = {%s};\n" %
-             ", ".join(["&group_%d" % id(group) for group in group_dict.values()]))
+             ", ".join(["&group_%s" % group.name for group in group_dict.values()]))
 
 output.write("static glapi_function_t** funcs[] = {%s};\n" %
              ", ".join(["&func_%d" % id(func) for func in func_dict.values()]))

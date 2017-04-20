@@ -1,3 +1,5 @@
+import glxml
+
 funcs = []
 func_dict = {}
 next_func_id = 0
@@ -8,22 +10,24 @@ next_group_id = 0
 
 _cur_file = None
 
+gl = glxml.GL(False)
+
 def indent(s, amount):
     return '\n'.join(['    '*amount+l for l in s.split('\n')])
 
 class Group(object):
-    def __init__(self, name):
+    def __init__(self, name=None):
         global next_group_id, groups
-        self.name = name
+        self.name = name if name!=None else 'group_%u'%next_group_id
         self.vals = {}
         self.minvers = {}
-        if name in group_dict:
-            self.group_id = group_dict[name].group_id
-            groups.remove(group_dict[name])
+        if self.name in group_dict:
+            self.group_id = group_dict[self.name].group_id
+            groups.remove(group_dict[self.name])
         else:
             self.group_id = next_group_id
             next_group_id += 1
-        group_dict[name] = self
+        group_dict[self.name] = self
         groups.append(self)
     
     def add(self, name, val, minver):
@@ -31,12 +35,24 @@ class Group(object):
         self.minvers[name] = minver
         return self
 
+def g(*items, **kwargs):
+    res = Group(kwargs.get('name', None))
+    for item in items:
+        name = item
+        minver = (1, 0)
+        if type(item) == tuple:
+            name = item[0]
+            minver = item[1], item[2]
+        val = gl.enumValues[name]
+        res.add(name, val, minver)
+    return res
+
 class Type(object):
     def __init__(self):
         pass
     
     def _gen_group_write_code(self, group):
-        if group != None: return ';gl_write_uint32(%d)' % group_dict[group].group_id
+        if group != None: return ';gl_write_uint32(%d)' % group.group_id
         else: return ''
     
     def gen_type_code(self, var_name='', array_count=None):
@@ -50,10 +66,12 @@ class Type(object):
 
 class Param(object):
     def __init__(self, dtype, name, array_count=None, group=None):
+        if type(group)==str and group not in group_dict: group = group.split(' ')
+        if type(group) == list: group = g(*tuple(group))
         self.dtype = dtype() if isinstance(dtype, type) else dtype
         self.name = name
         self.array_count = array_count
-        self.group = group
+        self.group = group_dict[group] if type(group)==str else group
     
     def gen_param_code(self):
         return self.dtype.gen_type_code(self.name, self.array_count)

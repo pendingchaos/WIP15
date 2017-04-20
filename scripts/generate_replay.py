@@ -670,10 +670,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, (max_vertex_attribs-1)*4, va);
     free(va);
     
-    GLenum draw_buffers[max_draw_buffers];
-    memset(draw_buffers, 0, max_draw_buffers*sizeof(GLenum));
-    draw_buffers[0] = GL_BACK;
-    trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, max_draw_buffers, draw_buffers);
+    GLenum draw_buffers[1] = {GL_BACK};
+    trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, 1, draw_buffers);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
@@ -1480,9 +1478,11 @@ static bool not_one_of(int val, ...) {
     return true;
 }
 
-#define PARTIAL_VALIDATE_CLEAR_BUFFER int max_draw_buffers = trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0);\
+#define PARTIAL_VALIDATE_CLEAR_BUFFER do {\
+int max_draw_buffers = trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0);\
 if (p_drawbuffer<0 || (p_drawbuffer==0&&p_buffer!=GL_COLOR) || p_drawbuffer>=max_draw_buffers)\
-    ERROR("Invalid buffer");
+    ERROR("Invalid buffer");\
+} while (0)
 
 static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint drawbuffer) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
@@ -1494,7 +1494,13 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
         }
     } else {
         const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
-        uint attachment = trc_gl_state_get_state_enum(ctx->trace, GL_DRAW_BUFFER, drawbuffer);
+        uint attachment;
+        if (drawbuffer>=rev->draw_buffers->size/sizeof(GLenum)) {
+            attachment = GL_NONE;
+        } else {
+            attachment = ((GLenum*)trc_map_data(rev->draw_buffers, TRC_MAP_READ))[drawbuffer];
+            trc_unmap_data(rev->draw_buffers);
+        }
         
         size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
         const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);

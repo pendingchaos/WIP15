@@ -35,6 +35,7 @@ Tests:
 Bugs:
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The state, textures, etc will not be updated when opening a trace in the GUI.
+    Groups are stored in traces
 
 Various TODOs in the source code.
 

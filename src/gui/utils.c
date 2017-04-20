@@ -28,9 +28,7 @@ const char* get_enum_str(const char* group_name, uint val) {
         return "(unable to find string)";
     } else {
         const glapi_group_t* group = find_group(group_name);
-        
-        if (!group)
-            return "(unable to find string)";
+        if (!group) return "(unable to find string)";
         
         for (size_t i = 0; i < group->entry_count; i++) {
             const glapi_group_entry_t *entry = group->entries[i];
@@ -90,6 +88,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         } else {
             for (size_t i = 0; i < group->entry_count; i++) {
                 const glapi_group_entry_t *entry = group->entries[i];
+                
                 if (entry->value == val) {
                     strncat(str, entry->name, n);
                     return;

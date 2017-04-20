@@ -2407,7 +2407,9 @@ glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     trc_gl_framebuffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
-    rev.attachments = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.attachments = empty_data;
+    rev.draw_buffers = empty_data;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = fbs[i];
         trc_set_gl_framebuffer(ctx->trace, fake[i], &rev);
@@ -2697,7 +2699,7 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     if (p_n > trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0))
         ERROR("buffer count is greater than GL_MAX_DRAW_BUFFERS");
     
-    GLuint bufs[p_n];
+    GLenum bufs[p_n];
     for (GLsizei i = 0; i < p_n; i++) bufs[i] = trc_get_uint(trc_get_arg(cmd, 1))[i];
     
     GLuint fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
@@ -2720,11 +2722,13 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     //    GL_INVALID_OPERATION is generated if any of the entries in bufs (other than GL_NONE)
     //    indicates a color buffer that does not exist in the current GL context.
     
-    GLsizei i = 0;
-    for (; i < p_n; i++)
-        trc_gl_state_set_state_enum(ctx->trace, GL_DRAW_BUFFER, i, bufs[i]);
-    for (; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0); i++)
-        trc_gl_state_set_state_enum(ctx->trace, GL_DRAW_BUFFER, i, GL_NONE);
+    if (fb == 0) {
+        trc_gl_state_state_enum_init(ctx->trace, GL_DRAW_BUFFER, p_n, bufs);
+    } else {
+        trc_gl_framebuffer_rev_t rev = *trc_get_gl_framebuffer(ctx->trace, fb);
+        rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), bufs, TRC_DATA_IMMUTABLE);
+        trc_set_gl_framebuffer(ctx->trace, fb, &rev);
+    }
     
     real(p_n, bufs);
 
@@ -2735,7 +2739,7 @@ glReadBuffer: //GLenum p_src
 glClearBufferiv: //GLenum p_buffer, GLint p_drawbuffer, const GLint* p_value
     //if (not_one_of(p_buffer, GL_COLOR, GL_STENCIL, -1))
     //    ERROR("Buffer is not one of GL_COLOR or GL_STENCIL");
-    PARTIAL_VALIDATE_CLEAR_BUFFER
+    PARTIAL_VALIDATE_CLEAR_BUFFER;
     size_t count = p_buffer == GL_COLOR ? 4 : 1;
     GLint value[count];
     for (size_t i = 0; i < count; i++) value[i] = trc_get_int(trc_get_arg(cmd, 2))[i];
@@ -2744,7 +2748,7 @@ glClearBufferiv: //GLenum p_buffer, GLint p_drawbuffer, const GLint* p_value
 
 glClearBufferuiv: //GLenum p_buffer, GLint p_drawbuffer, const GLuint* p_value
     //if (p_buffer != GL_COLOR) ERROR("Buffer is not GL_COLOR");
-    PARTIAL_VALIDATE_CLEAR_BUFFER
+    PARTIAL_VALIDATE_CLEAR_BUFFER;
     GLuint value[4];
     for (size_t i = 0; i < 4; i++) value[i] = trc_get_uint(trc_get_arg(cmd, 2))[i];
     real(p_buffer, p_drawbuffer, value);
@@ -2753,7 +2757,7 @@ glClearBufferuiv: //GLenum p_buffer, GLint p_drawbuffer, const GLuint* p_value
 glClearBufferfv: //GLenum p_buffer, GLint p_drawbuffer, const GLfloat* p_value
     //if (not_one_of(p_buffer, GL_COLOR, GL_DEPTH, -1))
     //    ERROR("Buffer is not one of GL_COLOR or GL_DEPTH");
-    PARTIAL_VALIDATE_CLEAR_BUFFER
+    PARTIAL_VALIDATE_CLEAR_BUFFER;
     size_t count = p_buffer == GL_COLOR ? 4 : 1;
     GLfloat value[count];
     for (size_t i = 0; i < count; i++)
@@ -2763,7 +2767,7 @@ glClearBufferfv: //GLenum p_buffer, GLint p_drawbuffer, const GLfloat* p_value
 
 glClearBufferfi: //GLenum p_buffer, GLint p_drawbuffer, GLfloat p_depth, GLint p_stencil
     //if (p_buffer != GL_DEPTH_STENCIL) ERROR("Buffer is not GL_DEPTH_STENCIL");
-    PARTIAL_VALIDATE_CLEAR_BUFFER
+    PARTIAL_VALIDATE_CLEAR_BUFFER;
     real(p_buffer, p_drawbuffer, p_depth, p_stencil);
     update_drawbuffer(ctx, GL_DEPTH, p_drawbuffer);
     update_drawbuffer(ctx, GL_STENCIL, p_drawbuffer);

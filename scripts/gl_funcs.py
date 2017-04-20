@@ -108,6 +108,18 @@ class tShdrSrc(Type):
     def gen_write_type_code(self, array_count=None, group=False):
         return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
 
+BufferTarget = g(('GL_ARRAY_BUFFER', 1, 5), ('GL_ATOMIC_COUNTER_BUFFER', 4, 2), ('GL_COPY_READ_BUFFER', 3, 1),
+                 ('GL_COPY_WRITE_BUFFER', 3, 1), ('GL_DISPATCH_INDIRECT_BUFFER', 4, 3), ('GL_DRAW_INDIRECT_BUFFER', 4, 0),
+                 ('GL_ELEMENT_ARRAY_BUFFER', 1, 5), ('GL_PIXEL_PACK_BUFFER', 2, 1), ('GL_PIXEL_UNPACK_BUFFER', 2, 1),
+                 ('GL_QUERY_BUFFER', 4, 4), ('GL_SHADER_STORAGE_BUFFER', 4, 3), ('GL_TEXTURE_BUFFER', 3, 1),
+                 ('GL_TRANSFORM_FEEDBACK_BUFFER', 3, 0), ('GL_UNIFORM_BUFFER', 3, 1))
+
+FramebufferTarget = g('GL_FRAMEBUFFER', 'GL_DRAW_FRAMEBUFFER', 'GL_READ_FRAMEBUFFER')
+
+QueryTarget = g(('GL_SAMPLES_PASSED', 1, 5), ('GL_ANY_SAMPLES_PASSED', 3, 3),
+                ('GL_ANY_SAMPLES_PASSED_CONSERVATIVE', 4, 3), ('GL_PRIMITIVES_GENERATED', 3, 0),
+                ('GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN', 3, 0), ('GL_TIME_ELAPSED', 3, 3))
+
 Group('ElementType').add('GL_UNSIGNED_BYTE', 0x1401, (1, 1))\
                     .add('GL_UNSIGNED_SHORT', 0x1403, (1, 1))\
                     .add('GL_UNSIGNED_INT', 0x1405, (1, 1))
@@ -370,22 +382,31 @@ Func((1, 4), 'glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), 
 #Func((1, 4), 'glPointParameteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
 Func((1, 5), 'glGenQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((1, 5), 'glDeleteQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-Func((1, 5), 'glGetQueryiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((1, 5), 'glGetQueryiv', [P(tGLenum, 'target', None, QueryTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((1, 5), 'glBeginQuery', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'id')], None)
+Func((1, 5), 'glEndQuery', [P(tGLenum, 'target', None, QueryTarget)], None)
+Func((3, 3), 'glQueryCounter', [P(tGLuint, 'id'), P(tGLenum, 'target', None, 'GL_TIMESTAMP')], None)
+Func((4, 0), 'glBeginQueryIndexed', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'index'), P(tGLuint, 'id')], None)
+Func((4, 0), 'glEndQueryIndexed', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'index')], None)
 #Func((1, 5), 'glGetQueryObjectiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((1, 5), 'glGetQueryObjectuiv', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((1, 5), 'glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 Func((1, 5), 'glGenBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 
-Func((1, 5), 'glBufferData', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'),
-                      P(tBufData('size'), 'data'), P(tGLenum, 'usage')])
+Func((1, 5), 'glBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data'), P(tGLenum, 'usage')])
+Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data')])
 
-Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'),
-                         P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data')])
+#Func((1, 5), 'glGetBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
+#Func((1, 5), 'glGetBufferParameteriv', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((1, 5), 'glGetBufferPointerv', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+DrawBuffersBuffer = g('GL_NONE', 'GL_FRONT_LEFT', 'GL_FRONT_RIGHT', 'GL_BACK_LEFT', 'GL_BACK_RIGHT', name='DrawBuffersBuffer')
+for i in range(1024): DrawBuffersBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+Func((2, 0), 'glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n', DrawBuffersBuffer)])
 
-#Func((1, 5), 'glGetBufferSubData', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
-#Func((1, 5), 'glGetBufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((1, 5), 'glGetBufferPointerv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func((2, 0), 'glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
+DrawBufferBuffer = g('GL_NONE', 'GL_FRONT_LEFT', 'GL_FRONT_RIGHT', 'GL_BACK_LEFT', 'GL_BACK_RIGHT',
+                     'GL_FRONT', 'GL_BACK', 'GL_LEFT', 'GL_RIGHT', 'GL_FRONT_AND_BACK', name='DrawBufferBuffer')
+for i in range(1024): DrawBufferBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+Func((1, 0), 'glDrawBuffer', [P(tGLenum, 'buf', None, DrawBufferBuffer)], None)
 #Func((2, 0), 'glGetActiveAttrib', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
 #Func((2, 0), 'glGetActiveUniform', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
 #Func((2, 0), 'glGetAttachedShaders', [P(tGLuint, 'program'), P(tGLsizei, 'maxCount'), P(tMutablePointer, 'count'), P(tMutablePointer, 'shaders')])
@@ -489,20 +510,22 @@ Func((3, 0), 'glUniform4uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tP
 #Func((3, 0), 'glTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
 #Func((3, 0), 'glGetTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 0), 'glGetTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func((3, 0), 'glClearBufferiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLint, 'value', 'buffer==GL_COLOR?4:1')])\
-     .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferiv");'
-Func((3, 0), 'glClearBufferuiv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLuint, 'value', 'buffer==GL_COLOR?4:1')])\
-     .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferuiv");'
-Func((3, 0), 'glClearBufferfv', [P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tGLfloat, 'value', 'buffer==GL_COLOR?4:1')])\
-     .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferfv");'
+Func((3, 0), 'glClearBufferiv', [P(tGLenum, 'buffer', None, 'GL_COLOR GL_STENCIL'), P(tGLint, 'drawbuffer'), P(tGLint, 'value', 'buffer==GL_COLOR?4:1')])\
+    .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferiv");'
+Func((3, 0), 'glClearBufferuiv', [P(tGLenum, 'buffer', None, 'GL_COLOR'), P(tGLint, 'drawbuffer'), P(tGLuint, 'value', 'buffer==GL_COLOR?4:1')])\
+    .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferuiv");'
+Func((3, 0), 'glClearBufferfv', [P(tGLenum, 'buffer', None, 'GL_COLOR GL_DEPTH'), P(tGLint, 'drawbuffer'), P(tGLfloat, 'value', 'buffer==GL_COLOR?4:1')])\
+    .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferfv");'
+Func((3, 0), 'glClearBufferfi', [P(tGLenum, 'buffer', None, 'GL_DEPTH_STENCIL'), P(tGLint, 'drawbuffer'), P(tGLfloat, 'depth'), P(tGLint, 'stencil')])\
+    .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferfi");'
 #Func((3, 0), 'glGetStringi', [P(tGLenum, 'name'), P(tGLuint, 'index')], tPointer)
 Func((3, 0), 'glDeleteRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
 Func((3, 0), 'glGenRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
 #Func((3, 0), 'glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((3, 0), 'glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func((3, 0), 'glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
-#Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 0), 'glMapBufferRange', [P(tGLenum, 'target'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+#Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 0), 'glMapBufferRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
 Func((3, 0), 'glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func((3, 0), 'glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 
@@ -544,7 +567,7 @@ Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'Primiti
 #Func((3, 2), 'glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
 #Func((3, 2), 'glGetSynciv', [P(tGLsync, 'sync'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'values')])
 #Func((3, 2), 'glGetInteger64i_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
-#Func((3, 2), 'glGetBufferParameteri64v', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((3, 2), 'glGetBufferParameteri64v', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 2), 'glGetMultisamplefv', [P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'val')])
 Func((3, 3), 'glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func((3, 3), 'glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
@@ -630,7 +653,7 @@ Func((4, 0), 'glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((4, 0), 'glPatchParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'values')])
 Func((4, 0), 'glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((4, 0), 'glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
-#Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 1), 'glShaderBinary', [P(tGLsizei, 'count'), P(tPointer, 'shaders'), P(tGLenum, 'binaryformat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
 #Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
 #Func((4, 1), 'glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
@@ -747,12 +770,12 @@ Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'
 
 #Func((4, 2), 'glGetInternalformativ', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func((4, 2), 'glGetActiveAtomicCounterBufferiv', [P(tGLuint, 'program'), P(tGLuint, 'bufferIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 3), 'glClearBufferData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func((4, 3), 'glClearBufferSubData', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+#Func((4, 3), 'glClearBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 3), 'glClearBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
+#Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 3), 'glGetInternalformati64v', [P(tGLenum, 'target'), P(tGLenum, 'internalformat'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
-#Func((4, 3), 'glInvalidateFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
-#Func((4, 3), 'glInvalidateSubFramebuffer', [P(tGLenum, 'target'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
+#Func((4, 3), 'glInvalidateFramebuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
+#Func((4, 3), 'glInvalidateSubFramebuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 #Func((4, 3), 'glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArraysIndirect");'
 #Func((4, 3), 'glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')]).trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsIndirect");'
 #Func((4, 3), 'glGetProgramInterfaceiv', [P(tGLuint, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -766,11 +789,12 @@ Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'
 #Func((4, 3), 'glGetObjectPtrLabel', [P(tPointer, 'ptr'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'label')])
 #Func((1, 1), 'glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((1, 1), 'glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 4), 'glBufferStorage', [P(tGLenum, 'target'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
+#Func((4, 4), 'glBufferStorage', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
 #Func((4, 4), 'glClearTexImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 #Func((4, 4), 'glClearTexSubImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
-#Func((4, 4), 'glBindBuffersBase', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers')])
-#Func((4, 4), 'glBindBuffersRange', [P(tGLenum, 'target'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers'), P(tPointer, 'offsets'), P(tPointer, 'sizes')])
+Func((1, 5), 'glBindBuffer', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'buffer')], None)
+#Func((4, 4), 'glBindBuffersBase', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers')])
+#Func((4, 4), 'glBindBuffersRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers'), P(tPointer, 'offsets'), P(tPointer, 'sizes')])
 Func((4, 4), 'glBindTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
 Func((4, 4), 'glBindSamplers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func((4, 4), 'glBindImageTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
@@ -921,6 +945,10 @@ Func((1, 1), 'glCopyTexSubImage1D', [P(tGLenum, 'target', None, 'CopyTexImage1DT
 Func((1, 1), 'glCopyTexSubImage2D', [P(tGLenum, 'target', None, 'CopyTexImage2DTarget'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
                                      P(tGLint, 'yoffset'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
+group = Group()
+for i in range(1024): group = group.add('GL_TEXTURE%d'%i, 0x84c0+i, (1, 3))
+Func((1, 3), 'glActiveTexture', [P(tGLenum, 'texture', None, group)], None)
+
 Func((3, 0), 'glRenderbufferStorage', [P(tGLenum, 'target'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                        P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
@@ -957,7 +985,7 @@ Func((2, 0), 'glLinkProgram', [P(tGLuint, 'program', None)], None).trace_extras_
 Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
                     P(tGLsizei, 'width'), P(tGLsizei, 'height')]).trace_epilogue_code = 'update_drawable_size();'
 
-Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None)], tGLboolean).trace_extras_code = '''GLint access;
+Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean).trace_extras_code = '''GLint access;
 F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
 if (access != GL_READ_ONLY) {
     GLint size;
@@ -969,6 +997,18 @@ if (access != GL_READ_ONLY) {
     free(data);
 }
 '''
+
+Func((3, 0), 'glBindFramebuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLuint, 'framebuffer')], None)
+Func((3, 0), 'glCheckFramebufferStatus', [P(tGLenum, 'target', None, FramebufferTarget)], tGLenum)
+Func((3, 0), 'glFramebufferTexture1D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLuint, 'texture'), P(tGLint, 'level')])
+Func((3, 0), 'glFramebufferTexture2D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLuint, 'texture'), P(tGLint, 'level')])
+Func((3, 0), 'glFramebufferTexture3D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'zoffset')])
+Func((3, 0), 'glFramebufferRenderbuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLuint, 'renderbuffer')])
+Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glFramebufferTextureLayer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'layer')])
+Func((3, 2), 'glFramebufferTexture', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLuint, 'texture'), P(tGLint, 'level')])
+Func((4, 3), 'glFramebufferParameteri', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'param')])
+Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 
 glDrawableSizeWIP15((1, 0), 'glDrawableSizeWIP15', [P(tGLsizei, 'width'), P(tGLsizei, 'height')], None)
 glTestFBWIP15((1, 0), 'glTestFBWIP15', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),

@@ -218,6 +218,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     value(store, "GL_RENDERBUFFER_BINDING", static_format("%u", ctx->bound_renderbuffer));
     value(store, "GL_READ_FRAMEBUFFER_BINDING", static_format("%u", ctx->read_framebuffer));
     value(store, "GL_DRAW_FRAMEBUFFER_BINDING", static_format("%u", ctx->draw_framebuffer));
+    STATE_ENUM(state_enum, "DrawBufferBuffer", GL_DRAW_BUFFER);
     
     begin_category(store, "Enabled");
     STATE_BOOL(enabled, GL_BLEND);

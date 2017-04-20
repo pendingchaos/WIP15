@@ -203,7 +203,8 @@ typedef struct trc_gl_framebuffer_attachment_t {
 
 typedef struct trc_gl_framebuffer_rev_t {
     TRC_GL_OBJ_HEAD
-    trc_data_t* attachments;
+    trc_data_t* attachments; //array of trc_gl_framebuffer_attachment_t
+    trc_data_t* draw_buffers; //array of GLenum
 } trc_gl_framebuffer_rev_t;
 
 typedef struct trc_gl_renderbuffer_rev_t {
