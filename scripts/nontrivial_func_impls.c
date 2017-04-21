@@ -551,7 +551,7 @@ glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const 
     
     trc_gl_buffer_rev_t old = buf;
     
-    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
+    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, TRC_DATA_NO_ZERO);
     void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
     
     void* olddata = trc_map_data(old.data, TRC_MAP_READ);
@@ -641,7 +641,7 @@ glUnmapBuffer: //GLenum p_target
     if (buf.map_access & GL_MAP_WRITE_BIT) {
         F(glBufferSubData)(p_target, 0, extra->size, extra->data);
         
-        buf.data = trc_create_data(ctx->trace, old.data->size, NULL, 0);
+        buf.data = trc_create_data(ctx->trace, old.data->size, NULL, TRC_DATA_NO_ZERO);
         void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
         
         void* olddata = trc_map_data(old.data, TRC_MAP_READ);
@@ -714,8 +714,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     trc_gl_shader_rev_t shdr = *trc_get_gl_shader(ctx->trace, p_shader);
     
-    shdr.sources = trc_create_data(ctx->trace, res_sources_size, res_sources, TRC_DATA_IMMUTABLE);
-    free(res_sources);
+    shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_shader(ctx->trace, p_shader, &shdr);
 
@@ -729,7 +728,7 @@ glCompileShader: //GLuint p_shader
     
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
-    shdr.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
+    shdr.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
     F(glGetShaderInfoLog)(real_shdr, len+1, NULL, trc_map_data(shdr.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, shdr.info_log);
     
@@ -791,7 +790,7 @@ glAttachShader: //GLuint p_program, GLuint p_shader
         if (src[i].fake_shader == p_shader) ERROR("Shader is already attached");
     }
     
-    program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL, 0);
+    program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL, TRC_DATA_NO_ZERO);
     
     trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
     memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
@@ -816,7 +815,7 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_rev_t old = program;
     
     size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
-    program.shaders = trc_create_data(ctx->trace, (shader_count-1)*sizeof(trc_gl_program_shader_t), NULL, 0);
+    program.shaders = trc_create_data(ctx->trace, (shader_count-1)*sizeof(trc_gl_program_shader_t), NULL, TRC_DATA_NO_ZERO);
     
     trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
     trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
@@ -844,7 +843,7 @@ glLinkProgram: //GLuint p_program
     
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
-    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
+    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
     F(glGetProgramInfoLog)(real_program, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
@@ -931,12 +930,9 @@ glLinkProgram: //GLuint p_program
         free(name);
     }
     
-    rev.uniform_blocks = trc_create_data(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
-    rev.vertex_attribs = trc_create_data(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
-    rev.uniforms = trc_create_data(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
-    free(uniform_blocks);
-    free(vertex_attribs);
-    free(uniforms);
+    rev.uniform_blocks = trc_create_data_no_copy(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
+    rev.vertex_attribs = trc_create_data_no_copy(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
+    rev.uniforms = trc_create_data_no_copy(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_program(ctx->trace, p_program, &rev);
     
@@ -954,7 +950,7 @@ glValidateProgram: //GLuint p_program
     
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
-    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
+    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
     F(glGetProgramInfoLog)(real_program, len, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
@@ -2237,7 +2233,7 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
         rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = arrays[i];
-        rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, 0);
+        rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
         trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
         for (size_t j = 0; j < attrib_count; j++) {
             attribs[j].enabled = false;

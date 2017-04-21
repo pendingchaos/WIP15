@@ -9,10 +9,10 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
-#ifdef ZLIB_ENABLED
+#if ZLIB_ENABLED
 #include <zlib.h>
 #endif
-#ifdef LZ4_ENABLED
+#if LZ4_ENABLED
 #include <lz4.h>
 #endif
 
@@ -1412,23 +1412,23 @@ static trc_data_t* queue_pop_from_front(trace_t* trace) {
 static void compress_data(trc_data_t* data) {
     void* compressed = malloc(data->size);
     trc_compression_t compression = TrcCompression_Zlib;
-    #ifdef ZLIB_ENABLED
+    #if ZLIB_ENABLED
     uLongf compressed_size = data->size;
     if (compress2(compressed, &compressed_size, data->plain, data->size, 9) != Z_OK) {
     #else
     int compressed_size;
     #endif
-    #ifdef LZ4_ENABLED
+    #if LZ4_ENABLED
         compression = TrcCompression_LZ4;
         if (!(compressed_size=LZ4_compress_default(data->plain, compressed, data->size, data->size))) {
     #endif
             free(compressed);
             data->flags |= TRC_DATA_NO_COMPRESS;
             return;
-    #ifdef LZ4_ENABLED
+    #if LZ4_ENABLED
         }
     #endif
-    #ifdef ZLIB_ENABLED
+    #if ZLIB_ENABLED
     }
     #endif
     
@@ -1470,17 +1470,24 @@ static void* compress_thread(void* userdata) {
     return NULL;
 }
 
-trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags) {
+static trc_data_t* create_data(trace_t* trace, size_t size, void* data, uint32_t flags, bool copy) {
     trc_data_t* res = malloc(sizeof(trc_data_t));
     res->mutex = 0;
     res->flags = flags;
     res->storage_type = TrcStorage_Plain;
     res->size = size;
     if (data) {
-        res->plain = malloc(size);
-        memcpy(res->plain, data, size);
+        if (copy) {
+            res->plain = malloc(size);
+            memcpy(res->plain, data, size);
+        } else {
+            res->plain = data;
+        }
     } else {
-        res->plain = calloc(size, 1);
+        if (flags & TRC_DATA_NO_ZERO)
+            res->plain = malloc(size);
+        else
+            res->plain = calloc(size, 1);
     }
     res->queue_next = NULL;
     
@@ -1496,22 +1503,34 @@ trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint3
     return res;
 }
 
+trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags) {
+    return create_data(trace, size, (void*)data, flags, true);
+}
+
+trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags) {
+    return create_data(trace, size, data, flags, false);
+}
+
 void* trc_map_data(trc_data_t* data, uint32_t flags) {
     mutex_lock(&data->mutex);
     if ((flags&TRC_MAP_WRITE) && data->flags&TRC_DATA_IMMUTABLE)
         assert(false);
+    data_mapping_t mapping;
+    mapping.data = data;
+    mapping.flags = flags;
+    mapping.free_ptr = true;
     switch (data->storage_type) {
     case TrcStorage_Plain: {
-        return data->plain;
+        mapping.free_ptr = false;
+        mapping.ptr = data->plain;
+        break;
     }
     case TrcStorage_External: {
-        data_mapping_t mapping;
-        mapping.data = data;
-        mapping.flags = flags;
-        mapping.free_ptr = true;
         switch (data->external->compression) {
         case TrcCompression_None: {
-            return data->external->data;
+            mapping.free_ptr = false;
+            mapping.ptr = data->external->data;
+            break;
         }
         #if LZ4_ENABLED
         case TrcCompression_LZ4: {
@@ -1534,24 +1553,30 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
             break;
         }
         #endif
+        default: {
+            assert(false);
+            break;
         }
-        mutex_lock(&mapping_mutex);
-        for (size_t i = 0; i < MAX_MAPPINGS; i++) {
-            if (mappings[i].data == NULL) {
-                mappings[i] = mapping;
-                goto success;
-            }
         }
-        assert(false);
-        success:
-        mutex_unlock(&mapping_mutex);
-        return mapping.ptr;
+        break;
     }
     default: {
         assert(false);
         return NULL;
     }
     }
+    
+    mutex_lock(&mapping_mutex);
+    for (size_t i = 0; i < MAX_MAPPINGS; i++) {
+        if (mappings[i].data == NULL) {
+            mappings[i] = mapping;
+            goto success;
+        }
+    }
+    assert(false);
+    success:
+    mutex_unlock(&mapping_mutex);
+    return mapping.ptr;
 }
 
 void trc_unmap_data(trc_data_t* data) {

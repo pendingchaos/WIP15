@@ -16,6 +16,7 @@ uint ref_count;\
 
 #define TRC_DATA_IMMUTABLE (1<<0)
 #define TRC_DATA_NO_COMPRESS (1<<1)
+#define TRC_DATA_NO_ZERO (1<<2) //Used for trc_create_data
 #define TRC_MAP_READ (1<<0)
 #define TRC_MAP_WRITE (1<<1)
 #define TRC_MAP_MODIFY (TRC_MAP_READ|TRC_MAP_WRITE)
@@ -473,6 +474,7 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
 #undef WIP15_STATE_GEN_FUNC_DECL
 
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
+trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
 void* trc_map_data(trc_data_t* data, uint32_t flags);
 void trc_unmap_data(trc_data_t* data);
 void trc_freeze_data(trace_t* trace, trc_data_t* data);

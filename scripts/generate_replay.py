@@ -451,10 +451,10 @@ static bool sample_param_double(trace_command_t* command, trc_gl_sample_params_t
 
 static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* rev) {
     size_t size = rev->drawable_width * rev->drawable_height * 4;
-    rev->front_color_buffer = trc_create_data(trace, size, NULL, 0);
-    rev->back_color_buffer = trc_create_data(trace, size, NULL, 0);
-    rev->back_depth_buffer = trc_create_data(trace, size, NULL, 0);
-    rev->back_stencil_buffer = trc_create_data(trace, size, NULL, 0);
+    rev->front_color_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
+    rev->back_color_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
+    rev->back_depth_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
+    rev->back_stencil_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
     
     void* data = trc_map_data(rev->front_color_buffer, TRC_MAP_REPLACE);
     memset(data, 0, size);
@@ -745,9 +745,7 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
     if (!replaced) newimages[img_count++] = img;
     
     size_t size = img_count * sizeof(trc_gl_texture_image_t);
-    newrev.images = trc_create_data(trace, size, newimages, TRC_DATA_IMMUTABLE);
-    
-    free(newimages);
+    newrev.images = trc_create_data_no_copy(trace, size, newimages, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_texture(trace, fake, &newrev);
 }
@@ -881,7 +879,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     }
     
     size_t data_size = width * height * depth * components * (dtype==3?8:4);
-    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, 0);
+    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, TRC_DATA_NO_ZERO);
     void* dest = trc_map_data(data, TRC_MAP_REPLACE);
     
     GLenum format;
@@ -962,9 +960,7 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
     if (!replaced) newattachs[attach_count++] = *attach;
     
     size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
-    newrev.attachments = trc_create_data(trace, size, newattachs, TRC_DATA_IMMUTABLE);
-    
-    free(newattachs);
+    newrev.attachments = trc_create_data_no_copy(trace, size, newattachs, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_framebuffer(trace, fb, &newrev);
     
@@ -1006,15 +1002,15 @@ void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbu
                                 uint fake, uint width, uint height, uint internal_format, uint samples) {
     GLint bits[6];
     GLint prev;
-    F(glGetIntegerv(GL_RENDERBUFFER_BINDING, &prev));
-    F(glBindRenderbuffer(GL_RENDERBUFFER, rev->real));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_RED_SIZE, &bits[0]));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_GREEN_SIZE, &bits[1]));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_BLUE_SIZE, &bits[2]));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_ALPHA_SIZE, &bits[3]));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_DEPTH_SIZE, &bits[4]));
-    F(glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_STENCIL_SIZE, &bits[5]));
-    F(glBindRenderbuffer(GL_RENDERBUFFER, prev));
+    F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &prev);
+    F(glBindRenderbuffer)(GL_RENDERBUFFER, rev->real);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_RED_SIZE, &bits[0]);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_GREEN_SIZE, &bits[1]);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_BLUE_SIZE, &bits[2]);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_ALPHA_SIZE, &bits[3]);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_DEPTH_SIZE, &bits[4]);
+    F(glGetRenderbufferParameteriv)(GL_RENDERBUFFER, GL_RENDERBUFFER_STENCIL_SIZE, &bits[5]);
+    F(glBindRenderbuffer)(GL_RENDERBUFFER, prev);
     
     trc_gl_renderbuffer_rev_t newrev = *rev;
     newrev.width = width;
@@ -1166,7 +1162,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     uint count = array ? gl_param_GLsizei(cmd, arg_pos++) : 1;
     bool transpose = dimy==1 ? false : gl_param_GLboolean(cmd, arg_pos++);
     
-    uniform.value = trc_create_data(ctx->trace, count*dimx*dimy*sizeof(double), NULL, 0);
+    uniform.value = trc_create_data(ctx->trace, count*dimx*dimy*sizeof(double), NULL, TRC_DATA_NO_ZERO);
     double* res = trc_map_data(uniform.value, TRC_MAP_REPLACE);
     for (uint i = 0; i < count; i++) {
         for (uint x = 0; x < dimx; x++) {
@@ -1374,7 +1370,7 @@ static trc_data_t* replay_get_fb0_buffer(trc_replay_context_t* ctx, trc_gl_conte
     F(glReadBuffer)(buffer);
     
     size_t data_size = state->drawable_width * state->drawable_height * 4;
-    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, 0);
+    trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, TRC_DATA_NO_ZERO);
     void* dest = trc_map_data(data, TRC_MAP_REPLACE);
     F(glReadPixels)(0, 0, state->drawable_width, state->drawable_height, format, type, dest);
     trc_unmap_freeze_data(ctx->trace, data);
