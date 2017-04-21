@@ -972,6 +972,40 @@ glUseProgram: //GLuint p_program
     
     real(real_program);
 
+glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
+    GLuint pipelines[p_n];
+    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
+    
+    real(p_n, pipelines);
+    
+    trc_gl_program_pipeline_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    for (size_t i = 0; i < p_n; ++i) {
+        rev.real = pipelines[i];
+        trc_set_gl_program_pipeline(ctx->trace, fake[i], &rev);
+    }
+
+glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
+    GLuint pipelines[p_n];
+    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
+    
+    for (size_t i = 0; i < p_n; ++i) {
+        if (!(pipelines[i] = trc_get_real_gl_program_pipeline(ctx->trace, fake[i])))
+            trc_add_error(cmd, "Invalid program pipeline name");
+        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_ProgramPipeline);
+    }
+    
+    real(p_n, pipelines);
+
+glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
+    GLuint real_pipeline = trc_get_real_gl_program_pipeline(ctx->trace, p_pipeline);
+    if (!real_pipeline) ERROR("Invalid program pipeline name");
+    GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
+    if (!real_program) ERROR("Invalid program name");
+    real(p_pipeline, p_stages, p_program);
+    //TODO: Create new pipeline revision
+
 glFlush: //
     real();
 
@@ -1063,6 +1097,14 @@ glGetQueryObjectuiv: //GLuint p_id, GLenum p_pname, GLuint* p_params
     GLuint real_query = trc_get_real_gl_query(ctx->trace, p_id);
     if (!real_query) ERROR("Invalid query name");
 
+glGetQueryObjecti64v: //GLuint p_id, GLenum p_pname, GLint64* p_params
+    GLuint real_query = trc_get_real_gl_query(ctx->trace, p_id);
+    if (!real_query) ERROR("Invalid query name");
+
+glGetQueryObjectui64v: //GLuint p_id, GLenum p_pname, GLuint64* p_params
+    GLuint real_query = trc_get_real_gl_query(ctx->trace, p_id);
+    if (!real_query) ERROR("Invalid query name");
+
 glGetProgramInfoLog: //GLuint p_program, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_infoLog
     GLuint real_prog = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_prog) trc_add_error(cmd, "Invalid program name");
@@ -1127,6 +1169,9 @@ glGetSeparableFilter: //GLenum p_target, GLenum p_format, GLenum p_type, void * 
     ;
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
+    ;
+
+glGetBufferParameteri64v: //GLenum p_target, GLenum p_pname, GLint64* p_params
     ;
 
 glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
@@ -2090,6 +2135,14 @@ glVertexAttribL3dv: //GLuint p_index, const GLdouble* p_v
 glVertexAttribL4dv: //GLuint p_index, const GLdouble* p_v
     vertex_attrib(ctx, cmd, 4, GL_DOUBLE, true, false, GL_DOUBLE);
 
+glBeginConditionalRender: //GLuint p_id, GLenum p_mode
+    uint real_id = trc_get_real_gl_query(ctx->trace, p_id);
+    if (!real_id) ERROR("Invalid query name.");
+    real(real_id, p_mode);
+
+glEndConditionalRender: //
+    real();
+
 glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_first, p_count);
@@ -2734,8 +2787,13 @@ glQueryCounter: //GLuint p_id, GLenum p_target
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, p_id, real_id);
 
+glSampleMaski: //GLuint p_maskNumber, GLbitfield p_mask
+    real(p_maskNumber, p_mask);
+    //TODO: Set state
+
 glDrawBuffer: //GLenum p_buf
     real(p_buf);
+    //TODO: Set state
 
 glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     if (p_n < 0) ERROR("buffer count is less than zero");
