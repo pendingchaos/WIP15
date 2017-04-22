@@ -107,6 +107,9 @@ class tShdrSrc(Type):
     
     def gen_write_type_code(self, array_count=None, group=False):
         return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        return 'const char*const* %s = trc_get_str(%s);' % (dest, src)
 
 BufferTarget = g(('GL_ARRAY_BUFFER', 1, 5), ('GL_ATOMIC_COUNTER_BUFFER', 4, 2), ('GL_COPY_READ_BUFFER', 3, 1),
                  ('GL_COPY_WRITE_BUFFER', 3, 1), ('GL_DISPATCH_INDIRECT_BUFFER', 4, 3), ('GL_DRAW_INDIRECT_BUFFER', 4, 0),
@@ -373,13 +376,13 @@ Func((1, 4), 'glMultiDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(
                            P(tGLsizei, 'count', 'drawcount'), P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawArrays");'
 
-Func((1, 4), 'glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'count', 'drawcount'),
+Func((1, 4), 'glMultiDrawElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLsizei, 'count', 'drawcount'),
                              P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indices', 'drawcount'),
                              P(tGLsizei, 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElements");'
 
-#Func((1, 4), 'glPointParameterfv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((1, 4), 'glPointParameteriv', [P(tGLenum, 'pname'), P(tPointer, 'params')])
+Func((1, 4), 'glPointParameterfv', [P(tGLenum, 'pname'), P(tGLfloat, 'params', 1)])
+Func((1, 4), 'glPointParameteriv', [P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 Func((1, 5), 'glGenQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((1, 5), 'glDeleteQueries', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((1, 5), 'glGetQueryiv', [P(tGLenum, 'target', None, QueryTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -538,7 +541,7 @@ Func((3, 1), 'glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType
      .trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsInstanced");'
 
 #Func((3, 1), 'glGetUniformIndices', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
-#Func((3, 1), 'glGetActiveUniformsiv', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformIndices'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 1), 'glGetActiveUniformsiv', [P(tGLuint, 'program'), P(tGLsizei, 'uniformCount'), P(tGLuint, 'uniformIndices', 'uniformCount'), P(tGLenum, 'pname'), P(tGLint, 'params', 'uniformCount')])
 #Func((3, 1), 'glGetActiveUniformName', [P(tGLuint, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformName')])
 #Func((3, 1), 'glGetActiveUniformBlockiv', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 1), 'glGetActiveUniformBlockName', [P(tGLuint, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformBlockName')])
@@ -564,7 +567,7 @@ Func((3, 2), 'glDrawElementsInstancedBaseVertex', [P(tGLenum, 'mode', None, 'Pri
 Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
                                                P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type', None, 'ElementType'),
                                                P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
-                                               P(tPointer, 'basevertex', 'drawcount')])\
+                                               P(tGLint, 'basevertex', 'drawcount')])\
      .trace_epilogue_code = 'if (test_mode) test_fb("glMultiDrawElementsBaseVertex");'
 
 #Func((3, 2), 'glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])

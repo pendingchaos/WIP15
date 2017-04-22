@@ -51,7 +51,7 @@ src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generate
 src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scripts/gl_funcs.py
 	cd scripts; python generate_glapi.py
 
-src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_replay.py
+src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_replay.py scripts/glapi/*
 	cd scripts; python generate_replay.py
 
 src/libtrace/libtrace_glstate.h: scripts/generate_libtrace_glstate.py

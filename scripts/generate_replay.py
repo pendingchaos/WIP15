@@ -271,6 +271,43 @@ static GLXVideoSourceSGIX gl_param_GLXVideoSourceSGIX(trace_command_t* cmd, size
 static uint64_t gl_param_GLXContext(trace_command_t* cmd, size_t index) {
     return *trc_get_ptr(trc_get_arg(cmd, index));
 }
+
+static uint64_t replay_get_uint(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+    return trc_get_uint(val)[i];
+}
+
+static int64_t replay_get_int(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+    return trc_get_int(val)[i];
+}
+
+static double replay_get_double(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+    return trc_get_double(val)[i];
+}
+
+static uint64_t replay_get_ptr(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+    return trc_get_ptr(val)[i];
+}
+
+static bool replay_get_bool(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+    return trc_get_bool(val)[i];
+}
+
+static size_t replay_alloc_data_size;
+static uint8_t replay_alloc_data[65536];
+static void* replay_alloc_big_data;
+
+static void* replay_alloc(size_t amount) {
+    if (sizeof(replay_alloc_data)-replay_alloc_data_size < amount) {
+        void* res = malloc(sizeof(void*)+amount);
+        *(void**)res = replay_alloc_big_data;
+        replay_alloc_big_data = res;
+        return res;
+    } else {
+        uint8_t* res = &replay_alloc_data[replay_alloc_data_size];
+        replay_alloc_data_size += amount;
+        return res;
+    }
+}
 #pragma GCC diagnostic pop
 
 static void reset_gl_funcs(trc_replay_context_t* ctx);
@@ -1536,6 +1573,9 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
 }
 
 static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
+    replay_alloc_data_size = 0;
+    replay_alloc_big_data = NULL;
+    
     //TODO: This could be done less often
     if (F(glDebugMessageCallback)) {
         F(glEnable)(GL_DEBUG_OUTPUT);
@@ -1565,6 +1605,12 @@ static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* com
 }
 
 static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
+    while (replay_alloc_big_data) {
+        void* next = *(void**)replay_alloc_big_data;
+        free(replay_alloc_big_data);
+        replay_alloc_big_data = next;
+    }
+    
     GLenum error = GL_NO_ERROR;
     if (trc_get_current_fake_gl_context(ctx->trace) && F(glGetError)) error = F(glGetError)();
     //TODO: Are all of these needed?
@@ -1623,6 +1669,9 @@ for line in nontrivial_str.split("\n"):
 if current_name != "":
     nontrivial[current_name] = current
 
+output.write("""#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+""")
 for name, func in func_dict.iteritems():
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
     
@@ -1644,7 +1693,7 @@ for name, func in func_dict.iteritems():
     
     function = gl.functions[name]
     
-    for i, param in zip(range(len(function.params)), function.params):
+    """for i, param in zip(range(len(function.params)), function.params):
         arg = "cmd, %d" % (i)
         if param.type_[-1] == "]":
             output.write("%s* p_%s = " % (param.type_.split("[")[0], param.name))
@@ -1686,20 +1735,23 @@ for name, func in func_dict.iteritems():
         else:
             output.write("(%s)gl_param_%s(%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
         output.write(";\n")
-        output.write("    do {(void)sizeof((p_%s));} while (0);\n" % param.name)
+        output.write("    do {(void)sizeof((p_%s));} while (0);\n" % param.name)"""
+    for i, param in zip(range(len(func.params)), func.params):
+        output.write('    trace_value_t* arg%d = trc_get_arg(cmd, %d);\n' % (i, i))
+        output.write(param.dtype.gen_replay_read_code('p_'+param.name, 'arg%d'%i, param.array_count)+'\n')
     
     if name in nontrivial:
         output.write(nontrivial[name])
-        output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
-        output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
-        output.write("}\n\n")
-        continue
-    
-    output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in function.params])))
+    else:
+        pass #output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in func.params])))
     
     output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
     
+    if name in nontrivial: output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
+    
     output.write("}\n\n")
+output.write("""#pragma GCC diagnostic pop
+""")
 
 output.write("""static void reset_gl_funcs(trc_replay_context_t* ctx);
 

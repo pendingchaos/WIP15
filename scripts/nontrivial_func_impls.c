@@ -1,8 +1,7 @@
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
-    uint64_t fake_ctx = *trc_get_uint(trc_get_arg(cmd, 2));
-    if (fake_ctx) {
-        if (!(glctx=trc_get_real_gl_context(ctx->trace, fake_ctx)))
+    if (p_ctx) {
+        if (!(glctx=trc_get_real_gl_context(ctx->trace, p_ctx)))
             ERROR("Invalid GLX context");
     }
     
@@ -11,7 +10,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     
     if (glctx) {
         reload_gl_funcs(ctx);
-        trc_set_current_fake_gl_context(ctx->trace, fake_ctx);
+        trc_set_current_fake_gl_context(ctx->trace, p_ctx);
         if (!trc_gl_state_get_made_current_before(ctx->trace)) {
             trace_extra_t* extra = trc_get_extra(cmd, "replay/glXMakeCurrent/drawable_size");
             if (!extra) ERROR("replay/glXMakeCurrent/drawable_size extra not found");
@@ -132,7 +131,7 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
 
-glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p_share_context, Bool p_direct, const int * p_attrib_list
+glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p_share_context, Bool p_direct, const int* p_attrib_list
     int last_major, last_minor, last_flags, last_profile;
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &last_major);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &last_minor);
@@ -144,7 +143,7 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     int flags = 0;
     int profile = 0;
     
-    const int64_t* attribs = trc_get_int(trc_get_arg(cmd, 4));
+    const int* attribs = p_attrib_list;
     while (*attribs) {
         int attr = *(attribs++);
         if (attr == GLX_CONTEXT_MAJOR_VERSION_ARB) {
@@ -245,8 +244,6 @@ glClear: //GLbitfield p_mask
 
 glGenTextures: //GLsizei p_n, GLuint* p_textures
     GLuint textures[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, textures);
     
     trc_gl_texture_rev_t rev;
@@ -278,18 +275,15 @@ glGenTextures: //GLsizei p_n, GLuint* p_textures
     rev.images = NULL;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = textures[i];
-        trc_set_gl_texture(ctx->trace, fake[i], &rev);
+        trc_set_gl_texture(ctx->trace, p_textures[i], &rev);
     }
 
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     GLuint textures[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i)
-        if (!(textures[i] = trc_get_real_gl_texture(ctx->trace, fake[i])))
+        if (!(textures[i] = trc_get_real_gl_texture(ctx->trace, p_textures[i])))
             trc_add_error(cmd, "Invalid texture name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Texture);
-    
+        else trc_rel_gl_obj(ctx->trace, p_textures[i], TrcGLObj_Texture);
     real(p_n, textures);
 
 glActiveTexture: //GLenum p_texture
@@ -315,66 +309,54 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
-glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void * p_pixels
-    const void* data = gl_param_data(cmd, 7);
-    real(p_target, p_level, p_internalformat, p_width, p_border, p_format, p_type, data);
+glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
+    real(p_target, p_level, p_internalformat, p_width, p_border, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexImage1D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLint p_border, GLsizei p_imageSize, const void * p_data
-    const void* data = gl_param_data(cmd, 6);
-    real(p_target, p_level, p_internalformat, p_width, p_border, p_imageSize, data);
+glCompressedTexImage1D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLint p_border, GLsizei p_imageSize, const void* p_data
+    real(p_target, p_level, p_internalformat, p_width, p_border, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLenum p_type, const void * p_pixels
-    const void* data = gl_param_data(cmd, 6);
-    real(p_target, p_level, p_xoffset, p_width, p_format, p_type, data);
+glTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLenum p_type, const void* p_pixels
+    real(p_target, p_level, p_xoffset, p_width, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLsizei p_imageSize, const void * p_data
-    const void* data = gl_param_data(cmd, 6);
-    real(p_target, p_level, p_xoffset, p_width, p_format, p_imageSize, data);
+glCompressedTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLsizei p_imageSize, const void* p_data
+    real(p_target, p_level, p_xoffset, p_width, p_format, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glTexImage2D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLenum p_format, GLenum p_type, const void * p_pixels
-    const void* data = gl_param_data(cmd, 8);
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_format, p_type, data);
+glTexImage2D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
+    real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexImage2D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLsizei p_imageSize, const void * p_data
-    const void* data = gl_param_data(cmd, 7);
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_imageSize, data);
+glCompressedTexImage2D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLsizei p_imageSize, const void* p_data
+    real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLenum p_type, const void * p_pixels
-    const void* data = gl_param_data(cmd, 8);
-    real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, data);
+glTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLenum p_type, const void* p_pixels
+    real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLsizei p_imageSize, const void * p_data
-    const void* data = gl_param_data(cmd, 8);
-    real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_imageSize, data);
+glCompressedTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLsizei p_imageSize, const void* p_data
+    real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glTexImage3D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLenum p_format, GLenum p_type, const void * p_pixels
+glTexImage3D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
     //TODO: Array textures
-    const void* data = gl_param_data(cmd, 9);
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_format, p_type, data);
+    real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexImage3D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLsizei p_imageSize, const void * p_data
+glCompressedTexImage3D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLsizei p_imageSize, const void* p_data
     //TODO: Array textures
-    const void* data = gl_param_data(cmd, 8);
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_imageSize, data);
+    real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLenum p_type, const void * p_pixels
-    const void* data = gl_param_data(cmd, 10);
-    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_type, data);
+glTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLenum p_type, const void* p_pixels
+    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_type, p_pixels);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
-glCompressedTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLsizei p_imageSize, const void * p_data
-    const void* data = gl_param_data(cmd, 10);
-    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_imageSize, data);
+glCompressedTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLsizei p_imageSize, const void* p_data
+    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexImage2DMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLboolean p_fixedsamplelocations
@@ -481,8 +463,6 @@ glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     GLuint buffers[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, buffers);
     
     trc_gl_buffer_rev_t rev;
@@ -497,19 +477,16 @@ glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     rev.map_access = 0;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = buffers[i];
-        trc_set_gl_buffer(ctx->trace, fake[i], &rev);
+        trc_set_gl_buffer(ctx->trace, p_buffers[i], &rev);
     }
 
 glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     GLuint buffers[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(buffers[i] = trc_get_real_gl_buffer(ctx->trace, fake[i])))
+        if (!(buffers[i] = trc_get_real_gl_buffer(ctx->trace, p_buffers[i])))
             trc_add_error(cmd, "Invalid buffer name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Buffer);
+        else trc_rel_gl_obj(ctx->trace, p_buffers[i], TrcGLObj_Buffer);
     }
-    
     real(p_n, buffers);
 
 glBindBuffer: //GLenum p_target, GLuint p_buffer
@@ -529,19 +506,17 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     real(p_target, p_index, buf, p_offset, p_size);
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void * p_data, GLenum p_usage
-    const void* data = gl_param_data(cmd, 2);
-    real(p_target, p_size, data, p_usage);
+    real(p_target, p_size, p_data, p_usage);
     
     uint fake = get_bound_buffer(ctx, p_target);
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
     if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    buf.data = trc_create_data(ctx->trace, p_size, data, TRC_DATA_IMMUTABLE);
+    buf.data = trc_create_data(ctx->trace, p_size, p_data, TRC_DATA_IMMUTABLE);
     trc_set_gl_buffer(ctx->trace, fake, &buf);
 
 glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void * p_data
-    const void* data = gl_param_data(cmd, 3);
-    real(p_target, p_offset, p_size, data);
+    real(p_target, p_offset, p_size, p_data);
     
     uint fake = get_bound_buffer(ctx, p_target);
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
@@ -558,7 +533,7 @@ glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const 
     memcpy(newdata, olddata, old.data->size);
     trc_unmap_data(old.data);
     
-    memcpy((uint8_t*)newdata+p_offset, data, p_size);
+    memcpy((uint8_t*)newdata+p_offset, p_data, p_size);
     trc_unmap_freeze_data(ctx->trace, buf.data);
     
     trc_set_gl_buffer(ctx->trace, fake, &buf);
@@ -681,34 +656,27 @@ glDeleteShader: //GLuint p_shader
     trc_rel_gl_obj(ctx->trace, p_shader, TrcGLObj_Shader);
 
 glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string, const GLint* p_length
-    const char*const* sources = gl_param_string_array(cmd, 2);
-    
     GLuint shader = trc_get_real_gl_shader(ctx->trace, p_shader);
     if (!shader) ERROR("Invalid shader name");
     
     size_t res_sources_size = 0;
     char* res_sources = NULL;
     if (trc_get_arg(cmd, 3)->count == 0) {
-        real(shader, p_count, (const GLchar*const*)sources, NULL);
+        real(shader, p_count, p_string, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
-            res_sources = realloc(res_sources, res_sources_size+strlen(sources[i])+1);
-            memset(res_sources+res_sources_size, 0, strlen(sources[i])+1);
-            strcpy(res_sources+res_sources_size, sources[i]);
-            res_sources_size += strlen(sources[i]) + 1;
+            res_sources = realloc(res_sources, res_sources_size+strlen(p_string[i])+1);
+            memset(res_sources+res_sources_size, 0, strlen(p_string[i])+1);
+            strcpy(res_sources+res_sources_size, p_string[i]);
+            res_sources_size += strlen(p_string[i]) + 1;
         }
     } else {
-        const uint64_t* lengths64 = trc_get_uint(trc_get_arg(cmd, 3));
-        
-        GLint lengths[p_count];
-        for (GLsizei i = 0; i < p_count; i++) lengths[i] = lengths64[i];
-        real(shader, p_count, (const GLchar*const*)sources, lengths);
-        
+        real(shader, p_count, p_string, p_length);
         for (GLsizei i = 0; i < p_count; i++) {
-            res_sources = realloc(res_sources, res_sources_size+lengths[i]+1);
-            memset(res_sources+res_sources_size, 0, lengths[i]+1);
-            memcpy(res_sources+res_sources_size, sources[i], lengths[i]);
-            res_sources[res_sources_size+lengths[i]+1] = 0;
-            res_sources_size += lengths[i] + 1;
+            res_sources = realloc(res_sources, res_sources_size+p_length[i]+1);
+            memset(res_sources+res_sources_size, 0, p_length[i]+1);
+            memcpy(res_sources+res_sources_size, p_string[i], p_length[i]);
+            res_sources[res_sources_size+p_length[i]+1] = 0;
+            res_sources_size += p_length[i] + 1;
         }
     }
     
@@ -974,8 +942,6 @@ glUseProgram: //GLuint p_program
 
 glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     GLuint pipelines[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, pipelines);
     
     trc_gl_program_pipeline_rev_t rev;
@@ -983,19 +949,16 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     rev.ref_count = 1;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = pipelines[i];
-        trc_set_gl_program_pipeline(ctx->trace, fake[i], &rev);
+        trc_set_gl_program_pipeline(ctx->trace, p_pipelines[i], &rev);
     }
 
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     GLuint pipelines[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(pipelines[i] = trc_get_real_gl_program_pipeline(ctx->trace, fake[i])))
+        if (!(pipelines[i] = trc_get_real_gl_program_pipeline(ctx->trace, p_pipelines[i])))
             trc_add_error(cmd, "Invalid program pipeline name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_ProgramPipeline);
+        else trc_rel_gl_obj(ctx->trace, p_pipelines[i], TrcGLObj_ProgramPipeline);
     }
-    
     real(p_n, pipelines);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
@@ -1055,14 +1018,9 @@ glIsTransformFeedback: //GLuint p_id
     ;
 
 glBindAttribLocation: //GLuint p_program, GLuint p_index, const GLchar* p_name
-    GLuint fake_prog = gl_param_GLuint(cmd, 0);
-    GLuint index = gl_param_GLuint(cmd, 1);
-    const GLchar* name = gl_param_string(cmd, 2);
-    
-    GLuint program = trc_get_real_gl_program(ctx->trace, fake_prog);
-    if (!program) ERROR("Invalid program name");
-    
-    real(program, index, name);
+    GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
+    if (!real_program) ERROR("Invalid program name");
+    real(real_program, p_index, p_name);
 
 glGetAttribLocation: //GLuint p_program, const GLchar* p_name
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -1870,7 +1828,6 @@ glProgramUniformMatrix4x3dv: //GLuint p_program, GLint p_location, GLsizei p_cou
 
 //TODO: There is some duplicate code among glVertexAttrib*Pointer and gl*VertexAttribArray
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
-    uint64_t p_pointer = gl_param_pointer(cmd, 5);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
@@ -1892,7 +1849,6 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
     }
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
-    uint64_t p_pointer = gl_param_pointer(cmd, 4);
     //if (p_pointer > UINTPTR_MAX) //TODO
     real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
@@ -2155,90 +2111,45 @@ glDrawArraysInstanced: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei 
 
 glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count, GLsizei p_drawcount
     if (!begin_draw(ctx, cmd)) RETURN;
-    
-    const int64_t* first64 = trc_get_int(trc_get_arg(cmd, 1));
-    const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 2));
-    
-    GLint first[p_drawcount];
-    GLint count[p_drawcount];
-    for (GLsizei i = 0; i < p_drawcount; i++) {
-        first[i] = first64[i];
-        count[i] = count64[i];
-    }
-    
-    real(p_mode, first, count, p_drawcount);
-    
+    real(p_mode, p_first, p_count, p_drawcount);
     end_draw(ctx, cmd);
 
 glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount
     if (!begin_draw(ctx, cmd)) RETURN;
-    
-    const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 1));
-    const uint64_t* indicesi = trc_get_ptr(trc_get_arg(cmd, 3));
-    
-    GLint count[p_drawcount];
-    const GLvoid* indices[p_drawcount];
-    for (GLsizei i = 0; i < p_drawcount; i++) {
-        count[i] = count64[i];
-        indices[i] = (const GLvoid*)indicesi[i];
-    }
-    
-    real(p_mode, count, p_type, indices, p_drawcount);
-    
+    real(p_mode, p_count, p_type, p_indices, p_drawcount);
     end_draw(ctx, cmd);
 
 glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount, const GLint* p_basevertex
     if (!begin_draw(ctx, cmd)) RETURN;
-    
-    const int64_t* count64 = trc_get_int(trc_get_arg(cmd, 1));
-    const uint64_t* indicesi = trc_get_ptr(trc_get_arg(cmd, 3));
-    const int64_t* basevertex64 = trc_get_int(trc_get_arg(cmd, 5));
-    
-    GLint count[p_drawcount];
-    const GLvoid* indices[p_drawcount];
-    GLint basevertex[p_drawcount];
-    for (GLsizei i = 0; i < p_drawcount; i++) {
-        count[i] = count64[i];
-        indices[i] = (const GLvoid*)indicesi[i];
-        basevertex[i] = basevertex64[i];
-    }
-    
-    real(p_mode, count, p_type, indices, p_drawcount, basevertex);
-    
+    real(p_mode, p_count, p_type, p_indices, p_drawcount, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices
-    uint64_t p_indices = gl_param_pointer(cmd, 3);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
-    uint64_t p_indices = gl_param_pointer(cmd, 3);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount
-    uint64_t p_indices = gl_param_pointer(cmd, 3);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount);
     end_draw(ctx, cmd);
 
 glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
-    uint64_t p_indices = gl_param_pointer(cmd, 3);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
-    uint64_t p_indices = gl_param_pointer(cmd, 5);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
-    uint64_t p_indices = gl_param_pointer(cmd, 5);
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
@@ -2263,9 +2174,9 @@ glTestFBWIP15: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_de
     
     F(glReadBuffer)(last_buf);
     
-    if (memcmp(back, gl_param_data(cmd, 1), w*h*4) != 0)
+    if (memcmp(back, p_color, w*h*4) != 0)
         fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
-    if (memcmp(depth, gl_param_data(cmd, 2), w*h*4) != 0)
+    if (memcmp(depth, p_depth, w*h*4) != 0)
         fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
     
     free(back);
@@ -2276,8 +2187,6 @@ glCurrentTestWIP15: //const GLchar* p_name
 
 glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
     GLuint arrays[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, arrays);
     
     int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
@@ -2288,6 +2197,7 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
         rev.real = arrays[i];
         rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
         trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
+        memset(attribs, 0, attrib_count*sizeof(trc_gl_vao_attrib_t)); //fill in padding to fix uninitialized memory errors during compession
         for (size_t j = 0; j < attrib_count; j++) {
             attribs[j].enabled = false;
             attribs[j].normalized = false;
@@ -2300,33 +2210,24 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
             attribs[j].buffer = 0;
         }
         trc_unmap_data(rev.attribs);
-        trc_set_gl_vao(ctx->trace, fake[i], &rev);
+        trc_set_gl_vao(ctx->trace, p_arrays[i], &rev);
     }
 
 glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     GLuint arrays[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
-        if (fake[i] && fake[i]==trc_gl_state_get_bound_vao(ctx->trace))
+        if (p_arrays[i] && p_arrays[i]==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
-        if (!(arrays[i]=trc_get_real_gl_vao(ctx->trace, fake[i])))
+        if (!(arrays[i]=trc_get_real_gl_vao(ctx->trace, p_arrays[i])))
             trc_add_error(cmd, "Invalid vertex array name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_VAO);
+        else trc_rel_gl_obj(ctx->trace, p_arrays[i], TrcGLObj_VAO);
     }
-    
     real(p_n, arrays);
 
 glBindVertexArray: //GLuint p_array
     GLuint real_vao = trc_get_real_gl_vao(ctx->trace, p_array);
     if (!real_vao && p_array) ERROR("Invalid vertex array name");
     trc_gl_state_set_bound_vao(ctx->trace, p_array);
-
-glPatchParameterfv: //GLenum p_pname, const GLfloat* p_values
-    GLfloat values[trc_get_arg(cmd, 1)->count];
-    for (size_t i = 0; i < trc_get_arg(cmd, 1)->count; i++)
-        values[i] = trc_get_double(trc_get_arg(cmd, 1))[i];
-    real(p_pname, values);
 
 glGetFragDataIndex: //GLuint p_program, const GLchar* p_name
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -2402,8 +2303,6 @@ glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
 
 glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     GLuint samplers[p_count];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_count, samplers);
     
     trc_gl_sampler_rev_t rev;
@@ -2411,17 +2310,15 @@ glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     rev.ref_count = 1;
     for (size_t i = 0; i < p_count; ++i) {
         rev.real = samplers[i];
-        trc_set_gl_sampler(ctx->trace, fake[i], &rev);
+        trc_set_gl_sampler(ctx->trace, p_samplers[i], &rev);
     }
 
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint samplers[p_count];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_count; ++i) {
-        if (!(samplers[i] = trc_get_real_gl_sampler(ctx->trace, fake[i])))
+        if (!(samplers[i] = trc_get_real_gl_sampler(ctx->trace, p_samplers[i])))
             trc_add_error(cmd, "Invalid sampler name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Sampler);
+        else trc_rel_gl_obj(ctx->trace, p_samplers[i], TrcGLObj_Sampler);
     }
     
     real(p_count, samplers);
@@ -2449,55 +2346,25 @@ glSamplerParameteri: //GLuint p_sampler, GLenum p_pname, GLint p_param
 glSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, const GLfloat* p_param
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
     if (!sampler) ERROR("Invalid sampler name");
-    const double* paramsd = trc_get_double(trc_get_arg(cmd, 2));
-    
-    GLfloat params[4];
-    if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        for (size_t i = 0; i < 4; i++) params[i] = paramsd[i];
-    else params[0] = paramsd[0];
-    
-    real(sampler, p_pname, params);
+    real(sampler, p_pname, p_param);
 
 glSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
     if (!sampler) ERROR("Invalid sampler name");
-    const int64_t* params64 = trc_get_int(trc_get_arg(cmd, 2));
-    
-    GLint params[4];
-    if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
-    
-    real(sampler, p_pname, params);
+    real(sampler, p_pname, p_param);
 
 glSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
     if (!sampler) ERROR("Invalid sampler name");
-    const int64_t* params64 = trc_get_int(trc_get_arg(cmd, 2));
-    
-    GLint params[4];
-    if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
-    
-    real(sampler, p_pname, params);
+    real(sampler, p_pname, p_param);
 
 glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_param
     GLuint sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
     if (!sampler) ERROR("Invalid sampler name");
-    const uint64_t* params64 = trc_get_uint(trc_get_arg(cmd, 2));
-    
-    GLuint params[4];
-    if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
-    
-    real(sampler, p_pname, params);
+    real(sampler, p_pname, p_param);
 
 glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     GLuint fbs[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, fbs);
     
     trc_gl_framebuffer_rev_t rev;
@@ -2508,23 +2375,20 @@ glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     rev.draw_buffers = empty_data;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = fbs[i];
-        trc_set_gl_framebuffer(ctx->trace, fake[i], &rev);
+        trc_set_gl_framebuffer(ctx->trace, p_framebuffers[i], &rev);
     }
 
 glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint fbs[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
-        if (fake[i] && fake[i]==trc_gl_state_get_read_framebuffer(ctx->trace))
+        if (p_framebuffers[i] && p_framebuffers[i]==trc_gl_state_get_read_framebuffer(ctx->trace))
             trc_gl_state_set_read_framebuffer(ctx->trace, 0);
-        if (fake[i] && fake[i]==trc_gl_state_get_draw_framebuffer(ctx->trace))
+        if (p_framebuffers[i] && p_framebuffers[i]==trc_gl_state_get_draw_framebuffer(ctx->trace))
             trc_gl_state_set_draw_framebuffer(ctx->trace, 0);
-        if (!(fbs[i] = trc_get_real_gl_framebuffer(ctx->trace, fake[i])))
+        if (!(fbs[i] = trc_get_real_gl_framebuffer(ctx->trace, p_framebuffers[i])))
             trc_add_error(cmd, "Invalid framebuffer name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Framebuffer);
+        else trc_rel_gl_obj(ctx->trace, p_framebuffers[i], TrcGLObj_Framebuffer);
     }
-    
     real(p_n, fbs);
 
 glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
@@ -2542,33 +2406,28 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, p_framebuffer);
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
-    GLsizei n = gl_param_GLsizei(cmd, 0);
-    GLuint rbs[n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
-    real(n, rbs);
+    GLuint rbs[p_n];
+    real(p_n, rbs);
     
     trc_gl_renderbuffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.has_storage = false;
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < p_n; ++i) {
         rev.real = rbs[i];
-        trc_set_gl_renderbuffer(ctx->trace, fake[i], &rev);
+        trc_set_gl_renderbuffer(ctx->trace, p_renderbuffers[i], &rev);
     }
 
 glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     GLuint rbs[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
-        if (fake[i] && fake[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
+        if (p_renderbuffers[i] && p_renderbuffers[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
             trc_gl_state_set_bound_renderbuffer(ctx->trace, 0);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
-        if (!(rbs[i] = trc_get_real_gl_renderbuffer(ctx->trace, fake[i])))
+        if (!(rbs[i] = trc_get_real_gl_renderbuffer(ctx->trace, p_renderbuffers[i])))
             trc_add_error(cmd, "Invalid renderbuffer name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Renderbuffer);
+        else trc_rel_gl_obj(ctx->trace, p_renderbuffers[i], TrcGLObj_Renderbuffer);
     }
     
     real(p_n, rbs);
@@ -2610,17 +2469,8 @@ glGetActiveUniformName: //GLuint p_program, GLuint p_uniformIndex, GLsizei p_buf
 glGetActiveUniformsiv: //GLuint p_program, GLsizei p_uniformCount, const GLuint* p_uniformIndices, GLenum p_pname, GLint* p_params
     GLuint program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!program) ERROR("Invalid program name");
-    const uint64_t* uniformIndices64 = trc_get_uint(trc_get_arg(cmd, 2));
-    
-    GLuint* uniformIndices = malloc(p_uniformCount*sizeof(GLuint));
-    for (GLsizei i = 0; i < p_uniformCount; i++) uniformIndices[i] = uniformIndices64[i];
-    
-    GLint* params = malloc(p_uniformCount*sizeof(GLint));
-    
-    real(program, p_uniformCount, uniformIndices, p_pname, params);
-    
-    free(params);
-    free(uniformIndices);
+    GLint* params = replay_alloc(p_uniformCount*sizeof(GLint));
+    real(program, p_uniformCount, p_uniformIndices, p_pname, params);
 
 glGetFramebufferAttachmentParameteriv: //GLenum p_target, GLenum p_attachment, GLenum p_pname, GLint* p_params
     GLint params;
@@ -2712,26 +2562,21 @@ glFenceSync: //GLenum p_condition, GLbitfield p_flags
     trc_set_gl_sync(ctx->trace, fake, &rev);
 
 glDeleteSync: //GLsync p_sync
-    GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, p_sync);
-    if (!real_sync && p_sync) ERROR("Invalid sync name");
-    real(real_sync);
+    if (!p_sync_rev && p_sync) ERROR("Invalid sync name");
+    real(p_sync?(GLsync)p_sync_rev->real:0);
     if (p_sync) trc_rel_gl_obj(ctx->trace, p_sync, TrcGLObj_Sync);
 
 glWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
-    GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, p_sync);
-    if (!real_sync) ERROR("Invalid sync name");
-    real(real_sync, p_flags, p_timeout);
+    if (!p_sync_rev) ERROR("Invalid sync name");
+    real((GLsync)p_sync_rev->real, p_flags, p_timeout);
     //TODO: grab the object and release it once the wait is over
 
 glClientWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
-    GLsync real_sync = (GLsync)trc_get_real_gl_sync(ctx->trace, p_sync);
-    if (!real_sync) ERROR("Invalid sync name");
-    real(real_sync, p_flags, p_timeout);
+    if (!p_sync_rev) ERROR("Invalid sync name");
+    real((GLsync)p_sync_rev->real, p_flags, p_timeout);
 
 glGenQueries: //GLsizei p_n, GLuint* p_ids
     GLuint queries[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     real(p_n, queries);
     
     trc_gl_query_rev_t rev;
@@ -2741,20 +2586,17 @@ glGenQueries: //GLsizei p_n, GLuint* p_ids
     rev.result = 0;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = queries[i];
-        trc_set_gl_query(ctx->trace, fake[i], &rev);
+        trc_set_gl_query(ctx->trace, p_ids[i], &rev);
     }
 
 glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     GLuint queries[p_n];
-    const uint64_t* fake = trc_get_uint(trc_get_arg(cmd, 1));
-    
     for (size_t i = 0; i < p_n; ++i) {
         //TODO: Handle when queries are in use
-        if (!(queries[i] = trc_get_real_gl_query(ctx->trace, fake[i])))
+        if (!(queries[i] = trc_get_real_gl_query(ctx->trace, p_ids[i])))
             trc_add_error(cmd, "Invalid query name");
-        else trc_rel_gl_obj(ctx->trace, fake[i], TrcGLObj_Query);
+        else trc_rel_gl_obj(ctx->trace, p_ids[i], TrcGLObj_Query);
     }
-    
     real(p_n, queries);
 
 glBeginQuery: //GLenum p_target, GLuint p_id
@@ -2800,23 +2642,20 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     if (p_n > trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0))
         ERROR("buffer count is greater than GL_MAX_DRAW_BUFFERS");
     
-    GLenum bufs[p_n];
-    for (GLsizei i = 0; i < p_n; i++) bufs[i] = trc_get_uint(trc_get_arg(cmd, 1))[i];
-    
     GLuint fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
     
     uint color_min = GL_COLOR_ATTACHMENT0;
     uint color_max = GL_COLOR_ATTACHMENT0 + trc_gl_state_get_state_int(ctx->trace, GL_MAX_COLOR_ATTACHMENTS, 0);
     for (uint i = 0; i < p_n; i++) {
-        if (fb==0 && not_one_of(bufs[i], GL_NONE, GL_FRONT_LEFT, GL_FRONT_RIGHT, GL_BACK_LEFT, GL_BACK_RIGHT, -1))
+        if (fb==0 && not_one_of(p_bufs[i], GL_NONE, GL_FRONT_LEFT, GL_FRONT_RIGHT, GL_BACK_LEFT, GL_BACK_RIGHT, -1))
             ERROR("Invalid buffer");
-        else if (fb>0 && (bufs[i]<color_min||bufs[i]>color_max) && bufs[i]!=GL_NONE)
+        else if (fb>0 && (p_bufs[i]<color_min||p_bufs[i]>color_max) && p_bufs[i]!=GL_NONE)
             ERROR("Invalid buffer");
         for (uint j = 0; j < p_n; j++) {
-            if (bufs[j]==bufs[i] && i!=j && bufs[i]!=GL_NONE)
+            if (p_bufs[j]==p_bufs[i] && i!=j && p_bufs[i]!=GL_NONE)
                 ERROR("Buffer %u appears more than once", j);
         }
-        if (bufs[i]==GL_BACK && p_n!=1)
+        if (p_bufs[i]==GL_BACK && p_n!=1)
             ERROR("GL_BACK can only be a buffer is the buffer count is one");
     }
     //TODO: From reference:
@@ -2824,14 +2663,14 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     //    indicates a color buffer that does not exist in the current GL context.
     
     if (fb == 0) {
-        trc_gl_state_state_enum_init(ctx->trace, GL_DRAW_BUFFER, p_n, bufs);
+        trc_gl_state_state_enum_init(ctx->trace, GL_DRAW_BUFFER, p_n, p_bufs);
     } else {
         trc_gl_framebuffer_rev_t rev = *trc_get_gl_framebuffer(ctx->trace, fb);
-        rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), bufs, TRC_DATA_IMMUTABLE);
+        rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), p_bufs, TRC_DATA_IMMUTABLE);
         trc_set_gl_framebuffer(ctx->trace, fb, &rev);
     }
     
-    real(p_n, bufs);
+    real(p_n, p_bufs);
 
 glReadBuffer: //GLenum p_src
     real(p_src);
@@ -2841,29 +2680,20 @@ glClearBufferiv: //GLenum p_buffer, GLint p_drawbuffer, const GLint* p_value
     //if (not_one_of(p_buffer, GL_COLOR, GL_STENCIL, -1))
     //    ERROR("Buffer is not one of GL_COLOR or GL_STENCIL");
     PARTIAL_VALIDATE_CLEAR_BUFFER;
-    size_t count = p_buffer == GL_COLOR ? 4 : 1;
-    GLint value[count];
-    for (size_t i = 0; i < count; i++) value[i] = trc_get_int(trc_get_arg(cmd, 2))[i];
-    real(p_buffer, p_drawbuffer, value);
+    real(p_buffer, p_drawbuffer, p_value);
     update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferuiv: //GLenum p_buffer, GLint p_drawbuffer, const GLuint* p_value
     //if (p_buffer != GL_COLOR) ERROR("Buffer is not GL_COLOR");
     PARTIAL_VALIDATE_CLEAR_BUFFER;
-    GLuint value[4];
-    for (size_t i = 0; i < 4; i++) value[i] = trc_get_uint(trc_get_arg(cmd, 2))[i];
-    real(p_buffer, p_drawbuffer, value);
+    real(p_buffer, p_drawbuffer, p_value);
     update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferfv: //GLenum p_buffer, GLint p_drawbuffer, const GLfloat* p_value
     //if (not_one_of(p_buffer, GL_COLOR, GL_DEPTH, -1))
     //    ERROR("Buffer is not one of GL_COLOR or GL_DEPTH");
     PARTIAL_VALIDATE_CLEAR_BUFFER;
-    size_t count = p_buffer == GL_COLOR ? 4 : 1;
-    GLfloat value[count];
-    for (size_t i = 0; i < count; i++)
-        value[i] = trc_get_double(trc_get_arg(cmd, 2))[i];
-    real(p_buffer, p_drawbuffer, value);
+    real(p_buffer, p_drawbuffer, p_value);
     update_drawbuffer(ctx, p_buffer, p_drawbuffer);
 
 glClearBufferfi: //GLenum p_buffer, GLint p_drawbuffer, GLfloat p_depth, GLint p_stencil
@@ -3211,17 +3041,18 @@ glPointParameteri: //GLenum p_pname, GLint p_param
     F(glPointParameteri)(p_pname, p_param);
 
 glPointParameterfv: //GLenum p_pname, const GLfloat* p_params
-    GLfloat param = gl_param_GLfloat(cmd, 1);
     switch (p_pname) {
-    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, param);
-    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, param);
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, p_params[0]);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, p_params[0]);
     }
-    F(glPointParameterf)(p_pname, param);
+    real(p_pname, p_params);
 
 glPointParameteriv: //GLenum p_pname, const GLint* p_params
-    GLint param = gl_param_GLint(cmd, 1);
     switch (p_pname) {
-    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, param);
-    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, param);
+    case GL_POINT_FADE_THRESHOLD_SIZE: trc_gl_state_set_state_float(ctx->trace, p_pname, 0, p_params[0]);
+    case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, p_params[0]);
     }
-    F(glPointParameteri)(p_pname, param);
+    real(p_pname, p_params);
+
+glDebugMessageCallback: //GLDEBUGPROC p_callback, const void* p_userParam
+    ;

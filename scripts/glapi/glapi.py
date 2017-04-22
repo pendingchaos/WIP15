@@ -56,13 +56,16 @@ class Type(object):
         else: return ''
     
     def gen_type_code(self, var_name='', array_count=None):
-        return ''
+        raise NotImplementedError
     
     def gen_write_code(self, var_name, array_count=None, group=None):
-        return ''
+        raise NotImplementedError
     
     def gen_write_type_code(self, array_count=None, group=False):
-        return ''
+        raise NotImplementedError
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        raise NotImplementedError
 
 class Param(object):
     def __init__(self, dtype, name, array_count=None, group=None):
@@ -197,29 +200,45 @@ class _BaseType(Type):
         group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
         return 'gl_write_type(%s, %s, %s)' % (self.__class__.base, group, array)
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        c_type = self.__class__.replay_ctype if 'replay_ctype' in dir(self.__class__) else self.__class__.ctype
+        if array_count != None:
+            res = 'const %s* %s = replay_alloc(%s->count*sizeof(%s));'  %(self.__class__.ctype, dest, src, c_type)
+            res += 'for (size_t i = 0; i < %s->count; i++) ((%s*)%s)[i] = %s(ctx, %s, i);' % (src, c_type, dest, self.__class__.read_func, src)
+            return res
+        else:
+            return '%s %s = %s(ctx, %s, 0);' % (c_type, dest, self.__class__.read_func, src)
 
 class _UInt(_BaseType):
     write_func = 'gl_write_uleb128'
+    read_func = 'replay_get_uint'
     base = 'BASE_UNSIGNED_INT'
 
 class _Int(_BaseType):
     write_func = 'gl_write_sleb128'
+    read_func = 'replay_get_int'
     base = 'BASE_INT'
 
 class _Float(_BaseType):
     write_func = 'gl_write_float'
+    read_func = 'replay_get_double'
     base = 'BASE_FLOAT'
 
 class _Double(_BaseType):
     write_func = 'gl_write_double'
+    read_func = 'replay_get_double'
     base = 'BASE_DOUBLE'
 
 class _Ptr(_BaseType):
     write_func = 'gl_write_ptr'
+    read_func = 'replay_get_ptr'
     base = 'BASE_PTR'
+    replay_ctype = 'uint64_t'
 
 class _Bool(_BaseType):
     write_func = 'gl_write_bool'
+    read_func = 'replay_get_bool'
     base = 'BASE_BOOL'
 
 class _FuncPtr(Type):
@@ -237,6 +256,9 @@ class _FuncPtr(Type):
         group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
         return 'gl_write_type(BASE_FUNC_PTR, %s, %s)' % (group, array)
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        return ''
 
 def _create_uint(name):
     return 'class t%s(_UInt): ctype = \'%s\'' % (name.replace(' ', ''), name)
@@ -341,46 +363,12 @@ class tData(Type):
         group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
         return 'gl_write_type(BASE_DATA, %s, %s)' % (group, array)
-
-class tGLfixed(Type):
-    def gen_type_code(self, var_name='', array_count=None):
-        if array_count != None: return 'GLfixed* %s' % var_name
-        else: return 'GLfixed %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
+    def gen_replay_read_code(self, dest, src, array_count=None):
         if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    gl_write_float(%s[i] / 65535.0);' % (var_name)
-            return res + self._gen_group_write_code(group)
+            return 'void*const* %s = trc_get_data(%s);' % (dest, src)
         else:
-            return 'gl_write_float(%s/65535.0)' % var_name + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FLOAT, %s, %s)' % (group, array)
-
-class tGLhalfNV(Type): # TODO
-    def gen_type_code(self, var_name='', array_count=None):
-        if array_count != None: return 'GLhalfNV* %s' % var_name
-        else: return 'GLhalfNV %s' % var_name
-    
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    gl_write_float(0.0);'
-            return res + self._gen_group_write_code(group)
-        else:
-            return 'gl_write_float(0.0)' + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FLOAT, %s, %s)' % (group, array)
+            return 'const void* %s = trc_get_data(%s)[0];' % (dest, src)
 
 class tString(Type):
     def gen_type_code(self, var_name='', array_count=None):
@@ -401,24 +389,50 @@ class tString(Type):
         group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
         return 'gl_write_type(BASE_STRING, %s, %s)' % (group, array)
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        if array_count != None:
+            return 'const char*const* %s = trc_get_str(%s);' % (dest, src)
+        else:
+            return 'const char* %s = trc_get_str(%s)[0];' % (dest, src)
 
 class tMutableString(tString):
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'char** %s' % var_name
         else: return 'char* %s' % var_name
 
-class tGLBuf(tGLuint): pass
-class tGLSampler(tGLuint): pass
-class tGLTex(tGLuint): pass
-class tGLQuery(tGLuint): pass
-class tGLFramebuffer(tGLuint): pass
-class tGLRenderbuffer(tGLuint): pass
-class tGLsync(_Ptr): ctype = 'GLsync'
-class tGLProgram(tGLuint): pass
-class tGLProgramPipeline(tGLuint): pass
-class tGLShader(tGLuint): pass
-class tGLVAO(tGLuint): pass
-class tGLTransformFeedback(tGLuint): pass
+class tGLObj(tGLuint):
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        res = tGLuint.gen_replay_read_code(self, dest, src, array_count)
+        obj_type = self.__class__.obj_type
+        if array_count != None:
+            res += 'const trc_gl_%s_rev_t** %s_rev = replay_alloc(%s->count*sizeof(trc_gl_%s_rev_t*));' % (obj_type, dest, src, obj_type)
+            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = trc_get_gl_%s(ctx->trace, %s[i]);' % (src, dest, obj_type, dest)
+        else:
+            res += 'const trc_gl_%s_rev_t* %s_rev = trc_get_gl_%s(ctx->trace, %s);' % (obj_type, dest, obj_type, dest)
+        return res
+
+class tGLBuf(tGLObj): obj_type = 'buffer'
+class tGLSampler(tGLObj): obj_type = 'sampler'
+class tGLTex(tGLObj): obj_type = 'texture'
+class tGLQuery(tGLObj): obj_type = 'query'
+class tGLFramebuffer(tGLObj): obj_type = 'framebuffer'
+class tGLRenderbuffer(tGLObj): obj_type = 'renderbuffer'
+class tGLsync(_Ptr):
+    ctype = 'GLsync'
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        res = _Ptr.gen_replay_read_code(self, dest, src, array_count)
+        if array_count != None:
+            res += 'const trc_gl_sync_rev_t** %s_rev = replay_alloc(%s->count*sizeof(trc_gl_sync_rev_t*));' % (dest, src)
+            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = trc_get_gl_sync(ctx->trace, %s[i]);' % (src, dest, dest)
+        else:
+            res += 'const trc_gl_sync_rev_t* %s_rev = trc_get_gl_sync(ctx->trace, %s);' % (dest, dest)
+        return res
+class tGLProgram(tGLObj): obj_type = 'program'
+class tGLProgramPipeline(tGLObj): obj_type = 'program_pipeline'
+class tGLShader(tGLObj): obj_type = 'shader'
+class tGLVAO(tGLObj): obj_type = 'vao'
+class tGLTransformFeedback(tGLObj): obj_type = 'transform_feedback'
 class tGLeglImageOES(_Ptr): ctype = 'GLeglImageOES'
 class tGLXContext(_Ptr): ctype = 'GLXContext'
 class tXID(tuint32_t): pass
