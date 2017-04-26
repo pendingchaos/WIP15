@@ -751,6 +751,8 @@ glCreateProgram: //
     rev.uniform_blocks = empty_data;
     rev.shaders = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
+    rev.binary_retrievable_hint = -1;
+    rev.separable = false;
     trc_set_gl_program(ctx->trace, fake, &rev);
 
 glDeleteProgram: //GLuint p_program
@@ -769,6 +771,16 @@ glDeleteProgram: //GLuint p_program
     trc_set_gl_program(ctx->trace, p_program, &rev);
     
     trc_rel_gl_obj(ctx->trace, p_program, TrcGLObj_Program);
+
+glProgramParameteri: //GLuint p_program, GLenum p_pname, GLint p_value
+    if (!p_program_rev) ERROR("Invalid program name");
+    trc_gl_program_rev_t newrev = *p_program_rev;
+    switch (p_pname) {
+    case GL_PROGRAM_BINARY_RETRIEVABLE_HINT: newrev.binary_retrievable_hint = p_value ? 1 : 0; break;
+    case GL_PROGRAM_SEPARABLE: newrev.separable = p_value; break;
+    }
+    trc_set_gl_program(ctx->trace, p_program, &newrev);
+    real(p_program, p_pname, p_value);
 
 glAttachShader: //GLuint p_program, GLuint p_shader
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -1193,6 +1205,9 @@ glGetString: //GLenum p_name
     ;
 
 glGetStringi: //GLenum p_name, GLuint p_index
+    ;
+
+glGetDoublei_v: //GLenum p_target, GLuint p_index, GLdouble* p_data
     ;
 
 glGetVertexAttribdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
@@ -3111,4 +3126,33 @@ glMinSampleShading: //GLfloat p_value
     real(p_value);
 
 glDebugMessageCallback: //GLDEBUGPROC p_callback, const void* p_userParam
+    ;
+
+glPatchParameteri: //GLenum p_pname, GLint p_value
+    if (p_value<=0 || p_value>trc_gl_state_get_state_int(ctx->trace, GL_MAX_PATCH_VERTICES, 0))
+        ERROR("Invalid value");
+    real(p_pname, p_value);
+
+glPatchParameterfv: //GLenum p_pname, const GLfloat* p_values
+    real(p_pname, p_values);
+
+glGetUniformSubroutineuiv: //GLenum p_shadertype, GLint p_location, GLuint* p_params
+    ;
+
+glGetSubroutineIndex: //GLuint p_program, GLenum p_shadertype, const GLchar* p_name
+    ;
+
+glGetActiveSubroutineName: //GLuint p_program, GLenum p_shadertype, GLuint p_index, GLsizei p_bufsize, GLsizei* p_length, GLchar* p_name
+    ;
+
+glGetProgramStageiv: //GLuint p_program, GLenum p_shadertype, GLenum p_pname, GLint* p_values
+    ;
+
+glGetActiveSubroutineUniformName: //GLuint p_program, GLenum p_shadertype, GLuint p_index, GLsizei p_bufsize, GLsizei* p_length, GLchar* p_name
+    ;
+
+glGetSubroutineUniformLocation: //GLuint p_program, GLenum p_shadertype, const GLchar* p_name
+    ;
+
+glGetQueryIndexediv: //GLenum p_target, GLuint p_index, GLenum p_pname, GLint* p_params
     ;

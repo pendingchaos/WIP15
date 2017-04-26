@@ -134,6 +134,7 @@ static trc_gl_program_rev_t* selected_program = NULL;
 
 void prog_shdr_select_callback(GObject* obj, gpointer userdata);
 
+//TODO: Show GL_PROGRAM_BINARY_RETRIEVABLE_HINT and GL_PROGRAM_SEPARABLE
 void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);

@@ -166,13 +166,11 @@ static int64_t gl_param_GLintptrARB(trace_command_t* cmd, size_t index) {
     return *trc_get_int(trc_get_arg(cmd, index));
 }
 
-static int64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index)
-{
+static int64_t gl_param_GLsizeiptr(trace_command_t* cmd, size_t index) {
     return *trc_get_int(trc_get_arg(cmd, index));
 }
 
-static GLint gl_param_GLint(trace_command_t* cmd, size_t index)
-{
+static GLint gl_param_GLint(trace_command_t* cmd, size_t index) {
     return *trc_get_int(trc_get_arg(cmd, index));
 }
 
@@ -557,7 +555,7 @@ static void init_context(trc_replay_context_t* ctx) {
     
     GLint max_clip_distances, max_draw_buffers, max_viewports;
     GLint max_vertex_attribs, max_color_attachments, max_tex_units;
-    GLint max_uniform_buffer_bindings;
+    GLint max_uniform_buffer_bindings, max_patch_vertices;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
@@ -566,6 +564,7 @@ static void init_context(trc_replay_context_t* ctx) {
     F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
     F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
+    F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, &max_patch_vertices);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
@@ -574,6 +573,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, max_color_attachments);
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
     trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
+    trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);

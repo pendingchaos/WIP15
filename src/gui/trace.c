@@ -316,6 +316,10 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_INT(state_int, GL_UNPACK_ALIGNMENT);
     end_category();
     
+    STATE_FLOAT(state_int, GL_PATCH_VERTICES);
+    STATE_FLOAT(state_float, GL_PATCH_DEFAULT_OUTER_LEVEL);
+    STATE_FLOAT(state_float, GL_PATCH_DEFAULT_INNER_LEVEL);
+    
     STATE_BOOL(state_bool, GL_DEPTH_WRITEMASK);
     STATE_BOOL(state_bool, GL_COLOR_WRITEMASK);
     STATE_BOOL(state_bool, GL_SAMPLE_COVERAGE_INVERT);
@@ -354,8 +358,13 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     
     begin_category(store, "Capabilities");
     STATE_INT(state_int, GL_MAX_CLIP_DISTANCES);
-    STATE_INT(state_int, GL_MAX_VIEWPORTS);
     STATE_INT(state_int, GL_MAX_DRAW_BUFFERS);
+    STATE_INT(state_int, GL_MAX_VIEWPORTS);
+    STATE_INT(state_int, GL_MAX_VERTEX_ATTRIBS);
+    STATE_INT(state_int, GL_MAX_COLOR_ATTACHMENTS);
+    STATE_INT(state_int, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    STATE_INT(state_int, GL_MAX_UNIFORM_BUFFER_BINDINGS);
+    STATE_INT(state_int, GL_MAX_PATCH_VERTICES);
     end_category();
     
     #undef STATE_BOOL
