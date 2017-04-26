@@ -966,19 +966,48 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
 }
 
-void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
+const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint* fake) {
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    uint fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
-    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, fake);
+    *fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
+    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, *fake);
     if (!rev) {
-        trc_add_error(command, "No texture bound or invalid target");
-        return;
+        trc_add_error(cmd, "No texture bound or invalid target");
+        return NULL;
     }
+    return rev;
+}
+
+void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
+    uint fake;
+    const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, command, target, &fake);
+    if (!rev) return;
     
     uint face = 0;
     if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
         face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
     replay_update_tex_image(ctx, rev, fake, level, face);
+}
+
+void replay_tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
+                       GLenum target, GLenum internalformat, GLuint buffer,
+                       const trc_gl_buffer_rev_t* buffer_rev,
+                       GLintptr offset, GLsizeiptr size) {
+    uint tex_fake;
+    const trc_gl_texture_rev_t* tex_rev = replay_get_bound_tex(ctx, cmd, target, &tex_fake);
+    if (!tex_rev) return;
+    if (!buffer_rev && buffer) {
+        trc_add_error(cmd, "Invalid buffer name");
+        return;
+    }
+    trc_gl_texture_rev_t new_rev = *tex_rev;
+    trc_gl_texture_image_t img;
+    memset(&img, 0, sizeof(img));
+    img.internal_format = internalformat;
+    img.buffer = buffer;
+    img.buffer_start = offset;
+    img.buffer_size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
+    new_rev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
+    trc_set_gl_texture(ctx->trace, buffer, &new_rev);
 }
 
 bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuffer_attachment_t* attach) {

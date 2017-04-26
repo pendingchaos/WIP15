@@ -389,6 +389,12 @@ glCopyTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_
     real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_x, p_y, p_width, p_height);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
+glTexBuffer: //GLenum p_target, GLenum p_internalformat, GLuint p_buffer
+    replay_tex_buffer(ctx, cmd, p_target, p_internalformat, p_buffer, p_buffer_rev, 0, -1);
+
+glTexBufferRange: //GLenum p_target, GLenum p_internalformat, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
+    replay_tex_buffer(ctx, cmd, p_target, p_internalformat, p_buffer, p_buffer_rev, p_offset, p_size);
+
 glGenerateMipmap: //GLenum p_target
     real(p_target);
     

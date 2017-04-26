@@ -287,7 +287,7 @@ Group('CopyTexImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
                              .add('GL_TEXTURE_CUBE_MAP_POSITIVE_Z', 0x8519, (1, 3))\
                              .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Z', 0x851A, (1, 3))
 
-Group('TexBufferRangeTarget').add('GL_TEXTURE_BUFFER', 0x8C2A, (3, 1))
+Group('TexBufferTarget').add('GL_TEXTURE_BUFFER', 0x8C2A, (3, 1))
 
 Group('TexImage2DMSTarget').add('GL_TEXTURE_2D_MULTISAMPLE', 0x9100, (3, 2))\
                            .add('GL_PROXY_TEXTURE_2D_MULTISAMPLE', 0x9101, (3, 2))
@@ -877,10 +877,12 @@ Func((4, 5), 'glCreateQueries', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLui
 #Func((4, 5), 'glGetnUniformuiv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'params')])
 #Func((4, 5), 'glReadnPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'data')])
 
-Func((4, 3), 'glTexBufferRange', [P(tGLenum, 'target', None, 'TexBufferRangeTarget'),
+Func((4, 3), 'glTexBufferRange', [P(tGLenum, 'target', None, 'TexBufferTarget'),
                                   P(tGLenum, 'internalformat', None, 'InternalFormat'),
-                                  P(tGLuint, 'buffer'), P(tGLintptr, 'offset'),
+                                  P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'),
                                   P(tGLsizeiptr, 'size')])
+Func((3, 1), 'glTexBuffer', [P(tGLenum, 'target', None, 'TexBufferTarget'),
+                             P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLBuf, 'buffer')])
 
 Func((4, 3), 'glTexStorage2DMultisample', [P(tGLenum, 'target', None, 'TexImage2DMSTarget'), P(tGLsizei, 'samples'),
                                            P(tGLenum, 'internalformat', None, 'InternalFormat'),

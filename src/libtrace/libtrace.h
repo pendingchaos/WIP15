@@ -163,6 +163,13 @@ typedef struct trc_gl_texture_image_t {
     uint face; //0 if the texture is not a non-array cubemap
     uint level;
     uint internal_format;
+    
+    //for buffer textures
+    uint buffer;
+    uint buffer_start;
+    uint buffer_size;
+    
+    //for image textures
     uint width;
     uint height;
     uint depth;
