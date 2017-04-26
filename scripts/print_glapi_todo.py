@@ -27,15 +27,21 @@ versions = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (2, 1), (3, 
             (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), None]
 num_implemented = {v:0 for v in versions}
 num_not_implemented = {v:0 for v in versions}
+done = 0
+not_done = 0
 todo = {v:[] for v in versions}
 for func_name, func in func_dict.iteritems():
     if func_name not in implemented:
         todo[func.minver].append(func_name)
         for ver in versions[versions.index(func.minver):]:
+            if ver==None and func.minver != None: continue
             num_not_implemented[ver] += 1
+        not_done += 1
     else:
         for ver in versions[versions.index(func.minver):]:
+            if ver==None and func.minver != None: continue
             num_implemented[ver] += 1
+        done += 1
 
 for ver in versions:
     for f in todo[ver]:
@@ -50,3 +56,6 @@ for ver in versions:
     else:
         print '%d.%d:' % ver
     print '    %.0f%c functions implemented' % (math.floor(num_implemented[ver]/float(num_implemented[ver]+num_not_implemented[ver])*100), '%')
+
+print 'All:'
+print '    %.0f%c' % (math.floor(done/float(done+not_done)*100), '%')

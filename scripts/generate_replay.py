@@ -517,6 +517,11 @@ static void init_context(trc_replay_context_t* ctx) {
     
     trc_gl_state_set_made_current_before(trace, false);
     
+    GLint major, minor;
+    F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
+    F(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+    uint ver = major*100 + minor*10;
+    
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     trc_gl_state_set_drawable_width(trace, w);
@@ -555,7 +560,8 @@ static void init_context(trc_replay_context_t* ctx) {
     GLint max_uniform_buffer_bindings;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
-    F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
+    if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
+    else max_viewports = 1;
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
     F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
@@ -700,6 +706,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
     trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
     trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
+    trc_gl_state_state_float_init1(trace, GL_MIN_SAMPLE_SHADING_VALUE, 1.0f); //TODO: What is the initial value?
     
     double* va = malloc((max_vertex_attribs-1)*4*sizeof(double));
     for (size_t i = 0; i < (max_vertex_attribs-1)*4; i++) va[i] = i%4==3 ? 1 : 0;
@@ -1014,8 +1021,9 @@ void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uin
     attach.level = level;
     attach.layer = layer;
     attach.face = 0;
-    if ((target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X&&target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) ||
-        target==GL_TEXTURE_CUBE_MAP_ARRAY || target==GL_TEXTURE_CUBE_MAP) {
+    if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) {
+        attach.face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    } else if (target==GL_TEXTURE_CUBE_MAP_ARRAY || target==GL_TEXTURE_CUBE_MAP) {
         attach.face = layer % 6;
         attach.layer /= 6;
     }
@@ -1737,8 +1745,8 @@ for name, func in func_dict.iteritems():
         output.write(";\n")
         output.write("    do {(void)sizeof((p_%s));} while (0);\n" % param.name)"""
     for i, param in zip(range(len(func.params)), func.params):
-        output.write('    trace_value_t* arg%d = trc_get_arg(cmd, %d);\n' % (i, i))
-        output.write(param.dtype.gen_replay_read_code('p_'+param.name, 'arg%d'%i, param.array_count)+'\n')
+        output.write('    trace_value_t* arg_%s = trc_get_arg(cmd, %d);\n' % (param.name, i))
+        output.write(param.dtype.gen_replay_read_code('p_'+param.name, 'arg_'+param.name, param.array_count)+'\n')
     
     if name in nontrivial:
         output.write(nontrivial[name])

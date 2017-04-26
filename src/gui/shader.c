@@ -132,6 +132,8 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
 
 static trc_gl_program_rev_t* selected_program = NULL;
 
+void prog_shdr_select_callback(GObject* obj, gpointer userdata);
+
 void program_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
@@ -203,9 +205,7 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     gtk_text_buffer_set_text(info_log_buffer, trc_map_data(program->info_log, TRC_MAP_READ), -1);
     trc_unmap_data(program->info_log);
     
-    GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shdr_src_textview"));
-    GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
-    gtk_text_buffer_set_text(source_buffer, "", -1);
+    prog_shdr_select_callback(gtk_builder_get_object(builder, "program_shaders_view"), NULL);
 }
 
 void prog_shdr_select_callback(GObject* obj, gpointer userdata) {

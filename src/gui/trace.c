@@ -341,6 +341,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_FLOAT(state_float, GL_POLYGON_OFFSET_FACTOR);
     STATE_FLOAT(state_float, GL_SAMPLE_COVERAGE_VALUE);
     STATE_FLOAT(state_float, GL_POINT_FADE_THRESHOLD_SIZE);
+    STATE_FLOAT(state_float, GL_MIN_SAMPLE_SHADING_VALUE);
     
     begin_category(store, "Hints");
     #define HINT(name) value(store, #name, "%s", get_enum_str("HintMode", ctx->hints_##name));
