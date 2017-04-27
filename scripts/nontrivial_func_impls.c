@@ -567,7 +567,7 @@ const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trac
     *fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, *fake);
     if (!rev) {
-        trc_add_error(cmd, "No texture bound or invalid target");
+        trc_add_error(cmd, "No texture bound");
         return NULL;
     }
     return rev;
@@ -654,7 +654,7 @@ void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uin
     }
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
-        trc_add_error(cmd, "No framebuffer bound or invalid target");
+        trc_add_error(cmd, "No framebuffer bound");
 }
 
 void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment, uint rb) {
@@ -665,7 +665,7 @@ void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, 
     attach.fake_renderbuffer = fb;
     if (!replay_append_fb_attachment(trace, fb, &attach))
         //TODO: The framebuffer might not come from a binding
-        trc_add_error(cmd, "No framebuffer bound or invalid target");
+        trc_add_error(cmd, "No framebuffer bound");
 }
 
 void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
@@ -703,7 +703,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* com
     GLuint texid = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
     if (!tex_ptr) {
-        trc_add_error(command, "No texture bound, invalid texture handle used or invalid target");
+        trc_add_error(command, "No texture bound");
         return true;
     }
     trc_gl_texture_rev_t tex = *tex_ptr;
@@ -1218,6 +1218,246 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     }
 }
 
+static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
+    trc_gl_texture_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    rev.type = create ? target : 0;
+    rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
+    rev.base_level = 0;
+    rev.sample_params.border_color[0] = 0;
+    rev.sample_params.border_color[1] = 0;
+    rev.sample_params.border_color[2] = 0;
+    rev.sample_params.border_color[3] = 0;
+    rev.sample_params.compare_func = GL_LEQUAL;
+    rev.sample_params.compare_mode = GL_NONE;
+    rev.lod_bias = 0;
+    rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
+    rev.sample_params.mag_filter = GL_LINEAR;
+    rev.sample_params.min_lod = -1000;
+    rev.sample_params.max_lod = 1000;
+    rev.max_level = 1000;
+    rev.swizzle[0] = GL_RED;
+    rev.swizzle[1] = GL_GREEN;
+    rev.swizzle[2] = GL_BLUE;
+    rev.swizzle[3] = GL_ALPHA;
+    rev.sample_params.wrap_s = GL_REPEAT;
+    rev.sample_params.wrap_t = GL_REPEAT;
+    rev.sample_params.wrap_r = GL_REPEAT;
+    rev.images = NULL;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_texture(ctx->trace, fake[i], &rev);
+    }
+}
+
+static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_buffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    rev.has_data = false;
+    rev.data_usage = 0;
+    rev.data = NULL;
+    rev.mapped = false;
+    rev.map_offset = 0;
+    rev.map_length = 0;
+    rev.map_access = 0;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_buffer(ctx->trace, fake[i], &rev);
+    }
+}
+
+static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_framebuffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = false;
+    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.attachments = empty_data;
+    rev.draw_buffers = empty_data;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_framebuffer(ctx->trace, fake[i], &rev);
+    }
+}
+
+static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
+    trc_gl_query_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    rev.type = create ? target : 0;
+    rev.result = 0;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_query(ctx->trace, fake[i], &rev);
+    }
+}
+
+static void gen_renderbuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_renderbuffer_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    rev.has_storage = false;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_renderbuffer(ctx->trace, fake[i], &rev);
+    }
+}
+
+static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_vao_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
+    rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
+    trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
+    memset(attribs, 0, attrib_count*sizeof(trc_gl_vao_attrib_t)); //fill in padding to fix uninitialized memory errors during compession
+    for (size_t j = 0; j < attrib_count; j++) {
+        attribs[j].enabled = false;
+        attribs[j].normalized = false;
+        attribs[j].integer = false;
+        attribs[j].size = 4;
+        attribs[j].stride = 0;
+        attribs[j].offset = 0;
+        attribs[j].type = GL_FLOAT;
+        attribs[j].divisor = 0;
+        attribs[j].buffer = 0;
+    }
+    trc_unmap_data(rev.attribs);
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_vao(ctx->trace, fake[i], &rev);
+    }
+}
+
+static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLsizeiptr size, const void* data, GLenum usage) {
+    if (size < 0) {trc_add_error(cmd, "Invalid size"); return false;}
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) {trc_add_error(cmd, dsa?"Invalid buffer name":"No buffer bound to target"); return false;}
+    if (!rev->has_object) {trc_add_error(cmd, "Buffer name has no object"); return false;}
+    trc_gl_buffer_rev_t newrev = *rev;
+    newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
+    trc_set_gl_buffer(ctx->trace, fake, &newrev);
+    return true;
+}
+
+static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLintptr offset, GLsizeiptr size, const void* data) {
+    if (offset<0) {trc_add_error(cmd, "Invalid offset"); return false;}
+    if (size<0) {trc_add_error(cmd, "Invalid size"); return false;}
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) {trc_add_error(cmd, dsa?"Invalid buffer name":"No buffer bound to target"); return false;}
+    if (!rev->data) {trc_add_error(cmd, "Buffer has no data"); return false;}
+    if (!rev->has_object) {trc_add_error(cmd, "Buffer name does not have an object"); return false;}
+    if (offset+size > rev->data->size) {trc_add_error(cmd, "Invalid range"); return false;}
+    
+    trc_gl_buffer_rev_t newrev = *rev;
+    
+    newrev.data = trc_create_data(ctx->trace, rev->data->size, trc_map_data(rev->data, TRC_MAP_READ), 0);
+    trc_unmap_data(rev->data);
+    
+    void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
+    memcpy((uint8_t*)newdata+offset, data, size);
+    trc_unmap_freeze_data(ctx->trace, newrev.data);
+    
+    trc_set_gl_buffer(ctx->trace, fake, &newrev);
+    
+    return true;
+}
+
+static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint read,
+                             GLuint write, GLintptr read_off, GLintptr write_off, GLsizeiptr size) {
+    if (read_off<0 || write_off<0 || size<0) {trc_add_error(cmd, "The read offset, write offset or size is negative"); return false;}
+    
+    const trc_gl_buffer_rev_t* read_rev = trc_get_gl_buffer(ctx->trace, read);
+    if (!read_rev) {trc_add_error(cmd, dsa?"Invalid read buffer name":"No buffer bound to read target"); return false;}
+    if (!read_rev->has_object) {trc_add_error(cmd, "Read buffer name has no object"); return false;}
+    if (!read_rev->data) {trc_add_error(cmd, "Read buffer has no data"); return false;}
+    if (read_off+size > read_rev->data->size) {trc_add_error(cmd, "Invalid size and read offset"); return false;}
+    
+    const trc_gl_buffer_rev_t* write_rev = trc_get_gl_buffer(ctx->trace, write);
+    if (!write_rev) {trc_add_error(cmd, dsa?"Invalid write buffer name":"No buffer bound to write target"); return false;}
+    if (!write_rev->has_object) {trc_add_error(cmd, "Write buffer name has no object"); return false;}
+    if (!write_rev->data) {trc_add_error(cmd, "Write buffer has no data"); return false;}
+    if (write_off+size > write_rev->data->size) {trc_add_error(cmd, "Invalid size and write offset"); return false;}
+    
+    trc_gl_buffer_rev_t res;
+    
+    res.data = trc_create_data(ctx->trace, write_rev->data->size, trc_map_data(write_rev->data, TRC_MAP_READ), 0);
+    trc_unmap_data(write_rev->data);
+    
+    void* newdata = trc_map_data(res.data, TRC_MAP_REPLACE);
+    uint8_t* readdata = trc_map_data(read_rev->data, TRC_MAP_READ);
+    memcpy(newdata+write_off, readdata+read_off, size);
+    trc_unmap_data(read_rev->data);
+    trc_unmap_freeze_data(ctx->trace, res.data);
+    
+    trc_set_gl_buffer(ctx->trace, write, &res);
+    
+    return true;
+}
+
+static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLenum access) {
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) {trc_add_error(cmd, dsa?"Invalid buffer name":"No buffer bound to target"); return;}
+    if (!rev->has_object) {trc_add_error(cmd, "Buffer name has no object"); return;}
+    if (!rev->data) {trc_add_error(cmd, "Buffer has no data"); return;}
+    if (rev->mapped) {trc_add_error(cmd, "Buffer is already mapped"); return;}
+    
+    trc_gl_buffer_rev_t newrev = *rev;
+    newrev.mapped = true;
+    newrev.map_offset = 0;
+    newrev.map_length = rev->data->size;
+    switch (access) {
+    case GL_READ_ONLY: newrev.map_access = GL_MAP_READ_BIT; break;
+    case GL_WRITE_ONLY: newrev.map_access = GL_MAP_WRITE_BIT; break;
+    case GL_READ_WRITE: newrev.map_access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT; break;
+    }
+    
+    trc_set_gl_buffer(ctx->trace, fake, &newrev);
+}
+
+static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake,
+                             GLintptr offset, GLsizeiptr length, GLbitfield access) {
+    if (offset<0 || length<=0) {trc_add_error(cmd, "Invalid length or offset"); return;}
+    
+    if (!(access&GL_MAP_READ_BIT) && !(access&GL_MAP_WRITE_BIT))
+        {trc_add_error(cmd, "Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set"); return;}
+    
+    if (access&GL_MAP_READ_BIT && (access&GL_MAP_INVALIDATE_RANGE_BIT ||
+                                   access&GL_MAP_INVALIDATE_BUFFER_BIT ||
+                                   access&GL_MAP_UNSYNCHRONIZED_BIT))
+        {trc_add_error(cmd, "GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set"); return;}
+    
+    if (access&GL_MAP_FLUSH_EXPLICIT_BIT && !(access&GL_MAP_WRITE_BIT))
+        {trc_add_error(cmd, "GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not"); return;}
+    
+    if (access&!(GLbitfield)0xff) {trc_add_error(cmd, "Invalid access flags"); return;}
+    
+    //TODO:
+    //Make sure the access is valid with the buffer's storage flags
+    
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) {trc_add_error(cmd, dsa?"Invalid buffer name":"No buffer bound to target"); return;}
+    trc_gl_buffer_rev_t newrev = *rev;
+    if (!newrev.data) {trc_add_error(cmd, "Buffer has no data"); return;}
+    
+    if (offset+length > newrev.data->size) {trc_add_error(cmd, "offset+length is greater than the buffer's size"); return;}
+    if (newrev.mapped) {trc_add_error(cmd, "Buffer is already mapped"); return;}
+    
+    newrev.mapped = true;
+    newrev.map_offset = offset;
+    newrev.map_length = length;
+    newrev.map_access = access;
+    
+    trc_set_gl_buffer(ctx->trace, fake, &newrev);
+}
+
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
     if (p_ctx) {
@@ -1463,40 +1703,16 @@ glClear: //GLbitfield p_mask
     replay_update_buffers(ctx, color, false, depth, stencil);
 
 glGenTextures: //GLsizei p_n, GLuint* p_textures
+    if (p_n < 0) ERROR("Invalid texture name count");
     GLuint textures[p_n];
     real(p_n, textures);
-    
-    trc_gl_texture_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    rev.has_object = false;
-    rev.type = 0;
-    rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
-    rev.base_level = 0;
-    rev.sample_params.border_color[0] = 0;
-    rev.sample_params.border_color[1] = 0;
-    rev.sample_params.border_color[2] = 0;
-    rev.sample_params.border_color[3] = 0;
-    rev.sample_params.compare_func = GL_LEQUAL;
-    rev.sample_params.compare_mode = GL_NONE;
-    rev.lod_bias = 0;
-    rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
-    rev.sample_params.mag_filter = GL_LINEAR;
-    rev.sample_params.min_lod = -1000;
-    rev.sample_params.max_lod = 1000;
-    rev.max_level = 1000;
-    rev.swizzle[0] = GL_RED;
-    rev.swizzle[1] = GL_GREEN;
-    rev.swizzle[2] = GL_BLUE;
-    rev.swizzle[3] = GL_ALPHA;
-    rev.sample_params.wrap_s = GL_REPEAT;
-    rev.sample_params.wrap_t = GL_REPEAT;
-    rev.sample_params.wrap_r = GL_REPEAT;
-    rev.images = NULL;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = textures[i];
-        trc_set_gl_texture(ctx->trace, p_textures[i], &rev);
-    }
+    gen_textures(ctx, p_n, textures, p_textures, false, 0);
+
+glCreateTextures: //GLenum p_target, GLsizei p_n, GLuint* p_textures
+    if (p_n < 0) ERROR("Invalid texture name count");
+    GLuint textures[p_n];
+    real(p_target, p_n, textures);
+    gen_textures(ctx, p_n, textures, p_textures, true, p_target);
 
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     GLuint textures[p_n];
@@ -1620,7 +1836,7 @@ glGenerateMipmap: //GLenum p_target
     
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     uint fake = trc_gl_state_get_bound_textures(ctx->trace, p_target, unit);
-    if (!fake) ERROR("No texture bound or invalid target");
+    if (!fake) ERROR("No texture bound");
     
     GLint base;
     F(glGetTexParameteriv)(p_target, GL_TEXTURE_BASE_LEVEL, &base);
@@ -1688,24 +1904,16 @@ glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
     real(p_target, p_pname, params);
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
+    if (p_n < 0) ERROR("Invalid buffer name count");
     GLuint buffers[p_n];
     real(p_n, buffers);
-    
-    trc_gl_buffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    rev.has_object = false;
-    rev.has_data = false;
-    rev.data_usage = 0;
-    rev.data = NULL;
-    rev.mapped = false;
-    rev.map_offset = 0;
-    rev.map_length = 0;
-    rev.map_access = 0;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = buffers[i];
-        trc_set_gl_buffer(ctx->trace, p_buffers[i], &rev);
-    }
+    gen_buffers(ctx, p_n, buffers, p_buffers, false);
+
+glCreateBuffers: //GLsizei p_n, GLuint* p_buffers
+    if (p_n < 0) ERROR("Invalid buffer name count");
+    GLuint buffers[p_n];
+    real(p_n, buffers);
+    gen_buffers(ctx, p_n, buffers, p_buffers, true);
 
 glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     GLuint buffers[p_n];
@@ -1747,123 +1955,47 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         trc_set_gl_buffer(ctx->trace, p_buffer, &newrev);
     }
 
-glBufferData: //GLenum p_target, GLsizeiptr p_size, const void * p_data, GLenum p_usage
-    real(p_target, p_size, p_data, p_usage);
-    
+glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
     uint fake = get_bound_buffer(ctx, p_target);
-    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
-    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    buf.data = trc_create_data(ctx->trace, p_size, p_data, TRC_DATA_IMMUTABLE);
-    trc_set_gl_buffer(ctx->trace, fake, &buf);
+    if (buffer_data(ctx, cmd, false, fake, p_size, p_data, p_usage))
+        real(p_target, p_size, p_data, p_usage);
 
-glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void * p_data
-    real(p_target, p_offset, p_size, p_data);
-    
+glNamedBufferData: //GLuint p_buffer, GLsizeiptr p_size, const void* p_data, GLenum p_usage
+    if (buffer_data(ctx, cmd, true, p_buffer, p_size, p_data, p_usage))
+        real(p_buffer_rev->real, p_size, p_data, p_usage);
+
+glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void* p_data
     uint fake = get_bound_buffer(ctx, p_target);
     if (!fake) ERROR("No buffer bound to target");
-    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) ERROR("Buffer has no data");
-    
-    trc_gl_buffer_rev_t old = buf;
-    
-    buf.data = trc_create_data(ctx->trace, old.data->size, NULL, TRC_DATA_NO_ZERO);
-    void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
-    
-    void* olddata = trc_map_data(old.data, TRC_MAP_READ);
-    memcpy(newdata, olddata, old.data->size);
-    trc_unmap_data(old.data);
-    
-    memcpy((uint8_t*)newdata+p_offset, p_data, p_size);
-    trc_unmap_freeze_data(ctx->trace, buf.data);
-    
-    trc_set_gl_buffer(ctx->trace, fake, &buf);
+    if (buffer_sub_data(ctx, cmd, false, fake, p_offset, p_size, p_data))
+        real(p_target, p_offset, p_size, p_data);
+
+glNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, const void* p_data
+    if (buffer_sub_data(ctx, cmd, true, p_buffer, p_offset, p_size, p_data))
+        real(p_buffer_rev->real, p_offset, p_size, p_data);
 
 glCopyBufferSubData: //GLenum p_readTarget, GLenum p_writeTarget, GLintptr p_readOffset, GLintptr p_writeOffset, GLsizeiptr p_size
-    real(p_readTarget, p_writeTarget, p_readOffset, p_writeOffset, p_size);
-    
     uint read_fake = get_bound_buffer(ctx, p_readTarget);
-    if (!read_fake) ERROR("No buffer bound to read target");
-    const trc_gl_buffer_rev_t* read_buf = trc_get_gl_buffer(ctx->trace, read_fake);
-    if (!read_buf->data) ERROR("Read buffer has no data");
-    
     uint write_fake = get_bound_buffer(ctx, p_writeTarget);
-    if (!write_fake) ERROR("No buffer bound to write target");
-    const trc_gl_buffer_rev_t* write_buf = trc_get_gl_buffer(ctx->trace, write_fake);
-    if (!write_buf->data) ERROR("Write buffer has no data");
-    
-    trc_gl_buffer_rev_t res;
-    
-    res.data = trc_create_data(ctx->trace, write_buf->data->size, trc_map_data(write_buf->data, TRC_MAP_READ), TRC_DATA_NO_ZERO);
-    trc_unmap_data(write_buf->data);
-    
-    void* newdata = trc_map_data(res.data, TRC_MAP_REPLACE);
-    uint8_t* readdata = trc_map_data(read_buf->data, TRC_MAP_READ);
-    memcpy(newdata+p_writeOffset, readdata+p_readOffset, p_size);
-    trc_unmap_data(read_buf->data);
-    trc_unmap_freeze_data(ctx->trace, res.data);
-    
-    trc_set_gl_buffer(ctx->trace, write_fake, &res);
+    if (copy_buffer_data(ctx, cmd, false, read_fake, write_fake, p_readOffset, p_writeOffset, p_size))
+        real(p_readTarget, p_writeTarget, p_readOffset, p_writeOffset, p_size);
+
+glCopyNamedBufferSubData: //GLenum p_readBuffer, GLenum p_writeBuffer, GLintptr p_readOffset, GLintptr p_writeOffset, GLsizeiptr p_size
+    if (copy_buffer_data(ctx, cmd, true, p_readBuffer, p_writeBuffer, p_readOffset, p_writeOffset, p_size))
+        real(p_readBuffer_rev->real, p_writeBuffer_rev->real, p_readOffset, p_writeOffset, p_size);
 
 glMapBuffer: //GLenum p_target, GLenum p_access
-    if (p_access!=GL_READ_ONLY && p_access!=GL_WRITE_ONLY && p_access!=GL_READ_WRITE) 
-        ERROR("Invalid access policy");
-    
     uint fake = get_bound_buffer(ctx, p_target);
-    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
-    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) ERROR("Buffer has no data");
-    
-    if (buf.mapped) ERROR("Buffer is already mapped");
-    
-    buf.mapped = true;
-    buf.map_offset = 0;
-    buf.map_length = buf.data->size;
-    switch (p_access) {
-    case GL_READ_ONLY: buf.map_access = GL_MAP_READ_BIT; break;
-    case GL_WRITE_ONLY: buf.map_access = GL_MAP_WRITE_BIT; break;
-    case GL_READ_WRITE: buf.map_access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT; break;
-    }
-    
-    trc_set_gl_buffer(ctx->trace, fake, &buf);
+    map_buffer(ctx, cmd, false, fake, p_access);
+
+glMapNamedBuffer: //GLuint p_buffer, GLenum p_access
+    map_buffer(ctx, cmd, true, p_buffer, p_access);
 
 glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
-    if (p_offset<0 || p_length<0 || !p_length) ERROR("Invalid length or offset");
-    
-    if (!(p_access&GL_MAP_READ_BIT) && !(p_access&GL_MAP_WRITE_BIT))
-        ERROR("Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
-    
-    if (p_access&GL_MAP_READ_BIT && (p_access&GL_MAP_INVALIDATE_RANGE_BIT ||
-                                     p_access&GL_MAP_INVALIDATE_BUFFER_BIT ||
-                                     p_access&GL_MAP_UNSYNCHRONIZED_BIT))
-        ERROR("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set");
-    
-    if (p_access&GL_MAP_FLUSH_EXPLICIT_BIT && !(p_access&GL_MAP_WRITE_BIT))
-        ERROR("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
-    
-    if (p_access&!(GLbitfield)0xff) ERROR("Invalid access flags");
-    
-    //TODO:
-    //Make sure the access is valid with the buffer's storage flags
-    
-    uint fake = get_bound_buffer(ctx, p_target);
-    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
-    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) ERROR("Buffer has no data");
-    
-    if (p_offset+p_length > buf.data->size)
-        ERROR("offset+length is greater than the buffer's size");
-    if (buf.mapped) ERROR("Buffer is already mapped");
-    
-    buf.mapped = true;
-    buf.map_offset = p_offset;
-    buf.map_length = p_length;
-    buf.map_access = p_access;
-    
-    trc_set_gl_buffer(ctx->trace, fake, &buf);
+    map_buffer_range(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_offset, p_length, p_access);
+
+glMapNamedBufferRange: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
+    map_buffer_range(ctx, cmd, true, p_buffer, p_offset, p_length, p_access);
 
 glUnmapBuffer: //GLenum p_target
     trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
@@ -1871,7 +2003,7 @@ glUnmapBuffer: //GLenum p_target
     
     uint fake = get_bound_buffer(ctx, p_target);
     const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf_rev_ptr) ERROR("Invalid buffer name or buffer target");
+    if (!buf_rev_ptr) ERROR("Invalid buffer name");
     trc_gl_buffer_rev_t buf = *buf_rev_ptr;
     if (!buf.data) ERROR("Buffer has no data");
     
@@ -3473,33 +3605,16 @@ glCurrentTestWIP15: //const GLchar* p_name
     ctx->current_test_name = p_name;
 
 glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
+    if (p_n < 0) ERROR("Invalid vertex array object name count");
     GLuint arrays[p_n];
     real(p_n, arrays);
-    
-    int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
-    for (size_t i = 0; i < p_n; ++i) {
-        trc_gl_vao_rev_t rev;
-        rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-        rev.ref_count = 1;
-        rev.real = arrays[i];
-        rev.has_object = false;
-        rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
-        memset(attribs, 0, attrib_count*sizeof(trc_gl_vao_attrib_t)); //fill in padding to fix uninitialized memory errors during compession
-        for (size_t j = 0; j < attrib_count; j++) {
-            attribs[j].enabled = false;
-            attribs[j].normalized = false;
-            attribs[j].integer = false;
-            attribs[j].size = 4;
-            attribs[j].stride = 0;
-            attribs[j].offset = 0;
-            attribs[j].type = GL_FLOAT;
-            attribs[j].divisor = 0;
-            attribs[j].buffer = 0;
-        }
-        trc_unmap_data(rev.attribs);
-        trc_set_gl_vao(ctx->trace, p_arrays[i], &rev);
-    }
+    gen_vertex_arrays(ctx, p_n, arrays, p_arrays, false);
+
+glCreateVertexArrays: //GLsizei p_n, GLuint* p_arrays
+    if (p_n < 0) ERROR("Invalid vertex array object name count");
+    GLuint arrays[p_n];
+    real(p_n, arrays);
+    gen_vertex_arrays(ctx, p_n, arrays, p_arrays, true);
 
 glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     GLuint arrays[p_n];
@@ -3657,20 +3772,16 @@ glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_para
     real(sampler, p_pname, p_param);
 
 glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
+    if (p_n < 0) ERROR("Invalid framebuffer name count");
     GLuint fbs[p_n];
     real(p_n, fbs);
-    
-    trc_gl_framebuffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    rev.has_object = false;
-    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
-    rev.attachments = empty_data;
-    rev.draw_buffers = empty_data;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = fbs[i];
-        trc_set_gl_framebuffer(ctx->trace, p_framebuffers[i], &rev);
-    }
+    gen_framebuffers(ctx, p_n, fbs, p_framebuffers, false);
+
+glCreateFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
+    if (p_n < 0) ERROR("Invalid framebuffer name count");
+    GLuint fbs[p_n];
+    real(p_n, fbs);
+    gen_framebuffers(ctx, p_n, fbs, p_framebuffers, true);
 
 glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint fbs[p_n];
@@ -3706,18 +3817,16 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, p_framebuffer);
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
+    if (p_n < 0) ERROR("Invalid renderbuffer name count");
     GLuint rbs[p_n];
     real(p_n, rbs);
-    
-    trc_gl_renderbuffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    rev.has_object = false;
-    rev.has_storage = false;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = rbs[i];
-        trc_set_gl_renderbuffer(ctx->trace, p_renderbuffers[i], &rev);
-    }
+    gen_renderbuffers(ctx, p_n, rbs, p_renderbuffers, false);
+
+glCreateRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
+    if (p_n < 0) ERROR("Invalid renderbuffer name count");
+    GLuint rbs[p_n];
+    real(p_n, rbs);
+    gen_renderbuffers(ctx, p_n, rbs, p_renderbuffers, true);
 
 glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     GLuint rbs[p_n];
@@ -3890,19 +3999,16 @@ glClientWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
     real((GLsync)p_sync_rev->real, p_flags, p_timeout);
 
 glGenQueries: //GLsizei p_n, GLuint* p_ids
+    if (p_n < 0) ERROR("Invalid name query count");
     GLuint queries[p_n];
     real(p_n, queries);
-    
-    trc_gl_query_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    rev.has_object = false;
-    rev.type = 0;
-    rev.result = 0;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = queries[i];
-        trc_set_gl_query(ctx->trace, p_ids[i], &rev);
-    }
+    gen_queries(ctx, p_n, queries, p_ids, false, 0);
+
+glCreateQueries: //GLenum p_target, GLsizei p_n, GLuint* p_ids
+    if (p_n < 0) ERROR("Invalid name query count");
+    GLuint queries[p_n];
+    real(p_target, p_n, queries);
+    gen_queries(ctx, p_n, queries, p_ids, false, p_target);
 
 glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     GLuint queries[p_n];
