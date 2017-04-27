@@ -1458,6 +1458,14 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     trc_set_gl_buffer(ctx->trace, fake, &newrev);
 }
 
+static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLintptr offset, GLsizeiptr size) {
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) {trc_add_error(cmd, dsa?"Invalid buffer name":"No buffer bound to target"); return;}
+    if (!rev->has_object) {trc_add_error(cmd, "Buffer name has no object"); return;}
+    if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) {trc_add_error(cmd, "Buffer is mapped without GL_MAP_PERSISTENT_BIT"); return;}
+    if (offset<0 || size<0 || offset+size>rev->data->size) {trc_add_error(cmd, "Invalid offset and/or size"); return;}
+}
+
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
     if (p_ctx) {
@@ -2543,16 +2551,31 @@ glGetSeparableFilter: //GLenum p_target, GLenum p_format, GLenum p_type, void * 
     ;
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ;
+    if (!get_bound_buffer(ctx, p_target)) ERROR("No buffer bound to target");
 
 glGetBufferParameteri64v: //GLenum p_target, GLenum p_pname, GLint64* p_params
-    ;
+    if (!get_bound_buffer(ctx, p_target)) ERROR("No buffer bound to target");
+
+glGetNamedBufferParameteriv: //GLuint p_buffer, GLenum p_pname, GLint* p_params
+    if (!p_buffer_rev) ERROR("Invalid buffer name");
+    if (!p_buffer_rev->has_object) ERROR("Buffer name has no object");
+
+glGetNamedBufferParameteri64v: //GLuint p_buffer, GLenum p_pname, GLint64* p_params
+    if (!p_buffer_rev) ERROR("Invalid buffer name");
+    if (!p_buffer_rev->has_object) ERROR("Buffer name has no object");
 
 glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
-    ;
+    if (!get_bound_buffer(ctx, p_target)) ERROR("No buffer bound to target");
 
-glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, void * p_data
-    ;
+glGetNamedBufferPointerv: //GLuint p_buffer, GLenum p_pname, void ** p_params
+    if (!p_buffer_rev) ERROR("Invalid buffer name");
+    if (!p_buffer_rev->has_object) ERROR("Buffer name has no object");
+
+glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, void* p_data
+    get_buffer_sub_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_offset, p_size);
+
+glGetNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, void* p_data
+    get_buffer_sub_data(ctx, cmd, true, p_buffer, p_offset, p_size);
 
 glGetTexImage: //GLenum p_target, GLint p_level, GLenum p_format, GLenum p_type, void * p_pixels
     ;
