@@ -249,6 +249,8 @@ glGenTextures: //GLsizei p_n, GLuint* p_textures
     trc_gl_texture_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
+    rev.has_object = false;
+    rev.type = 0;
     rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
     rev.base_level = 0;
     rev.sample_params.border_color[0] = 0;
@@ -270,8 +272,6 @@ glGenTextures: //GLsizei p_n, GLuint* p_textures
     rev.sample_params.wrap_s = GL_REPEAT;
     rev.sample_params.wrap_t = GL_REPEAT;
     rev.sample_params.wrap_r = GL_REPEAT;
-    rev.created = false;
-    rev.type = 0;
     rev.images = NULL;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = textures[i];
@@ -293,19 +293,19 @@ glActiveTexture: //GLenum p_texture
     real(p_texture);
 
 glBindTexture: //GLenum p_target, GLuint p_texture
-    GLuint real_tex = trc_get_real_gl_texture(ctx->trace, p_texture);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, p_texture);
     if (!rev && p_texture) ERROR("Invalid texture name");
-    if (rev && !rev->created) {
+    if (rev && !rev->has_object) {
         trc_gl_texture_rev_t newrev = *rev;
-        newrev.created = true;
+        newrev.has_object = true;
         newrev.type = p_target;
         newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
         trc_set_gl_texture(ctx->trace, p_texture, &newrev);
-    } else if (rev && rev->type!=p_target)
-        ERROR("Invalid target for texture");
+    } else if (rev && rev->type!=p_target) {
+        ERROR("Invalid target for texture object");
+    }
     //TODO: Reference counting
-    real(p_target, real_tex);
+    real(p_target, p_texture?rev->real:0);
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
@@ -474,6 +474,7 @@ glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     trc_gl_buffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
+    rev.has_object = false;
     rev.has_data = false;
     rev.data_usage = 0;
     rev.data = NULL;
@@ -496,20 +497,35 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     real(p_n, buffers);
 
 glBindBuffer: //GLenum p_target, GLuint p_buffer
-    GLuint real_buf = trc_get_real_gl_buffer(ctx->trace, p_buffer);
-    if (!real_buf && p_buffer) ERROR("Invalid buffer name");
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
+    if (!rev && p_buffer) ERROR("Invalid buffer name");
     trc_gl_state_set_bound_buffer(ctx->trace, p_target, p_buffer);
-    real(p_target, real_buf);
+    real(p_target, p_buffer?rev->real:0);
+    if (rev && !rev->has_object) {
+        trc_gl_buffer_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_buffer(ctx->trace, p_buffer, &newrev);
+    }
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
-    GLuint buf = trc_get_real_gl_buffer(ctx->trace, p_buffer);
-    if (!buf && p_buffer) ERROR("Invalid buffer name");
-    real(p_target, p_index, buf);
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
+    if (!rev && p_buffer) ERROR("Invalid buffer name");
+    real(p_target, p_index, p_buffer?rev->real:0);
+    if (rev && !rev->has_object) {
+        trc_gl_buffer_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_buffer(ctx->trace, p_buffer, &newrev);
+    }
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
-    GLuint buf = trc_get_real_gl_buffer(ctx->trace, p_buffer);
-    if (!buf && p_buffer) ERROR("Invalid buffer name");
-    real(p_target, p_index, buf, p_offset, p_size);
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
+    if (!rev && p_buffer) ERROR("Invalid buffer name");
+    real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
+    if (rev && !rev->has_object) {
+        trc_gl_buffer_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_buffer(ctx->trace, p_buffer, &newrev);
+    }
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void * p_data, GLenum p_usage
     real(p_target, p_size, p_data, p_usage);
@@ -2246,6 +2262,7 @@ glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
         rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
         rev.ref_count = 1;
         rev.real = arrays[i];
+        rev.has_object = false;
         rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
         trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
         memset(attribs, 0, attrib_count*sizeof(trc_gl_vao_attrib_t)); //fill in padding to fix uninitialized memory errors during compession
@@ -2276,9 +2293,14 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     real(p_n, arrays);
 
 glBindVertexArray: //GLuint p_array
-    GLuint real_vao = trc_get_real_gl_vao(ctx->trace, p_array);
-    if (!real_vao && p_array) ERROR("Invalid vertex array name");
+    const trc_gl_vao_rev_t* rev = trc_get_gl_vao(ctx->trace, p_array);
+    if (!rev && p_array) ERROR("Invalid vertex array name");
     trc_gl_state_set_bound_vao(ctx->trace, p_array);
+    if (rev && !rev->has_object) {
+        trc_gl_vao_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_vao(ctx->trace, p_array, &newrev);
+    }
 
 glGetFragDataIndex: //GLuint p_program, const GLchar* p_name
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -2421,6 +2443,7 @@ glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     trc_gl_framebuffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
+    rev.has_object = false;
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.attachments = empty_data;
     rev.draw_buffers = empty_data;
@@ -2443,9 +2466,15 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     real(p_n, fbs);
 
 glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
-    GLuint fb = trc_get_real_gl_framebuffer(ctx->trace, p_framebuffer);
-    if (!fb && p_framebuffer) ERROR("Invalid framebuffer name");
-    real(p_target, fb);
+    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, p_framebuffer);
+    if (!rev && p_framebuffer) ERROR("Invalid framebuffer name");
+    real(p_target, p_framebuffer?rev->real:0);
+    
+    if (rev && !rev->has_object) {
+        trc_gl_framebuffer_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_framebuffer(ctx->trace, p_framebuffer, &newrev);
+    }
     
     bool read = true;
     bool draw = true;
@@ -2463,6 +2492,7 @@ glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     trc_gl_renderbuffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
+    rev.has_object = false;
     rev.has_storage = false;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = rbs[i];
@@ -2484,10 +2514,15 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     real(p_n, rbs);
 
 glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
-    GLuint rb = trc_get_real_gl_renderbuffer(ctx->trace, p_renderbuffer);
-    if (!rb && p_renderbuffer) ERROR("Invalid renderbuffer name");
-    real(p_target, rb);
+    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, p_renderbuffer);
+    if (!rev && p_renderbuffer) ERROR("Invalid renderbuffer name");
+    real(p_target, p_renderbuffer?rev->real:0);
     trc_gl_state_set_bound_renderbuffer(ctx->trace, p_renderbuffer);
+    if (rev && !rev->has_object) {
+        trc_gl_renderbuffer_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_renderbuffer(ctx->trace, p_renderbuffer, &newrev);
+    }
 
 glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
     GLuint program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -2532,10 +2567,12 @@ glGetRenderbufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
     real(p_target, p_pname, &params);
 
 glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
-    GLuint real_rb = trc_get_real_gl_renderbuffer(ctx->trace, p_renderbuffer);
-    if (!real_rb && p_renderbuffer) ERROR("Invalid renderbuffer name");
+    const trc_gl_renderbuffer_rev_t* rb = trc_get_gl_renderbuffer(ctx->trace, p_renderbuffer);
+    if (!rb && p_renderbuffer) ERROR("Invalid renderbuffer name");
+    if (rb && !rb->has_object) ERROR("Although it has a valid name, the renderbuffer has not been created"
+                                     "Use glBindRenderbuffer or use glCreateRenderbuffers instead of glGenRenderbuffers");
     
-    real(p_target, p_attachment, p_renderbuffertarget, real_rb);
+    real(p_target, p_attachment, p_renderbuffertarget, rb->real);
     
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment_rb(ctx->trace, cmd, fb, p_attachment, p_renderbuffer);
@@ -2545,8 +2582,8 @@ glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, 
     
     real(p_target, p_attachment, p_texture_rev?p_texture_rev->real:0, p_level);
     
-    if (!p_texture_rev->created) ERROR("Although it has a valid name, the texture has not been created"
-                                       "Use glBindTexture or use glCreateTextures instead of glGenTextures");
+    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
+                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_texture_rev->type, p_level, 0);
 
@@ -2555,8 +2592,8 @@ glFramebufferTextureLayer: //GLenum p_target, GLenum p_attachment GLuint p_textu
     
     real(p_target, p_attachment, p_texture_rev?p_texture_rev->real:0, p_level, p_layer);
     
-    if (!p_texture_rev->created) ERROR("Although it has a valid name, the texture has not been created"
-                                       "Use glBindTexture or use glCreateTextures instead of glGenTextures");
+    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
+                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_texture_rev->type, p_level, p_layer);
 
@@ -2565,8 +2602,8 @@ glFramebufferTexture1D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
     
     real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level);
     
-    if (!p_texture_rev->created) ERROR("Although it has a valid name, the texture has not been created"
-                                       "Use glBindTexture or use glCreateTextures instead of glGenTextures");
+    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
+                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
 
@@ -2575,8 +2612,8 @@ glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
     
     real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level);
     
-    if (!p_texture_rev->created) ERROR("Although it has a valid name, the texture has not been created"
-                                       "Use glBindTexture or use glCreateTextures instead of glGenTextures");
+    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
+                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
 
@@ -2585,8 +2622,8 @@ glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
     
     real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level, p_zoffset);
     
-    if (!p_texture_rev->created) ERROR("Although it has a valid name, the texture has not been created"
-                                       "Use glBindTexture or use glCreateTextures instead of glGenTextures");
+    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
+                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
     replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, p_zoffset);
 
@@ -2639,6 +2676,7 @@ glGenQueries: //GLsizei p_n, GLuint* p_ids
     trc_gl_query_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
+    rev.has_object = false;
     rev.type = 0;
     rev.result = 0;
     for (size_t i = 0; i < p_n; ++i) {
@@ -2657,13 +2695,14 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     real(p_n, queries);
 
 glBeginQuery: //GLenum p_target, GLuint p_id
-    GLuint real_id = trc_get_real_gl_query(ctx->trace, p_id);
-    if (!real_id) ERROR("Invalid query name");
-    real(p_target, real_id);
+    const trc_gl_query_rev_t* rev = trc_get_gl_query(ctx->trace, p_id);
+    if (!rev) ERROR("Invalid query name");
+    real(p_target, rev->real);
     
-    trc_gl_query_rev_t query = *trc_get_gl_query(ctx->trace, p_id);
-    query.type = p_target;
-    trc_set_gl_query(ctx->trace, p_id, &query);
+    trc_gl_query_rev_t newrev = *rev;
+    newrev.type = p_target;
+    newrev.has_object = true;
+    trc_set_gl_query(ctx->trace, p_id, &newrev);
     
     trc_gl_state_set_bound_queries(ctx->trace, p_target, 0, p_id);
     //TODO: Reference counting
@@ -2680,11 +2719,17 @@ glEndQuery: //GLenum p_target
     //TODO: Reference counting
 
 glQueryCounter: //GLuint p_id, GLenum p_target
-    GLuint real_id = trc_get_real_gl_query(ctx->trace, p_id);
-    if (!real_id) ERROR("Invalid query name");
-    real(real_id, p_target);
+    const trc_gl_query_rev_t* rev = trc_get_gl_query(ctx->trace, p_id);
+    if (!rev) ERROR("Invalid query name");
+    real(rev->real, p_target);
+    if (!rev->has_object) {
+        trc_gl_query_rev_t newrev = *rev;
+        newrev.has_object = true;
+        newrev.type = GL_TIMESTAMP;
+        trc_set_gl_query(ctx->trace, p_id, &newrev);
+    }
     //TODO: This clears any errors
-    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, p_id, real_id);
+    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, p_id, rev->real);
 
 glSampleMaski: //GLuint p_maskNumber, GLbitfield p_mask
     real(p_maskNumber, p_mask);

@@ -49,7 +49,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeIter row;
     #define VAL(name, val) do {gtk_tree_store_append(param_store, &row, NULL);\
     gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);} while (0)
-    if (!tex->created) return;
+    if (!tex->has_object) return;
     
     VAL("Type", get_enum_str(NULL, tex->type));
     VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, tex->depth_stencil_mode)));

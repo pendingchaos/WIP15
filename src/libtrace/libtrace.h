@@ -132,6 +132,8 @@ typedef struct trc_gl_obj_rev_t {
 
 typedef struct trc_gl_buffer_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
+    
     bool has_data;
     uint data_usage;
     trc_data_t* data;
@@ -178,21 +180,21 @@ typedef struct trc_gl_texture_image_t {
 
 typedef struct trc_gl_texture_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
+    uint type;
     trc_gl_sample_params_t sample_params;
     uint depth_stencil_mode;
     uint base_level;
     uint max_level;
     float lod_bias;
     uint swizzle[4];
-    
-    bool created;
-    uint type;
     //array of trc_gl_texture_image_t
     trc_data_t* images;
 } trc_gl_texture_rev_t;
 
 typedef struct trc_gl_query_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
     uint type;
     int64_t result;
 } trc_gl_query_rev_t;
@@ -211,12 +213,14 @@ typedef struct trc_gl_framebuffer_attachment_t {
 
 typedef struct trc_gl_framebuffer_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
     trc_data_t* attachments; //array of trc_gl_framebuffer_attachment_t
     trc_data_t* draw_buffers; //array of GLenum
 } trc_gl_framebuffer_rev_t;
 
 typedef struct trc_gl_renderbuffer_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
     bool has_storage;
     uint width;
     uint height;
@@ -289,6 +293,7 @@ typedef struct trc_gl_vao_attrib_t {
 
 typedef struct trc_gl_vao_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
     trc_data_t* attribs; //array of trc_gl_vao_attrib_t
 } trc_gl_vao_rev_t;
 
