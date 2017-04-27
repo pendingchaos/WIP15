@@ -316,7 +316,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_INT(state_int, GL_UNPACK_ALIGNMENT);
     end_category();
     
-    STATE_FLOAT(state_int, GL_PATCH_VERTICES);
+    STATE_INT(state_int, GL_PATCH_VERTICES);
     STATE_FLOAT(state_float, GL_PATCH_DEFAULT_OUTER_LEVEL);
     STATE_FLOAT(state_float, GL_PATCH_DEFAULT_INNER_LEVEL);
     

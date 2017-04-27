@@ -655,7 +655,7 @@ Func((4, 0), 'glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, '
 Func((4, 0), 'glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tGLint, 'values', 1)])
 Func((4, 0), 'glPatchParameteri', [P(tGLenum, 'pname', None, g('GL_PATCH_VERTICES')), P(tGLint, 'value')], None)
 Func((4, 0), 'glPatchParameterfv', [P(tGLenum, 'pname', None, g('GL_PATCH_DEFAULT_OUTER_LEVEL', 'GL_PATCH_DEFAULT_INNER_LEVEL')),
-                                    P(tGLfloat, 'values', 'pname==GL_PATCH_VERTICES?1:0')])
+                                    P(tGLfloat, 'values', 'pname==GL_PATCH_DEFAULT_OUTER_LEVEL?4:(pname==GL_PATCH_DEFAULT_INNER_LEVEL?2:0)')])
 Func((4, 0), 'glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((4, 0), 'glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
