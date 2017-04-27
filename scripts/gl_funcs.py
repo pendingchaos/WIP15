@@ -822,7 +822,7 @@ Func((4, 5), 'glNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset
 #Func((4, 5), 'glGetNamedBufferParameteri64v', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 5), 'glGetNamedBufferPointerv', [P(tGLuint, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((4, 5), 'glGetNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tMutablePointer, 'data')])
-#Func((4, 5), 'glCreateFramebuffers', [P(tGLsizei, 'n'), P(tMutablePointer, 'framebuffers')])
+Func((4, 5), 'glCreateFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
 #Func((4, 5), 'glInvalidateNamedFramebufferData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
 #Func((4, 5), 'glInvalidateNamedFramebufferSubData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
