@@ -527,7 +527,7 @@ Func((3, 0), 'glClearBufferfi', [P(tGLenum, 'buffer', None, 'GL_DEPTH_STENCIL'),
 #Func((3, 0), 'glGetStringi', [P(tGLenum, 'name'), P(tGLuint, 'index')], tPointer)
 Func((3, 0), 'glDeleteRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
 Func((3, 0), 'glGenRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func((3, 0), 'glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 Func((3, 0), 'glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func((3, 0), 'glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 #Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -824,6 +824,9 @@ Func((4, 5), 'glGetNamedBufferParameteri64v', [P(tGLBuf, 'buffer'), P(tGLenum, '
 Func((4, 5), 'glGetNamedBufferPointerv', [P(tGLBuf, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params', 1)])
 Func((4, 5), 'glGetNamedBufferSubData', [P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size>=0?size:0'), 'data')])
 Func((4, 5), 'glCreateFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
+Func((4, 5), 'glNamedFramebufferRenderbuffer', [P(tGLFramebuffer, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLRenderbuffer, 'renderbuffer')], None)
+Func((4, 5), 'glNamedFramebufferTexture', [P(tGLFramebuffer, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level')], None)
+Func((4, 5), 'glNamedFramebufferTextureLayer', [P(tGLFramebuffer, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'layer')], None)
 Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n')])
 #Func((4, 5), 'glInvalidateNamedFramebufferData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments')])
 #Func((4, 5), 'glInvalidateNamedFramebufferSubData', [P(tGLuint, 'framebuffer'), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
@@ -833,7 +836,7 @@ Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLs
 #Func((4, 5), 'glGetNamedFramebufferParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
 #Func((4, 5), 'glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 5), 'glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
-#Func((4, 5), 'glGetNamedRenderbufferParameteriv', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((4, 5), 'glGetNamedRenderbufferParameteriv', [P(tGLRenderbuffer, 'renderbuffer'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 Func((4, 5), 'glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLuint, 'textures', 'n')])
 
 Func((4, 5), 'glTextureSubImage1D', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
@@ -966,10 +969,9 @@ Func((3, 0), 'glRenderbufferStorageMultisample', [P(tGLenum, 'target'), P(tGLsiz
                                                   P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                                   P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
-Func((4, 5), 'glNamedRenderbufferStorage', [P(tGLuint, 'renderbuffer'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
+Func((4, 5), 'glNamedRenderbufferStorage', [P(tGLRenderbuffer, 'renderbuffer'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                             P(tGLsizei, 'width'), P(tGLsizei, 'height')])
-
-Func((4, 5), 'glNamedRenderbufferStorageMultisample', [P(tGLuint, 'renderbuffer'), P(tGLsizei, 'samples'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
+Func((4, 5), 'glNamedRenderbufferStorageMultisample', [P(tGLRenderbuffer, 'renderbuffer'), P(tGLsizei, 'samples'), P(tGLenum, 'internalformat', None, 'InternalFormat'),
                                                        P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
 Func((1, 1), 'glDrawArrays', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLint, 'first'),
@@ -1013,7 +1015,7 @@ Func((3, 0), 'glCheckFramebufferStatus', [P(tGLenum, 'target', None, Framebuffer
 Func((3, 0), 'glFramebufferTexture1D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
 Func((3, 0), 'glFramebufferTexture2D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
 Func((3, 0), 'glFramebufferTexture3D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'zoffset')])
-Func((3, 0), 'glFramebufferRenderbuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLuint, 'renderbuffer')])
+Func((3, 0), 'glFramebufferRenderbuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLRenderbuffer, 'renderbuffer')])
 Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((3, 0), 'glFramebufferTextureLayer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'layer')])
 Func((3, 2), 'glFramebufferTexture', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level')])

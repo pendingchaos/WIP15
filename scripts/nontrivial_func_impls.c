@@ -137,7 +137,7 @@ static void init_context(trc_replay_context_t* ctx) {
     
     GLint max_clip_distances, max_draw_buffers, max_viewports;
     GLint max_vertex_attribs, max_color_attachments, max_tex_units;
-    GLint max_uniform_buffer_bindings, max_patch_vertices;
+    GLint max_uniform_buffer_bindings, max_patch_vertices, max_renderbuffer_size;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
@@ -147,6 +147,7 @@ static void init_context(trc_replay_context_t* ctx) {
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
     F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
     F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, &max_patch_vertices);
+    F(glGetIntegerv)(GL_MAX_RENDERBUFFER_SIZE, &max_renderbuffer_size);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
@@ -156,6 +157,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
     trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
+    trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -551,7 +553,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
 }
 
-const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint* fake) {
+static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint* fake) {
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     *fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, *fake);
@@ -559,7 +561,7 @@ const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trac
     return rev;
 }
 
-void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
+static void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
     uint fake;
     const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, command, target, &fake);
     if (!rev) return;
@@ -570,10 +572,10 @@ void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* c
     replay_update_tex_image(ctx, rev, fake, level, face);
 }
 
-void replay_tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
-                       GLenum target, GLenum internalformat, GLuint buffer,
-                       const trc_gl_buffer_rev_t* buffer_rev,
-                       GLintptr offset, GLsizeiptr size) {
+static void replay_tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
+                              GLenum target, GLenum internalformat, GLuint buffer,
+                              const trc_gl_buffer_rev_t* buffer_rev,
+                              GLintptr offset, GLsizeiptr size) {
     uint tex_fake;
     const trc_gl_texture_rev_t* tex_rev = replay_get_bound_tex(ctx, cmd, target, &tex_fake);
     if (!tex_rev) return;
@@ -589,9 +591,10 @@ void replay_tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
     trc_set_gl_texture(ctx->trace, buffer, &new_rev);
 }
 
-bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuffer_attachment_t* attach) {
-    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(trace, fb);
-    if (!rev) return false;
+static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, uint fb, const trc_gl_framebuffer_attachment_t* attach) {
+    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, fb);
+    if (!rev) ERROR2(false, dsa?"Invalid framebuffer name":"No framebuffer bound to target");
+    if (!rev->has_object) ERROR2(false, "Framebuffer name has no object");
     
     size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
     trc_gl_framebuffer_attachment_t* newattachs = malloc((attach_count+1)*sizeof(trc_gl_framebuffer_attachment_t));
@@ -612,20 +615,24 @@ bool replay_append_fb_attachment(trace_t* trace, uint fb, const trc_gl_framebuff
     if (!replaced) newattachs[attach_count++] = *attach;
     
     size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
-    newrev.attachments = trc_create_data_no_copy(trace, size, newattachs, TRC_DATA_IMMUTABLE);
+    newrev.attachments = trc_create_data_no_copy(ctx->trace, size, newattachs, TRC_DATA_IMMUTABLE);
     
-    trc_set_gl_framebuffer(trace, fb, &newrev);
+    trc_set_gl_framebuffer(ctx->trace, fb, &newrev);
     
     return true;
 }
 
-void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment,
-                              uint tex, uint target, uint level, uint layer) {
+static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, uint fb, uint attachment, bool dsa,
+                              uint fake_tex, const trc_gl_texture_rev_t* tex, uint target, uint level, uint layer) {
+    if (!tex && fake_tex) ERROR2(false, "Invalid texture name");
+    if (fake_tex && !tex->has_object) ERROR2(false, "Texture name has no object");
+    //TODO: Test if target is compatible with the texture
+    //TODO: Test if level is a mipmap of the texture
     trc_gl_framebuffer_attachment_t attach;
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = false;
     attach.attachment = attachment;
-    attach.fake_texture = tex;
+    attach.fake_texture = fake_tex;
     attach.level = level;
     attach.layer = layer;
     attach.face = 0;
@@ -635,24 +642,23 @@ void replay_add_fb_attachment(trace_t* trace, trace_command_t* cmd, uint fb, uin
         attach.face = layer % 6;
         attach.layer /= 6;
     }
-    if (!replay_append_fb_attachment(trace, fb, &attach))
-        //TODO: The framebuffer might not come from a binding
-        ERROR2(, "No framebuffer bound");
+    return replay_append_fb_attachment(ctx, cmd, dsa, fb, &attach);
 }
 
-void replay_add_fb_attachment_rb(trace_t* trace, trace_command_t* cmd, uint fb, uint attachment, uint rb) {
+static bool add_fb_attachment_rb(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, uint fb,
+                                 uint attachment, uint fake_rb, const trc_gl_renderbuffer_rev_t* rb) {
+    if (!rb && fake_rb) ERROR2(false, "Invalid renderbuffer name");
+    if (fake_rb && !rb->has_object) ERROR2(false, "Renderbuffer name has no object");
     trc_gl_framebuffer_attachment_t attach;
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = true;
     attach.attachment = attachment;
-    attach.fake_renderbuffer = fb;
-    if (!replay_append_fb_attachment(trace, fb, &attach))
-        //TODO: The framebuffer might not come from a binding
-        ERROR2(, "No framebuffer bound");
+    attach.fake_renderbuffer = fake_rb;
+    return replay_append_fb_attachment(ctx, cmd, dsa, fb, &attach);
 }
 
-void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
-                                uint fake, uint width, uint height, uint internal_format, uint samples) {
+static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
+                                       uint fake, uint width, uint height, uint internal_format, uint samples) {
     GLint bits[6];
     GLint prev;
     F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &prev);
@@ -1424,6 +1430,18 @@ static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd,
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) ERROR2(, "Buffer is mapped without GL_MAP_PERSISTENT_BIT");
     if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
+}
+
+static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd, const trc_gl_renderbuffer_rev_t* rb,
+                                 bool dsa, GLenum internal_format, GLsizei width, GLsizei height, GLsizei samples) {
+    if (!rb) ERROR2(false, dsa?"Invalid renderbuffer name":"No renderbuffer bound");
+    if (!rb->has_object) ERROR2(false, "Renderbuffer name has no obejct");
+    int maxsize = trc_gl_state_get_state_int(ctx->trace, GL_MAX_RENDERBUFFER_SIZE, 0);
+    if (width<0 || height<0 || width>maxsize || height>maxsize)
+        ERROR2(false, "Invalid dimensions");
+    //TODO: test if samples if valid
+    //TODO: handle when internal_format is not renderable
+    return true;
 }
 
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
@@ -3881,83 +3899,83 @@ glGetFramebufferAttachmentParameteriv: //GLenum p_target, GLenum p_attachment, G
     real(p_target, p_attachment, p_pname, &params);
 
 glGetRenderbufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    GLint params;
-    real(p_target, p_pname, &params);
+    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, trc_gl_state_get_bound_renderbuffer(ctx->trace));
+    if (!rev) ERROR("No renderbuffer bound");
+    if (!rev->has_object) ERROR("Renderbuffer name has no object");
+
+glGetNamedRenderbufferParameteriv: //GLuint p_renderbuffer, GLenum p_pname, GLint* p_params
+    if (!p_renderbuffer_rev) ERROR("Invalid renderbuffer name");
+    if (!p_renderbuffer_rev->has_object) ERROR("Renderbuffer name has no object");
 
 glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
-    const trc_gl_renderbuffer_rev_t* rb = trc_get_gl_renderbuffer(ctx->trace, p_renderbuffer);
-    if (!rb && p_renderbuffer) ERROR("Invalid renderbuffer name");
-    if (rb && !rb->has_object) ERROR("Although it has a valid name, the renderbuffer has not been created"
-                                     "Use glBindRenderbuffer or use glCreateRenderbuffers instead of glGenRenderbuffers");
-    
-    real(p_target, p_attachment, p_renderbuffertarget, rb->real);
-    
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment_rb(ctx->trace, cmd, fb, p_attachment, p_renderbuffer);
+    if (add_fb_attachment_rb(ctx, cmd, false, fb, p_attachment, p_renderbuffer, p_renderbuffer_rev))
+        real(p_target, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
+
+glNamedFramebufferRenderbuffer: //GLuint p_framebuffer, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
+    if (add_fb_attachment_rb(ctx, cmd, true, p_framebuffer, p_attachment, p_renderbuffer, p_renderbuffer_rev))
+        real(p_framebuffer_rev->real, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
 
 glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, GLint p_level
-    if (!p_texture_rev && p_texture) ERROR("Invalid texture name");
-    
-    real(p_target, p_attachment, p_texture_rev?p_texture_rev->real:0, p_level);
-    
-    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
-                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_texture_rev->type, p_level, 0);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
+        real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level);
+
+glNamedFramebufferTexture: //GLuint p_framebuffer, GLenum p_attachment, GLuint p_texture, GLint p_level
+    if (add_fb_attachment(ctx, cmd, p_framebuffer, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
+        real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTextureLayer: //GLenum p_target, GLenum p_attachment GLuint p_texture, GLint p_level, GLint p_layer
-    if (!p_texture_rev && p_texture) ERROR("Invalid texture name");
-    
-    real(p_target, p_attachment, p_texture_rev?p_texture_rev->real:0, p_level, p_layer);
-    
-    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
-                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_texture_rev->type, p_level, p_layer);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
+        real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
+
+glNamedFramebufferTextureLayer: //GLuint p_framebuffer, GLenum p_attachment GLuint p_texture, GLint p_level, GLint p_layer
+    if (add_fb_attachment(ctx, cmd, p_framebuffer, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
+        real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
 
 glFramebufferTexture1D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
-    if (!p_texture_rev && p_texture) ERROR("Invalid texture name");
-    
-    real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level);
-    
-    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
-                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, 0))
+        real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
-    if (!p_texture_rev && p_texture) ERROR("Invalid texture name");
-    
-    real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level);
-    
-    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
-                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, 0);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, 0))
+        real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level, GLint p_zoffset
-    if (!p_texture_rev && p_texture) ERROR("Invalid texture name");
-    
-    real(p_target, p_attachment, p_textarget, p_texture_rev?p_texture_rev->real:0, p_level, p_zoffset);
-    
-    if (!p_texture_rev->has_object) ERROR("Although it has a valid name, the texture has not been created"
-                                          "Use glBindTexture or use glCreateTextures instead of glGenTextures");
     GLint fb = get_bound_framebuffer(ctx, p_target);
-    replay_add_fb_attachment(ctx->trace, cmd, fb, p_attachment, p_texture, p_textarget, p_level, p_zoffset);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, p_zoffset))
+        real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level, p_zoffset);
 
 glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
-    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, rb);
-    if (!rev) ERROR("Invalid renderbuffer name");
-    real(p_target, p_internalformat, p_width, p_height);
-    replay_update_renderbuffer(ctx, rev, rb, p_width, p_height, p_internalformat, 1);
+    const trc_gl_renderbuffer_rev_t* rb_rev = trc_get_gl_renderbuffer(ctx->trace, rb);
+    if (renderbuffer_storage(ctx, cmd, rb_rev, false, p_internalformat, p_width, p_height, 1)) {
+        real(p_target, p_internalformat, p_width, p_height);
+        replay_update_renderbuffer(ctx, rb_rev, rb, p_width, p_height, p_internalformat, 1);
+    }
+
+glNamedRenderbufferStorage: //GLuint p_renderbuffer, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
+    if (renderbuffer_storage(ctx, cmd, p_renderbuffer_rev, false, p_internalformat, p_width, p_height, 1)) {
+        real(p_renderbuffer_rev->real, p_internalformat, p_width, p_height);
+        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_renderbuffer, p_width, p_height, p_internalformat, 1);
+    }
 
 glRenderbufferStorageMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
-    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(ctx->trace, rb);
-    if (!rev) ERROR("Invalid renderbuffer name");
-    real(p_target, p_samples, p_internalformat, p_width, p_height);
-    replay_update_renderbuffer(ctx, rev, rb, p_width, p_height, p_internalformat, p_samples);
+    const trc_gl_renderbuffer_rev_t* rb_rev = trc_get_gl_renderbuffer(ctx->trace, rb);
+    if (renderbuffer_storage(ctx, cmd, rb_rev, false, p_internalformat, p_width, p_height, p_samples)) {
+        real(p_target, p_samples, p_internalformat, p_width, p_height);
+        replay_update_renderbuffer(ctx, rb_rev, rb, p_width, p_height, p_internalformat, p_samples);
+    }
+
+glNamedRenderbufferStorageMultisample: //GLuint p_renderbuffer, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
+    if (renderbuffer_storage(ctx, cmd, p_renderbuffer_rev, false, p_internalformat, p_width, p_height, p_samples)) {
+        real(p_renderbuffer, p_samples, p_internalformat, p_width, p_height);
+        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_renderbuffer, p_width, p_height, p_internalformat, p_samples);
+    }
 
 glFenceSync: //GLenum p_condition, GLbitfield p_flags
     GLsync real_sync = real(p_condition, p_flags);
