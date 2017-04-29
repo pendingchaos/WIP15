@@ -138,6 +138,7 @@ static void init_context(trc_replay_context_t* ctx) {
     GLint max_clip_distances, max_draw_buffers, max_viewports;
     GLint max_vertex_attribs, max_color_attachments, max_tex_units;
     GLint max_uniform_buffer_bindings, max_patch_vertices, max_renderbuffer_size;
+    GLint max_texture_size;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
@@ -148,6 +149,7 @@ static void init_context(trc_replay_context_t* ctx) {
     F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
     F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, &max_patch_vertices);
     F(glGetIntegerv)(GL_MAX_RENDERBUFFER_SIZE, &max_renderbuffer_size);
+    F(glGetIntegerv)(GL_MAX_TEXTURE_SIZE, &max_texture_size);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
@@ -158,6 +160,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
     trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
+    trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, max_texture_size);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -572,23 +575,34 @@ static void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_comma
     replay_update_tex_image(ctx, rev, fake, level, face);
 }
 
-static void replay_tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
-                              GLenum target, GLenum internalformat, GLuint buffer,
-                              const trc_gl_buffer_rev_t* buffer_rev,
-                              GLintptr offset, GLsizeiptr size) {
-    uint tex_fake;
-    const trc_gl_texture_rev_t* tex_rev = replay_get_bound_tex(ctx, cmd, target, &tex_fake);
-    if (!tex_rev) return;
-    if (!buffer_rev && buffer) ERROR2(, "Invalid buffer name");
-    trc_gl_texture_rev_t new_rev = *tex_rev;
+static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint tex_or_target, bool dsa,
+                       GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size) {
+    const trc_gl_texture_rev_t* rev = NULL;
+    if (!dsa)
+        rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
+    else
+        rev = trc_get_gl_texture(ctx->trace, tex_or_target);
+    if (!rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
+    if (!rev->has_object) ERROR2(false, "Texture name has no object");
+    
+    const trc_gl_buffer_rev_t* buffer_rev = buffer ? trc_get_gl_buffer(ctx->trace, buffer) : NULL;
+    if (!buffer_rev && buffer) ERROR2(false, "Invalid buffer name");
+    if (buffer && !buffer_rev->has_object) ERROR2(false, "Buffer name has no object");
+    if (offset<0 || size<=0 || offset+size>(buffer_rev->data?buffer_rev->data->size:0)) ERROR2(false, "Invalid range");
+    //TODO: Check alignment
+    
     trc_gl_texture_image_t img;
     memset(&img, 0, sizeof(img));
     img.internal_format = internalformat;
     img.buffer = buffer;
     img.buffer_start = offset;
-    img.buffer_size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
-    new_rev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
-    trc_set_gl_texture(ctx->trace, buffer, &new_rev);
+    img.buffer_size = buffer ? (size<0?(buffer_rev->data?buffer_rev->data->size:0):size) : 0;
+    
+    trc_gl_texture_rev_t newrev = *rev;
+    newrev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
+    trc_set_gl_texture(ctx->trace, tex_or_target, &newrev);
+    
+    return true;
 }
 
 static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, uint fb, const trc_gl_framebuffer_attachment_t* attach) {
@@ -1731,42 +1745,117 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
+static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint tex_or_target,
+                      GLint level, GLint internal_format, GLint border, GLenum format, GLenum type,
+                      bool sub, int dim, ...) {
+    int size[3];
+    int offset[3];
+    va_list list;
+    va_start(list, dim);
+    for (int i = 0; i < dim; i++) size[i] = va_arg(list, int);
+    for (int i = 0; (i<dim) && sub; i++) offset[i] = va_arg(list, int);
+    va_end(list);
+    
+    const trc_gl_texture_rev_t* tex_rev;
+    if (dsa) tex_rev = trc_get_gl_texture(ctx->trace, tex_or_target);
+    else tex_rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
+    if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
+    
+    int max_size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0);
+    if (level<0 || level>ceil(log2(max_size))) ERROR2(false, "Invalid level");
+    for (int i = 0; i < dim; i++)
+        if (size[i]<0 || size[i]>max_size) ERROR2(false, "Invalid %s", (const char*[]){"width", "height", "depth/layers"}[i]);
+    if (sub) {
+        size_t img_count = tex_rev->images->size / sizeof(trc_gl_texture_image_t);
+        trc_gl_texture_image_t* images = trc_map_data(tex_rev->images, TRC_MAP_READ);
+        trc_gl_texture_image_t* image = NULL;
+        for (size_t i = 0; i < img_count; i++) {
+            if (images[i].level == level) {
+                image = &images[i];
+                break;
+            }
+        }
+        if (image == NULL) {
+            trc_unmap_data(tex_rev->images);
+            ERROR2(false, "No such mipmap");
+        }
+        internal_format = image->internal_format; //Used for format validation later
+        if (dim>=1 && (offset[0]<0 || offset[0]+size[0] > image->width)) ERROR2(false, "Invalid x range");
+        if (dim>=2 && (offset[1]<0 || offset[1]+size[1] > image->height)) ERROR2(false, "Invalid x range");
+        if (dim>=3 && (offset[2]<0 || offset[2]+size[2] > image->depth)) ERROR2(false, "Invalid x range");
+        trc_unmap_data(tex_rev->images);
+    }
+    if (border != 0) ERROR2(false, "Border must be 0");
+    
+    if (!not_one_of(type, GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV, -1) && format!=GL_RGB)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (!not_one_of(type, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
+        GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV, -1) && format!=GL_RGBA && format!=GL_BGRA)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format==GL_DEPTH_COMPONENT && not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format!=GL_DEPTH_COMPONENT && !not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format==GL_STENCIL_INDEX && internal_format!=GL_STENCIL_INDEX)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
+        ERROR2(false, "Invalid format + internal format combination");
+    
+    GLuint pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
+    const trc_gl_buffer_rev_t* pu_buf_rev = trc_get_gl_buffer(ctx->trace, pu_buf);
+    if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
+    //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
+    
+    return true;
+}
+
 glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
-    real(p_target, p_level, p_internalformat, p_width, p_border, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    if (tex_image(ctx, cmd, false, p_target, p_level, p_internalformat, p_border, p_format, p_type, false, 1, p_width)) {
+        real(p_target, p_level, p_internalformat, p_width, p_border, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexImage1D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLint p_border, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_internalformat, p_width, p_border, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLenum p_type, const void* p_pixels
-    real(p_target, p_level, p_xoffset, p_width, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    if (tex_image(ctx, cmd, false, p_target, p_level, 0, 0, p_format, p_type, true, 1, p_width, p_xoffset)) {
+        real(p_target, p_level, p_xoffset, p_width, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_xoffset, p_width, p_format, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexImage2D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    if (tex_image(ctx, cmd, false, p_target, p_level, p_internalformat, p_border, p_format, p_type, false, 2, p_width, p_height)) {
+        real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexImage2D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLint p_border, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_internalformat, p_width, p_height, p_border, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLenum p_type, const void* p_pixels
-    real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    if (tex_image(ctx, cmd, false, p_target, p_level, 0, 0, p_format, p_type, true, 2, p_width, p_height, p_xoffset, p_yoffset)) {
+        real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_imageSize, p_data);
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexImage3D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
-    //TODO: Array textures
-    real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    //TODO: Array textures?
+    if (tex_image(ctx, cmd, false, p_target, p_level, p_internalformat, p_border, p_format, p_type, false, 3, p_width, p_height, p_depth)) {
+        real(p_target, p_level, p_internalformat, p_width, p_height, p_depth, p_border, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexImage3D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLint p_border, GLsizei p_imageSize, const void* p_data
     //TODO: Array textures
@@ -1774,8 +1863,10 @@ glCompressedTexImage3D: //GLenum p_target, GLint p_level, GLenum p_internalforma
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLenum p_type, const void* p_pixels
-    real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_type, p_pixels);
-    replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    if (tex_image(ctx, cmd, false, p_target, p_level, 0, 0, p_format, p_type, true, 3, p_width, p_height, p_depth, p_xoffset, p_yoffset, p_zoffset)) {
+        real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_type, p_pixels);
+        replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
+    }
 
 glCompressedTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLint p_zoffset, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLenum p_format, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_xoffset, p_yoffset, p_zoffset, p_width, p_height, p_depth, p_format, p_imageSize, p_data);
@@ -1812,10 +1903,20 @@ glCopyTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_
     replay_update_bound_tex_image(ctx, cmd, p_target, p_level);
 
 glTexBuffer: //GLenum p_target, GLenum p_internalformat, GLuint p_buffer
-    replay_tex_buffer(ctx, cmd, p_target, p_internalformat, p_buffer, p_buffer_rev, 0, -1);
+    if (tex_buffer(ctx, cmd, p_target, false, p_internalformat, p_buffer, 0, -1))
+        real(p_target, p_internalformat, p_buffer?p_buffer_rev->real:0);
 
 glTexBufferRange: //GLenum p_target, GLenum p_internalformat, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
-    replay_tex_buffer(ctx, cmd, p_target, p_internalformat, p_buffer, p_buffer_rev, p_offset, p_size);
+    if (tex_buffer(ctx, cmd, p_target, false, p_internalformat, p_buffer, p_offset, p_size))
+        real(p_target, p_internalformat, p_buffer?p_buffer_rev->real:0, p_offset, p_size);
+
+glTextureBuffer: //GLuint p_texture, GLenum p_internalformat, GLuint p_buffer
+    if (tex_buffer(ctx, cmd, p_texture, true, p_internalformat, p_buffer, 0, -1))
+        real(p_texture_rev->real, p_internalformat, p_buffer?p_buffer_rev->real:0);
+
+glTextureBufferRange: //GLuint p_texture, GLenum p_internalformat, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
+    if (tex_buffer(ctx, cmd, p_texture, true, p_internalformat, p_buffer, p_offset, p_size))
+        real(p_texture_rev->real, p_internalformat, p_buffer?p_buffer_rev->real:0, p_offset, p_size);
 
 glGenerateMipmap: //GLenum p_target
     real(p_target);
@@ -2493,6 +2594,24 @@ glGetTexParameterIiv: //GLenum p_target, GLenum p_pname, GLint* p_params
     ;
 
 glGetTexParameterIuiv: //GLenum p_target, GLenum p_pname, GLuint* p_params
+    ;
+
+glGetTextureLevelParameterfv: //GLuint p_texture, GLint p_level, GLenum p_pname, GLfloat* p_params
+    ;
+
+glGetTextureLevelParameteriv: //GLuint p_texture, GLint p_level, GLenum p_pname, GLint* p_params
+    ;
+
+glGetTextureParameterfv: //GLuint p_texture, GLenum p_pname, GLfloat* p_params
+    ;
+
+glGetTextureParameteriv: //GLuint p_texture, GLenum p_pname, GLint* p_params
+    ;
+
+glGetTextureParameterIiv: //GLuint p_texture, GLenum p_pname, GLint* p_params
+    ;
+
+glGetTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, GLuint* p_params
     ;
 
 glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length GLsizei* p_size, GLenum* p_type, GLchar* p_name

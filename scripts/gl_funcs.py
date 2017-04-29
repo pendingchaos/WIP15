@@ -327,10 +327,31 @@ Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(
 #Func((1, 0), 'glGetIntegerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
 #Func((1, 0), 'glGetString', [P(tGLenum, 'name')], tPointer)
 #Func((1, 0), 'glGetTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
-#Func((1, 0), 'glGetTexParameterfv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((1, 0), 'glGetTexParameteriv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((1, 0), 'glGetTexLevelParameterfv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((1, 0), 'glGetTexLevelParameteriv', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+
+tex_param = g(('GL_DEPTH_STENCIL_TEXTURE_MODE', 4, 3), 'GL_TEXTURE_MAG_FILTER', 'GL_TEXTURE_MIN_FILTER', 'GL_TEXTURE_MIN_LOD', 'GL_TEXTURE_MAX_LOD',
+              'GL_TEXTURE_BASE_LEVEL', 'GL_TEXTURE_MAX_LEVEL', 'GL_TEXTURE_SWIZZLE_R', 'GL_TEXTURE_SWIZZLE_G', 'GL_TEXTURE_SWIZZLE_B',
+              'GL_TEXTURE_SWIZZLE_A', 'GL_TEXTURE_SWIZZLE_RGBA', 'GL_TEXTURE_WRAP_S', 'GL_TEXTURE_WRAP_T', 'GL_TEXTURE_WRAP_R',
+              'GL_TEXTURE_BORDER_COLOR', 'GL_TEXTURE_COMPARE_MODE', 'GL_TEXTURE_COMPARE_FUNC', ('GL_TEXTURE_VIEW_MIN_LEVEL', 4, 3),
+              ('GL_TEXTURE_VIEW_NUM_LEVELS', 4, 3), ('GL_TEXTURE_VIEW_MIN_LAYER', 4, 3), ('GL_TEXTURE_VIEW_NUM_LAYERS', 4, 3), ('GL_TEXTURE_IMMUTABLE_LEVELS', 4, 3),
+              ('GL_IMAGE_FORMAT_COMPATIBILITY_TYPE', 4, 2), ('GL_TEXTURE_IMMUTABLE_FORMAT', 4, 2), ('GL_TEXTURE_TARGET', 4, 5))
+Func((1, 0), 'glGetTexParameterfv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, tex_param), P(tGLfloat, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((1, 0), 'glGetTexParameteriv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, tex_param), P(tGLint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((3, 0), 'glGetTexParameterIiv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, tex_param), P(tGLint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((3, 0), 'glGetTexParameterIuiv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, tex_param), P(tGLuint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((4, 5), 'glGetTextureParameterfv', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, tex_param), P(tGLfloat, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((4, 5), 'glGetTextureParameterIiv', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, tex_param), P(tGLint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((4, 5), 'glGetTextureParameterIuiv', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, tex_param), P(tGLuint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+Func((4, 5), 'glGetTextureParameteriv', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, tex_param), P(tGLint, 'params', '(pname==GL_TEXTURE_SWIZZLE_RGBA||pname==GL_TEXTURE_BORDER_COLOR)?4:1')])
+
+tex_level_param = g('GL_TEXTURE_WIDTH', 'GL_TEXTURE_HEIGHT', 'GL_TEXTURE_DEPTH', 'GL_TEXTURE_INTERNAL_FORMAT',
+                    'GL_TEXTURE_RED_TYPE', 'GL_TEXTURE_GREEN_TYPE', 'GL_TEXTURE_BLUE_TYPE', 'GL_TEXTURE_ALPHA_TYPE',
+                    'GL_TEXTURE_DEPTH_TYPE', 'GL_TEXTURE_RED_SIZE', 'GL_TEXTURE_GREEN_SIZE', 'GL_TEXTURE_BLUE_SIZE',
+                    'GL_TEXTURE_ALPHA_SIZE', 'GL_TEXTURE_DEPTH_SIZE', 'GL_TEXTURE_COMPRESSED',
+                    'GL_TEXTURE_COMPRESSED_IMAGE_SIZE', ('GL_TEXTURE_BUFFER_OFFSET', 4, 3), ('GL_TEXTURE_BUFFER_SIZE', 4, 3))
+Func((1, 0), 'glGetTexLevelParameterfv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'), P(tGLenum, 'pname', None, tex_level_param), P(tGLint, 'params', 1)])
+Func((1, 0), 'glGetTexLevelParameteriv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLint, 'level'), P(tGLenum, 'pname', None, tex_level_param), P(tGLint, 'params', 1)])
+Func((4, 5), 'glGetTextureLevelParameterfv', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname', None, tex_level_param), P(tGLfloat, 'params', 1)])
+Func((4, 5), 'glGetTextureLevelParameteriv', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname', None, tex_level_param), P(tGLint, 'params', 1)])
 
 Func((1, 1), 'glTexSubImage1D', [P(tGLenum, 'target', None, 'TexSubImage1DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLsizei, 'width'),
@@ -512,10 +533,8 @@ Func((3, 0), 'glUniform1uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tG
 Func((3, 0), 'glUniform2uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*2')])
 Func((3, 0), 'glUniform3uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*3')])
 Func((3, 0), 'glUniform4uiv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLuint, 'value', 'count*4')])
-#Func((3, 0), 'glTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((3, 0), 'glTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tPointer, 'params')])
-#Func((3, 0), 'glGetTexParameterIiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 0), 'glGetTexParameterIuiv', [P(tGLenum, 'target'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glTexParameterIiv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, 'TextureParameterName'), P(tGLint, 'params', 'tex_param_count(pname)')])
+Func((3, 0), 'glTexParameterIuiv', [P(tGLenum, 'target', None, 'TextureTarget'), P(tGLenum, 'pname', None, 'TextureParameterName'), P(tGLuint, 'params', 'tex_param_count(pname)')])
 Func((3, 0), 'glClearBufferiv', [P(tGLenum, 'buffer', None, 'GL_COLOR GL_STENCIL'), P(tGLint, 'drawbuffer'), P(tGLint, 'value', 'buffer==GL_COLOR?4:1')])\
     .trace_epilogue_code = 'if (test_mode) test_fb("glClearBufferiv");'
 Func((3, 0), 'glClearBufferuiv', [P(tGLenum, 'buffer', None, 'GL_COLOR'), P(tGLint, 'drawbuffer'), P(tGLuint, 'value', 'buffer==GL_COLOR?4:1')])\
@@ -861,12 +880,6 @@ Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname
 Func((4, 5), 'glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'param', 'tex_param_count(pname)')])
 #Func((4, 5), 'glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 #Func((4, 5), 'glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
-#Func((4, 5), 'glGetTextureLevelParameterfv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 5), 'glGetTextureLevelParameteriv', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 5), 'glGetTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 5), 'glGetTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 5), 'glGetTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((4, 5), 'glGetTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 5), 'glCreateVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func((4, 5), 'glVertexArrayVertexBuffers', [P(tGLuint, 'vaobj'), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
 #Func((4, 5), 'glGetVertexArrayiv', [P(tGLuint, 'vaobj'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
@@ -891,6 +904,8 @@ Func((4, 3), 'glTexBufferRange', [P(tGLenum, 'target', None, 'TexBufferTarget'),
                                   P(tGLsizeiptr, 'size')])
 Func((3, 1), 'glTexBuffer', [P(tGLenum, 'target', None, 'TexBufferTarget'),
                              P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLBuf, 'buffer')])
+Func((4, 5), 'glTextureBuffer', [P(tGLTex, 'texture'), P(tGLenum, 'internalformat'), P(tGLBuf, 'buffer')], None)
+Func((4, 5), 'glTextureBufferRange', [P(tGLTex, 'texture'), P(tGLenum, 'internalformat'), P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size')], None)
 
 Func((4, 3), 'glTexStorage2DMultisample', [P(tGLenum, 'target', None, 'TexImage2DMSTarget'), P(tGLsizei, 'samples'),
                                            P(tGLenum, 'internalformat', None, 'InternalFormat'),

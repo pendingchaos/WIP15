@@ -40,6 +40,8 @@ Bugs:
         so if you have 'float v[2]'
         have location translations for v[0] and v[1] but store only v
     ensure that packed and shared layout for UBOs work
+    GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
+        both in replay and tracing
 
 Much more validation during replay
 
