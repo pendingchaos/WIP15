@@ -1271,6 +1271,7 @@ static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.has_object = create;
     rev.type = create ? target : 0;
     rev.result = 0;
+    rev.active_index = -1;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_set_gl_query(ctx->trace, fake[i], &rev);
@@ -3415,7 +3416,6 @@ glProgramUniformMatrix4x3dv: //GLuint p_program, GLint p_location, GLsizei p_cou
 //TODO: There is some duplicate code among glVertexAttrib*Pointer and gl*VertexAttribArray
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
@@ -3436,7 +3436,6 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
@@ -3456,7 +3455,6 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
     trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glEnableVertexAttribArray: //GLuint p_index
-    real(p_index);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
@@ -3471,7 +3469,6 @@ glEnableVertexAttribArray: //GLuint p_index
     trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glDisableVertexAttribArray: //GLuint p_index
-    real(p_index);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
@@ -3486,7 +3483,6 @@ glDisableVertexAttribArray: //GLuint p_index
     trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
-    real(p_index, p_divisor);
     if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
     trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
