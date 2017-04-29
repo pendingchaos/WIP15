@@ -304,7 +304,7 @@ typedef struct trc_gl_transform_feedback_rev_t {
 typedef struct trc_gl_obj_history_t {
     uint64_t fake;
     size_t revision_count;
-    void* revisions; //Sorted from lowest revision to highest
+    trc_gl_obj_rev_t** revisions; //Sorted from lowest revision to highest
 } trc_gl_obj_history_t;
 
 #define WIP15_STATE_GEN_DECL
@@ -314,7 +314,7 @@ typedef struct trc_gl_obj_history_t {
 typedef struct trc_gl_context_history_t {
     uint64_t fake;
     size_t revision_count;
-    trc_gl_context_rev_t* revisions; //Sorted from lowest revision to highest
+    trc_gl_context_rev_t** revisions; //Sorted from lowest revision to highest
 } trc_gl_context_history_t;
 
 typedef struct trc_cur_context_rev_t {

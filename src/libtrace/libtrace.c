@@ -1057,16 +1057,11 @@ static size_t gl_obj_sizes[] = {
     [TrcGLObj_TransformFeedback] = sizeof(trc_gl_transform_feedback_rev_t)
 };
 
-static trc_gl_obj_rev_t* get_gl_obj_rev(trc_gl_obj_history_t* h, trc_gl_obj_type_t type, size_t index) {
-    return (trc_gl_obj_rev_t*)((uint8_t*)h->revisions+index*gl_obj_sizes[type]);
-}
-
 static void* get_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake) {
     trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
     if (!h) return NULL;
-    if (!h->revision_count) return NULL;
-    trc_gl_obj_rev_t* rev = get_gl_obj_rev(h, type, h->revision_count-1);
-    return (void*)rev;
+    if (h->revision_count == 0) return NULL;
+    return h->revisions[h->revision_count-1];
 }
 
 static void set_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake, const trc_gl_obj_rev_t* rev) {
@@ -1081,21 +1076,25 @@ static void set_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake, co
         h = &i->gl_obj_history[type][i->gl_obj_history_count[type]++];
         h->fake = fake;
         h->revision_count = 1;
-        h->revisions = malloc(size);
-        memcpy(h->revisions, rev, size);
-        ((trc_gl_obj_rev_t*)h->revisions)->revision = trace->inspection.cur_revision;
-        return;
+        h->revisions = malloc(sizeof(trc_gl_obj_rev_t*));
+        goto do_newrev;
     }
     
-    trc_gl_obj_rev_t* dest = get_gl_obj_rev(h, type, h->revision_count-1);
+    trc_gl_obj_rev_t* dest = h->revisions[h->revision_count-1];
     if (dest->revision == trace->inspection.cur_revision) {
         memcpy(dest, rev, size);
         dest->revision = trace->inspection.cur_revision;
+        return;
     } else {
-        h->revisions = realloc(h->revisions, ++h->revision_count*size);
-        memcpy(get_gl_obj_rev(h, type, h->revision_count-1), rev, size);
-        get_gl_obj_rev(h, type, h->revision_count-1)->revision = trace->inspection.cur_revision;
+        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_obj_rev_t*));
+        goto do_newrev;
     }
+    
+    do_newrev: ;
+        void* newrev = malloc(size);
+        memcpy(newrev, rev, size);
+        ((trc_gl_obj_rev_t*)newrev)->revision = trace->inspection.cur_revision;
+        h->revisions[h->revision_count-1] = newrev;
 }
 
 const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake) {
@@ -1293,8 +1292,8 @@ const trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_
         if (trace->inspection.gl_obj_history[type][i].fake != fake) continue;
         trc_gl_obj_history_t* history = &trace->inspection.gl_obj_history[type][i];
         for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
-            if (get_gl_obj_rev(history, type, j)->revision <= revision)
-                return get_gl_obj_rev(history, type, j);
+            if (history->revisions[j]->revision <= revision)
+                return history->revisions[j];
         }
     }
     return NULL;
@@ -1333,11 +1332,12 @@ const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) return NULL;
     if (!h->revision_count) return NULL;
-    return &h->revisions[h->revision_count-1];
+    return h->revisions[h->revision_count-1];
 }
 
 void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
     if (!fake) fake = trc_get_current_fake_gl_context(trace);
+    
     trc_gl_context_history_t* h = find_ctx_history(trace, fake);
     if (!h) {
         trc_gl_inspection_t* i = &trace->inspection;
@@ -1347,21 +1347,25 @@ void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_
         h = &i->gl_context_history[i->gl_context_history_count++];
         h->fake = fake;
         h->revision_count = 1;
-        h->revisions = malloc(sizeof(trc_gl_context_rev_t));
-        *h->revisions = *rev;
-        h->revisions->revision = trace->inspection.cur_revision;
-        return;
+        h->revisions = malloc(sizeof(trc_gl_context_rev_t*));
+        goto do_newrev;
     }
     
-    trc_gl_context_rev_t* dest = &h->revisions[h->revision_count-1];
+    trc_gl_context_rev_t* dest = h->revisions[h->revision_count-1];
     if (dest->revision == trace->inspection.cur_revision) {
         *dest = *rev;
         dest->revision = trace->inspection.cur_revision;
+        return;
     } else {
-        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t));
-        h->revisions[h->revision_count-1] = *rev;
-        h->revisions[h->revision_count-1].revision = trace->inspection.cur_revision;
+        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t*));
+        goto do_newrev;
     }
+    
+    do_newrev: ;
+        trc_gl_context_rev_t* newrev = malloc(sizeof(trc_gl_context_rev_t));
+        memcpy(newrev, rev, sizeof(trc_gl_context_rev_t));
+        newrev->revision = trace->inspection.cur_revision;
+        h->revisions[h->revision_count-1] = newrev;
 }
 
 void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
@@ -1375,8 +1379,8 @@ const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision,
         if (trace->inspection.gl_context_history[i].fake != fake) continue;
         trc_gl_context_history_t* history = &trace->inspection.gl_context_history[i];
         for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
-            if (history->revisions[j].revision <= revision)
-                return &history->revisions[j];
+            if (history->revisions[j]->revision <= revision)
+                return history->revisions[j];
         }
     }
     return NULL;
