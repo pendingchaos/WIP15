@@ -195,6 +195,7 @@ typedef struct trc_gl_texture_rev_t {
 typedef struct trc_gl_query_rev_t {
     TRC_GL_OBJ_HEAD
     bool has_object;
+    int active_index;
     uint type;
     int64_t result;
 } trc_gl_query_rev_t;

@@ -161,6 +161,9 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
     trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
     trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, max_texture_size);
+    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, major);
+    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, minor);
+    trc_gl_state_set_ver(trace, ver);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -780,7 +783,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
 }
 
 static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
-    return trc_gl_state_get_bound_buffer(ctx->trace, target); //TODO: Return 0 on invalid targets
+    return trc_gl_state_get_bound_buffer(ctx->trace, target);
 }
 
 static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
@@ -974,14 +977,11 @@ static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
 static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint fake_id, GLuint id) {
     if (!id) return;
     
-    GLint res = 0;
-    if (target!=GL_TIME_ELAPSED && target!=GL_TIMESTAMP) {
+    GLuint64 res = 0;
+    if (target!=GL_TIME_ELAPSED && target!=GL_TIMESTAMP) { //TODO: Why is this branch here?
         F(glFinish)();
-        
-        while (!res) F(glGetQueryObjectiv)(id, GL_QUERY_RESULT_AVAILABLE, &res);
-        
-        //TODO: Use glGetQueryObjecti64v when available
-        F(glGetQueryObjectiv)(id, GL_QUERY_RESULT, &res);
+        while (!res) F(glGetQueryObjectui64v)(id, GL_QUERY_RESULT_AVAILABLE, &res);
+        F(glGetQueryObjectui64v)(id, GL_QUERY_RESULT, &res);
     }
     
     trc_gl_query_rev_t query = *trc_get_gl_query(ctx->trace, fake_id);
@@ -1116,8 +1116,8 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
         else
             F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, a->stride, (const void*)(uintptr_t)a->offset);
         
-        //TODO: Only do this if OpenGL 3.3+ is used
-        F(glVertexAttribDivisor)(real_loc, a->divisor);
+        if (trc_gl_state_get_ver(ctx->trace) > 330)
+            F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
     trc_unmap_data(vao->attribs);
     trc_unmap_data(program->vertex_attribs);
@@ -1455,6 +1455,44 @@ static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd
         ERROR2(false, "Invalid dimensions");
     //TODO: test if samples if valid
     //TODO: handle when internal_format is not renderable
+    return true;
+}
+
+static bool begin_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint index, GLuint id) {
+    if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
+        ERROR2(false, "Index is greater than maximum");
+    if (trc_gl_state_get_bound_queries(ctx->trace, target, index) != 0)
+        ERROR2(false, "Query is already active at target");
+    
+    const trc_gl_query_rev_t* rev = trc_get_gl_query(ctx->trace, id);
+    if (!rev) ERROR2(false, "Invalid query name");
+    if (rev->active_index != -1) ERROR2(false, "Query is already active");
+    if (rev->has_object && rev->type!=target)
+        ERROR2(false, "Query object's type does not match target");
+    
+    trc_gl_query_rev_t newrev = *rev;
+    newrev.type = target;
+    newrev.has_object = true;
+    newrev.active_index = index;
+    trc_set_gl_query(ctx->trace, id, &newrev);
+    
+    trc_gl_state_set_bound_queries(ctx->trace, target, index, id);
+    
+    return true;
+}
+
+static bool end_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint index) {
+    if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
+        ERROR2(false, "Index is greater than maximum");
+    int id = trc_gl_state_get_bound_queries(ctx->trace, target, index);
+    if (id == 0) ERROR2(false, "No query active at target");
+    
+    trc_gl_query_rev_t newrev = *trc_get_gl_query(ctx->trace, id);
+    newrev.active_index = -1;
+    trc_set_gl_query(ctx->trace, id, &newrev);
+    
+    trc_gl_state_set_bound_queries(ctx->trace, target, index, 0);
+    
     return true;
 }
 
@@ -2478,7 +2516,7 @@ glIsEnabled: //GLenum p_cap
     ;
 
 glIsEnabledi: //GLenum p_target, GLuint p_index
-    ;
+    ; //TODO: Validation
 
 glIsBuffer: //GLuint p_buffer
     ;
@@ -2645,6 +2683,9 @@ glGetPixelMapusv: //GLenum p_map, GLushort* p_values
     ;
 
 glGetSeparableFilter: //GLenum p_target, GLenum p_format, GLenum p_type, void * p_row, void * p_column, void * p_span
+    ;
+
+glGetProgramPipelineiv: //GLuint p_pipeline, GLenum p_pname, GLint  * p_params
     ;
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
@@ -3444,6 +3485,21 @@ glDisableVertexAttribArray: //GLuint p_index
     }
     trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
+glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
+    real(p_index, p_divisor);
+    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
+    trc_gl_vao_rev_t rev = *trc_get_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
+        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
+        trc_unmap_data(rev.attribs);
+        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        a->divisor = p_divisor;
+        trc_unmap_freeze_data(ctx->trace, newattribs);
+        rev.attribs = newattribs;
+        trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+    }
+    trc_set_gl_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+
 glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
     vertex_attrib(ctx, cmd, 1, GL_FLOAT, false, false, GL_FLOAT);
 
@@ -3687,6 +3743,21 @@ glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const 
 glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
     if (!begin_draw(ctx, cmd)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
+    end_draw(ctx, cmd);
+
+glDrawElementsInstancedBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLuint p_baseinstance
+    if (!begin_draw(ctx, cmd)) RETURN;
+    real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_baseinstance);
+    end_draw(ctx, cmd);
+
+glDrawElementsInstancedBaseVertexBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex, GLuint p_baseinstance
+    if (!begin_draw(ctx, cmd)) RETURN;
+    real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex, p_baseinstance);
+    end_draw(ctx, cmd);
+
+glDrawArraysInstancedBaseInstance: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount, GLuint p_baseinstance
+    if (!begin_draw(ctx, cmd)) RETURN;
+    real(p_mode, p_first, p_count, p_instancecount, p_baseinstance);
     end_draw(ctx, cmd);
 
 glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
@@ -4147,28 +4218,18 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     real(p_n, queries);
 
 glBeginQuery: //GLenum p_target, GLuint p_id
-    const trc_gl_query_rev_t* rev = trc_get_gl_query(ctx->trace, p_id);
-    if (!rev) ERROR("Invalid query name");
-    real(p_target, rev->real);
-    
-    trc_gl_query_rev_t newrev = *rev;
-    newrev.type = p_target;
-    newrev.has_object = true;
-    trc_set_gl_query(ctx->trace, p_id, &newrev);
-    
-    trc_gl_state_set_bound_queries(ctx->trace, p_target, 0, p_id);
-    //TODO: Reference counting
+    if (begin_query(ctx, cmd, p_target, 0, p_id))
+        real(p_target, p_id_rev->real);
 
 glEndQuery: //GLenum p_target
-    real(p_target);
-    
-    GLuint id = trc_gl_state_get_bound_queries(ctx->trace, p_target, 0);
-    GLuint real_id = trc_get_real_gl_query(ctx->trace, id);
-    trc_gl_state_set_bound_queries(ctx->trace, p_target, 0, 0);
-    
-    //TODO: This clears any errors
-    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, id, real_id);
-    //TODO: Reference counting
+    if (end_query(ctx, cmd, p_target, 0)) real(p_target);
+
+glBeginQueryIndexed: //GLenum p_target, GLuint p_index, GLuint p_id
+    if (begin_query(ctx, cmd, p_target, p_index, p_id))
+        real(p_target, p_index, p_id_rev->real);
+
+glEndQueryIndexed: //GLenum p_target, GLuint p_index
+    if (end_query(ctx, cmd, p_target, p_index)) real(p_target, p_index);
 
 glQueryCounter: //GLuint p_id, GLenum p_target
     const trc_gl_query_rev_t* rev = trc_get_gl_query(ctx->trace, p_id);
@@ -4532,7 +4593,10 @@ glViewportArrayv: //GLuint p_first, GLsizei p_count, const GLfloat* p_v
         trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, i, p_v[i]);
     real(p_first, p_count, p_v);
 
-//TODO: glViewportIndexedfv
+glViewportIndexedfv: //GLuint p_index, const GLfloat* p_v
+    for (size_t i = 0; i < 4; i++)
+        trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, p_index*4+i, p_v[i]);
+    real(p_index, p_v);
 
 glScissor: //GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height
     trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, 0, p_x);
@@ -4553,7 +4617,10 @@ glScissorArrayv: //GLuint p_first, GLsizei p_count, const GLint* p_v
         trc_gl_state_set_state_float(ctx->trace, GL_SCISSOR_BOX, i, p_v[i]);
     real(p_first, p_count, p_v);
 
-//TODO: glScissorIndexedv
+glScissorIndexedv: //GLuint p_index, const GLint* p_v
+    for (size_t i = 0; i < 4; i++)
+        trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, p_index*4+i, p_v[i]);
+    real(p_index, p_v);
 
 glHint: //GLenum p_target, GLenum p_mode
     trc_gl_state_set_hints(ctx->trace, p_target, p_mode);

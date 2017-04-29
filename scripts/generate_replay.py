@@ -479,14 +479,16 @@ for line in nontrivial_str.split("\n"):
         current_name = line.split('//')[0].rstrip()[:-1]
         f = gl.functions[current_name]
         print_func =  '//' not in line
-        if print_func: print '%s: //%s' % (current_name, ', '.join(["%s p_%s"%(p.type_, p.name) for p in f.params]))
+        if print_func: print '\n%s: //%s' % (current_name, ', '.join(["%s p_%s"%(p.type_, p.name) for p in f.params]))
         current = ""
     elif line == '' and current_name!='':
         nontrivial[current_name] = current
         current_name = ''
         current= ''
+        if print_func: print line
     elif current_name=='':
         output.write(line + '\n')
+        if print_func: print line
     else:
         current += line + "\n"
         if print_func: print line

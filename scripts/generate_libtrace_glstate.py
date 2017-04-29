@@ -4,6 +4,7 @@ import sys
 src = '''
 uint drawable_width
 uint drawable_height
+uint ver
 
 map buffer bound_buffer
     GL_ARRAY_BUFFER
@@ -139,8 +140,8 @@ map array int state_int
 //    GL_SAMPLES
 //    GL_MAX_ELEMENTS_VERTICES
 //    GL_MAX_ELEMENTS_INDICES
-//    GL_MAJOR_VERSION
-//    GL_MINOR_VERSION
+    GL_MAJOR_VERSION
+    GL_MINOR_VERSION
 //    GL_NUM_EXTENSIONS
 //    GL_CONTEXT_FLAGS
 //    GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH
