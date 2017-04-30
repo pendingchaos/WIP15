@@ -236,9 +236,6 @@ static void init_context(trc_replay_context_t* ctx) {
     float color_clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     trc_gl_state_state_float_init(trace, GL_COLOR_CLEAR_VALUE, 4, color_clear);
     
-    float depth_range[4] = {0.0f, 1.0f};
-    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, 2, depth_range);
-    
     trc_gl_state_state_float_init1(trace, GL_POINT_SIZE, 1.0f);
     trc_gl_state_state_float_init1(trace, GL_LINE_WIDTH, 1.0f);
     
@@ -286,6 +283,9 @@ static void init_context(trc_replay_context_t* ctx) {
     for (size_t i = 0; i < max_viewports*4; i++) zerof[i] = 0.0f;
     trc_gl_state_state_float_init(trace, GL_VIEWPORT, max_viewports*4, zerof);
     trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, max_viewports*4, NULL);
+    float depth_range[max_viewports*2];
+    for (int i = 0; i < max_viewports; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
+    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, max_viewports*2, depth_range);
     
     trc_gl_state_state_enum_init1(trace, GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
     trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
@@ -1497,6 +1497,71 @@ static bool end_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum ta
     return true;
 }
 
+static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint tex_or_target,
+                      GLint level, GLint internal_format, GLint border, GLenum format, GLenum type,
+                      bool sub, int dim, ...) {
+    int size[3];
+    int offset[3];
+    va_list list;
+    va_start(list, dim);
+    for (int i = 0; i < dim; i++) size[i] = va_arg(list, int);
+    for (int i = 0; (i<dim) && sub; i++) offset[i] = va_arg(list, int);
+    va_end(list);
+    
+    const trc_gl_texture_rev_t* tex_rev;
+    if (dsa) tex_rev = trc_get_gl_texture(ctx->trace, tex_or_target);
+    else tex_rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
+    if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
+    
+    int max_size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0);
+    if (level<0 || level>ceil(log2(max_size))) ERROR2(false, "Invalid level");
+    for (int i = 0; i < dim; i++)
+        if (size[i]<0 || size[i]>max_size) ERROR2(false, "Invalid %s", (const char*[]){"width", "height", "depth/layers"}[i]);
+    if (sub) {
+        size_t img_count = tex_rev->images->size / sizeof(trc_gl_texture_image_t);
+        trc_gl_texture_image_t* images = trc_map_data(tex_rev->images, TRC_MAP_READ);
+        trc_gl_texture_image_t* image = NULL;
+        for (size_t i = 0; i < img_count; i++) {
+            if (images[i].level == level) {
+                image = &images[i];
+                break;
+            }
+        }
+        if (image == NULL) {
+            trc_unmap_data(tex_rev->images);
+            ERROR2(false, "No such mipmap");
+        }
+        internal_format = image->internal_format; //Used for format validation later
+        if (dim>=1 && (offset[0]<0 || offset[0]+size[0] > image->width)) ERROR2(false, "Invalid x range");
+        if (dim>=2 && (offset[1]<0 || offset[1]+size[1] > image->height)) ERROR2(false, "Invalid x range");
+        if (dim>=3 && (offset[2]<0 || offset[2]+size[2] > image->depth)) ERROR2(false, "Invalid x range");
+        trc_unmap_data(tex_rev->images);
+    }
+    if (border != 0) ERROR2(false, "Border must be 0");
+    
+    if (!not_one_of(type, GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV, -1) && format!=GL_RGB)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (!not_one_of(type, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
+        GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV, -1) && format!=GL_RGBA && format!=GL_BGRA)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format==GL_DEPTH_COMPONENT && not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format!=GL_DEPTH_COMPONENT && !not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format==GL_STENCIL_INDEX && internal_format!=GL_STENCIL_INDEX)
+        ERROR2(false, "Invalid format + internal format combination");
+    if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
+        ERROR2(false, "Invalid format + internal format combination");
+    
+    GLuint pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
+    const trc_gl_buffer_rev_t* pu_buf_rev = trc_get_gl_buffer(ctx->trace, pu_buf);
+    if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
+    //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
+    
+    return true;
+}
+
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
     if (p_ctx) {
@@ -1743,18 +1808,18 @@ glClear: //GLbitfield p_mask
 
 glGenTextures: //GLsizei p_n, GLuint* p_textures
     if (p_n < 0) ERROR("Invalid texture name count");
-    GLuint textures[p_n];
+    GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, textures);
     gen_textures(ctx, p_n, textures, p_textures, false, 0);
 
 glCreateTextures: //GLenum p_target, GLsizei p_n, GLuint* p_textures
     if (p_n < 0) ERROR("Invalid texture name count");
-    GLuint textures[p_n];
+    GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     real(p_target, p_n, textures);
     gen_textures(ctx, p_n, textures, p_textures, true, p_target);
 
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
-    GLuint textures[p_n];
+    GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i)
         if (!(textures[i] = trc_get_real_gl_texture(ctx->trace, p_textures[i])))
             trc_add_error(cmd, "Invalid texture name");
@@ -1784,70 +1849,30 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
-static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint tex_or_target,
-                      GLint level, GLint internal_format, GLint border, GLenum format, GLenum type,
-                      bool sub, int dim, ...) {
-    int size[3];
-    int offset[3];
-    va_list list;
-    va_start(list, dim);
-    for (int i = 0; i < dim; i++) size[i] = va_arg(list, int);
-    for (int i = 0; (i<dim) && sub; i++) offset[i] = va_arg(list, int);
-    va_end(list);
-    
-    const trc_gl_texture_rev_t* tex_rev;
-    if (dsa) tex_rev = trc_get_gl_texture(ctx->trace, tex_or_target);
-    else tex_rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
-    if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
-    if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
-    
-    int max_size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0);
-    if (level<0 || level>ceil(log2(max_size))) ERROR2(false, "Invalid level");
-    for (int i = 0; i < dim; i++)
-        if (size[i]<0 || size[i]>max_size) ERROR2(false, "Invalid %s", (const char*[]){"width", "height", "depth/layers"}[i]);
-    if (sub) {
-        size_t img_count = tex_rev->images->size / sizeof(trc_gl_texture_image_t);
-        trc_gl_texture_image_t* images = trc_map_data(tex_rev->images, TRC_MAP_READ);
-        trc_gl_texture_image_t* image = NULL;
-        for (size_t i = 0; i < img_count; i++) {
-            if (images[i].level == level) {
-                image = &images[i];
-                break;
-            }
+glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
+    if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
+        ERROR("Invalid range");
+    GLuint* real_tex = replay_alloc(p_count*sizeof(GLuint));
+    //TODO: This probably creates a new trc_data_t for each texture
+    for (size_t i = p_first; i < p_first+p_count; i++) {
+        const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, p_textures[i]);
+        if (!rev) ERROR("Invalid texture name at index %zu", i);
+        if (!rev->has_object) ERROR("Texture name at index %zu has no object", i);
+        real_tex[i] = rev->real;
+        
+        if (p_textures[i]) {
+            trc_gl_state_set_bound_textures(ctx->trace, rev->type, i, p_textures[i]);
+        } else {
+            GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
+                                GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
+                                GL_TEXTURE_RECTANGLE, GL_TEXTURE_BUFFER,
+                                GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
+                                GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
+            for (size_t j = 0; j < sizeof(targets)/sizeof(targets[0]); j++)
+                trc_gl_state_set_bound_textures(ctx->trace, targets[j], i, 0);
         }
-        if (image == NULL) {
-            trc_unmap_data(tex_rev->images);
-            ERROR2(false, "No such mipmap");
-        }
-        internal_format = image->internal_format; //Used for format validation later
-        if (dim>=1 && (offset[0]<0 || offset[0]+size[0] > image->width)) ERROR2(false, "Invalid x range");
-        if (dim>=2 && (offset[1]<0 || offset[1]+size[1] > image->height)) ERROR2(false, "Invalid x range");
-        if (dim>=3 && (offset[2]<0 || offset[2]+size[2] > image->depth)) ERROR2(false, "Invalid x range");
-        trc_unmap_data(tex_rev->images);
     }
-    if (border != 0) ERROR2(false, "Border must be 0");
-    
-    if (!not_one_of(type, GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV, -1) && format!=GL_RGB)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (!not_one_of(type, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
-        GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV, -1) && format!=GL_RGBA && format!=GL_BGRA)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format==GL_DEPTH_COMPONENT && not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format!=GL_DEPTH_COMPONENT && !not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format==GL_STENCIL_INDEX && internal_format!=GL_STENCIL_INDEX)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
-        ERROR2(false, "Invalid format + internal format combination");
-    
-    GLuint pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
-    const trc_gl_buffer_rev_t* pu_buf_rev = trc_get_gl_buffer(ctx->trace, pu_buf);
-    if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
-    //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
-    
-    return true;
-}
+    real(p_first, p_count, real_tex);
 
 glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
     if (tex_image(ctx, cmd, false, p_target, p_level, p_internalformat, p_border, p_format, p_type, false, 1, p_width)) {
@@ -1993,7 +2018,7 @@ glTexParameteri: //GLenum p_target, GLenum p_pname, GLint p_param
 glTexParameterfv: //GLenum p_target, GLenum p_pname, const GLfloat* p_params
     trace_value_t* paramsv = trc_get_arg(cmd, 2);
     const double* paramsd = trc_get_double(paramsv);
-    GLfloat params[paramsv->count];
+    GLfloat* params = replay_alloc(paramsv->count*sizeof(GLfloat));
     for (size_t i = 0; i < paramsv->count; i++) params[i] = paramsd[i];
     if (!texture_param_double(ctx, cmd, p_target, p_pname, paramsv->count, paramsd))
         real(p_target, p_pname, params);
@@ -2001,8 +2026,8 @@ glTexParameterfv: //GLenum p_target, GLenum p_pname, const GLfloat* p_params
 glTexParameteriv: //GLenum p_target, GLenum p_pname, const GLint* p_params
     trace_value_t* paramsv = trc_get_arg(cmd, 2);
     const int64_t* params64 = trc_get_int(paramsv);
-    GLint params[paramsv->count];
-    double double_params[paramsv->count];
+    GLint* params = replay_alloc(paramsv->count*sizeof(GLint));
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
     for (size_t i = 0; i < paramsv->count; i++) params[i] = params64[i];
     for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
     
@@ -2031,18 +2056,18 @@ glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     if (p_n < 0) ERROR("Invalid buffer name count");
-    GLuint buffers[p_n];
+    GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, buffers);
     gen_buffers(ctx, p_n, buffers, p_buffers, false);
 
 glCreateBuffers: //GLsizei p_n, GLuint* p_buffers
     if (p_n < 0) ERROR("Invalid buffer name count");
-    GLuint buffers[p_n];
+    GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, buffers);
     gen_buffers(ctx, p_n, buffers, p_buffers, true);
 
 glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
-    GLuint buffers[p_n];
+    GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         if (!(buffers[i] = trc_get_real_gl_buffer(ctx->trace, p_buffers[i])))
             trc_add_error(cmd, "Invalid buffer name");
@@ -2479,7 +2504,7 @@ glUseProgram: //GLuint p_program
     real(real_program);
 
 glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
-    GLuint pipelines[p_n];
+    GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, pipelines);
     
     trc_gl_program_pipeline_rev_t rev;
@@ -2491,7 +2516,7 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     }
 
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
-    GLuint pipelines[p_n];
+    GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         if (!(pipelines[i] = trc_get_real_gl_program_pipeline(ctx->trace, p_pipelines[i])))
             trc_add_error(cmd, "Invalid program pipeline name");
@@ -2926,205 +2951,205 @@ glUniform4d: //GLint p_location, GLdouble p_x, GLdouble p_y, GLdouble p_z, GLdou
     real(loc, p_x, p_y, p_z, p_w);
 
 glUniform1fv: //GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count];
+    GLfloat* values = replay_alloc(p_count*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 1, 1, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform2fv: //GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*2];
+    GLfloat* values = replay_alloc(p_count*2*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 1, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform3fv: //GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*3];
+    GLfloat* values = replay_alloc(p_count*3*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 1, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform4fv: //GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*4];
+    GLfloat* values = replay_alloc(p_count*4*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 1, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform1iv: //GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count];
+    GLint* values = replay_alloc(p_count*sizeof(GLint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 1, 1, GL_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform2iv: //GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*2];
+    GLint* values = replay_alloc(p_count*2*sizeof(GLint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 1, GL_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform3iv: //GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*3];
+    GLint* values = replay_alloc(p_count*3*sizeof(GLint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 1, GL_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform4iv: //GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*4];
+    GLint* values = replay_alloc(p_count*4*sizeof(GLint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 1, GL_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform1uiv: //GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count];
+    GLuint* values = replay_alloc(p_count*sizeof(GLuint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 1, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform2uiv: //GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*2];
+    GLuint* values = replay_alloc(p_count*2*sizeof(GLuint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform3uiv: //GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*3];
+    GLuint* values = replay_alloc(p_count*3*sizeof(GLuint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform4uiv: //GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*4];
+    GLuint* values = replay_alloc(p_count*4*sizeof(GLuint));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform1dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count];
+    GLdouble* values = replay_alloc(p_count*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 1, 1, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform2dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*2];
+    GLdouble* values = replay_alloc(p_count*2*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 1, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform3dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*3];
+    GLdouble* values = replay_alloc(p_count*3*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniform4dv: //GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*4];
+    GLdouble* values = replay_alloc(p_count*4*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 1, GL_UNSIGNED_INT, values, NULL))<0) RETURN;
     real(loc, p_count, values);
 
 glUniformMatrix2fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*4];
+    GLfloat* values = replay_alloc(p_count*4*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 2, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*9];
+    GLfloat* values = replay_alloc(p_count*9*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 3, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*16];
+    GLfloat* values = replay_alloc(p_count*16*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 4, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix2x3fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*6];
+    GLfloat* values = replay_alloc(p_count*6*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 3, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3x2fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*6];
+    GLfloat* values = replay_alloc(p_count*6*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 2, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix2x4fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*8];
+    GLfloat* values = replay_alloc(p_count*8*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 4, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4x2fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*8];
+    GLfloat* values = replay_alloc(p_count*8*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 2, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3x4fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*12];
+    GLfloat* values = replay_alloc(p_count*12*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 4, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4x3fv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*12];
+    GLfloat* values = replay_alloc(p_count*12*sizeof(GLfloat));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 3, GL_FLOAT, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*4];
+    GLdouble* values = replay_alloc(p_count*4*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 2, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*9];
+    GLdouble* values = replay_alloc(p_count*9*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 3, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*16];
+    GLdouble* values = replay_alloc(p_count*16*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 4, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix2x3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*6];
+    GLdouble* values = replay_alloc(p_count*6*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 3, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3x2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*6];
+    GLdouble* values = replay_alloc(p_count*6*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 2, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix2x4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*8];
+    GLdouble* values = replay_alloc(p_count*8*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 2, 4, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4x2dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*8];
+    GLdouble* values = replay_alloc(p_count*8*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 2, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix3x4dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*12];
+    GLdouble* values = replay_alloc(p_count*12*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 3, 4, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
 
 glUniformMatrix4x3dv: //GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*12];
+    GLdouble* values = replay_alloc(p_count*12*sizeof(GLdouble));
     GLint loc;
     if ((loc=uniform(ctx, cmd, false, true, 4, 3, GL_DOUBLE, values, NULL))<0) RETURN;
     real(loc, p_count, p_transpose, values);
@@ -3210,205 +3235,205 @@ glProgramUniform4d: //GLuint p_program, GLint p_location, GLdouble p_v0, GLdoubl
     real(program, loc, p_v0, p_v1, p_v2, p_v3);
 
 glProgramUniform1fv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count];
+    GLfloat* values = replay_alloc(p_count*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 1, 1, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform2fv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*2];
+    GLfloat* values = replay_alloc(p_count*2*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 1, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform3fv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*3];
+    GLfloat* values = replay_alloc(p_count*3*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 1, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform4fv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLfloat* p_value
-    GLfloat values[p_count*4];
+    GLfloat* values = replay_alloc(p_count*4*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 1, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform1iv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count];
+    GLint* values = replay_alloc(p_count*sizeof(GLint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 1, 1, GL_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform2iv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*2];
+    GLint* values = replay_alloc(p_count*2*sizeof(GLint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 1, GL_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform3iv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*3];
+    GLint* values = replay_alloc(p_count*3*sizeof(GLint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 1, GL_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform4iv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLint* p_value
-    GLint values[p_count*4];
+    GLint* values = replay_alloc(p_count*4*sizeof(GLint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 1, GL_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform1uiv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count];
+    GLuint* values = replay_alloc(p_count*sizeof(GLuint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 1, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform2uiv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*2];
+    GLuint* values = replay_alloc(p_count*2*sizeof(GLuint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform3uiv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*3];
+    GLuint* values = replay_alloc(p_count*3*sizeof(GLuint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform4uiv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLuint* p_value
-    GLuint values[p_count*4];
+    GLuint* values = replay_alloc(p_count*4*sizeof(GLuint));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform1dv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count];
+    GLdouble* values = replay_alloc(p_count*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 1, 1, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform2dv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*2];
+    GLdouble* values = replay_alloc(p_count*2*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 1, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform3dv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*3];
+    GLdouble* values = replay_alloc(p_count*3*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniform4dv: //GLuint p_program, GLint p_location, GLsizei p_count, const GLdouble* p_value
-    GLdouble values[p_count*4];
+    GLdouble* values = replay_alloc(p_count*4*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 1, GL_UNSIGNED_INT, values, &program))<0) RETURN;
     real(program, loc, p_count, values);
 
 glProgramUniformMatrix2fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*4];
+    GLfloat* values = replay_alloc(p_count*4*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 2, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*9];
+    GLfloat* values = replay_alloc(p_count*9*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 3, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*16];
+    GLfloat* values = replay_alloc(p_count*16*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 4, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix2x3fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*6];
+    GLfloat* values = replay_alloc(p_count*6*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 3, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3x2fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*6];
+    GLfloat* values = replay_alloc(p_count*6*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 2, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix2x4fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*8];
+    GLfloat* values = replay_alloc(p_count*8*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 4, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4x2fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*8];
+    GLfloat* values = replay_alloc(p_count*8*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 2, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3x4fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*12];
+    GLfloat* values = replay_alloc(p_count*12*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 4, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4x3fv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLfloat* p_value
-    GLfloat values[p_count*12];
+    GLfloat* values = replay_alloc(p_count*12*sizeof(GLfloat));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 3, GL_FLOAT, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix2dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*4];
+    GLdouble* values = replay_alloc(p_count*4*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 2, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*9];
+    GLdouble* values = replay_alloc(p_count*9*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 3, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*16];
+    GLdouble* values = replay_alloc(p_count*16*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 4, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix2x3dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*6];
+    GLdouble* values = replay_alloc(p_count*6*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 3, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3x2dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*6];
+    GLdouble* values = replay_alloc(p_count*6*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 2, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix2x4dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*8];
+    GLdouble* values = replay_alloc(p_count*8*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 2, 4, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4x2dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*8];
+    GLdouble* values = replay_alloc(p_count*8*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 2, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix3x4dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*12];
+    GLdouble* values = replay_alloc(p_count*12*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 3, 4, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
 
 glProgramUniformMatrix4x3dv: //GLuint p_program, GLint p_location, GLsizei p_count, GLboolean p_transpose, const GLdouble* p_value
-    GLdouble values[p_count*12];
+    GLdouble* values = replay_alloc(p_count*12*sizeof(GLdouble));
     GLint loc; GLuint program;
     if ((loc=uniform(ctx, cmd, true, true, 4, 3, GL_DOUBLE, values, &program))<0) RETURN;
     real(program, loc, p_count, p_transpose, values);
@@ -3799,18 +3824,18 @@ glCurrentTestWIP15: //const GLchar* p_name
 
 glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
     if (p_n < 0) ERROR("Invalid vertex array object name count");
-    GLuint arrays[p_n];
+    GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, arrays);
     gen_vertex_arrays(ctx, p_n, arrays, p_arrays, false);
 
 glCreateVertexArrays: //GLsizei p_n, GLuint* p_arrays
     if (p_n < 0) ERROR("Invalid vertex array object name count");
-    GLuint arrays[p_n];
+    GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, arrays);
     gen_vertex_arrays(ctx, p_n, arrays, p_arrays, true);
 
 glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
-    GLuint arrays[p_n];
+    GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         if (p_arrays[i] && p_arrays[i]==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
@@ -3887,11 +3912,11 @@ glGetMultisamplefv: //GLenum p_pname, GLuint p_index, GLfloat* p_val
     ; //TODO: More validation should be done
 
 glGetInternalformativ: //GLenum p_target, GLenum p_internalformat, GLenum p_pname, GLsizei p_bufSize, GLint* p_params
-    GLint params[p_bufSize];
+    GLint* params = replay_alloc(p_bufSize*sizeof(GLint));
     real(p_target, p_internalformat, p_pname, p_bufSize, params);
 
 glGetInternalformati64v: //GLenum p_target, GLenum p_internalformat, GLenum p_pname, GLsizei p_bufSize, GLint64* p_params
-    GLint64 params[p_bufSize];
+    GLint64* params = replay_alloc(p_bufSize*sizeof(GLint64));
     real(p_target, p_internalformat, p_pname, p_bufSize, params);
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
@@ -3903,7 +3928,7 @@ glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
     real(p_target, p_pname, &p);
 
 glGenSamplers: //GLsizei p_count, GLuint* p_samplers
-    GLuint samplers[p_count];
+    GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     real(p_count, samplers);
     
     trc_gl_sampler_rev_t rev;
@@ -3915,7 +3940,7 @@ glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     }
 
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
-    GLuint samplers[p_count];
+    GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; ++i) {
         if (!(samplers[i] = trc_get_real_gl_sampler(ctx->trace, p_samplers[i])))
             trc_add_error(cmd, "Invalid sampler name");
@@ -3928,7 +3953,18 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     GLuint real_sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
     if (!real_sampler && p_sampler) ERROR("Invalid sampler name");
     real(p_unit, real_sampler);
-    //TODO: Reference counting
+
+glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
+    if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
+        ERROR("Invalid range");
+    GLuint* real_tex = replay_alloc(p_count*sizeof(GLuint));
+    for (size_t i = 0; i < p_count; i++) {
+        const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(ctx->trace, p_samplers[i]);
+        if (!rev) ERROR("Invalid sampler name at index %zu", i);
+        //if (!rev->has_object) ERROR("Sample name at index %zu has no object", i); //TODO
+        real_tex[i] = rev->real;
+    }
+    real(p_first, p_count, real_tex);
 
 glGetSynciv: //GLsync p_sync, GLenum p_pname, GLsizei p_bufSize, GLsizei* p_length, GLint* p_values
     if (!trc_get_real_gl_sync(ctx->trace, p_sync)) ERROR("Invalid sync name");
@@ -3966,18 +4002,18 @@ glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_para
 
 glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     if (p_n < 0) ERROR("Invalid framebuffer name count");
-    GLuint fbs[p_n];
+    GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, fbs);
     gen_framebuffers(ctx, p_n, fbs, p_framebuffers, false);
 
 glCreateFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     if (p_n < 0) ERROR("Invalid framebuffer name count");
-    GLuint fbs[p_n];
+    GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, fbs);
     gen_framebuffers(ctx, p_n, fbs, p_framebuffers, true);
 
 glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
-    GLuint fbs[p_n];
+    GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         if (p_framebuffers[i] && p_framebuffers[i]==trc_gl_state_get_read_framebuffer(ctx->trace))
             trc_gl_state_set_read_framebuffer(ctx->trace, 0);
@@ -4011,18 +4047,18 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     if (p_n < 0) ERROR("Invalid renderbuffer name count");
-    GLuint rbs[p_n];
+    GLuint* rbs = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, rbs);
     gen_renderbuffers(ctx, p_n, rbs, p_renderbuffers, false);
 
 glCreateRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     if (p_n < 0) ERROR("Invalid renderbuffer name count");
-    GLuint rbs[p_n];
+    GLuint* rbs = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, rbs);
     gen_renderbuffers(ctx, p_n, rbs, p_renderbuffers, true);
 
 glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
-    GLuint rbs[p_n];
+    GLuint* rbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         if (p_renderbuffers[i] && p_renderbuffers[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
             trc_gl_state_set_bound_renderbuffer(ctx->trace, 0);
@@ -4193,18 +4229,18 @@ glClientWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
 
 glGenQueries: //GLsizei p_n, GLuint* p_ids
     if (p_n < 0) ERROR("Invalid name query count");
-    GLuint queries[p_n];
+    GLuint* queries = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, queries);
     gen_queries(ctx, p_n, queries, p_ids, false, 0);
 
 glCreateQueries: //GLenum p_target, GLsizei p_n, GLuint* p_ids
     if (p_n < 0) ERROR("Invalid name query count");
-    GLuint queries[p_n];
+    GLuint* queries = replay_alloc(p_n*sizeof(GLuint));
     real(p_target, p_n, queries);
     gen_queries(ctx, p_n, queries, p_ids, false, p_target);
 
 glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
-    GLuint queries[p_n];
+    GLuint* queries = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         //TODO: Handle when queries are in use
         if (!(queries[i] = trc_get_real_gl_query(ctx->trace, p_ids[i])))
@@ -4422,14 +4458,25 @@ glClearDepthf: //GLfloat p_d
     real(p_d);
 
 glDepthRange: //GLdouble p_near, GLdouble p_far
-    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_near);
-    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_far);
+    for (int i = 0; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_VIEWPORTS, 0); i++) {
+        trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, i*2+0, p_near);
+        trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, i*2+1, p_far);
+    }
     real(p_near, p_far);
 
 glDepthRangef: //GLfloat p_n, GLfloat p_f
-    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_n);
-    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, 0, p_f);
+    for (int i = 0; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_VIEWPORTS, 0); i++) {
+        trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, i*2+0, p_n);
+        trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, i*2+1, p_f);
+    }
     real(p_n, p_f);
+
+glDepthRangeArrayv: //GLuint p_first, GLsizei p_count, const GLdouble* p_v
+    int max_viewports = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VIEWPORTS, 0);
+    if (p_count<0 || p_first+p_count>max_viewports) ERROR("Invalid first and count");
+    for (GLuint i = p_first*2; i < (p_first+p_count)*2; i++)
+        trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_RANGE, i, p_v[i]);
+    real(p_first, p_count, p_v);
 
 glPointSize: //GLfloat p_size
     if (p_size <= 0.0f) ERROR("size is not greater than zero");

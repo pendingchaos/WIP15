@@ -779,7 +779,7 @@ Func((4, 1), 'glViewportArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(t
 Func((4, 1), 'glViewportIndexedfv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 4)])
 Func((4, 1), 'glScissorArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLint, 'v', 'count*4')])
 Func((4, 1), 'glScissorIndexedv', [P(tGLuint, 'index'), P(tGLint, 'v', 4)])
-#Func((4, 1), 'glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'v')])
+Func((4, 1), 'glDepthRangeArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLdouble, 'v', 'count*2')])
 #Func((4, 1), 'glGetFloati_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func((4, 1), 'glGetDoublei_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 
