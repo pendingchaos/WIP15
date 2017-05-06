@@ -852,6 +852,9 @@ Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLs
 #Func((4, 5), 'glClearNamedFramebufferiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
 #Func((4, 5), 'glClearNamedFramebufferuiv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
 #Func((4, 5), 'glClearNamedFramebufferfv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'buffer'), P(tGLint, 'drawbuffer'), P(tPointer, 'value')])
+Func((4, 5), 'glBlitNamedFramebuffer', [P(tGLFramebuffer, 'readFramebuffer'), P(tGLFramebuffer, 'drawFramebuffer'), P(tGLint, 'srcX0'),
+                                        P(tGLint, 'srcY0'), P(tGLint, 'srcX1'), P(tGLint, 'srcY1'), P(tGLint, 'dstX0'), P(tGLint, 'dstY0'),
+                                        P(tGLint, 'dstX1'), P(tGLint, 'dstY1'), P(tGLbitfield, 'mask'), P(tGLenum, 'filter')], None)
 #Func((4, 5), 'glGetNamedFramebufferParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
 #Func((4, 5), 'glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 5), 'glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])
@@ -872,12 +875,12 @@ Func((4, 5), 'glTextureSubImage3D', [P(tGLuint, 'texture'), P(tGLint, 'level'), 
                                      P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
                                      P(tTexImageData(3), 'pixels')])
 
-Func((4, 5), 'glTextureParameterf', [P(tGLuint, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLfloat, 'param')])
-Func((4, 5), 'glTextureParameteri', [P(tGLuint, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLint, 'param')])
-Func((4, 5), 'glTextureParameterfv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLfloat, 'param', 'tex_param_count(pname)')])
-Func((4, 5), 'glTextureParameterIiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
-Func((4, 5), 'glTextureParameterIuiv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLuint, 'params', 'tex_param_count(pname)')])
-Func((4, 5), 'glTextureParameteriv', [P(tGLuint, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'param', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameterf', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLfloat, 'param')])
+Func((4, 5), 'glTextureParameteri', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLint, 'param')])
+Func((4, 5), 'glTextureParameterfv', [P(tGLTex, 'texture'), P(tGLenum, 'pname'), P(tGLfloat, 'param', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameterIiv', [P(tGLTex, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameterIuiv', [P(tGLTex, 'texture'), P(tGLenum, 'pname'), P(tGLuint, 'params', 'tex_param_count(pname)')])
+Func((4, 5), 'glTextureParameteriv', [P(tGLTex, 'texture'), P(tGLenum, 'pname'), P(tGLint, 'param', 'tex_param_count(pname)')])
 #Func((4, 5), 'glGetTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 #Func((4, 5), 'glGetCompressedTextureImage', [P(tGLuint, 'texture'), P(tGLint, 'level'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'pixels')])
 Func((4, 5), 'glCreateVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])

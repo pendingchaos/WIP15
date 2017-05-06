@@ -90,7 +90,7 @@ static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* 
     trc_unmap_freeze_data(trace, rev->back_stencil_buffer);
 }
 
-static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
+static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
 
 static void init_context(trc_replay_context_t* ctx) {
     trace_t* trace = ctx->trace;
@@ -317,7 +317,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_set_draw_vao(trace, draw_vao);
     
     //replay_create_context_buffers(ctx->trace, &rev);
-    replay_update_buffers(ctx, true, true, true, true);
+    replay_update_fb0_buffers(ctx, true, true, true, true);
 }
 
 static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum pname, GLint param) {
@@ -559,18 +559,17 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
 }
 
-static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint* fake) {
+static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, uint target, uint* fake) {
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     *fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
     const trc_gl_texture_rev_t* rev = trc_get_gl_texture(ctx->trace, *fake);
-    if (!rev) ERROR2(NULL, "No texture bound");
     return rev;
 }
 
-static void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* command, uint target, uint level) {
+static void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint level) {
     uint fake;
-    const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, command, target, &fake);
-    if (!rev) return;
+    const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, target, &fake);
+    if (!rev) ERROR2(, "No texture bound to target");
     
     uint face = 0;
     if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
@@ -582,7 +581,7 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
                        GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size) {
     const trc_gl_texture_rev_t* rev = NULL;
     if (!dsa)
-        rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
+        rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
     else
         rev = trc_get_gl_texture(ctx->trace, tex_or_target);
     if (!rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
@@ -703,13 +702,17 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
 //TODO: More validation
-static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd,
-                                 GLenum target, GLenum param, uint32_t count, const double* val) {
-    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    GLuint texid = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
-    const trc_gl_texture_rev_t* tex_ptr = trc_get_gl_texture(ctx->trace, texid);
-    if (!tex_ptr) ERROR2(true, "No texture bound");
-    trc_gl_texture_rev_t tex = *tex_ptr;
+static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
+                                 GLuint tex_or_target, GLenum param, uint32_t count, const double* val) {
+    const trc_gl_texture_rev_t* rev = NULL;
+    if (dsa) {
+        rev = trc_get_gl_texture(ctx->trace, tex_or_target);
+    } else {
+        rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
+    }
+    if (!rev) ERROR2(true, dsa?"Invalid texture name":"No texture bound to target");
+    if (!rev->has_object) ERROR2(true, "Texture name has no object");
+    trc_gl_texture_rev_t newrev = *rev;
     
     switch (param) {
     case GL_TEXTURE_MIN_FILTER:
@@ -722,8 +725,8 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COMPARE_FUNC:
     case GL_TEXTURE_BORDER_COLOR: {
-        bool res = sample_param_double(cmd, &tex.sample_params, param, count, val);
-        trc_set_gl_texture(ctx->trace, texid, &tex);
+        bool res = sample_param_double(cmd, &newrev.sample_params, param, count, val);
+        trc_set_gl_texture(ctx->trace, tex_or_target, &newrev);
         return res;
     } case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
@@ -763,21 +766,21 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
     
     switch (param) {
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
-        tex.depth_stencil_mode = val[0];
+        newrev.depth_stencil_mode = val[0];
         break;
-    case GL_TEXTURE_BASE_LEVEL: tex.base_level = val[0]; break;
-    case GL_TEXTURE_MAX_LEVEL: tex.max_level = val[0]; break;
-    case GL_TEXTURE_LOD_BIAS: tex.lod_bias = val[0]; break;
-    case GL_TEXTURE_SWIZZLE_R: tex.swizzle[0] = val[0]; break;
-    case GL_TEXTURE_SWIZZLE_G: tex.swizzle[1] = val[0]; break;
-    case GL_TEXTURE_SWIZZLE_B: tex.swizzle[2] = val[0]; break;
-    case GL_TEXTURE_SWIZZLE_A: tex.swizzle[3] = val[0]; break;
+    case GL_TEXTURE_BASE_LEVEL: newrev.base_level = val[0]; break;
+    case GL_TEXTURE_MAX_LEVEL: newrev.max_level = val[0]; break;
+    case GL_TEXTURE_LOD_BIAS: newrev.lod_bias = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_R: newrev.swizzle[0] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_G: newrev.swizzle[1] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_B: newrev.swizzle[2] = val[0]; break;
+    case GL_TEXTURE_SWIZZLE_A: newrev.swizzle[3] = val[0]; break;
     case GL_TEXTURE_SWIZZLE_RGBA:
-        for (uint i = 0; i < 4; i++) tex.swizzle[i] = val[i];
+        for (uint i = 0; i < 4; i++) newrev.swizzle[i] = val[i];
         break;
     }
     
-    trc_set_gl_texture(ctx->trace, texid, &tex);
+    trc_set_gl_texture(ctx->trace, tex_or_target, &newrev);
     
     return false;
 }
@@ -831,17 +834,13 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                     si += dimx * dimy * i;
                     switch (type) {
                     case GL_FLOAT:
-                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si];
-                        break;
+                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si]; break;
                     case GL_DOUBLE:
-                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si];
-                        break;
+                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si]; break;
                     case GL_INT:
-                        val = trc_get_int(trc_get_arg(cmd, arg_pos))[si];
-                        break;
+                        val = trc_get_int(trc_get_arg(cmd, arg_pos))[si]; break;
                     case GL_UNSIGNED_INT:
-                        val = trc_get_uint(trc_get_arg(cmd, arg_pos))[si];
-                        break;
+                        val = trc_get_uint(trc_get_arg(cmd, arg_pos))[si]; break;
                     }
                 } else {
                     switch (type) {
@@ -1046,8 +1045,8 @@ static void store_and_bind_fb(trc_replay_context_t* ctx, GLint* prev, GLuint fb)
     F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, fb);
 }
 
-static void replay_update_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor,
-                                  bool depth, bool stencil) {
+static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor,
+                                      bool depth, bool stencil) {
     F(glFinish)();
     
     GLint prevfb;
@@ -1149,9 +1148,9 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     if (state->draw_framebuffer == 0) {
         switch (buffer) {
-        case GL_COLOR: replay_update_buffers(ctx, true, false, false, false); break;
-        case GL_DEPTH: replay_update_buffers(ctx, false, false, true, false); break;
-        case GL_STENCIL: replay_update_buffers(ctx, false, false, false, true); break;
+        case GL_COLOR: replay_update_fb0_buffers(ctx, true, false, false, false); break;
+        case GL_DEPTH: replay_update_fb0_buffers(ctx, false, false, true, false); break;
+        case GL_STENCIL: replay_update_fb0_buffers(ctx, false, false, false, true); break;
         }
     } else {
         const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
@@ -1167,7 +1166,7 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
         const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);
         for (size_t i = 0; i < attach_count; i++) {
             const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
-            if (attach->attachment+GL_COLOR_ATTACHMENT0 != attachment) continue;
+            if (attach->attachment != attachment) continue;
             if (attach->has_renderbuffer) continue;
             const trc_gl_texture_rev_t* tex = trc_get_gl_texture(ctx->trace, attach->fake_texture);
             assert(tex);
@@ -1177,25 +1176,57 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
     }
 }
 
-static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
-    const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
-    //TODO: Only update buffers that could have been written to
-    if (state->draw_framebuffer == 0) {
-        replay_update_buffers(ctx, true, false, true, true);
+static void update_buffers(trc_replay_context_t* ctx, GLuint fb, GLbitfield mask) {
+    if (fb == 0) {
+        bool color = mask & GL_COLOR_BUFFER_BIT;
+        bool depth = mask & GL_DEPTH_BUFFER_BIT;
+        bool stencil = mask & GL_STENCIL_BUFFER_BIT;
+        replay_update_fb0_buffers(ctx, color, false, depth, stencil);
     } else {
-        const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, state->draw_framebuffer);
+        const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(ctx->trace, fb);
+        
+        size_t max_updates = rev->draw_buffers->size/sizeof(GLenum) + 3;
+        GLenum* updates = replay_alloc(max_updates*sizeof(GLenum));
+        size_t update_count = 0;
+        
+        if (mask & GL_COLOR_BUFFER_BIT) {
+            const GLenum* draw_buffers = trc_map_data(rev->draw_buffers, TRC_MAP_READ);
+            for (size_t i = 0; i < rev->draw_buffers->size/sizeof(GLenum); i++)
+                updates[update_count++] = draw_buffers[i];
+            trc_unmap_data(rev->draw_buffers);
+        }
+        if (mask & GL_DEPTH_BUFFER_BIT)
+            updates[update_count++] = GL_DEPTH_ATTACHMENT;
+        if (mask & GL_STENCIL_BUFFER_BIT)
+            updates[update_count++] = GL_DEPTH_ATTACHMENT;
+        if ((mask&GL_DEPTH_BUFFER_BIT) && (mask&GL_STENCIL_BUFFER_BIT))
+            updates[update_count++] = GL_DEPTH_STENCIL_ATTACHMENT;
         
         size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
         const trc_gl_framebuffer_attachment_t* attachs = trc_map_data(rev->attachments, TRC_MAP_READ);
-        for (size_t i = 0; i < attach_count; i++) {
-            const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
-            if (attach->has_renderbuffer) continue;
-            const trc_gl_texture_rev_t* tex = trc_get_gl_texture(ctx->trace, attach->fake_texture);
-            assert(tex);
-            replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
+        for (size_t i = 0; i < update_count; i++) {
+            for (size_t j = 0; j < attach_count; j++) {
+                const trc_gl_framebuffer_attachment_t* attach = &attachs[j];
+                if (attach->attachment == updates[i]) continue;
+                if (attach->has_renderbuffer) continue;
+                const trc_gl_texture_rev_t* tex = trc_get_gl_texture(ctx->trace, attach->fake_texture);
+                replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
+            }
         }
         trc_unmap_data(rev->attachments);
     }
+}
+
+static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
+    bool depth = trc_gl_state_get_state_bool(ctx->trace, GL_DEPTH_WRITEMASK, 0);
+    bool stencil = trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_WRITEMASK, 0) != 0;
+    stencil = stencil || trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_BACK_WRITEMASK, 0)!=0;
+    
+    GLbitfield mask = GL_COLOR_BUFFER_BIT;
+    if (depth) mask |= GL_DEPTH_BUFFER_BIT;
+    if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
+    //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
+    update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
 }
 
 static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
@@ -1510,7 +1541,7 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     
     const trc_gl_texture_rev_t* tex_rev;
     if (dsa) tex_rev = trc_get_gl_texture(ctx->trace, tex_or_target);
-    else tex_rev = replay_get_bound_tex(ctx, cmd, tex_or_target, &tex_or_target);
+    else tex_rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
     if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
     
@@ -1794,17 +1825,14 @@ glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
 glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
     if (!trc_get_current_fake_gl_context(ctx->trace)) ERROR("No current OpenGL context");
     SDL_GL_SwapWindow(ctx->window);
-    replay_update_buffers(ctx, false, true, false, false);
+    replay_update_fb0_buffers(ctx, false, true, false, false);
 
 glSetContextCapsWIP15: //
     ;
 
 glClear: //GLbitfield p_mask
     real(p_mask);
-    bool color = p_mask & GL_COLOR_BUFFER_BIT;
-    bool depth = p_mask & GL_DEPTH_BUFFER_BIT;
-    bool stencil = p_mask & GL_STENCIL_BUFFER_BIT;
-    replay_update_buffers(ctx, color, false, depth, stencil);
+    update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask);
 
 glGenTextures: //GLsizei p_n, GLuint* p_textures
     if (p_n < 0) ERROR("Invalid texture name count");
@@ -2007,52 +2035,70 @@ glGenerateMipmap: //GLenum p_target
 
 glTexParameterf: //GLenum p_target, GLenum p_pname, GLfloat p_param
     GLdouble double_param = p_param;
-    if (!texture_param_double(ctx, cmd, p_target, p_pname, 1, &double_param))
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, 1, &double_param))
         real(p_target, p_pname, p_param);
 
 glTexParameteri: //GLenum p_target, GLenum p_pname, GLint p_param
     GLdouble double_param = p_param;
-    if (!texture_param_double(ctx, cmd, p_target, p_pname, 1, &double_param))
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, 1, &double_param))
         real(p_target, p_pname, p_param);
 
 glTexParameterfv: //GLenum p_target, GLenum p_pname, const GLfloat* p_params
     trace_value_t* paramsv = trc_get_arg(cmd, 2);
     const double* paramsd = trc_get_double(paramsv);
-    GLfloat* params = replay_alloc(paramsv->count*sizeof(GLfloat));
-    for (size_t i = 0; i < paramsv->count; i++) params[i] = paramsd[i];
-    if (!texture_param_double(ctx, cmd, p_target, p_pname, paramsv->count, paramsd))
-        real(p_target, p_pname, params);
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, paramsd))
+        real(p_target, p_pname, p_params);
 
 glTexParameteriv: //GLenum p_target, GLenum p_pname, const GLint* p_params
     trace_value_t* paramsv = trc_get_arg(cmd, 2);
     const int64_t* params64 = trc_get_int(paramsv);
-    GLint* params = replay_alloc(paramsv->count*sizeof(GLint));
     double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) params[i] = params64[i];
     for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
-    
-    if (!texture_param_double(ctx, cmd, p_target, p_pname, paramsv->count, double_params))
-        real(p_target, p_pname, params);
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+        real(p_target, p_pname, p_params);
 
 glTexParameterIiv: //GLenum p_target, GLenum p_pname, const GLint* p_params
     //TODO
-    const int64_t* params64 = trc_get_int(trc_get_arg(cmd, 2));
-    GLint params[4];
-    if (p_pname==GL_TEXTURE_BORDER_COLOR || p_pname==GL_TEXTURE_SWIZZLE_RGBA)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
-    
-    real(p_target, p_pname, params);
+    real(p_target, p_pname, p_params);
 
 glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
     //TODO
-    const uint64_t* params64 = trc_get_uint(trc_get_arg(cmd, 2));
-    GLuint params[4];
-    if (p_pname==GL_TEXTURE_BORDER_COLOR || p_pname==GL_TEXTURE_SWIZZLE_RGBA)
-        for (size_t i = 0; i < 4; i++) params[i] = params64[i];
-    else params[0] = params64[0];
-    
-    real(p_target, p_pname, params);
+    real(p_target, p_pname, p_params);
+
+glTextureParameterf: //GLuint p_texture, GLenum p_pname, GLfloat p_param
+    GLdouble double_param = p_param;
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, 1, &double_param))
+        real(p_texture_rev->real, p_pname, p_param);
+
+glTextureParameteri: //GLuint p_texture, GLenum p_pname, GLint p_param
+    GLdouble double_param = p_param;
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, 1, &double_param))
+        real(p_texture_rev->real, p_pname, p_param);
+
+glTextureParameterfv: //GLuint p_texture, GLenum p_pname, const GLfloat* p_param
+    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    const double* paramsd = trc_get_double(paramsv);
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, paramsd))
+        real(p_texture_rev->real, p_pname, p_param);
+
+glTextureParameteriv: //GLuint p_texture, GLenum p_pname, const GLint* p_param
+    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_param[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+        real(p_texture_rev->real, p_pname, p_param);
+
+glTextureParameterIiv: //GLuint p_texture, GLenum p_pname, const GLint* p_params
+    if (!p_texture_rev) ERROR("Invalid texture name");
+    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
+    //TODO
+    real(p_texture_rev->real, p_pname, p_params);
+
+glTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, const GLuint* p_params
+    if (!p_texture_rev) ERROR("Invalid texture name");
+    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
+    //TODO
+    real(p_texture_rev->real, p_pname, p_params);
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     if (p_n < 0) ERROR("Invalid buffer name count");
@@ -4763,3 +4809,21 @@ glGetSubroutineUniformLocation: //GLuint p_program, GLenum p_shadertype, const G
 
 glGetQueryIndexediv: //GLenum p_target, GLuint p_index, GLenum p_pname, GLint* p_params
     ;
+
+//TODO: More validation
+#define VALIDATE_BLIT_FRAMEBUFFER\
+    if (((p_mask&GL_DEPTH_BUFFER_BIT)||(p_mask&GL_STENCIL_BUFFER_BIT)) && p_filter!=GL_NEAREST)\
+        ERROR("Invalid filter for mask");
+
+glBlitFramebuffer: //GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
+    real(p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
+    VALIDATE_BLIT_FRAMEBUFFER
+    update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask);
+
+glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
+    if (!p_readFramebuffer_rev || !p_drawFramebuffer_rev) ERROR("Invalid framebuffer name");
+    if (!p_readFramebuffer_rev->has_object || !p_drawFramebuffer_rev->has_object)
+        ERROR("Framebuffer name has no object");
+    VALIDATE_BLIT_FRAMEBUFFER
+    real(p_readFramebuffer_rev->real, p_drawFramebuffer_rev->real, p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
+    update_buffers(ctx, p_drawFramebuffer, p_mask);
