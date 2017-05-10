@@ -1877,6 +1877,24 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
 
+glBindTextureUnit: //GLuint p_unit, GLuint p_texture
+    if (p_unit>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
+        ERROR("Invalid unit");
+    if (!p_texture_rev) ERROR("Invalid texture name");
+    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
+    real(p_unit, p_texture_rev->real);
+    if (p_texture) {
+        trc_gl_state_set_bound_textures(ctx->trace, p_texture_rev->type, p_unit, p_texture);
+    } else {
+        GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
+                            GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
+                            GL_TEXTURE_RECTANGLE, GL_TEXTURE_BUFFER,
+                            GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
+                            GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
+        for (size_t i = 0; i < sizeof(targets)/sizeof(targets[0]); i++)
+            trc_gl_state_set_bound_textures(ctx->trace, targets[i], p_unit, 0);
+    }
+
 glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
     if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
         ERROR("Invalid range");
@@ -2683,6 +2701,20 @@ glGetProgramInfoLog: //GLuint p_program, GLsizei p_bufSize, GLsizei* p_length, G
 glGetProgramiv: //GLuint p_program, GLenum p_pname, GLint* p_params
     GLuint real_prog = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_prog) ERROR("Invalid program name");
+
+glGetFramebufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
+    GLuint fb = get_bound_framebuffer(ctx, p_target);
+    if (!fb && not_one_of(p_pname, GL_DOUBLEBUFFER, GL_IMPLEMENTATION_COLOR_READ_FORMAT,
+                          GL_IMPLEMENTATION_COLOR_READ_TYPE, GL_SAMPLES, GL_SAMPLE_BUFFERS, GL_STEREO, -1))
+        ERROR("Invalid parameter name");
+
+glGetNamedFramebufferParameteriv: //GLuint p_framebuffer, GLenum p_pname, GLint  * p_param
+    if (!p_framebuffer && not_one_of(p_pname, GL_DOUBLEBUFFER, GL_IMPLEMENTATION_COLOR_READ_FORMAT,
+                                     GL_IMPLEMENTATION_COLOR_READ_TYPE, GL_SAMPLES, GL_SAMPLE_BUFFERS, GL_STEREO, -1))
+        ERROR("Invalid parameter name");
+    if (!p_framebuffer_rev && p_framebuffer) ERROR("Invalid framebuffer name");
+    if (p_framebuffer_rev && !p_framebuffer_rev->has_object)
+        ERROR("Framebuffer name has no object");
 
 glGetError: //
     ;
