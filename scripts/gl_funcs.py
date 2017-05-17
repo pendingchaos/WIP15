@@ -636,10 +636,10 @@ Func((3, 3), 'glVertexAttribP1ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None
 Func((3, 3), 'glVertexAttribP2ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
 Func((3, 3), 'glVertexAttribP3ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttrib3Type'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
 Func((3, 3), 'glVertexAttribP4ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
-Func((3, 3), 'glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
-Func((3, 3), 'glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
-Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttrib3Type'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
-Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttrib3Type'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value', 1)])
 #Func((4, 0), 'glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
 #Func((4, 0), 'glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
 Func((4, 0), 'glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])

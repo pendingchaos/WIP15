@@ -4161,7 +4161,7 @@ glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
 glBindSampler: //GLuint p_unit, GLuint p_sampler
     const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(ctx->trace, p_sampler);
     if (!rev && p_sampler) ERROR("Invalid sampler name");
-    real(p_unit, rev->real);
+    real(p_unit, p_sampler?rev->real:0);
     if (rev && !rev->has_object) {
         trc_gl_sampler_rev_t newrev = *rev;
         newrev.has_object = true;
