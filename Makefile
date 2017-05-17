@@ -1,7 +1,7 @@
 USE_LZ4 = 1
 USE_ZLIB = 1
 
-CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g
+CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
 COMP_LIBS =
 ifeq ($(USE_LZ4), 1)
