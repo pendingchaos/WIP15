@@ -123,6 +123,12 @@ QueryTarget = g(('GL_SAMPLES_PASSED', 1, 5), ('GL_ANY_SAMPLES_PASSED', 3, 3),
                 ('GL_ANY_SAMPLES_PASSED_CONSERVATIVE', 4, 3), ('GL_PRIMITIVES_GENERATED', 3, 0),
                 ('GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN', 3, 0), ('GL_TIME_ELAPSED', 3, 3))
 
+Group('ClipOrigin').add('GL_LOWER_LEFT', 0x8CA1, (4, 5))\
+                   .add('GL_UPPER_LEFT', 0x8CA2, (4, 5))
+
+Group('ClipDepth').add('GL_NEGATIVE_ONE_TO_ONE', 0x935E, (4, 5))\
+                  .add('GL_ZERO_TO_ONE', 0x935F, (4, 5))
+
 Group('ElementType').add('GL_UNSIGNED_BYTE', 0x1401, (1, 1))\
                     .add('GL_UNSIGNED_SHORT', 0x1403, (1, 1))\
                     .add('GL_UNSIGNED_INT', 0x1405, (1, 1))
@@ -682,6 +688,7 @@ Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target', None, QueryTarget), P(
 #Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
 #Func((4, 1), 'glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
 #Func((4, 1), 'glProgramBinary', [P(tGLuint, 'program'), P(tGLenum, 'binaryFormat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
+Func((4, 1), 'glUseProgramStages', [P(tGLProgramPipeline, 'pipeline'), P(tGLbitfield, 'stages'), P(tGLProgram, 'program')], None)
 Func((4, 1), 'glProgramParameteri', [P(tGLProgram, 'program'), P(tGLenum, 'pname', None, g('GL_PROGRAM_BINARY_RETRIEVABLE_HINT', 'GL_PROGRAM_SEPARABLE')),
                                      P(tGLint, 'value', None, 'Boolean')])
 Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLuint)
@@ -825,6 +832,7 @@ Func((4, 4), 'glBindTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGL
 Func((4, 4), 'glBindSamplers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func((4, 4), 'glBindImageTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'textures', 'count')])
 Func((4, 4), 'glBindVertexBuffers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLuint, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLsizei, 'strides', 'count')])
+Func((4, 5), 'glClipControl', [P(tGLenum, 'origin', None, 'ClipOrigin'), P(tGLenum, 'depth', None, 'ClipDepth')])
 Func((4, 5), 'glCreateTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 #Func((4, 5), 'glGetTransformFeedbackiv', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tMutablePointer, 'param')])
 #Func((4, 5), 'glGetTransformFeedbacki_v', [P(tGLuint, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tMutablePointer, 'param')])
@@ -1016,16 +1024,35 @@ Func((2, 0), 'glLinkProgram', [P(tGLuint, 'program', None)], None).trace_extras_
 Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
                     P(tGLsizei, 'width'), P(tGLsizei, 'height')]).trace_epilogue_code = 'update_drawable_size();'
 
-Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean).trace_extras_code = '''GLint access;
-F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
-if (access != GL_READ_ONLY) {
-    GLint size;
-    F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
-    
-    void* data = malloc(size);
-    F(glGetBufferSubData)(target, 0, size, data);
-    gl_add_extra("replay/glUnmapBuffer/data", size, data);
-    free(data);
+Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean).trace_extras_code = '''GLint mapped, access;
+F(glGetBufferParameteriv)(target, GL_BUFFER_MAPPED, &mapped);
+if (mapped) {
+    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+    if (access != GL_READ_ONLY) {
+        GLint size;
+        F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
+        
+        void* data = malloc(size);
+        F(glGetBufferSubData)(target, 0, size, data);
+        gl_add_extra("replay/glUnmapBuffer/data", size, data);
+        free(data);
+    }
+}
+'''
+
+Func((4, 5), 'glUnmapNamedBuffer', [P(tGLBuf, 'buffer')], tGLboolean).trace_extras_code = '''GLint mapped, access;
+F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_MAPPED, &mapped);
+if (mapped) {
+    F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
+    if (access != GL_READ_ONLY) {
+        GLint size;
+        F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_SIZE, &size);
+        
+        void* data = malloc(size);
+        F(glGetNamedBufferSubData)(buffer, 0, size, data);
+        gl_add_extra("replay/glUnmapBuffer/data", size, data);
+        free(data);
+    }
 }
 '''
 

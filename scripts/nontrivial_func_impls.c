@@ -1309,6 +1309,17 @@ static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* r
     }
 }
 
+static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_sampler_rev_t rev;
+    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
+    rev.ref_count = 1;
+    rev.has_object = create;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_set_gl_sampler(ctx->trace, fake[i], &rev);
+    }
+}
+
 static void gen_renderbuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_renderbuffer_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
@@ -1466,6 +1477,44 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     newrev.map_offset = offset;
     newrev.map_length = length;
     newrev.map_access = access;
+    
+    trc_set_gl_buffer(ctx->trace, fake, &newrev);
+}
+
+static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint target_or_buf) {
+    trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
+    if (!extra) ERROR("replay/glUnmapBuffer/data extra not found");
+    
+    uint fake = dsa ? target_or_buf : get_bound_buffer(ctx, target_or_buf);
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
+    if (!rev) ERROR(dsa?"Invalid buffer name":"No buffer bound to target");
+    if (!rev->data) ERROR("Buffer has no data");
+    if (extra->size != rev->data->size) ERROR("Invalid trace");
+    if (!rev->mapped) ERROR("Unmapping a buffer that is not mapped");
+    
+    trc_gl_buffer_rev_t newrev = *rev;
+    
+    if (rev->map_access & GL_MAP_WRITE_BIT) {
+        if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
+            F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
+        else
+            F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
+        
+        newrev.data = trc_create_data(ctx->trace, rev->data->size, NULL, TRC_DATA_NO_ZERO);
+        void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
+        
+        void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
+        memcpy(newdata, olddata, rev->data->size);
+        trc_unmap_data(rev->data);
+        
+        memcpy(newdata, extra->data, extra->size);
+        trc_unmap_freeze_data(ctx->trace, newrev.data);
+    }
+    
+    newrev.mapped = false;
+    newrev.map_offset = 0;
+    newrev.map_length = 0;
+    newrev.map_access = 0;
     
     trc_set_gl_buffer(ctx->trace, fake, &newrev);
 }
@@ -2213,41 +2262,10 @@ glMapNamedBufferRange: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_length
     map_buffer_range(ctx, cmd, true, p_buffer, p_offset, p_length, p_access);
 
 glUnmapBuffer: //GLenum p_target
-    trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
-    if (!extra) ERROR("replay/glUnmapBuffer/data extra not found");
-    
-    uint fake = get_bound_buffer(ctx, p_target);
-    const trc_gl_buffer_rev_t* buf_rev_ptr = trc_get_gl_buffer(ctx->trace, fake);
-    if (!buf_rev_ptr) ERROR("Invalid buffer name");
-    trc_gl_buffer_rev_t buf = *buf_rev_ptr;
-    if (!buf.data) ERROR("Buffer has no data");
-    
-    if (extra->size != buf.data->size) ERROR("Invalid trace");
-    
-    if (!buf.mapped) ERROR("Unmapping a buffer that is not mapped");
-    
-    trc_gl_buffer_rev_t old = buf;
-    
-    if (buf.map_access & GL_MAP_WRITE_BIT) {
-        F(glBufferSubData)(p_target, 0, extra->size, extra->data);
-        
-        buf.data = trc_create_data(ctx->trace, old.data->size, NULL, TRC_DATA_NO_ZERO);
-        void* newdata = trc_map_data(buf.data, TRC_MAP_REPLACE);
-        
-        void* olddata = trc_map_data(old.data, TRC_MAP_READ);
-        memcpy(newdata, olddata, old.data->size);
-        trc_unmap_data(old.data);
-        
-        memcpy(newdata, extra->data, extra->size);
-        trc_unmap_freeze_data(ctx->trace, buf.data);
-    }
-    
-    buf.mapped = false;
-    buf.map_offset = 0;
-    buf.map_length = 0;
-    buf.map_access = 0;
-    
-    trc_set_gl_buffer(ctx->trace, fake, &buf);
+    unmap_buffer(ctx, cmd, false, p_target);
+
+glUnmapNamedBuffer: //GLuint p_buffer
+    unmap_buffer(ctx, cmd, true, p_buffer);
 
 glCreateShader: //GLenum p_type
     GLuint real_shdr = F(glCreateShader)(p_type);
@@ -2576,6 +2594,7 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     rev.ref_count = 1;
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = pipelines[i];
+        rev.has_object = false;
         trc_set_gl_program_pipeline(ctx->trace, p_pipelines[i], &rev);
     }
 
@@ -2589,11 +2608,10 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     real(p_n, pipelines);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
-    GLuint real_pipeline = trc_get_real_gl_program_pipeline(ctx->trace, p_pipeline);
-    if (!real_pipeline) ERROR("Invalid program pipeline name");
-    GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
-    if (!real_program) ERROR("Invalid program name");
-    real(p_pipeline, p_stages, p_program);
+    if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
+    if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
+    if (!p_program_rev) ERROR("Invalid program name");
+    real(p_pipeline_rev->real, p_stages, p_program_rev->real);
     //TODO: Create new pipeline revision
 
 glFlush: //
@@ -2715,6 +2733,35 @@ glGetNamedFramebufferParameteriv: //GLuint p_framebuffer, GLenum p_pname, GLint 
     if (!p_framebuffer_rev && p_framebuffer) ERROR("Invalid framebuffer name");
     if (p_framebuffer_rev && !p_framebuffer_rev->has_object)
         ERROR("Framebuffer name has no object");
+
+glGetObjectLabel: //GLenum p_identifier, GLuint p_name, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_label
+    if (p_bufSize < 0) ERROR("Invalid buffer size");
+    #define A(gf, t) {\
+        const t* rev = gf(ctx->trace, p_name);\
+        if (!rev) ERROR("Invalid object name");\
+        if (!rev->has_object) ERROR("Name has no object");\
+        break;\
+    }
+    #define B(gf, t) {\
+        const t* rev = gf(ctx->trace, p_name);\
+        if (!rev) ERROR("Invalid object name");\
+        break;\
+    }
+    switch (p_identifier) {
+    case GL_BUFFER: A(trc_get_gl_buffer, trc_gl_buffer_rev_t)
+    case GL_SHADER: B(trc_get_gl_shader, trc_gl_shader_rev_t)
+    case GL_PROGRAM: B(trc_get_gl_program, trc_gl_program_rev_t)
+    case GL_VERTEX_ARRAY: A(trc_get_gl_vao, trc_gl_vao_rev_t)
+    case GL_QUERY: A(trc_get_gl_query, trc_gl_query_rev_t)
+    case GL_PROGRAM_PIPELINE: A(trc_get_gl_program_pipeline, trc_gl_program_pipeline_rev_t)
+    case GL_TRANSFORM_FEEDBACK: A(trc_get_gl_transform_feedback, trc_gl_transform_feedback_rev_t)
+    case GL_SAMPLER: A(trc_get_gl_sampler, trc_gl_sampler_rev_t)
+    case GL_TEXTURE: A(trc_get_gl_texture, trc_gl_texture_rev_t)
+    case GL_RENDERBUFFER: A(trc_get_gl_renderbuffer, trc_gl_renderbuffer_rev_t)
+    case GL_FRAMEBUFFER: A(trc_get_gl_framebuffer, trc_gl_framebuffer_rev_t)
+    }
+    #undef B
+    #undef A
 
 glGetError: //
     ;
@@ -4008,14 +4055,12 @@ glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
 glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     real(p_count, samplers);
-    
-    trc_gl_sampler_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.ref_count = 1;
-    for (size_t i = 0; i < p_count; ++i) {
-        rev.real = samplers[i];
-        trc_set_gl_sampler(ctx->trace, p_samplers[i], &rev);
-    }
+    gen_samplers(ctx, p_count, samplers, p_samplers, false);
+
+glCreateSamplers: //GLsizei p_n, GLuint* p_samplers
+    GLuint* samplers = replay_alloc(p_n*sizeof(GLuint));
+    real(p_n, samplers);
+    gen_samplers(ctx, p_n, samplers, p_samplers, true);
 
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
@@ -4028,9 +4073,14 @@ glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     real(p_count, samplers);
 
 glBindSampler: //GLuint p_unit, GLuint p_sampler
-    GLuint real_sampler = trc_get_real_gl_sampler(ctx->trace, p_sampler);
-    if (!real_sampler && p_sampler) ERROR("Invalid sampler name");
-    real(p_unit, real_sampler);
+    const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(ctx->trace, p_sampler);
+    if (!rev && p_sampler) ERROR("Invalid sampler name");
+    real(p_unit, rev->real);
+    if (rev && !rev->has_object) {
+        trc_gl_sampler_rev_t newrev = *rev;
+        newrev.has_object = true;
+        trc_set_gl_sampler(ctx->trace, p_sampler, &newrev);
+    }
 
 glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
     if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
@@ -4039,6 +4089,7 @@ glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
     for (size_t i = 0; i < p_count; i++) {
         const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(ctx->trace, p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
+        if (!rev->has_object) ERROR("Sampler name at index %zu has no object", i);
         //if (!rev->has_object) ERROR("Sample name at index %zu has no object", i); //TODO
         real_tex[i] = rev->real;
     }
@@ -4805,6 +4856,10 @@ glPointParameteriv: //GLenum p_pname, const GLint* p_params
     case GL_POINT_SPRITE_COORD_ORIGIN: trc_gl_state_set_state_enum(ctx->trace, p_pname, 0, p_params[0]);
     }
     real(p_pname, p_params);
+
+glClipControl: //GLenum p_origin, GLenum p_depth
+    trc_gl_state_set_state_enum(ctx->trace, GL_CLIP_ORIGIN, 0, p_origin);
+    trc_gl_state_set_state_enum(ctx->trace, GL_CLIP_DEPTH_MODE, 0, p_depth);
 
 glMinSampleShading: //GLfloat p_value
     trc_gl_state_set_state_float(ctx->trace, GL_MIN_SAMPLE_SHADING_VALUE, 0, p_value);

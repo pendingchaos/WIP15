@@ -12,7 +12,7 @@
 #define TRC_GL_OBJ_HEAD uint64_t revision;\
 uint64_t fake_context;\
 uint64_t real;\
-uint ref_count;\
+uint ref_count;
 
 #define TRC_DATA_IMMUTABLE (1<<0)
 #define TRC_DATA_NO_COMPRESS (1<<1)
@@ -159,6 +159,7 @@ typedef struct trc_gl_sample_params_t {
 
 typedef struct trc_gl_sampler_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
 } trc_gl_sampler_rev_t;
 
 typedef struct trc_gl_texture_image_t {
@@ -271,6 +272,7 @@ typedef struct trc_gl_program_rev_t {
 
 typedef struct trc_gl_program_pipeline_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
 } trc_gl_program_pipeline_rev_t;
 
 typedef struct trc_gl_shader_rev_t {
@@ -300,6 +302,7 @@ typedef struct trc_gl_vao_rev_t {
 
 typedef struct trc_gl_transform_feedback_rev_t {
     TRC_GL_OBJ_HEAD
+    bool has_object;
 } trc_gl_transform_feedback_rev_t;
 
 typedef struct trc_gl_obj_history_t {

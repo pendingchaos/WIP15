@@ -332,6 +332,8 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_ENUM(state_enum, "FrontFaceDirection", GL_FRONT_FACE);
     STATE_ENUM(state_enum, "DepthFunction", GL_DEPTH_FUNC);
     STATE_ENUM(state_enum, "LogicOp", GL_LOGIC_OP_MODE);
+    STATE_ENUM(state_enum, "ClipOrigin", GL_CLIP_ORIGIN);
+    STATE_ENUM(state_enum, "ClipDepth", GL_CLIP_DEPTH_MODE);
     STATE_ENUM(state_enum, NULL, GL_POINT_SPRITE_COORD_ORIGIN); //TODO: The group
     STATE_ENUM(state_enum, NULL, GL_PROVOKING_VERTEX); //TODO: The group
     
