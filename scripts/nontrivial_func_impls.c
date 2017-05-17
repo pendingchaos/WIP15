@@ -960,6 +960,68 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
     }
 }
 
+static double float11_to_double(uint v) {
+    uint e = v >> 6;
+    uint m = v & 63;
+    if (!e && m) return 6.103515625e-05 * (m/64.0);
+    else if (e>0 && e<31) return pow(2, e-15) * (1.0+m/64.0);
+    else if (e==31 && !m) return INFINITY;
+    else if (e==31 && m) return NAN;
+    else assert(false);
+}
+
+static double float10_to_double(uint v) {
+    uint e = v >> 5;
+    uint m = v & 31;
+    if (!e && m) return 6.103515625e-05 * (m/32.0);
+    else if (e>0 && e<31) return pow(2, e-15) * (1.0+m/32.0);
+    else if (e==31 && !m) return INFINITY;
+    else if (e==31 && m) return NAN;
+    else assert(false);
+}
+
+static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint index,
+                                 GLenum type, uint comp, GLboolean normalized, GLuint val) {
+    if (index==0 || index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR2(, "Invalid vertex attribute index");
+    double res[4];
+    switch (type) {
+    case GL_INT_2_10_10_10_REV:
+    case GL_UNSIGNED_INT_2_10_10_10_REV: {
+        int64_t vals[4] = {val&1023, (val>>10)&1023, (val>>20)&1023, (val>>30)&3};
+        bool signed_ = type == GL_INT_2_10_10_10_REV;
+        if (signed_) {
+            for (uint i = 0; i < 3; i++) {
+                if (vals[i] & (1<<9)) //check sign bit
+                    vals[i] = (vals[i]&511) | ~(int64_t)511;
+            }
+            if (vals[3] & 2)
+                vals[3] = (vals[3]&1) | ~(int64_t)1;
+        }
+        if (normalized) {
+            for (uint i = 0; i < 3; i++)
+                res[i] = signed_ ? (vals[i]<0?vals[i]/512.0:vals[i]/511.0) : vals[i]/1023.0;
+            res[3] = signed_ ? (vals[3]<0?vals[3]/2.0:vals[3]/1.0) : vals[3]/2.0;
+        } else {
+            for (uint i = 0; i < 4; i++)
+                res[i] = vals[i];
+        }
+        break;
+    }
+    case GL_UNSIGNED_INT_10F_11F_11F_REV: {
+        res[0] = float11_to_double(val&2047);
+        res[1] = float11_to_double((val>>11)&2047);
+        res[2] = float10_to_double((val>>22)&1023);
+        break;
+    }
+    }
+    for (uint i = comp; i < 4; i++) res[i] = i==3 ? 1.0 : 0.0;
+    for (uint i = 0; i < 4; i++)
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, (index-1)*4+i, res[i]);
+    
+    F(glVertexAttrib4dv(index, res));
+}
+
 static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     switch (target) {
@@ -3761,34 +3823,34 @@ glVertexAttrib4Nuiv: //GLuint p_index, const GLuint* p_v
     vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_INT, true, true, GL_FLOAT);
 
 glVertexAttrib4Nusv: //GLuint p_index, const GLushort* p_v
-    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_SHORT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_SHORT, true, false, GL_DOUBLE);
 
 glVertexAttrib4bv: //GLuint p_index, const GLbyte* p_v
-    vertex_attrib(ctx, cmd, 4, GL_BYTE, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_BYTE, true, false, GL_DOUBLE);
 
 glVertexAttrib4dv: //GLuint p_index, const GLdouble* p_v
-    vertex_attrib(ctx, cmd, 4, GL_DOUBLE, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_DOUBLE, true, false, GL_DOUBLE);
 
 glVertexAttrib4fv: //GLuint p_index, const GLfloat* p_v
-    vertex_attrib(ctx, cmd, 4, GL_FLOAT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_FLOAT, true, false, GL_DOUBLE);
 
 glVertexAttrib4iv: //GLuint p_index, const GLint* p_v
-    vertex_attrib(ctx, cmd, 4, GL_INT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_INT, true, false, GL_DOUBLE);
 
 glVertexAttrib4sv: //GLuint p_index, const GLshort* p_v
-    vertex_attrib(ctx, cmd, 4, GL_SHORT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_SHORT, true, false, GL_DOUBLE);
 
 glVertexAttrib4ubv: //GLuint p_index, const GLubyte* p_v
-    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_BYTE, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_BYTE, true, false, GL_DOUBLE);
 
 glVertexAttrib4uiv: //GLuint p_index, const GLuint* p_v
-    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_INT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_INT, true, false, GL_DOUBLE);
 
 glVertexAttrib4usv: //GLuint p_index, const GLushort* p_v
-    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_SHORT, false, false, GL_DOUBLE);
+    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_SHORT, true, false, GL_DOUBLE);
 
 glVertexAttrib4Nub: //GLuint p_index, GLubyte p_x, GLubyte p_y, GLubyte p_z, GLubyte p_w
-    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_BYTE, false, true, GL_FLOAT);
+    vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_BYTE, true, true, GL_FLOAT);
 
 glVertexAttribI4ubv: //GLuint p_index, const GLubyte* p_v
     vertex_attrib(ctx, cmd, 4, GL_UNSIGNED_SHORT, true, false, GL_UNSIGNED_INT);
@@ -3837,6 +3899,30 @@ glVertexAttribL3dv: //GLuint p_index, const GLdouble* p_v
 
 glVertexAttribL4dv: //GLuint p_index, const GLdouble* p_v
     vertex_attrib(ctx, cmd, 4, GL_DOUBLE, true, false, GL_DOUBLE);
+
+glVertexAttribP1ui: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 1, p_normalized, p_value);
+
+glVertexAttribP2ui: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 2, p_normalized, p_value);
+
+glVertexAttribP3ui: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 3, p_normalized, p_value);
+
+glVertexAttribP4ui: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 4, p_normalized, p_value);
+
+glVertexAttribP1uiv: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint* p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 1, p_normalized, *p_value);
+
+glVertexAttribP2uiv: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint* p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 2, p_normalized, *p_value);
+
+glVertexAttribP3uiv: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint* p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 3, p_normalized, *p_value);
+
+glVertexAttribP4uiv: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GLuint* p_value
+    vertex_attrib_packed(ctx, cmd, p_index, p_type, 4, p_normalized, *p_value);
 
 glBeginConditionalRender: //GLuint p_id, GLenum p_mode
     uint real_id = trc_get_real_gl_query(ctx->trace, p_id);

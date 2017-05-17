@@ -129,6 +129,13 @@ Group('ClipOrigin').add('GL_LOWER_LEFT', 0x8CA1, (4, 5))\
 Group('ClipDepth').add('GL_NEGATIVE_ONE_TO_ONE', 0x935E, (4, 5))\
                   .add('GL_ZERO_TO_ONE', 0x935F, (4, 5))
 
+Group('PackedAttribType').add('GL_INT_2_10_10_10_REV', 0x8D9F, (3, 3))\
+                        .add('GL_UNSIGNED_INT_2_10_10_10_REV', 0x8368, (3, 3))\
+
+Group('PackedAttrib3Type').add('GL_INT_2_10_10_10_REV', 0x8D9F, (3, 3))\
+                          .add('GL_UNSIGNED_INT_2_10_10_10_REV', 0x8368, (3, 3))\
+                          .add('GL_UNSIGNED_INT_10F_11F_11F_REV', 0x8C3B, (4, 4))\
+
 Group('ElementType').add('GL_UNSIGNED_BYTE', 0x1401, (1, 1))\
                     .add('GL_UNSIGNED_SHORT', 0x1403, (1, 1))\
                     .add('GL_UNSIGNED_INT', 0x1405, (1, 1))
@@ -624,10 +631,15 @@ Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname
 #Func((3, 3), 'glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 3), 'glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 3), 'glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 3), 'glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func((3, 3), 'glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
-#Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tPointer, 'value')])
+Func((3, 3), 'glVertexAttribDivisor', [P(tGLuint, 'index'), P(tGLuint, 'divisor')], None)
+Func((3, 3), 'glVertexAttribP1ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
+Func((3, 3), 'glVertexAttribP2ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
+Func((3, 3), 'glVertexAttribP3ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttrib3Type'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
+Func((3, 3), 'glVertexAttribP4ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
+Func((3, 3), 'glVertexAttribP1uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP2uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP3uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttrib3Type'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
+Func((3, 3), 'glVertexAttribP4uiv', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized'), P(tGLuint, 'value', 1)])
 #Func((4, 0), 'glDrawArraysIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawArraysIndirect");'
 #Func((4, 0), 'glDrawElementsIndirect', [P(tGLenum, 'mode', None, 'PrimitiveType'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect')]).trace_epilogue_code = 'if (test_mode) test_fb("glDrawElementsIdirect");'
 Func((4, 0), 'glUniform1dv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLdouble, 'value', 'count')])
