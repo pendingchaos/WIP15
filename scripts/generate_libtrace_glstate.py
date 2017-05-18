@@ -404,7 +404,7 @@ class Property(object):
                        'query': 'uint',
                        'renderbuffer': 'uint',
                        'framebuffer': 'uint',
-                       'indexed_buffer_binding': 'indexed_buffer_binding_t'}[base]
+                       'buffer_binding_point': 'buffer_binding_point_t'}[base]
         self.some_value = {'uint': '0',
                            'char': '0',
                            'enum': '0',
@@ -420,7 +420,7 @@ class Property(object):
                            'query': '0',
                            'renderbuffer': '0',
                            'framebuffer': '0',
-                           'indexed_buffer_binding': '(indexed_buffer_binding_t){0, 0, 0}'}[base]
+                           'buffer_binding_point': '(buffer_binding_point_t){0, 0, 0}'}[base]
 
 lines = src.split('\n')
 lines = [l for l in lines if not l.startswith('//')]
@@ -536,12 +536,12 @@ print
 print '''#ifdef WIP15_STATE_GEN_IMPL'
 #include <GL/gl.h>'
 #include <assert.h>
-typedef struct indexed_buffer_binding_t {
+typedef struct buffer_binding_point_t {
     uint buf_id;
     //If size == 0: not ranged
     uint offset;
     uint size;
-} indexed_buffer_binding_t;
+} buffer_binding_point_t;
 '''
 print
 for prop in properties:
