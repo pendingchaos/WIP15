@@ -44,6 +44,12 @@ Bugs:
         both in replay and tracing
     vertex attribute indices are not being remapped with glVertexAttrib*n*?
 
+transform feedback support:
+    be aware of errors mentioned on page 428 of opengl 4.5 core spec of October 24 2016
+    check to see if the primitive mode passed to draw calls is correct
+        see glBeginTransformFeedback's man page
+    check to see if any used UBOs, SSBOs or atomic counter buffers are bound as transform feedback buffers before draw calls
+
 Much more validation during replay
 
 Various TODOs in the source code.

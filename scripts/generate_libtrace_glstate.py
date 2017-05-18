@@ -5,6 +5,7 @@ src = '''
 uint drawable_width
 uint drawable_height
 uint ver
+bool made_current_before
 
 map buffer bound_buffer
     GL_ARRAY_BUFFER
@@ -22,6 +23,12 @@ map buffer bound_buffer
     GL_TRANSFORM_FEEDBACK_BUFFER
     GL_UNIFORM_BUFFER
 
+map array buffer bound_buffer_indexed
+    GL_TRANSFORM_FEEDBACK_BUFFER
+    GL_UNIFORM_BUFFER
+    GL_SHADER_STORAGE_BUFFER
+    GL_ATOMIC_COUNTER_BUFFER
+
 program bound_program
 
 vao bound_vao
@@ -31,6 +38,10 @@ renderbuffer bound_renderbuffer
 framebuffer read_framebuffer
 framebuffer draw_framebuffer
 
+bool tf_active
+bool tf_paused
+bool tf_active_not_paused
+
 map array query bound_queries
     GL_SAMPLES_PASSED
     GL_ANY_SAMPLES_PASSED
@@ -38,8 +49,6 @@ map array query bound_queries
     GL_PRIMITIVES_GENERATED
     GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN
     GL_TIME_ELAPSED
-
-bool made_current_before
 
 uint active_texture_unit
 map array texture bound_textures
@@ -214,7 +223,7 @@ map array int state_int
 //    GL_FRAGMENT_INTERPOLATION_OFFSET_BITS
 //    GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET
 //    GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET
-//    GL_MAX_TRANSFORM_FEEDBACK_BUFFERS
+    GL_MAX_TRANSFORM_FEEDBACK_BUFFERS
 //    GL_MAX_VERTEX_STREAMS
     GL_PATCH_VERTICES
     GL_MAX_PATCH_VERTICES
@@ -279,6 +288,8 @@ map array int state_int
 //    GL_MAX_FRAGMENT_ATOMIC_COUNTERS
 //    GL_MAX_COMBINED_ATOMIC_COUNTERS
 //    GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE
+    GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS
+    GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS
 
 map array enum state_enum
     GL_POLYGON_MODE
@@ -392,7 +403,8 @@ class Property(object):
                        'vao': 'uint',
                        'query': 'uint',
                        'renderbuffer': 'uint',
-                       'framebuffer': 'uint'}[base]
+                       'framebuffer': 'uint',
+                       'indexed_buffer_binding': 'indexed_buffer_binding_t'}[base]
         self.some_value = {'uint': '0',
                            'char': '0',
                            'enum': '0',
@@ -407,7 +419,8 @@ class Property(object):
                            'vao': '0',
                            'query': '0',
                            'renderbuffer': '0',
-                           'framebuffer': '0'}[base]
+                           'framebuffer': '0',
+                           'indexed_buffer_binding': '(indexed_buffer_binding_t){0, 0, 0}'}[base]
 
 lines = src.split('\n')
 lines = [l for l in lines if not l.startswith('//')]
@@ -520,9 +533,16 @@ for prop in properties:
 print '#endif'
 print
 
-print '#ifdef WIP15_STATE_GEN_IMPL'
-print '#include <GL/gl.h>'
-print '#include <assert.h>'
+print '''#ifdef WIP15_STATE_GEN_IMPL'
+#include <GL/gl.h>'
+#include <assert.h>
+typedef struct indexed_buffer_binding_t {
+    uint buf_id;
+    //If size == 0: not ranged
+    uint offset;
+    uint size;
+} indexed_buffer_binding_t;
+'''
 print
 for prop in properties:
     print prop.get_func_sig + ' {'

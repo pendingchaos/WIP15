@@ -137,8 +137,8 @@ static void init_context(trc_replay_context_t* ctx) {
     
     GLint max_clip_distances, max_draw_buffers, max_viewports;
     GLint max_vertex_attribs, max_color_attachments, max_tex_units;
-    GLint max_uniform_buffer_bindings, max_patch_vertices, max_renderbuffer_size;
-    GLint max_texture_size;
+    GLint max_patch_vertices, max_renderbuffer_size, max_texture_size, max_transform_feedback_buffers;
+    GLint max_uniform_buffer_bindings, max_atomic_counter_buffer_bindings, max_shader_storage_buffer_bindings;
     F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
     F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
     if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
@@ -146,10 +146,13 @@ static void init_context(trc_replay_context_t* ctx) {
     F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
     F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
     F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
-    F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
     F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, &max_patch_vertices);
     F(glGetIntegerv)(GL_MAX_RENDERBUFFER_SIZE, &max_renderbuffer_size);
     F(glGetIntegerv)(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, &max_transform_feedback_buffers);
+    F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
+    F(glGetIntegerv)(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &max_atomic_counter_buffer_bindings);
+    F(glGetIntegerv)(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &max_shader_storage_buffer_bindings);
     
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
@@ -164,6 +167,15 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, major);
     trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, minor);
     trc_gl_state_set_ver(trace, ver);
+    
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_TRANSFORM_FEEDBACK_BUFFER, max_transform_feedback_buffers, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, max_uniform_buffer_bindings, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_ATOMIC_COUNTER_BUFFER, max_atomic_counter_buffer_bindings, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_SHADER_STORAGE_BUFFER, max_shader_storage_buffer_bindings, NULL);
+    
+    trc_gl_state_set_tf_active(trace, false);
+    trc_gl_state_set_tf_paused(trace, false);
+    trc_gl_state_set_tf_active_not_paused(trace, false);
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -1330,6 +1342,7 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.ref_count = 1;
     rev.has_object = create;
+    rev.tf_binding_count = 0;
     rev.has_data = false;
     rev.data_usage = 0;
     rev.data = NULL;
@@ -1426,6 +1439,8 @@ static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool ds
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
+        trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
     trc_set_gl_buffer(ctx->trace, fake, &newrev);
@@ -1439,6 +1454,8 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->data) ERROR2(false, "Buffer has no data");
     if (!rev->has_object) ERROR2(false, "Buffer name does not have an object");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
+        trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (offset+size > rev->data->size) ERROR2(false, "Invalid range");
     
     trc_gl_buffer_rev_t newrev = *rev;
@@ -1463,12 +1480,16 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     if (!read_rev) ERROR2(false, dsa?"Invalid read buffer name":"No buffer bound to read target");
     if (!read_rev->has_object) ERROR2(false, "Read buffer name has no object");
     if (!read_rev->data) ERROR2(false, "Read buffer has no data");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && read_rev->tf_binding_count)
+        trc_add_warning(cmd, "Read buffer cannot be read as it is a transform feedback one while transform feedback is active and unpaused");
     if (read_off+size > read_rev->data->size) ERROR2(false, "Invalid size and read offset");
     
     const trc_gl_buffer_rev_t* write_rev = trc_get_gl_buffer(ctx->trace, write);
     if (!write_rev) ERROR2(false, dsa?"Invalid write buffer name":"No buffer bound to write target");
     if (!write_rev->has_object) ERROR2(false, "Write buffer name has no object");
     if (!write_rev->data) ERROR2(false, "Write buffer has no data");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && write_rev->tf_binding_count)
+        trc_add_warning(cmd, "Write buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (write_off+size > write_rev->data->size) ERROR2(false, "Invalid size and write offset");
     
     trc_gl_buffer_rev_t res;
@@ -1492,6 +1513,8 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (!rev->data) ERROR2(, "Buffer has no data");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
+        trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     if (rev->mapped) ERROR2(, "Buffer is already mapped");
     
     trc_gl_buffer_rev_t newrev = *rev;
@@ -1529,6 +1552,8 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
+        trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     if (!newrev.data) ERROR2(, "Buffer has no data");
     
@@ -1702,6 +1727,18 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
     
     return true;
+}
+
+static const trc_gl_buffer_rev_t* on_change_tf_binding(trc_replay_context_t* ctx, GLuint prev_buf, GLuint new_buf) {
+    if (prev_buf) {
+        trc_gl_buffer_rev_t newrev = *trc_get_gl_buffer(ctx->trace, prev_buf);
+        newrev.tf_binding_count--;
+        trc_set_gl_buffer(ctx->trace, prev_buf, &newrev);
+    }
+    trc_gl_buffer_rev_t newrev = *trc_get_gl_buffer(ctx->trace, new_buf);
+    newrev.tf_binding_count++;
+    trc_set_gl_buffer(ctx->trace, new_buf, &newrev);
+    return trc_get_gl_buffer(ctx->trace, new_buf);
 }
 
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
@@ -2251,10 +2288,15 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     real(p_n, buffers);
 
 glBindBuffer: //GLenum p_target, GLuint p_buffer
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
+        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    trc_gl_state_set_bound_buffer(ctx->trace, p_target, p_buffer);
     real(p_target, p_buffer?rev->real:0);
+    
+    if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
+        rev = on_change_tf_binding(ctx, get_bound_buffer(ctx, p_target), p_buffer);
+    trc_gl_state_set_bound_buffer(ctx->trace, p_target, p_buffer);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -2262,9 +2304,17 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
     }
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
+        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
+    if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
+        ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, p_index, p_buffer?rev->real:0);
+    
+    if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx, p_target, p_index), p_buffer);
+    trc_gl_state_set_bound_buffer_indexed(ctx, p_target, p_index, {p_buffer, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -2272,9 +2322,20 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     }
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
+        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
+    if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
+        ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
+    if (rev && (size<=0 || offset+size>(rev->data?rev->data->size:0)))
+        ERROR("Invalid range");
+    //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
+    
+    if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx, p_target, p_index), p_buffer);
+    trc_gl_state_set_bound_buffer_indexed(ctx, p_target, p_index, {p_buffer, p_offset, p_size});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -2512,6 +2573,9 @@ glLinkProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
     
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_program==trc_gl_state_get_bound_program(ctx->trace))
+        ERROR("The bound program cannot be modified while transform feedback is active and unpaused");
+    
     real(real_program);
     
     trc_gl_program_rev_t rev = *trc_get_gl_program(ctx->trace, p_program);
@@ -2638,6 +2702,8 @@ glValidateProgram: //GLuint p_program
 glUseProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program && p_program) ERROR("Invalid program name");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace))
+        ERROR("The program binding cannot be modified while transform feedback is active and unpaused");
     
     trc_gl_context_rev_t state = *trc_get_gl_context(ctx->trace, 0);
     trc_grab_gl_obj(ctx->trace, p_program, TrcGLObj_Program);
@@ -2669,10 +2735,14 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     }
     real(p_n, pipelines);
 
+//NOTE: Do transform feedback checks in glBindProgramPipeline
+
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (!p_program_rev) ERROR("Invalid program name");
+    //if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_pipeline==) //TODO: Finish
+    //    ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     real(p_pipeline_rev->real, p_stages, p_program_rev->real);
     //TODO: Create new pipeline revision
 
@@ -2727,6 +2797,7 @@ glIsTransformFeedback: //GLuint p_id
 glTransformFeedbackVaryings: //GLuint p_program, GLsizei p_count, const GLchar*const* p_varyings, GLenum p_bufferMode
     if (!p_program) ERROR("Invalid program name");
     real(p_program_rev->real, p_count, p_varyings, p_bufferMode);
+    //TODO: Store this in the program object
 
 glBindAttribLocation: //GLuint p_program, GLuint p_index, const GLchar* p_name
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
@@ -5000,3 +5071,35 @@ glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GL
     VALIDATE_BLIT_FRAMEBUFFER
     real(p_readFramebuffer_rev->real, p_drawFramebuffer_rev->real, p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
     update_buffers(ctx, p_drawFramebuffer, p_mask);
+
+glBeginTransformFeedback: //GLenum p_primitiveMode
+    if (trc_gl_state_get_tf_active(ctx->trace))
+        ERROR("Transform feedback is already active");
+    //TODO: Check that needed binding points have buffers
+    //TODO: Check to see if a program or pipeline object is bound and that it has varying variables
+    real(p_primitiveMode);
+    trc_gl_state_set_tf_active(ctx->trace, true);
+    trc_gl_state_set_tf_active_not_paused(ctx->trace, true);
+
+glEndTransformFeedback: //
+    if (!trc_gl_state_get_tf_active(ctx->trace))
+        ERROR("Transform feedback is not active");
+    trc_gl_state_set_tf_active(ctx->trace, false);
+    trc_gl_state_set_tf_paused(ctx->trace, false);
+    trc_gl_state_set_tf_active_not_paused(ctx->trace, false);
+
+glPauseTransformFeedback: //
+    if (!trc_gl_state_get_tf_active(ctx->trace))
+        ERROR("Transform feedback is not active");
+    if (trc_gl_state_get_tf_paused(ctx->trace))
+        ERROR("Transform feedback is already paused");
+    trc_gl_state_set_tf_paused(ctx->trace, true);
+    trc_gl_state_set_tf_active_not_paused(ctx->trace, false);
+
+glResumeTransformFeedback: //
+    if (!trc_gl_state_get_tf_active(ctx->trace))
+        ERROR("Transform feedback is not active");
+    if (!trc_gl_state_get_tf_paused(ctx->trace))
+        ERROR("Transform feedback is not paused");
+    trc_gl_state_set_tf_paused(ctx->trace, false);
+    trc_gl_state_set_tf_active_not_paused(ctx->trace, true);
