@@ -2313,8 +2313,8 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     real(p_target, p_index, p_buffer?rev->real:0);
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx, p_target, p_index), p_buffer);
-    trc_gl_state_set_bound_buffer_indexed(ctx, p_target, p_index, {p_buffer, 0, 0});
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf_id, p_buffer);
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){p_buffer, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -2328,14 +2328,14 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    if (rev && (size<=0 || offset+size>(rev->data?rev->data->size:0)))
+    if (rev && (p_size<=0 || p_offset+p_size>(rev->data?rev->data->size:0)))
         ERROR("Invalid range");
     //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx, p_target, p_index), p_buffer);
-    trc_gl_state_set_bound_buffer_indexed(ctx, p_target, p_index, {p_buffer, p_offset, p_size});
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf_id, p_buffer);
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){p_buffer, p_offset, p_size});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;

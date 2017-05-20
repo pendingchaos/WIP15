@@ -49,7 +49,7 @@ transform feedback support:
     check to see if the primitive mode passed to draw calls is correct
         see glBeginTransformFeedback's man page
     check to see if any used UBOs, SSBOs or atomic counter buffers are bound as transform feedback buffers before draw calls
-    chec to see if any buffers are mapped and are also bound as transform feedback buffers
+    check to see if any buffers are mapped and are also bound as transform feedback buffers
 
 Much more validation during replay
 
