@@ -1153,12 +1153,96 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
     end_get_fb0_data(ctx, prev);
 }
 
-static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
+static bool not_one_of(int val, ...) {
+    va_list list;
+    va_start(list, val);
+    while (true) {
+        int v = va_arg(list, int);
+        if (v == -1) break;
+        if (v == val) return false;
+    }
+    va_end(list);
+    return true;
+}
+
+static GLuint* get_tf_buffer_list(trc_replay_context_t* ctx, size_t* count) {
+    size_t max = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0) + 1;
+    GLuint* bufs = replay_alloc(max*sizeof(GLuint));
+    *count = 0;
+    
+    GLuint buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
+    if (buf) bufs[(*count)++] = buf;
+    
+    for (uint i = 0; i < max-1; i++) {
+        buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i).buf_id;
+        if (buf) bufs[(*count)++] = buf;
+    }
+    
+    return bufs;
+}
+
+static bool is_tf_buffer(uint count, GLuint* bufs, GLuint test) {
+    for (uint i = 0; i < count; i++) if (bufs[i] == test) return true;
+    return false;
+}
+
+static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum primitive) {
+    if (!trc_gl_state_get_tf_active_not_paused(ctx->trace)) return true;
+    
+    size_t buf_count;
+    GLuint* bufs = get_tf_buffer_list(ctx, &buf_count);
+    
+    //Find any buffers that can be accessed by the program(s) that are also transform feedback buffers
+    //TODO: Find out if the binding is actually referenced in the shader
+    #define T(max, type) do {int count = trc_gl_state_get_state_int(ctx->trace, max, 0);\
+    for (size_t i = 0; i < count; i++) {\
+        GLuint buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, type, i).buf_id;\
+        if (is_tf_buffer(buf_count, bufs, buf))\
+            trc_add_warning(cmd, "A transform feedback buffer is bound to "#type"[%u]", i);\
+    }} while (0)
+    T(GL_MAX_UNIFORM_BUFFER_BINDINGS, GL_UNIFORM_BUFFER);
+    T(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, GL_SHADER_STORAGE_BUFFER);
+    T(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, GL_ATOMIC_COUNTER_BUFFER);
+    #undef T
+    
+    //Test the primitive
+    GLint test_primitive = primitive;
+    
+    GLuint geom_program;
+    if ((geom_program=trc_gl_state_get_bound_program(ctx->trace))) {
+        F(glGetError)();
+        F(glGetProgramiv)(trc_get_gl_program(ctx->trace, geom_program)->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
+        if (F(glGetError)() == GL_INVALID_OPERATION) test_primitive = primitive; //No geometry shader
+    } //TODO: Handle program pipelines
+    
+    switch (trc_gl_state_get_tf_primitive(ctx->trace)) {
+    case GL_POINTS:
+        if (test_primitive != GL_POINTS)
+            ERROR2(false, "Primitive not compatible with transform feedback primitive");
+        break;
+    case GL_LINES:
+        if (not_one_of(test_primitive, GL_LINES, GL_LINE_LOOP, GL_LINE_STRIP, GL_LINES_ADJACENCY, GL_LINE_STRIP_ADJACENCY, -1))
+            ERROR2(false, "Primitive not compatible with transform feedback primitive");
+        break;
+    case GL_TRIANGLES:
+        if (not_one_of(test_primitive, GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN, GL_TRIANGLES_ADJACENCY, GL_TRIANGLE_STRIP_ADJACENCY, -1))
+            ERROR2(false, "Primitive not compatible with transform feedback primitive");
+        break;
+    }
+    
+    return true;
+}
+
+static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum primitive) {
     const trc_gl_context_rev_t* state = trc_get_gl_context(ctx->trace, 0);
     const trc_gl_vao_rev_t* vao = trc_get_gl_vao(ctx->trace, state->bound_vao);
     if (vao == NULL) ERROR2(false, "No VAO bound");
     const trc_gl_program_rev_t* program = trc_get_gl_program(ctx->trace, state->bound_program);
     if (program == NULL) ERROR2(false, "No program bound");
+    //TODO: Support program pipelines
+    
+    if (!tf_draw_validation(ctx, cmd, primitive))
+        return false;
     
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
@@ -1197,18 +1281,6 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     
-    return true;
-}
-
-static bool not_one_of(int val, ...) {
-    va_list list;
-    va_start(list, val);
-    while (true) {
-        int v = va_arg(list, int);
-        if (v == -1) break;
-        if (v == val) return false;
-    }
-    va_end(list);
     return true;
 }
 
@@ -1739,6 +1811,15 @@ static const trc_gl_buffer_rev_t* on_change_tf_binding(trc_replay_context_t* ctx
     newrev.tf_binding_count++;
     trc_set_gl_buffer(ctx->trace, new_buf, &newrev);
     return trc_get_gl_buffer(ctx->trace, new_buf);
+}
+
+static void on_activate_tf(trc_replay_context_t* ctx, trace_command_t* cmd) {
+    size_t buf_count;
+    GLuint* bufs = get_tf_buffer_list(ctx, &buf_count);
+    for (size_t i = 0; i < buf_count; i++) {
+        if (trc_get_gl_buffer(ctx->trace, bufs[i])->mapped)
+            trc_add_warning(cmd, "Buffer bound to GL_TRANSFORM_FEEDBACK_BUFFER is mapped");
+    }
 }
 
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
@@ -4004,72 +4085,72 @@ glEndConditionalRender: //
     real();
 
 glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_first, p_count);
     end_draw(ctx, cmd);
 
 glDrawArraysInstanced: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_first, p_count, p_instancecount);
     end_draw(ctx, cmd);
 
 glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count, GLsizei p_drawcount
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_first, p_count, p_drawcount);
     end_draw(ctx, cmd);
 
 glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount);
     end_draw(ctx, cmd);
 
 glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void *const* p_indices, GLsizei p_drawcount, const GLint* p_basevertex
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount);
     end_draw(ctx, cmd);
 
 glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
     end_draw(ctx, cmd);
 
 glDrawElementsInstancedBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLuint p_baseinstance
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_baseinstance);
     end_draw(ctx, cmd);
 
 glDrawElementsInstancedBaseVertexBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex, GLuint p_baseinstance
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex, p_baseinstance);
     end_draw(ctx, cmd);
 
 glDrawArraysInstancedBaseInstance: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount, GLuint p_baseinstance
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_first, p_count, p_instancecount, p_baseinstance);
     end_draw(ctx, cmd);
 
 glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices);
     end_draw(ctx, cmd);
 
 glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
-    if (!begin_draw(ctx, cmd)) RETURN;
+    if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
@@ -5080,6 +5161,8 @@ glBeginTransformFeedback: //GLenum p_primitiveMode
     real(p_primitiveMode);
     trc_gl_state_set_tf_active(ctx->trace, true);
     trc_gl_state_set_tf_active_not_paused(ctx->trace, true);
+    trc_gl_state_set_tf_primitive(ctx->trace, p_primitiveMode);
+    on_activate_tf(ctx, cmd);
 
 glEndTransformFeedback: //
     if (!trc_gl_state_get_tf_active(ctx->trace))
@@ -5103,3 +5186,4 @@ glResumeTransformFeedback: //
         ERROR("Transform feedback is not paused");
     trc_gl_state_set_tf_paused(ctx->trace, false);
     trc_gl_state_set_tf_active_not_paused(ctx->trace, true);
+    on_activate_tf(ctx, cmd);

@@ -41,6 +41,7 @@ framebuffer draw_framebuffer
 bool tf_active
 bool tf_paused
 bool tf_active_not_paused
+uint tf_primitive
 
 map array query bound_queries
     GL_SAMPLES_PASSED
