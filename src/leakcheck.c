@@ -8,7 +8,7 @@
 int main(int argc, char** argv) {
     if (argc != 2) {
         fprintf(stderr, "Expected one argument. Got %d.\n", argc);
-        fprintf(stderr, "Usage: inspect-gui <trace file>\n");
+        fprintf(stderr, "Usage: %s <trace file>\n", argv[0]);
         return EXIT_FAILURE;
     }
     

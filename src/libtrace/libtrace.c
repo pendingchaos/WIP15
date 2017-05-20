@@ -743,14 +743,6 @@ void free_trace(trace_t* trace) {
     free(trace);
 }
 
-trace_value_t* trc_get_arg(trace_command_t* command, size_t i) {
-    return &command->args[i];
-}
-
-trace_command_t* trc_get_cmd(trace_frame_t* frame, size_t i) {
-    return &frame->commands[i];
-}
-
 trace_error_t trc_get_error() {
     trace_error_t error = trace_error;
     trace_error = TraceError_None;

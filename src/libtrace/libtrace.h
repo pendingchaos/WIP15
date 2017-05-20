@@ -399,8 +399,6 @@ typedef struct trc_replay_context_t {
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);
 void trc_free_value(trace_value_t value);
-trace_value_t* trc_get_arg(trace_command_t* command, size_t i);
-trace_command_t* trc_get_cmd(trace_frame_t* frame, size_t i);
 trace_error_t trc_get_error();
 const char *trc_get_error_desc();
 trace_value_t trc_create_uint(uint32_t count, uint64_t* vals);

@@ -846,13 +846,13 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                     si += dimx * dimy * i;
                     switch (type) {
                     case GL_FLOAT:
-                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si]; break;
+                        val = trc_get_double(&cmd->args[arg_pos])[si]; break;
                     case GL_DOUBLE:
-                        val = trc_get_double(trc_get_arg(cmd, arg_pos))[si]; break;
+                        val = trc_get_double(&cmd->args[arg_pos])[si]; break;
                     case GL_INT:
-                        val = trc_get_int(trc_get_arg(cmd, arg_pos))[si]; break;
+                        val = trc_get_int(&cmd->args[arg_pos])[si]; break;
                     case GL_UNSIGNED_INT:
-                        val = trc_get_uint(trc_get_arg(cmd, arg_pos))[si]; break;
+                        val = trc_get_uint(&cmd->args[arg_pos])[si]; break;
                     }
                 } else {
                     switch (type) {
@@ -923,23 +923,23 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
             switch (type) {
             case GL_UNSIGNED_BYTE:
             case GL_UNSIGNED_SHORT:
-            case GL_UNSIGNED_INT: val = trc_get_int(trc_get_arg(cmd, 1))[i]; break;
+            case GL_UNSIGNED_INT: val = trc_get_int(&cmd->args[1])[i]; break;
             case GL_BYTE:
             case GL_SHORT:
-            case GL_INT: val = trc_get_uint(trc_get_arg(cmd, 1))[i]; break;
+            case GL_INT: val = trc_get_uint(&cmd->args[1])[i]; break;
             case GL_FLOAT:
-            case GL_DOUBLE: val = trc_get_double(trc_get_arg(cmd, 1))[i]; break;
+            case GL_DOUBLE: val = trc_get_double(&cmd->args[1])[i]; break;
             }
         } else {
             switch (type) {
             case GL_UNSIGNED_BYTE:
             case GL_UNSIGNED_SHORT:
-            case GL_UNSIGNED_INT: val = trc_get_int(trc_get_arg(cmd, i+1))[0]; break;
+            case GL_UNSIGNED_INT: val = trc_get_int(&cmd->args[i+1])[0]; break;
             case GL_BYTE:
             case GL_SHORT:
-            case GL_INT: val = trc_get_uint(trc_get_arg(cmd, i+1))[0]; break;
+            case GL_INT: val = trc_get_uint(&cmd->args[i+1])[0]; break;
             case GL_FLOAT:
-            case GL_DOUBLE: val = trc_get_double(trc_get_arg(cmd, i+1))[0]; break;
+            case GL_DOUBLE: val = trc_get_double(&cmd->args[i+1])[0]; break;
             }
         }
         if (internal==GL_FLOAT) val = (float)val;
@@ -2291,13 +2291,13 @@ glTexParameteri: //GLenum p_target, GLenum p_pname, GLint p_param
         real(p_target, p_pname, p_param);
 
 glTexParameterfv: //GLenum p_target, GLenum p_pname, const GLfloat* p_params
-    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    trace_value_t* paramsv = &cmd->args[2];
     const double* paramsd = trc_get_double(paramsv);
     if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, paramsd))
         real(p_target, p_pname, p_params);
 
 glTexParameteriv: //GLenum p_target, GLenum p_pname, const GLint* p_params
-    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    trace_value_t* paramsv = &cmd->args[2];
     const int64_t* params64 = trc_get_int(paramsv);
     double* double_params = replay_alloc(paramsv->count*sizeof(double));
     for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
@@ -2323,13 +2323,13 @@ glTextureParameteri: //GLuint p_texture, GLenum p_pname, GLint p_param
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameterfv: //GLuint p_texture, GLenum p_pname, const GLfloat* p_param
-    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    trace_value_t* paramsv = &cmd->args[2];
     const double* paramsd = trc_get_double(paramsv);
     if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, paramsd))
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameteriv: //GLuint p_texture, GLenum p_pname, const GLint* p_param
-    trace_value_t* paramsv = trc_get_arg(cmd, 2);
+    trace_value_t* paramsv = &cmd->args[2];
     double* double_params = replay_alloc(paramsv->count*sizeof(double));
     for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_param[i];
     if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
@@ -2498,7 +2498,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     size_t res_sources_size = 0;
     char* res_sources = NULL;
-    if (trc_get_arg(cmd, 3)->count == 0) {
+    if (cmd->args[3].count == 0) {
         real(shader, p_count, p_string, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+strlen(p_string[i])+1);

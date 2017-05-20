@@ -31,6 +31,7 @@ Debugging:
 
 Tests:
     Compare expected objects with actual objects
+    Implement more of them
 
 Bugs:
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
