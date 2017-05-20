@@ -112,10 +112,9 @@ void trc_free_value(trace_value_t value) {
 }
 
 static void free_command(trace_command_t* command) {
-    trace_val_vec_t args = command->args;
-    for (trace_value_t* arg = args->data; !vec_end(args, arg); arg++) trc_free_value(*arg);
-    free_trace_val_vec(args);
-    
+    for (size_t i = 0; i < command->arg_count; i++)
+        trc_free_value(command->args[i]);
+    free(command->args);
     trc_free_value(command->ret);
     
     for (size_t i = 0; i < command->extra_count; i++) {
@@ -609,19 +608,21 @@ trace_t *load_trace(const char* filename) {
             if (!decl->name)
                 ERROR("Undeclared function used");
             
-            command.args = alloc_trace_val_vec(decl->arg_count);
-            for (trace_value_t* a = command.args->data; !vec_end(command.args, a); a++) {
-                memset(a, 0, sizeof(trace_value_t));
-                a->type = Type_Void;
+            command.arg_count = decl->arg_count;
+            command.args = malloc(decl->arg_count*sizeof(trace_value_t));
+            for (size_t i = 0; i < decl->arg_count; i++) {
+                memset(&command.args[i], 0, sizeof(trace_value_t));
+                command.args[i].type = Type_Void;
             }
             memset(&command.ret.type, 0, sizeof(trace_value_t));
             command.ret.type = Type_Void;
             
-            for (size_t i = 0; i < decl->arg_count; i++)
-                if (!read_val(file, get_trace_val_vec(command.args, i), decl->args+i, trace)) {
+            for (size_t i = 0; i < decl->arg_count; i++) {
+                if (!read_val(file, &command.args[i], decl->args+i, trace)) {
                     free_command(&command);
                     ERROR("Failed to read argument");
                 }
+            }
             
             if (!read_val(file, &command.ret, &decl->result, trace)) {
                 free_command(&command);
@@ -743,7 +744,7 @@ void free_trace(trace_t* trace) {
 }
 
 trace_value_t* trc_get_arg(trace_command_t* command, size_t i) {
-    return get_trace_val_vec(command->args, i);
+    return &command->args[i];
 }
 
 trace_command_t* trc_get_cmd(trace_frame_t* frame, size_t i) {

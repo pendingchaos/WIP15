@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#include "shared/vec.h"
 #include "shared/uint.h"
 
 #define TRC_GL_OBJ_HEAD uint64_t revision;\
@@ -84,7 +83,6 @@ typedef struct {
     };
     int32_t group_index; //Negative if there is no group
 } trace_value_t;
-TYPED_VEC(trace_value_t, trace_val)
 
 typedef enum trc_compression_t {
     TrcCompression_None,
@@ -352,7 +350,8 @@ typedef struct {
 
 typedef struct trace_command_t {
     uint32_t func_index;
-    trace_val_vec_t args;
+    uint32_t arg_count;
+    trace_value_t* args;
     trace_value_t ret;
     
     uint32_t extra_count;

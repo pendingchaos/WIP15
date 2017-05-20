@@ -150,11 +150,9 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
 void format_command(trace_t* trace, char* str, trace_command_t* cmd, size_t n) {
     strncat(str, static_format("%s(", trace->func_names[cmd->func_index]), n);
     
-    trace_val_vec_t args = cmd->args;
-    size_t count = get_trace_val_vec_count(args);
-    for (size_t i = 0; i < count; i++) {
-        format_value(trace, str, *get_trace_val_vec(args, i), n);
-        if (i != count-1)
+    for (size_t i = 0; i < cmd->arg_count; i++) {
+        format_value(trace, str, cmd->args[i], n);
+        if (i != cmd->arg_count-1)
             strncat(str, static_format(", "), n);
     }
     
