@@ -1681,6 +1681,22 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
     trc_set_gl_buffer(ctx->trace, fake, &newrev);
 }
 
+static bool flush_mapped_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
+                                      GLenum target_or_buf, GLintptr offset, GLsizeiptr length) {
+    if (!dsa) target_or_buf = get_bound_buffer(ctx, target_or_buf);
+    trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, target_or_buf);
+    if (!rev) ERROR2(false, "No buffer bound to target");
+    if (!rev->has_object) ERROR2(false, "Buffer name has no object");
+    if (!rev->mapped) ERROR2(false, "Buffer object is not mapped");
+    if (!rev->map_access&GL_MAP_FLUSH_EXPLICIT_BIT)
+        ERROR2(false, "Buffer object is mapped without GL_MAP_FLUSH_EXPLICIT_BIT");
+    if (offset<0 || length<0 || offset+length>rev->map_length)
+        ERROR2(false, "Invalid bounds");
+    //Currently does nothing but validate - this is only useful for persistently mapped buffers
+    //but those are not supported at the moment
+    return true;
+}
+
 static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLintptr offset, GLsizeiptr size) {
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
@@ -2473,6 +2489,12 @@ glUnmapBuffer: //GLenum p_target
 
 glUnmapNamedBuffer: //GLuint p_buffer
     unmap_buffer(ctx, cmd, true, p_buffer);
+
+glFlushMappedBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length
+    flush_mapped_buffer_range(ctx, cmd, false, p_target, p_offset, p_length);
+
+glFlushMappedNamedBufferRange: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_length
+    flush_mapped_buffer_range(ctx, cmd, true, p_buffer, p_offset, p_length);
 
 glCreateShader: //GLenum p_type
     GLuint real_shdr = F(glCreateShader)(p_type);
