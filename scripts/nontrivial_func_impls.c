@@ -1644,23 +1644,25 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
 }
 
 static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint target_or_buf) {
-    trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
-    if (!extra) ERROR("replay/glUnmapBuffer/data extra not found");
-    
     uint fake = dsa ? target_or_buf : get_bound_buffer(ctx, target_or_buf);
     const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, fake);
-    if (!rev) ERROR(dsa?"Invalid buffer name":"No buffer bound to target");
-    if (!rev->data) ERROR("Buffer has no data");
-    if (extra->size != rev->data->size) ERROR("Invalid trace");
-    if (!rev->mapped) ERROR("Unmapping a buffer that is not mapped");
+    if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
+    if (!rev->data) ERROR2(, "Buffer has no data");
+    if (!rev->mapped) ERROR2(, "Unmapping a buffer that is not mapped");
     
     trc_gl_buffer_rev_t newrev = *rev;
     
     if (rev->map_access & GL_MAP_WRITE_BIT) {
-        if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
-            F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
-        else
-            F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
+        trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
+        if (!extra) trc_add_error(cmd, "replay/glUnmapBuffer/data extra not found");
+        
+        if (extra) {
+            if (extra->size != rev->data->size) ERROR2(, "Invalid trace");
+            if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
+                F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
+            else
+                F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
+        }
         
         newrev.data = trc_create_data(ctx->trace, rev->data->size, NULL, TRC_DATA_NO_ZERO);
         void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
@@ -1669,7 +1671,7 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
         memcpy(newdata, olddata, rev->data->size);
         trc_unmap_data(rev->data);
         
-        memcpy(newdata, extra->data, extra->size);
+        if (extra) memcpy(newdata, extra->data, extra->size);
         trc_unmap_freeze_data(ctx->trace, newrev.data);
     }
     
@@ -1684,11 +1686,11 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
 static bool flush_mapped_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                       GLenum target_or_buf, GLintptr offset, GLsizeiptr length) {
     if (!dsa) target_or_buf = get_bound_buffer(ctx, target_or_buf);
-    trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, target_or_buf);
+    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(ctx->trace, target_or_buf);
     if (!rev) ERROR2(false, "No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
     if (!rev->mapped) ERROR2(false, "Buffer object is not mapped");
-    if (!rev->map_access&GL_MAP_FLUSH_EXPLICIT_BIT)
+    if (!(rev->map_access&GL_MAP_FLUSH_EXPLICIT_BIT))
         ERROR2(false, "Buffer object is mapped without GL_MAP_FLUSH_EXPLICIT_BIT");
     if (offset<0 || length<0 || offset+length>rev->map_length)
         ERROR2(false, "Invalid bounds");
@@ -2579,6 +2581,8 @@ glCreateProgram: //
     rev.uniforms = empty_data;
     rev.vertex_attribs = empty_data;
     rev.uniform_blocks = empty_data;
+    for (size_t i = 0; i < 6; i++) rev.subroutines[i] = empty_data;
+    for (size_t i = 0; i < 6; i++) rev.subroutine_uniforms[i] = empty_data;
     rev.shaders = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
     rev.binary_retrievable_hint = -1;
@@ -2675,6 +2679,184 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     
     trc_set_gl_program(ctx->trace, p_program, &program);
 
+typedef struct link_program_extra_t {
+    char* name;
+    uint32_t val;
+    GLenum stage;
+    uint32_t stage_idx;
+} link_program_extra_t;
+
+static uint link_program_extra(trace_command_t* cmd, const char* name, size_t* i, link_program_extra_t* res) {
+    trace_extra_t* extra = trc_get_extrai(cmd, name, (*i)++);
+    if (!extra) return -1; //-1=End
+    
+    if (extra->size < 12) ERROR2(1, "Invalid %s extra", name); //1=skip
+    void* data = extra->data;
+    res->val = le32toh(((uint32_t*)data)[0]);
+    res->stage = le32toh(((uint32_t*)data)[1]);
+    uint32_t len = le32toh(((uint32_t*)data)[2]);
+    if (extra->size < 12+len) ERROR2(1, "Invalid %s extra", name); //1=skip
+    
+    switch (res->stage) {
+    case GL_VERTEX_SHADER: res->stage_idx = 0; break;
+    case GL_TESS_CONTROL_SHADER: res->stage_idx = 1; break;
+    case GL_TESS_EVALUATION_SHADER: res->stage_idx = 2; break;
+    case GL_GEOMETRY_SHADER: res->stage_idx = 3; break;
+    case GL_FRAGMENT_SHADER: res->stage_idx = 4; break;
+    case GL_COMPUTE_SHADER: res->stage_idx = 5; break;
+    case 0: res->stage_idx = 0; break;
+    default: ERROR2(1, "Invalid %s extra", name); //1=skip
+    }
+    
+    res->name = calloc(1, len+1);
+    memcpy(res->name, (uint8_t*)data+12, len);
+    
+    return 0; //0=Use
+}
+
+//TODO: The get_program_* functions are all very similar
+static trc_data_t* get_program_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
+    size_t uniform_count = 0;
+    trc_gl_program_uniform_t* uniforms = NULL;
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra(cmd, "replay/program/uniform", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        GLint real_loc = F(glGetUniformLocation)(real_program, extra.name);
+        if (real_loc < 0) {
+            trc_add_error(cmd, "Nonexistent or inactive uniform while adding uniform %s", extra.name);
+        } else {
+            uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
+            trc_gl_program_uniform_t uni;
+            memset(&uni, 0, sizeof(uni)); //initialize padding to zero - it might be compressed
+            uni.real = real_loc;
+            uni.fake = extra.val;
+            uni.dim[0] = 0;
+            uni.dim[1] = 0;
+            uni.count = 0;
+            uni.value = NULL;
+            uniforms[uniform_count++] = uni;
+        }
+        free(extra.name);
+    }
+    
+    return trc_create_data_no_copy(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
+}
+    
+static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
+    size_t vertex_attrib_count = 0;
+    uint* vertex_attribs = NULL;
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra(cmd, "replay/program/vertex_attrib", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        GLint real_idx = F(glGetAttribLocation)(real_program, extra.name);
+        if (real_idx < 0) {
+            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute %s", extra.name);
+        } else {
+            vertex_attribs = realloc(vertex_attribs, (vertex_attrib_count+1)*sizeof(uint)*2);
+            vertex_attribs[vertex_attrib_count*2] = real_idx;
+            vertex_attribs[vertex_attrib_count++*2+1] = extra.val;
+        }
+        free(extra.name);
+    }
+    
+    return trc_create_data_no_copy(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
+}
+
+static trc_data_t* get_program_uniform_blocks(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
+    size_t uniform_block_count = 0;
+    trc_gl_program_uniform_block_t* uniform_blocks = NULL;
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra(cmd, "replay/program/uniform_block", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        GLint real_idx = F(glGetUniformBlockIndex)(real_program, extra.name);
+        if (real_idx < 0) {
+            trc_add_error(cmd, "Nonexistent or inactive uniform block while adding uniform block %s", extra.name);
+        } else {
+            uniform_blocks = realloc(uniform_blocks, (uniform_block_count+1)*sizeof(trc_gl_program_uniform_block_t));
+            trc_gl_program_uniform_block_t block;
+            memset(&block, 0, sizeof(block)); //initialize padding to zero - it might be compressed
+            block.real = real_idx;
+            block.fake = extra.val;
+            block.binding = 0;
+            uniform_blocks[uniform_block_count++] = block;
+        }
+        free(extra.name);
+    }
+    
+    return trc_create_data_no_copy(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
+}
+
+static void get_program_subroutines(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program, trc_data_t** datas) {
+    //TODO: Check for extensions
+    bool compute_supported = trc_gl_state_get_ver(ctx->trace) >= 430;
+    bool tesselation_supported = trc_gl_state_get_ver(ctx->trace) >= 400;
+    
+    size_t subroutine_count[6] = {0};
+    uint* subroutines[6] = {0};
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra(cmd, "replay/program/subroutine", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        if ((extra.stage==GL_COMPUTE_SHADER && !compute_supported) ||
+            ((extra.stage==GL_TESS_CONTROL_SHADER||extra.stage==GL_TESS_EVALUATION_SHADER) && !tesselation_supported)) {
+            trc_add_error(cmd, "Unsupported shader stage while adding subroutine %s", extra.name);
+            continue;
+        }
+        GLint real_idx = F(glGetSubroutineIndex)(real_program, extra.stage, extra.name);
+        if (real_idx == GL_INVALID_INDEX) {
+            trc_add_error(cmd, "Nonexistent or inactive subroutine while adding subroutine %s", extra.name);
+        } else {
+            subroutines[extra.stage_idx] = realloc(subroutines[extra.stage_idx], (subroutine_count[extra.stage_idx]+1)*sizeof(uint)*2);
+            subroutines[extra.stage_idx][subroutine_count[extra.stage_idx]*2] = real_idx;
+            subroutines[extra.stage_idx][subroutine_count[extra.stage_idx]++*2+1] = extra.val;
+        }
+        free(extra.name);
+    }
+    
+    for (size_t i = 0; i < 6; i++)
+        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], TRC_DATA_IMMUTABLE);
+}
+
+static void get_program_subroutine_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program, trc_data_t** datas) {
+    //TODO: Check for extensions
+    bool compute_supported = trc_gl_state_get_ver(ctx->trace) >= 430;
+    bool tesselation_supported = trc_gl_state_get_ver(ctx->trace) >= 400;
+    
+    //"_uniform" not included to keep names short
+    size_t subroutine_count[6] = {0};
+    uint* subroutines[6] = {0};
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra(cmd, "replay/program/subroutine_uniform", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        if ((extra.stage==GL_COMPUTE_SHADER && !compute_supported) ||
+            ((extra.stage==GL_TESS_CONTROL_SHADER||extra.stage==GL_TESS_EVALUATION_SHADER) && !tesselation_supported)) {
+            trc_add_error(cmd, "Unsupported shader stage while adding subroutine uniform %s", extra.name);
+            continue;
+        }
+        GLint real_idx = F(glGetSubroutineUniformLocation)(real_program, extra.stage, extra.name);
+        if (real_idx == GL_INVALID_INDEX) {
+            trc_add_error(cmd, "Nonexistent or inactive subroutine while adding subroutine uniform %s", extra.name);
+        } else {
+            subroutines[extra.stage_idx] = realloc(subroutines[extra.stage_idx], (subroutine_count[extra.stage_idx]+1)*sizeof(uint)*2);
+            subroutines[extra.stage_idx][subroutine_count[extra.stage_idx]*2] = real_idx;
+            subroutines[extra.stage_idx][subroutine_count[extra.stage_idx]++*2+1] = extra.val;
+        }
+        free(extra.name);
+    }
+    
+    for (size_t i = 0; i < 6; i++)
+        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], TRC_DATA_IMMUTABLE);
+}
+
 glLinkProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
@@ -2692,92 +2874,13 @@ glLinkProgram: //GLuint p_program
     F(glGetProgramInfoLog)(real_program, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
-    size_t uniform_count = 0;
-    trc_gl_program_uniform_t* uniforms = NULL;
-    trace_extra_t* uniform = NULL;
-    size_t i = 0;
-    while ((uniform=trc_get_extrai(cmd, "replay/program/uniform", i++))) {
-        if (uniform->size < 8) continue;
-        void* data = uniform->data;
-        uint32_t fake_loc = le32toh(((uint32_t*)data)[0]);
-        uint32_t len = le32toh(((uint32_t*)data)[1]);
-        char* name = calloc(1, len+1);
-        memcpy(name, (uint8_t*)data+8, len);
-        
-        GLint real_loc = F(glGetUniformLocation)(real_program, name);
-        if (real_loc < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive uniform while adding uniforms", name);
-        } else {
-            uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
-            trc_gl_program_uniform_t uni;
-            memset(&uni, 0, sizeof(uni)); //initialize padding to zero - it might be compressed
-            uni.real = real_loc;
-            uni.fake = fake_loc;
-            uni.dim[0] = 0;
-            uni.dim[1] = 0;
-            uni.count = 0;
-            uni.value = NULL;
-            uniforms[uniform_count++] = uni;
-        }
-        
-        free(name);
+    rev.uniforms = get_program_uniforms(cmd, ctx, real_program);
+    rev.vertex_attribs = get_program_vertex_attribs(cmd, ctx, real_program);
+    rev.uniform_blocks = get_program_uniform_blocks(cmd, ctx, real_program);
+    if (trc_gl_state_get_ver(ctx->trace) >= 400) { //TODO: Check for the extension
+        get_program_subroutines(cmd, ctx, real_program, rev.subroutines);
+        get_program_subroutine_uniforms(cmd, ctx, real_program, rev.subroutine_uniforms);
     }
-    
-    size_t vertex_attrib_count = 0;
-    uint* vertex_attribs = NULL;
-    trace_extra_t* attrib = NULL;
-    i = 0;
-    while ((attrib=trc_get_extrai(cmd, "replay/program/vertex_attrib", i++))) {
-        if (attrib->size < 8) continue;
-        void* data = attrib->data;
-        uint32_t fake_idx = le32toh(((uint32_t*)data)[0]);
-        uint32_t len = le32toh(((uint32_t*)data)[1]);
-        char* name = calloc(1, len+1);
-        memcpy(name, (uint8_t*)data+8, len);
-        
-        GLint real_idx = F(glGetAttribLocation)(real_program, name);
-        if (real_idx < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attributes");
-        } else {
-            vertex_attribs = realloc(vertex_attribs, (vertex_attrib_count+1)*sizeof(uint)*2);
-            vertex_attribs[vertex_attrib_count*2] = real_idx;
-            vertex_attribs[vertex_attrib_count++*2+1] = fake_idx;
-        }
-        
-        free(name);
-    }
-    
-    size_t uniform_block_count = 0;
-    trc_gl_program_uniform_block_t* uniform_blocks = NULL;
-    trace_extra_t* uniform_block = NULL;
-    i = 0;
-    while ((uniform_block=trc_get_extrai(cmd, "replay/program/uniform_block", i++))) {
-        if (uniform_block->size < 8) continue;
-        void* data = uniform_block->data;
-        uint32_t fake_idx = le32toh(((uint32_t*)data)[0]);
-        uint32_t len = le32toh(((uint32_t*)data)[1]);
-        char* name = calloc(1, len+1);
-        memcpy(name, (uint8_t*)data+8, len);
-        
-        GLint real_idx = F(glGetUniformBlockIndex)(real_program, name);
-        if (real_idx < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive uniform block while adding uniform blocks");
-        } else {
-            uniform_blocks = realloc(uniform_blocks, (uniform_block_count+1)*sizeof(trc_gl_program_uniform_block_t));
-            trc_gl_program_uniform_block_t block;
-            memset(&block, 0, sizeof(block)); //initialize padding to zero - it might be compressed
-            block.real = real_idx;
-            block.fake = fake_idx;
-            block.binding = 0;
-            uniform_blocks[uniform_block_count++] = block;
-        }
-        
-        free(name);
-    }
-    
-    rev.uniform_blocks = trc_create_data_no_copy(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
-    rev.vertex_attribs = trc_create_data_no_copy(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
-    rev.uniforms = trc_create_data_no_copy(ctx->trace, uniform_count*sizeof(trc_gl_program_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
     
     trc_set_gl_program(ctx->trace, p_program, &rev);
     

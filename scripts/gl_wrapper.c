@@ -887,14 +887,16 @@ size_t glx_attrib_int_count(const int* attribs) {
     return count + 1;
 }
 
-static void add_program_extra(const char* type, const char* name, uint32_t val) {
-    uint8_t data[strlen(name)+8];
+static void add_program_extra(const char* type, const char* name, GLenum stage, uint32_t val) {
+    uint8_t data[strlen(name)+12];
     val = htole32(val);
+    stage = htole32(stage);
     uint32_t len = htole32(strlen(name));
     memcpy(data, &val, 4);
-    memcpy(data+4, &len, 4);
-    memcpy(data+8, name, strlen(name));
-    gl_add_extra(type, strlen(name)+8, data);
+    memcpy(data+4, &stage, 4);
+    memcpy(data+8, &len, 4);
+    memcpy(data+12, name, strlen(name));
+    gl_add_extra(type, strlen(name)+12, data);
 }
 
 static void link_program_extras(GLuint program) {
@@ -914,12 +916,12 @@ static void link_program_extras(GLuint program) {
         if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
             name[strlen(name)-3] = 0;
         
-        add_program_extra("replay/program/uniform", name, F(glGetUniformLocation)(program, name));
+        add_program_extra("replay/program/uniform", name, 0, F(glGetUniformLocation)(program, name));
         for (size_t j = 1; j < size; j++) {
             GLchar new_name[maxNameLen+16];
             memset(new_name, 0, maxNameLen+16);
             snprintf(new_name, maxNameLen+16, "%s[%zu]", name, j);
-            add_program_extra("replay/program/uniform", new_name, F(glGetUniformLocation)(program, new_name));
+            add_program_extra("replay/program/uniform", new_name, 0, F(glGetUniformLocation)(program, new_name));
         }
     }
     
@@ -935,13 +937,13 @@ static void link_program_extras(GLuint program) {
         if (strncmp(name, "gl_", 3) == 0) continue; //TODO: Remove this?
         
         if (size == 1) {
-            add_program_extra("replay/program/vertex_attrib", name, F(glGetAttribLocation)(program, name));
+            add_program_extra("replay/program/vertex_attrib", name, 0, F(glGetAttribLocation)(program, name));
         } else {
             for (size_t j = 0; j < size; j++) {
                 GLchar new_name[maxNameLen+1];
                 memset(new_name, 0, maxNameLen+1);
                 snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                add_program_extra("replay/program/vertex_attrib", new_name, F(glGetAttribLocation)(program, name));
+                add_program_extra("replay/program/vertex_attrib", new_name, 0, F(glGetAttribLocation)(program, name));
             }
         }
     }
@@ -952,8 +954,46 @@ static void link_program_extras(GLuint program) {
         GLchar name[maxNameLen+1];
         memset(name, 0, maxNameLen+1);
         F(glGetActiveUniformBlockName)(program, i, maxNameLen+1, NULL, name);
-        add_program_extra("replay/program/uniform_block", name, F(glGetUniformBlockIndex)(program, name));
+        add_program_extra("replay/program/uniform_block", name, 0, F(glGetUniformBlockIndex)(program, name));
     }
+    
+    /*GLint major, minor;
+    F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
+    F(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+    uint ver = major*100 + minor*10;
+    
+    bool subroutines_supported = ver>=400; //TODO: Test for the extension's support
+    if (subroutines_supported) {
+        size_t stage_count = 3;
+        GLenum stages[6] = {GL_VERTEX_SHADER, GL_GEOMETRY_SHADER, GL_FRAGMENT_SHADER, 0, 0};
+        
+        if (ver>=400) { //TODO: Test for the extension's support
+            stages[stage_count++] = GL_TESS_CONTROL_SHADER;
+            stages[stage_count++] = GL_TESS_EVALUATION_SHADER;
+        }
+        if (ver>=430) stages[stage_count++] = GL_COMPUTE_SHADER; //TODO: Test for the extension's support
+        
+        for (size_t i = 0; i < stage_count; i++) {
+            GLenum stage = stages[i];
+            
+            F(glGetProgramStageiv)(program, stage, GL_ACTIVE_SUBROUTINES, &count);
+            for (GLint j = 0; j < count; j++) {
+                GLchar name[maxNameLen+1];
+                memset(name, 0, maxNameLen+1);
+                F(glGetActiveSubroutineName)(program, stage, j, maxNameLen+1, NULL, name);
+                add_program_extra("replay/program/subroutine", name, stage, j);
+            }
+            
+            F(glGetProgramStageiv)(program, stage, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &count);
+            for (GLint j = 0; j < count; j++) {
+                F(glGetActiveSubroutineUniformiv)(program, stage, j, GL_UNIFORM_NAME_LENGTH, &maxNameLen);
+                GLchar name[maxNameLen+1];
+                memset(name, 0, maxNameLen+1);
+                F(glGetActiveSubroutineUniformName)(program, stage, j, maxNameLen+1, NULL, name);
+                add_program_extra("replay/program/subroutine_uniform", name, stage, j);
+            }
+        }
+    }*/
 }
 
 static size_t tex_param_count(GLenum param) {

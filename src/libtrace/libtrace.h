@@ -264,6 +264,11 @@ typedef struct trc_gl_program_rev_t {
     trc_data_t* uniforms; //array of trc_gl_program_uniform_t
     trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
     trc_data_t* uniform_blocks; //array of trc_gl_program_uniform_block_t
+    
+    //index 0=vertex, 1=tess control, 2=tess eval, 3=geometry, 4=fragment, 5=compute
+    trc_data_t* subroutines[6]; //{int[]{real0, fake0, real1, fake1, ...}, ...}
+    trc_data_t* subroutine_uniforms[6]; //{int[]{real0, fake0, real1, fake1, ...}, ...}
+    
     trc_data_t* shaders; //array of trc_gl_program_shader_t
     trc_data_t* info_log; //null-terminated ascii
     int binary_retrievable_hint; //-1=unset, 0=false, 1=true
