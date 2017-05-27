@@ -30,7 +30,7 @@ Debugging:
     Replay should check to see if the user supplied limits have been reached.
 
 Tests:
-    Compare expected objects with actual objects
+    Compare expected objects with actual objects?
     Implement more of them
 
 Bugs:
@@ -40,6 +40,19 @@ Bugs:
     have only one uniform storage for an array
         so if you have 'float v[2]'
         have location translations for v[0] and v[1] but store only v
+        notes:
+            struct S {float b[2];}
+            S a[2];
+            2 names returned:
+                a[0].b[0]
+                a[1].b[0]
+            4 locations:
+                a[0].b[0]
+                a[0].b[1]
+                a[1].b[0]
+                a[1].b[1]
+            2 storages:
+                a[0].b and a[1].b
     ensure that packed and shared layout for UBOs work
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
         both in replay and tracing
