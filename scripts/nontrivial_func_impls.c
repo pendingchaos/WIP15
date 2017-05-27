@@ -306,6 +306,9 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_CULL_FACE_MODE, GL_BACK);
     trc_gl_state_state_enum_init1(trace, GL_FRONT_FACE, GL_CCW);
     trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
+    trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
+    trc_gl_state_state_enum_init1(ctx->trace, GL_CLIP_ORIGIN, GL_LOWER_LEFT);
+    trc_gl_state_state_enum_init1(ctx->trace, GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
     trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
     trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
     trc_gl_state_state_float_init1(trace, GL_MIN_SAMPLE_SHADING_VALUE, 0.0f);
