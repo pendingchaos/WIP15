@@ -563,7 +563,7 @@ Func((3, 0), 'glGetRenderbufferParameteriv', [P(tGLenum, 'target'), P(tGLenum, '
 Func((3, 0), 'glDeleteFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 Func((3, 0), 'glGenFramebuffers', [P(tGLsizei, 'n'), P(tGLuint, 'framebuffers', 'n')])
 #Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 0), 'glMapBufferRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+Func((3, 0), 'glMapBufferRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
 Func((3, 0), 'glDeleteVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 Func((3, 0), 'glGenVertexArrays', [P(tGLsizei, 'n'), P(tGLuint, 'arrays', 'n')])
 
@@ -857,7 +857,8 @@ Func((4, 5), 'glCopyNamedBufferSubData', [P(tGLBuf, 'readBuffer'), P(tGLBuf, 'wr
 #Func((4, 5), 'glClearNamedBufferData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 #Func((4, 5), 'glClearNamedBufferSubData', [P(tGLuint, 'buffer'), P(tGLenum, 'internalformat'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 Func((4, 5), 'glMapNamedBuffer', [P(tGLBuf, 'buffer'), P(tGLenum, 'access')], tPointer)
-#Func((4, 5), 'glMapNamedBufferRange', [P(tGLuint, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+Func((4, 5), 'glMapNamedBufferRange', [P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length'), P(tGLbitfield, 'access')], tPointer)
+Func((4, 5), 'glFlushMappedNamedBufferRange', [P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'length')], None)
 Func((4, 5), 'glGetNamedBufferParameteriv', [P(tGLBuf, 'buffer'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 Func((4, 5), 'glGetNamedBufferParameteri64v', [P(tGLBuf, 'buffer'), P(tGLenum, 'pname'), P(tGLint64, 'params', 1)])
 Func((4, 5), 'glGetNamedBufferPointerv', [P(tGLBuf, 'buffer'), P(tGLenum, 'pname'), P(tMutablePointer, 'params', 1)])
@@ -1036,35 +1037,37 @@ Func((2, 0), 'glLinkProgram', [P(tGLuint, 'program', None)], None).trace_extras_
 Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
                     P(tGLsizei, 'width'), P(tGLsizei, 'height')]).trace_epilogue_code = 'update_drawable_size();'
 
-Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean).trace_extras_code = '''GLint mapped, access;
+f = Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean)
+f.trace_prologue_code = '''
+GLint mapped, access;
 F(glGetBufferParameteriv)(target, GL_BUFFER_MAPPED, &mapped);
-if (mapped) {
-    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
-    if (access != GL_READ_ONLY) {
-        GLint size;
-        F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
-        
-        void* data = malloc(size);
-        F(glGetBufferSubData)(target, 0, size, data);
-        gl_add_extra("replay/glUnmapBuffer/data", size, data);
-        free(data);
-    }
+if (mapped) F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+'''
+f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
+    GLint size;
+    F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
+    
+    void* data = malloc(size);
+    F(glGetBufferSubData)(target, 0, size, data);
+    gl_add_extra("replay/glUnmapBuffer/data", size, data);
+    free(data);
 }
 '''
 
-Func((4, 5), 'glUnmapNamedBuffer', [P(tGLBuf, 'buffer')], tGLboolean).trace_extras_code = '''GLint mapped, access;
+f = Func((4, 5), 'glUnmapNamedBuffer', [P(tGLBuf, 'buffer')], tGLboolean)
+f.trace_prologue_code = '''
+GLint mapped, access;
 F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_MAPPED, &mapped);
-if (mapped) {
-    F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
-    if (access != GL_READ_ONLY) {
-        GLint size;
-        F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_SIZE, &size);
-        
-        void* data = malloc(size);
-        F(glGetNamedBufferSubData)(buffer, 0, size, data);
-        gl_add_extra("replay/glUnmapBuffer/data", size, data);
-        free(data);
-    }
+if (mapped) F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
+'''
+f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
+    GLint size;
+    F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_SIZE, &size);
+    
+    void* data = malloc(size);
+    F(glGetNamedBufferSubData)(buffer, 0, size, data);
+    gl_add_extra("replay/glUnmapBuffer/data", size, data);
+    free(data);
 }
 '''
 
