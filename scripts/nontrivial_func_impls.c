@@ -804,6 +804,11 @@ static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
     return trc_gl_state_get_bound_buffer(ctx->trace, target);
 }
 
+static GLuint get_active_program_for_stage(trc_replay_context_t* ctx, GLenum stage) {
+    //TODO
+    return trc_gl_state_get_bound_program(ctx->trace);
+}
+
 static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                    bool array, uint dimx, uint dimy, GLenum type, void* data_,
                    uint* realprogram) {
@@ -1213,7 +1218,7 @@ static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, 
     
     GLuint geom_program;
     if ((geom_program=trc_gl_state_get_bound_program(ctx->trace))) {
-        F(glGetError)();
+        F(glGetError)(); //TODO: Do this in a less hackish way
         F(glGetProgramiv)(trc_get_gl_program(ctx->trace, geom_program)->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
         if (F(glGetError)() == GL_INVALID_OPERATION) test_primitive = primitive; //No geometry shader
     } //TODO: Handle program pipelines
@@ -2861,6 +2866,7 @@ glLinkProgram: //GLuint p_program
     GLuint real_program = trc_get_real_gl_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
     
+    //TODO: Also test if it is part of the current program pipeline
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_program==trc_gl_state_get_bound_program(ctx->trace))
         ERROR("The bound program cannot be modified while transform feedback is active and unpaused");
     
@@ -5295,6 +5301,7 @@ glBeginTransformFeedback: //GLenum p_primitiveMode
 glEndTransformFeedback: //
     if (!trc_gl_state_get_tf_active(ctx->trace))
         ERROR("Transform feedback is not active");
+    real();
     trc_gl_state_set_tf_active(ctx->trace, false);
     trc_gl_state_set_tf_paused(ctx->trace, false);
     trc_gl_state_set_tf_active_not_paused(ctx->trace, false);
@@ -5304,6 +5311,7 @@ glPauseTransformFeedback: //
         ERROR("Transform feedback is not active");
     if (trc_gl_state_get_tf_paused(ctx->trace))
         ERROR("Transform feedback is already paused");
+    real();
     trc_gl_state_set_tf_paused(ctx->trace, true);
     trc_gl_state_set_tf_active_not_paused(ctx->trace, false);
 
@@ -5312,6 +5320,22 @@ glResumeTransformFeedback: //
         ERROR("Transform feedback is not active");
     if (!trc_gl_state_get_tf_paused(ctx->trace))
         ERROR("Transform feedback is not paused");
+    real();
     trc_gl_state_set_tf_paused(ctx->trace, false);
     trc_gl_state_set_tf_active_not_paused(ctx->trace, true);
     on_activate_tf(ctx, cmd);
+
+glUniformSubroutinesuiv: //GLenum p_shadertype, GLsizei p_count, const GLuint* p_indices
+    GLuint program = get_active_program_for_stage();
+    if (!program) ERROR("No program is current for stage");
+    GLint reqCount, subroutineCount;
+    trc_gl_program_rev_t* program_rev = trc_get_gl_program(ctx->trace, program):
+    F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &reqCount);
+    F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINES, &subroutineCount);
+    if (p_count != reqCount) ERROR("Count must be GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS");
+    for (GLsizei i = 0; i < p_count; i++) {
+        if (p_indices[i] >= subroutineCount)
+            ERROR("Index at %d is not a valid subroutine\n", i);
+    }
+    real(p_shadertype, p_count, p_indices);
+    //TODO: Store that indices

@@ -686,8 +686,8 @@ Func((4, 0), 'glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((4, 0), 'glGetUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func((4, 0), 'glGetActiveSubroutineUniformiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
 Func((4, 0), 'glGetActiveSubroutineUniformName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tGLsizei, 'length', 1), P(tGLchar, 'name', 'bufsize')])
-#Func((4, 0), 'glGetActiveSubroutineName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
-#Func((4, 0), 'glUniformSubroutinesuiv', [P(tGLenum, 'shadertype'), P(tGLsizei, 'count'), P(tPointer, 'indices')])
+Func((4, 0), 'glGetActiveSubroutineName', [P(tGLProgram, 'program'), P(tGLenum, 'shadertype', None, 'ShaderType'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tGLsizei, 'length', 'length?1:0'), P(tMutableString, 'name', 'bufsize')])
+Func((4, 0), 'glUniformSubroutinesuiv', [P(tGLenum, 'shadertype', None, 'ShaderType'), P(tGLsizei, 'count'), P(tGLuint, 'indices', 'count')])
 Func((4, 0), 'glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, 'location'), P(tGLuint, 'params', 1)])
 Func((4, 0), 'glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tGLint, 'values', 1)])
 Func((4, 0), 'glPatchParameteri', [P(tGLenum, 'pname', None, g('GL_PATCH_VERTICES')), P(tGLint, 'value')])
@@ -696,10 +696,12 @@ Func((4, 0), 'glPatchParameterfv', [P(tGLenum, 'pname', None, g('GL_PATCH_DEFAUL
 Func((4, 0), 'glDeleteTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((4, 0), 'glGenTransformFeedbacks', [P(tGLsizei, 'n'), P(tGLuint, 'ids', 'n')])
 Func((4, 0), 'glGetQueryIndexediv', [P(tGLenum, 'target', None, QueryTarget), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
-#Func((4, 1), 'glShaderBinary', [P(tGLsizei, 'count'), P(tPointer, 'shaders'), P(tGLenum, 'binaryformat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
-#Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'), P(tGLenum, 'precisiontype'), P(tMutablePointer, 'range'), P(tMutablePointer, 'precision')])
-#Func((4, 1), 'glGetProgramBinary', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'binaryFormat'), P(tMutablePointer, 'binary')])
-#Func((4, 1), 'glProgramBinary', [P(tGLuint, 'program'), P(tGLenum, 'binaryFormat'), P(tPointer, 'binary'), P(tGLsizei, 'length')])
+Func((4, 1), 'glShaderBinary', [P(tGLsizei, 'count'), P(tGLShader, 'shaders', 'count'), P(tGLenum, 'binaryformat'), P(tData('length'), 'binary'), P(tGLsizei, 'length')])
+Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'),
+                                            P(tGLenum, 'precisiontype', None, g('GL_LOW_FLOAT GL_MEDIUM_FLOAT GL_HIGH_FLOAT GL_LOW_INT HL_MEDIUM_INT GL_HIGH_INT')),
+                                            P(tGLint, 'range', 2), P(tGLint, 'precision', 1)])
+Func((4, 1), 'glGetProgramBinary', [P(tGLProgram, 'program'), P(tGLsizei, 'bufSize'), P(tGLsizei, 'length', 'length?1:0'), P(tGLenum, 'binaryFormat', 1), P(tData('bufsize'), 'binary')])
+Func((4, 1), 'glProgramBinary', [P(tGLProgram, 'program'), P(tGLenum, 'binaryFormat'), P(tData('length'), 'binary'), P(tGLsizei, 'length')])
 Func((4, 1), 'glUseProgramStages', [P(tGLProgramPipeline, 'pipeline'), P(tGLbitfield, 'stages'), P(tGLProgram, 'program')], None)
 Func((4, 1), 'glProgramParameteri', [P(tGLProgram, 'program'), P(tGLenum, 'pname', None, g('GL_PROGRAM_BINARY_RETRIEVABLE_HINT', 'GL_PROGRAM_SEPARABLE')),
                                      P(tGLint, 'value', None, 'Boolean')])
