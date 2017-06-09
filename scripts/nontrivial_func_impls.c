@@ -5326,10 +5326,10 @@ glResumeTransformFeedback: //
     on_activate_tf(ctx, cmd);
 
 glUniformSubroutinesuiv: //GLenum p_shadertype, GLsizei p_count, const GLuint* p_indices
-    GLuint program = get_active_program_for_stage();
+    GLuint program = get_active_program_for_stage(ctx, p_shadertype);
     if (!program) ERROR("No program is current for stage");
     GLint reqCount, subroutineCount;
-    trc_gl_program_rev_t* program_rev = trc_get_gl_program(ctx->trace, program):
+    const trc_gl_program_rev_t* program_rev = trc_get_gl_program(ctx->trace, program);
     F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &reqCount);
     F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINES, &subroutineCount);
     if (p_count != reqCount) ERROR("Count must be GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS");
@@ -5338,4 +5338,4 @@ glUniformSubroutinesuiv: //GLenum p_shadertype, GLsizei p_count, const GLuint* p
             ERROR("Index at %d is not a valid subroutine\n", i);
     }
     real(p_shadertype, p_count, p_indices);
-    //TODO: Store that indices
+    //TODO: Store the indices

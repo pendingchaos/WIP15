@@ -700,7 +700,7 @@ Func((4, 1), 'glShaderBinary', [P(tGLsizei, 'count'), P(tGLShader, 'shaders', 'c
 Func((4, 1), 'glGetShaderPrecisionFormat', [P(tGLenum, 'shadertype'),
                                             P(tGLenum, 'precisiontype', None, g('GL_LOW_FLOAT', 'GL_MEDIUM_FLOAT', 'GL_HIGH_FLOAT', 'GL_LOW_INT', 'GL_MEDIUM_INT', 'GL_HIGH_INT')),
                                             P(tGLint, 'range', 2), P(tGLint, 'precision', 1)])
-Func((4, 1), 'glGetProgramBinary', [P(tGLProgram, 'program'), P(tGLsizei, 'bufSize'), P(tGLsizei, 'length', 'length?1:0'), P(tGLenum, 'binaryFormat', 1), P(tData('bufsize'), 'binary')])
+Func((4, 1), 'glGetProgramBinary', [P(tGLProgram, 'program'), P(tGLsizei, 'bufSize'), P(tGLsizei, 'length', 'length?1:0'), P(tGLenum, 'binaryFormat', 1), P(tData('bufSize'), 'binary')])
 Func((4, 1), 'glProgramBinary', [P(tGLProgram, 'program'), P(tGLenum, 'binaryFormat'), P(tData('length'), 'binary'), P(tGLsizei, 'length')])
 Func((4, 1), 'glUseProgramStages', [P(tGLProgramPipeline, 'pipeline'), P(tGLbitfield, 'stages'), P(tGLProgram, 'program')], None)
 Func((4, 1), 'glProgramParameteri', [P(tGLProgram, 'program'), P(tGLenum, 'pname', None, g('GL_PROGRAM_BINARY_RETRIEVABLE_HINT', 'GL_PROGRAM_SEPARABLE')),
