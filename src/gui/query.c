@@ -37,10 +37,11 @@ void query_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_query_rev_t* query = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcQuery, trc_gl_query_rev_t)
-        if (count == index+1) {
+        if (count == index) {
             query = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     
     if (!query) return; //TODO: Is this possible?

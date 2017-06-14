@@ -98,10 +98,11 @@ void shader_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_shader_rev_t* shdr = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcShader, trc_gl_shader_rev_t)
-        if (count == index+1) {
+        if (count == index) {
             shdr = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     
     if (!shdr) return; //TODO: Is this possible?
@@ -137,10 +138,11 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_program_rev_t* program = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcProgram, trc_gl_program_rev_t)
-        if (count == index+1) {
+        if (count == index) {
             program = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     selected_program = program;
     

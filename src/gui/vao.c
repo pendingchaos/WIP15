@@ -47,10 +47,11 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_vao_rev_t* vao = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcVAO, trc_gl_vao_rev_t)
-        if (count == index+1) {
+        if (count == index) {
             vao = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     
     trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);

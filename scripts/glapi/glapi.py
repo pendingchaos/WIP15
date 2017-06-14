@@ -408,9 +408,9 @@ class tGLObj(tGLuint):
         obj_type = self.__class__.obj_type
         if array_count != None:
             res += 'const trc_gl_%s_rev_t** %s_rev = replay_alloc(%s->count*sizeof(trc_gl_%s_rev_t*));' % (obj_type, dest, src, obj_type)
-            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = trc_get_gl_%s(ctx->trace, %s[i]);' % (src, dest, obj_type, dest)
+            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = get_%s(ctx->trace, %s[i]);' % (src, dest, obj_type, dest)
         else:
-            res += 'const trc_gl_%s_rev_t* %s_rev = trc_get_gl_%s(ctx->trace, %s);' % (obj_type, dest, obj_type, dest)
+            res += 'const trc_gl_%s_rev_t* %s_rev = get_%s(ctx->trace, %s);' % (obj_type, dest, obj_type, dest)
         return res
 
 class tGLBuf(tGLObj): obj_type = 'buffer'
@@ -425,9 +425,9 @@ class tGLsync(_Ptr):
         res = _Ptr.gen_replay_read_code(self, dest, src, array_count)
         if array_count != None:
             res += 'const trc_gl_sync_rev_t** %s_rev = replay_alloc(%s->count*sizeof(trc_gl_sync_rev_t*));' % (dest, src)
-            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = trc_get_gl_sync(ctx->trace, %s[i]);' % (src, dest, dest)
+            res += 'for (size_t i = 0; i < %s->count; i++) %s_rev[i] = get_sync(ctx->trace, %s[i]);' % (src, dest, dest)
         else:
-            res += 'const trc_gl_sync_rev_t* %s_rev = trc_get_gl_sync(ctx->trace, %s);' % (dest, dest)
+            res += 'const trc_gl_sync_rev_t* %s_rev = get_sync(ctx->trace, %s);' % (dest, dest)
         return res
 class tGLProgram(tGLObj): obj_type = 'program'
 class tGLProgramPipeline(tGLObj): obj_type = 'program_pipeline'

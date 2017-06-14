@@ -38,10 +38,11 @@ void sync_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_sync_rev_t* sync = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcSync, trc_gl_sync_rev_t)
-        if (count == index+1) {
+        if (count == index) {
             sync = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "sync_treeview"));

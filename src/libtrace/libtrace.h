@@ -447,183 +447,18 @@ void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
 void trc_unset_name(trace_t* trace, trc_obj_type_t type, uint64_t name);
 trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev);
 
-void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, void* rev);
+trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
+void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
 void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name);
+
+const trc_gl_context_rev_t* trc_get_context(trace_t* trace);
+void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev);
 
 #define TRC_ITER_OBJECTS_BEGIN(type, revt) for (size_t i = 0; i < trace->inspection.object_count[type]; i++) {\
     trc_obj_t* obj = trace->inspection.objects[type][i];\
     const revt* rev = trc_obj_get_rev(obj, revision);\
     if (!rev || rev->head.ref_count==0) continue;
 #define TRC_ITER_OBJECTS_END }
-
-//Helpers
-static inline const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcBuffer, fake);
-}
-
-static inline void trc_set_gl_buffer(trace_t* trace, uint fake, const trc_gl_buffer_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcBuffer, fake, -1);
-    if (!obj) trc_set_name(trace, TrcBuffer, fake, trc_create_obj(trace, false, TrcBuffer, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_buffer(trace_t* trace, uint fake) {
-    return trc_get_gl_buffer(trace, fake)->real;
-}
-
-static inline const trc_gl_sampler_rev_t* trc_get_gl_sampler(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcSampler, fake);
-}
-
-static inline void trc_set_gl_sampler(trace_t* trace, uint fake, const trc_gl_sampler_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcSampler, fake, -1);
-    if (!obj) trc_set_name(trace, TrcSampler, fake, trc_create_obj(trace, false, TrcSampler, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_sampler(trace_t* trace, uint fake) {
-    return trc_get_gl_sampler(trace, fake)->real;
-}
-
-static inline const trc_gl_texture_rev_t* trc_get_gl_texture(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcTexture, fake);
-}
-
-static inline void trc_set_gl_texture(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcTexture, fake, -1);
-    if (!obj) trc_set_name(trace, TrcTexture, fake, trc_create_obj(trace, false, TrcTexture, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_texture(trace_t* trace, uint fake) {
-    return trc_get_gl_texture(trace, fake)->real;
-}
-
-static inline const trc_gl_query_rev_t* trc_get_gl_query(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcQuery, fake);
-}
-
-static inline void trc_set_gl_query(trace_t* trace, uint fake, const trc_gl_query_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcQuery, fake, -1);
-    if (!obj) trc_set_name(trace, TrcQuery, fake, trc_create_obj(trace, false, TrcQuery, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_query(trace_t* trace, uint fake) {
-    return trc_get_gl_query(trace, fake)->real;
-}
-
-static inline const trc_gl_framebuffer_rev_t* trc_get_gl_framebuffer(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcFramebuffer, fake);
-}
-
-static inline void trc_set_gl_framebuffer(trace_t* trace, uint fake, const trc_gl_framebuffer_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcFramebuffer, fake, -1);
-    if (!obj) trc_set_name(trace, TrcFramebuffer, fake, trc_create_obj(trace, false, TrcFramebuffer, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_framebuffer(trace_t* trace, uint fake) {
-    return trc_get_gl_framebuffer(trace, fake)->real;
-}
-
-static inline const trc_gl_renderbuffer_rev_t* trc_get_gl_renderbuffer(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcRenderbuffer, fake);
-}
-
-static inline void trc_set_gl_renderbuffer(trace_t* trace, uint fake, const trc_gl_renderbuffer_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcRenderbuffer, fake, -1);
-    if (!obj) trc_set_name(trace, TrcRenderbuffer, fake, trc_create_obj(trace, false, TrcRenderbuffer, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_renderbuffer(trace_t* trace, uint fake) {
-    return trc_get_gl_renderbuffer(trace, fake)->real;
-}
-
-static inline const trc_gl_sync_rev_t* trc_get_gl_sync(trace_t* trace, uint64_t fake) {
-    return trc_get_obj(trace, TrcSync, fake);
-}
-
-static inline void trc_set_gl_sync(trace_t* trace, uint64_t fake, const trc_gl_sync_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcSync, fake, -1);
-    if (!obj) trc_set_name(trace, TrcSync, fake, trc_create_obj(trace, false, TrcSync, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint64_t trc_get_real_gl_sync(trace_t* trace, uint64_t fake) {
-    return trc_get_gl_sync(trace, fake)->real;
-}
-
-static inline const trc_gl_program_rev_t* trc_get_gl_program(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcProgram, fake);
-}
-
-static inline void trc_set_gl_program(trace_t* trace, uint fake, const trc_gl_program_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcProgram, fake, -1);
-    if (!obj) trc_set_name(trace, TrcProgram, fake, trc_create_obj(trace, false, TrcProgram, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_program(trace_t* trace, uint fake) {
-    return trc_get_gl_program(trace, fake)->real;
-}
-
-static inline const trc_gl_program_pipeline_rev_t* trc_get_gl_program_pipeline(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcProgramPipeline, fake);
-}
-
-static inline void trc_set_gl_program_pipeline(trace_t* trace, uint fake, const trc_gl_program_pipeline_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcProgramPipeline, fake, -1);
-    if (!obj) trc_set_name(trace, TrcProgramPipeline, fake, trc_create_obj(trace, false, TrcProgramPipeline, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_program_pipeline(trace_t* trace, uint fake) {
-    return trc_get_gl_program_pipeline(trace, fake)->real;
-}
-
-static inline const trc_gl_shader_rev_t* trc_get_gl_shader(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcShader, fake);
-}
-
-static inline void trc_set_gl_shader(trace_t* trace, uint fake, const trc_gl_shader_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcShader, fake, -1);
-    if (!obj) trc_set_name(trace, TrcShader, fake, trc_create_obj(trace, false, TrcShader, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_shader(trace_t* trace, uint fake) {
-    return trc_get_gl_shader(trace, fake)->real;
-}
-
-static inline const trc_gl_vao_rev_t* trc_get_gl_vao(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcVAO, fake);
-}
-
-static inline void trc_set_gl_vao(trace_t* trace, uint fake, const trc_gl_vao_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcVAO, fake, -1);
-    if (!obj) trc_set_name(trace, TrcVAO, fake, trc_create_obj(trace, false, TrcVAO, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_vao(trace_t* trace, uint fake) {
-    return trc_get_gl_vao(trace, fake)->real;
-}
-
-static inline const trc_gl_transform_feedback_rev_t* trc_get_gl_transform_feedback(trace_t* trace, uint fake) {
-    return trc_get_obj(trace, TrcTransformFeedback, fake);
-}
-
-static inline void trc_set_gl_transform_feedback(trace_t* trace, uint fake, const trc_gl_transform_feedback_rev_t* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcTransformFeedback, fake, -1);
-    if (!obj) trc_set_name(trace, TrcTransformFeedback, fake, trc_create_obj(trace, false, TrcTransformFeedback, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline uint trc_get_real_gl_transform_feedback(trace_t* trace, uint fake) {
-    return trc_get_gl_transform_feedback(trace, fake)->real;
-}
 
 static inline void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
@@ -644,23 +479,6 @@ static inline const void* trc_lookup_gl_obj(trace_t* trace, uint64_t revision, u
 uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision);
 uint64_t trc_get_current_fake_gl_context(trace_t* trace);
 void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
-
-static inline const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
-    if (!fake) fake = trc_get_current_fake_gl_context(trace);
-    return trc_get_obj(trace, TrcContext, fake);
-}
-
-static inline void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
-    if (!fake) fake = trc_get_current_fake_gl_context(trace);
-    trc_obj_t* obj = trc_lookup_name(trace, TrcContext, fake, -1);
-    if (!obj) trc_set_name(trace, TrcContext, fake, trc_create_obj(trace, false, TrcContext, rev));
-    else trc_obj_set_rev(obj, rev);
-}
-
-static inline void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
-    if (!fake) fake = trc_get_current_fake_gl_context(trace);
-    return trc_get_gl_context(trace, fake)->real;
-}
 
 static inline const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint64_t revision, uint64_t fake) {
     trc_obj_t* obj = trc_lookup_name(trace, TrcContext, fake, revision);

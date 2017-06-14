@@ -1213,7 +1213,13 @@ trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, u
     return res;
 }
 
-void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, void* rev) {
+trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev) {
+    trc_obj_t* obj = trc_create_obj(trace, false, type, rev);
+    trc_set_name(trace, type, name, obj);
+    return obj;
+}
+
+void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev) {
     trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
     if (!obj) return;
     trc_obj_set_rev(obj, rev);
@@ -1222,6 +1228,14 @@ void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, void* rev) 
 void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name) {
     trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
     return obj ? trc_obj_get_rev(obj, -1) : NULL;
+}
+
+const trc_gl_context_rev_t* trc_get_context(trace_t* trace) {
+    return trc_get_obj(trace, TrcContext, trc_get_current_fake_gl_context(trace));
+}
+
+void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev) {
+    trc_set_obj(trace, TrcContext, trc_get_current_fake_gl_context(trace), rev);
 }
 
 static void queue_push_to_back(trace_t* trace, trc_data_t* data) {

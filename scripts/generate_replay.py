@@ -466,6 +466,36 @@ static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_co
 }
 """)
 
+objs = [('buffer', 'TrcBuffer'),
+        ('sampler', 'TrcSampler'),
+        ('texture', 'TrcTexture'),
+        ('query', 'TrcQuery'),
+        ('framebuffer', 'TrcFramebuffer'),
+        ('renderbuffer', 'TrcRenderbuffer'),
+        ('sync', 'TrcSync'),
+        ('program', 'TrcProgram'),
+        ('program_pipeline', 'TrcProgramPipeline'),
+        ('shader', 'TrcShader'),
+        ('vao', 'TrcVAO'),
+        ('transform_feedback', 'TrcTransformFeedback')]
+output.write('#pragma GCC diagnostic ignored "-Wunused-function"')
+for n, t in objs:
+    output.write('''
+static const trc_gl_%s_rev_t* get_%s(trace_t* trace, uint64_t fake) {
+    return trc_get_obj(trace, %s, fake);
+}
+
+static void set_%s(trace_t* trace, uint64_t fake, const trc_gl_%s_rev_t* rev) {
+    trc_set_obj(trace, %s, fake, rev);
+}
+
+static uint64_t trc_get_real_%s(trace_t* trace, uint64_t fake) {
+    const trc_gl_%s_rev_t* rev = get_%s(trace, fake);
+    return rev ? rev->real : 0;
+}
+''' % (n, n, t, n, n, t, n, n, n))
+output.write('#pragma GCC diagnostic pop\n')
+
 nontrivial_str = open("nontrivial_func_impls.c").read()
 nontrivial = {}
 

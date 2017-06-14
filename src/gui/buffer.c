@@ -79,10 +79,11 @@ static void update_buffer_view(size_t buf_index) {
     size_t count = 0;
     const trc_gl_buffer_rev_t* buf = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcBuffer, trc_gl_buffer_rev_t)
-        if (count == buf_index+1) {
+        if (count == buf_index) {
             buf = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     
     if (!buf->data) return;

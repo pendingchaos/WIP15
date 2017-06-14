@@ -414,7 +414,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         }
         
         uint64_t fake = trc_lookup_current_fake_gl_context(trace, revision);
-        const trc_gl_context_rev_t* state = trc_lookup_gl_context(trace, revision, fake);
+        const trc_gl_context_rev_t* state = trc_obj_get_rev(trc_lookup_name(trace, TrcContext, fake, revision), revision);
         
         init_state_tree(GTK_TREE_VIEW(gtk_builder_get_object(builder, "state_treeview")), state);
     } else {

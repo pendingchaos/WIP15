@@ -37,10 +37,11 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_texture_rev_t* tex = NULL;
     TRC_ITER_OBJECTS_BEGIN(TrcTexture, trc_gl_texture_rev_t)
-        if (count == tex_index+1) {
+        if (count == tex_index) {
             tex = rev;
             break;
         }
+        count++;
     TRC_ITER_OBJECTS_END
     //TODO
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count-1*/0);

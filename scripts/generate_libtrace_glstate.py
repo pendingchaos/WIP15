@@ -547,15 +547,15 @@ for prop in properties:
         print '    switch (key) {'
         for key in prop.map_keys:
             if prop.array:
-                print '    case %s: arr = trc_get_gl_context(trace, 0)->%s_%s; break;' % (key, prop.name, key)
+                print '    case %s: arr = trc_get_context(trace)->%s_%s; break;' % (key, prop.name, key)
             else:
-                print '    case %s: return trc_get_gl_context(trace, 0)->%s_%s;' % (key, prop.name, key)
+                print '    case %s: return trc_get_context(trace)->%s_%s;' % (key, prop.name, key)
         print '    default: assert(false); return %s;' % (prop.some_value)
         print '    }'
     elif prop.array:
-        print '    trc_data_t* arr = trc_get_gl_context(trace, 0)->%s;' % prop.name
+        print '    trc_data_t* arr = trc_get_context(trace)->%s;' % prop.name
     else:
-        print '    return trc_get_gl_context(trace, 0)->%s;' % prop.name
+        print '    return trc_get_context(trace)->%s;' % prop.name
     if prop.array:
         print '    %s* data = trc_map_data(arr, TRC_MAP_READ);' % prop.c_type
         print '    %s res = data[index];' % (prop.c_type)
@@ -566,7 +566,7 @@ for prop in properties:
 
 for prop in properties:
     print prop.set_func_sig + ' {'
-    print '    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);'
+    print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
         if prop.array:
             print '    trc_data_t** arr = NULL;'
@@ -590,7 +590,7 @@ for prop in properties:
         print '    data[index] = val;'
         print '    trc_unmap_freeze_data(trace, newdata);'
         print '    *arr = newdata;'
-    print '    trc_set_gl_context(trace, 0, &state);'
+    print '    trc_set_context(trace, &state);'
     print '}'
     print
 
@@ -601,16 +601,16 @@ for prop in properties:
     if prop.map:
         print '    switch (key) {'
         for key in prop.map_keys:
-            print '    case %s: return trc_get_gl_context(trace, 0)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
+            print '    case %s: return trc_get_context(trace)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
         print '    default: assert(false); return 0;'
         print '    }'
     else:
-        print '    return trc_get_gl_context(trace, 0)->%s->size / sizeof(%s);' % (prop.name, prop.c_type)
+        print '    return trc_get_context(trace)->%s->size / sizeof(%s);' % (prop.name, prop.c_type)
     print '}'
     print
     
     print prop.init_func_sig + ' {'
-    print '    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);'
+    print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
         print '    trc_data_t** arr = NULL;'
         print '    switch (key) {'
@@ -620,7 +620,7 @@ for prop in properties:
     else:
         print '    trc_data_t** arr = &state.%s;' % prop.name;
     print '    *arr = trc_create_data(trace, count*sizeof(%s), data, TRC_DATA_IMMUTABLE);' % prop.c_type
-    print '    trc_set_gl_context(trace, 0, &state);'
+    print '    trc_set_context(trace, &state);'
     print '}'
     print
     
@@ -633,7 +633,7 @@ for prop in properties:
     print
     
     print prop.insert_func_sig + ' {'
-    print '    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);'
+    print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
         print '    trc_data_t** arr = NULL;'
         print '    switch (key) {'
@@ -652,12 +652,12 @@ for prop in properties:
     print '    trc_unmap_freeze_data(trace, newarr);'
     print '    trc_unmap_data(*arr);'
     print '    *arr = newarr;'
-    print '    trc_set_gl_context(trace, 0, &state);'
+    print '    trc_set_context(trace, &state);'
     print '}'
     print
     
     print prop.erase_func_sig + ' {'
-    print '    trc_gl_context_rev_t state = *trc_get_gl_context(trace, 0);'
+    print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
         print '    trc_data_t** arr = NULL;'
         print '    switch (key) {'
@@ -675,7 +675,7 @@ for prop in properties:
     print '    trc_unmap_freeze_data(trace, newarr);'
     print '    trc_unmap_data(*arr);'
     print '    *arr = newarr;'
-    print '    trc_set_gl_context(trace, 0, &state);'
+    print '    trc_set_context(trace, &state);'
     print '}'
     print
 
