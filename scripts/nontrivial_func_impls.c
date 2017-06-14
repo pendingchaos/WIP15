@@ -4254,8 +4254,7 @@ glDrawArraysInstanced: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei 
 glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count, GLsizei p_drawcount
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
     for (size_t i = 0; i < p_drawcount; i++) {
-        if (p_count[i]<0 || p_instancecount[i]<0)
-            ERROR("Invalid count or instance count parameters at index %zu", i);
+        if (p_count[i]<0) ERROR("Invalid count parameter at index %zu", i);
     }
     if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_first, p_count, p_drawcount);
@@ -4264,8 +4263,7 @@ glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count
 glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void*const* p_indices, GLsizei p_drawcount
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
     for (size_t i = 0; i < p_drawcount; i++) {
-        if (p_count[i] < 0)
-            ERROR("Invalid count parameter at index %zu", i);
+        if (p_count[i] < 0) ERROR("Invalid count parameter at index %zu", i);
     }
     if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount);
@@ -4274,8 +4272,7 @@ glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, con
 glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void*const* p_indices, GLsizei p_drawcount, const GLint* p_basevertex
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
     for (size_t i = 0; i < p_drawcount; i++) {
-        if (p_count[i] < 0)
-            ERROR("Invalid count parameter at index %zu", i);
+        if (p_count[i] < 0) ERROR("Invalid count parameter at index %zu", i);
     }
     if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount, p_basevertex);
