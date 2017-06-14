@@ -1263,7 +1263,7 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         trc_gl_buffer_rev_t* buf = trc_get_gl_buffer(ctx->trace, a->buffer);
         if (buf->mapped) {
             trc_unmap_data(vao->attribs);
-            ERROR2(false, "Buffer for vertex attribute %zu is mapped", o);
+            ERROR2(false, "Buffer for vertex attribute %zu is mapped", i);
         }
     }
     
