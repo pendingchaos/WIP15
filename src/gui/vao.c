@@ -18,19 +18,15 @@ void init_vao_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_VAO]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_VAO][i];
-        const trc_gl_obj_rev_t* vao = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_VAO);
-        if (vao && vao->ref_count) {
-            char str[64];
-            memset(str, 0, 64);
-            snprintf(str, 64, "%u", (uint)h->fake);
-            
-            GtkTreeIter row;
-            gtk_tree_store_append(store, &row, NULL);
-            gtk_tree_store_set(store, &row, 0, str, -1);
-        }
-    }
+    TRC_ITER_OBJECTS_BEGIN(TrcVAO, trc_gl_vao_rev_t)
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", (uint)rev->fake);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    TRC_ITER_OBJECTS_END
 }
 
 void vao_select_callback(GObject* obj, gpointer user_data) {
@@ -44,20 +40,18 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
     
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
-    if (!path)
-        return;
+    if (!path) return;
     
     size_t index = gtk_tree_path_get_indices(path)[0];
     
     size_t count = 0;
-    trc_gl_vao_rev_t* vao = NULL;
-    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_VAO]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_VAO][i];
-        vao = (trc_gl_vao_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_VAO);
-        if (vao && vao->ref_count) count++;
-        if (count == index+1) break;
-    }
-    if (!vao) return; //TODO: Is this possible?
+    const trc_gl_vao_rev_t* vao = NULL;
+    TRC_ITER_OBJECTS_BEGIN(TrcVAO, trc_gl_vao_rev_t)
+        if (count == index+1) {
+            vao = rev;
+            break;
+        }
+    TRC_ITER_OBJECTS_END
     
     trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {

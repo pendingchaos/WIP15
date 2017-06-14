@@ -60,18 +60,8 @@ typedef struct data_mapping_t {
     bool free_ptr;
     void* ptr;
 } data_mapping_t;
-static uint8_t mapping_mutex = 0;
+static pthread_mutex_t mapping_mutex = PTHREAD_MUTEX_INITIALIZER;
 static data_mapping_t mappings[MAX_MAPPINGS];
-
-static void mutex_lock(uint8_t* mutex) {
-    uint8_t expected = 0;
-    while (!atomic_compare_exchange_strong(mutex, &expected, 1))
-        expected = 0;
-}
-
-static void mutex_unlock(uint8_t* mutex) {
-    atomic_store(mutex, 0);
-}
 
 static void* compress_thread(void* userdata);
 
@@ -659,23 +649,7 @@ trace_t *load_trace(const char* filename) {
     
     fclose(file);
     
-    trace->inspection.cur_revision = 0;
-    trace->inspection.data_count = 0;
-    trace->inspection.data = NULL;
-    for (size_t i = 0; i < TrcGLObj_Max; i++) {
-        trace->inspection.gl_obj_history_count[i] = 0;
-        trace->inspection.gl_obj_history[i] = NULL;
-    }
-    trace->inspection.gl_context_history_count = 0;
-    trace->inspection.gl_context_history = NULL;
-    trace->inspection.cur_ctx_revision_count = 1;
-    trace->inspection.cur_ctx_revisions = malloc(sizeof(trc_cur_context_rev_t));
-    trace->inspection.cur_ctx_revisions[0].context = 0;
-    trace->inspection.cur_ctx_revisions[0].revision = trace->inspection.cur_revision;
-    
-    trace->inspection.cur_revision++;
-    
-    trace->data_queue_mutex = 0;
+    trace->data_queue_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     trace->data_queue_start = NULL;
     trace->data_queue_end = NULL;
     
@@ -686,6 +660,19 @@ trace_t *load_trace(const char* filename) {
     trace->threads = malloc(sizeof(pthread_t)*trace->thread_count);
     for (size_t i = 0; i < trace->thread_count; i++)
         pthread_create(&trace->threads[i], NULL, &compress_thread, trace);
+    
+    trace->inspection.cur_revision = 0;
+    trace->inspection.data_count = 0;
+    trace->inspection.data = NULL;
+    for (size_t i = 0; i < Trc_ObjMax; i++) {
+        trace->inspection.object_count[i] = 0;
+        trace->inspection.objects[i] = NULL;
+        trace->inspection.name_tables[i] = trc_create_obj(trace, true, i, NULL);
+    }
+    trace->inspection.cur_ctx_revision_count = 1;
+    trace->inspection.cur_ctx_revisions = malloc(sizeof(trc_cur_context_rev_t));
+    trace->inspection.cur_ctx_revisions[0].context = 0;
+    trace->inspection.cur_ctx_revisions[0].revision = trace->inspection.cur_revision;
     
     return trace;
     
@@ -705,7 +692,6 @@ void free_trace(trace_t* trace) {
     free(trace->threads);
     
     for (size_t i = 0; i < trace->func_name_count; ++i) free(trace->func_names[i]);
-    
     for (size_t i = 0; i < trace->group_name_count; ++i) free(trace->group_names[i]);
     
     free(trace->func_names);
@@ -716,9 +702,15 @@ void free_trace(trace_t* trace) {
     
     trc_gl_inspection_t* ti = &trace->inspection;
     
+    for (size_t i = 0; i < Trc_ObjMax; i++) {
+        for (size_t j = 0; j < ti->object_count[i]; j++)
+            free(ti->objects[i][j]);
+        free(ti->objects[i]);
+        free(ti->name_tables[i]);
+    }
     free(ti->cur_ctx_revisions);
     
-    mutex_lock(&trace->data_queue_mutex);
+    pthread_mutex_lock(&trace->data_queue_mutex);
     for (size_t i = 0; i < ti->data_count; i++) {
         trc_data_t* data = ti->data[i];
         switch (data->storage_type) {
@@ -727,18 +719,8 @@ void free_trace(trace_t* trace) {
         }
         free(data);
     }
-    mutex_unlock(&trace->data_queue_mutex);
+    pthread_mutex_unlock(&trace->data_queue_mutex);
     free(ti->data);
-    
-    for (size_t i = 0; i < TrcGLObj_Max; i++) {
-        for (size_t j = 0; j < ti->gl_obj_history_count[i]; j++)
-            free(ti->gl_obj_history[i][j].revisions);
-        free(ti->gl_obj_history[i]);
-    }
-    
-    for (size_t i = 0; i < ti->gl_context_history_count; i++)
-        free(ti->gl_context_history[i].revisions);
-    free(ti->gl_context_history);
     
     free(trace);
 }
@@ -1027,280 +1009,7 @@ void trc_run_inspection(trace_t* trace) {
     free(funcs);
 }
 
-trc_gl_obj_history_t* find_gl_obj_history(trace_t* trace, trc_gl_obj_type_t type, uint fake) {
-    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
-        if (trace->inspection.gl_obj_history[type][i].fake == fake)
-            return &trace->inspection.gl_obj_history[type][i];
-    }
-    return NULL;
-}
-
-static size_t gl_obj_sizes[] = {
-    [TrcGLObj_Buffer] = sizeof(trc_gl_buffer_rev_t),
-    [TrcGLObj_Sampler] = sizeof(trc_gl_sampler_rev_t),
-    [TrcGLObj_Texture] = sizeof(trc_gl_texture_rev_t),
-    [TrcGLObj_Query] = sizeof(trc_gl_query_rev_t),
-    [TrcGLObj_Framebuffer] = sizeof(trc_gl_framebuffer_rev_t),
-    [TrcGLObj_Renderbuffer] = sizeof(trc_gl_renderbuffer_rev_t),
-    [TrcGLObj_Sync] = sizeof(trc_gl_sync_rev_t),
-    [TrcGLObj_Program] = sizeof(trc_gl_program_rev_t),
-    [TrcGLObj_ProgramPipeline] = sizeof(trc_gl_program_pipeline_rev_t),
-    [TrcGLObj_Shader] = sizeof(trc_gl_shader_rev_t),
-    [TrcGLObj_VAO] = sizeof(trc_gl_vao_rev_t),
-    [TrcGLObj_TransformFeedback] = sizeof(trc_gl_transform_feedback_rev_t)
-};
-
-static void* get_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake) {
-    trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
-    if (!h) return NULL;
-    if (h->revision_count == 0) return NULL;
-    return h->revisions[h->revision_count-1];
-}
-
-static void set_gl_obj(trace_t* trace, trc_gl_obj_type_t type, uint64_t fake, const trc_gl_obj_rev_t* rev) {
-    size_t size = gl_obj_sizes[type];
-    
-    trc_gl_obj_history_t* h = find_gl_obj_history(trace, type, fake);
-    if (!h) {
-        trc_gl_inspection_t* i = &trace->inspection;
-        i->gl_obj_history[type] = realloc(i->gl_obj_history[type],
-                                          (i->gl_obj_history_count[type]+1) *
-                                          sizeof(trc_gl_obj_history_t));
-        h = &i->gl_obj_history[type][i->gl_obj_history_count[type]++];
-        h->fake = fake;
-        h->revision_count = 1;
-        h->revisions = malloc(sizeof(trc_gl_obj_rev_t*));
-        goto do_newrev;
-    }
-    
-    trc_gl_obj_rev_t* dest = h->revisions[h->revision_count-1];
-    if (dest->revision == trace->inspection.cur_revision) {
-        memcpy(dest, rev, size);
-        dest->revision = trace->inspection.cur_revision;
-        return;
-    } else {
-        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_obj_rev_t*));
-        goto do_newrev;
-    }
-    
-    do_newrev: ;
-        void* newrev = malloc(size);
-        memcpy(newrev, rev, size);
-        ((trc_gl_obj_rev_t*)newrev)->revision = trace->inspection.cur_revision;
-        h->revisions[h->revision_count-1] = newrev;
-}
-
-const trc_gl_buffer_rev_t* trc_get_gl_buffer(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Buffer, fake);
-}
-
-void trc_set_gl_buffer(trace_t* trace, uint fake, const trc_gl_buffer_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Buffer, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_buffer(trace_t* trace, uint fake) {
-    const trc_gl_buffer_rev_t* rev = trc_get_gl_buffer(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_sampler_rev_t* trc_get_gl_sampler(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Sampler, fake);
-}
-
-void trc_set_gl_sampler(trace_t* trace, uint fake, const trc_gl_sampler_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Sampler, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_sampler(trace_t* trace, uint fake) {
-    const trc_gl_sampler_rev_t* rev = trc_get_gl_sampler(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_texture_rev_t* trc_get_gl_texture(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Texture, fake);
-}
-
-void trc_set_gl_texture(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Texture, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_texture(trace_t* trace, uint fake) {
-    const trc_gl_texture_rev_t* rev = trc_get_gl_texture(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_query_rev_t* trc_get_gl_query(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Query, fake);
-}
-
-void trc_set_gl_query(trace_t* trace, uint fake, const trc_gl_query_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Query, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_query(trace_t* trace, uint fake) {
-    const trc_gl_query_rev_t* rev = trc_get_gl_query(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_framebuffer_rev_t* trc_get_gl_framebuffer(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Framebuffer, fake);
-}
-
-void trc_set_gl_framebuffer(trace_t* trace, uint fake, const trc_gl_framebuffer_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Framebuffer, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_framebuffer(trace_t* trace, uint fake) {
-    const trc_gl_framebuffer_rev_t* rev = trc_get_gl_framebuffer(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_renderbuffer_rev_t* trc_get_gl_renderbuffer(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Renderbuffer, fake);
-}
-
-void trc_set_gl_renderbuffer(trace_t* trace, uint fake, const trc_gl_renderbuffer_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Renderbuffer, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_renderbuffer(trace_t* trace, uint fake) {
-    const trc_gl_renderbuffer_rev_t* rev = trc_get_gl_renderbuffer(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_sync_rev_t* trc_get_gl_sync(trace_t* trace, uint64_t fake) {
-    return get_gl_obj(trace, TrcGLObj_Sync, fake);
-}
-
-void trc_set_gl_sync(trace_t* trace, uint64_t fake, const trc_gl_sync_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Sync, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint64_t trc_get_real_gl_sync(trace_t* trace, uint64_t fake) {
-    const trc_gl_sync_rev_t* rev = trc_get_gl_sync(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_program_rev_t* trc_get_gl_program(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Program, fake);
-}
-
-void trc_set_gl_program(trace_t* trace, uint fake, const trc_gl_program_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Program, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_program(trace_t* trace, uint fake) {
-    const trc_gl_program_rev_t* rev = trc_get_gl_program(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_program_pipeline_rev_t* trc_get_gl_program_pipeline(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_ProgramPipeline, fake);
-}
-
-void trc_set_gl_program_pipeline(trace_t* trace, uint fake, const trc_gl_program_pipeline_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_ProgramPipeline, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_program_pipeline(trace_t* trace, uint fake) {
-    const trc_gl_program_pipeline_rev_t* rev = trc_get_gl_program_pipeline(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_shader_rev_t* trc_get_gl_shader(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_Shader, fake);
-}
-
-void trc_set_gl_shader(trace_t* trace, uint fake, const trc_gl_shader_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_Shader, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_shader(trace_t* trace, uint fake) {
-    const trc_gl_shader_rev_t* rev = trc_get_gl_shader(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_vao_rev_t* trc_get_gl_vao(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_VAO, fake);
-}
-
-void trc_set_gl_vao(trace_t* trace, uint fake, const trc_gl_vao_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_VAO, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_vao(trace_t* trace, uint fake) {
-    const trc_gl_vao_rev_t* rev = trc_get_gl_vao(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-const trc_gl_transform_feedback_rev_t* trc_get_gl_transform_feedback(trace_t* trace, uint fake) {
-    return get_gl_obj(trace, TrcGLObj_TransformFeedback, fake);
-}
-
-void trc_set_gl_transform_feedback(trace_t* trace, uint fake, const trc_gl_transform_feedback_rev_t* rev) {
-    set_gl_obj(trace, TrcGLObj_TransformFeedback, fake, (trc_gl_obj_rev_t*)rev);
-}
-
-uint trc_get_real_gl_transform_feedback(trace_t* trace, uint fake) {
-    const trc_gl_transform_feedback_rev_t* rev = trc_get_gl_transform_feedback(trace, fake);
-    if (!rev) return 0;
-    return rev->real;
-}
-
-void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
-    size_t size = gl_obj_sizes[type];
-    const trc_gl_obj_rev_t* rev = get_gl_obj(trace, type, fake);
-    if (!rev) return;
-    trc_gl_obj_rev_t* new_rev = malloc(size);
-    memcpy(new_rev, rev, size);
-    new_rev->ref_count++;
-    set_gl_obj(trace, type, fake, new_rev);
-    free(new_rev);
-}
-
-void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_gl_obj_type_t type) {
-    size_t size = gl_obj_sizes[type];
-    const trc_gl_obj_rev_t* rev = get_gl_obj(trace, type, fake);
-    if (!rev) return;
-    trc_gl_obj_rev_t* new_rev = malloc(size);
-    memcpy(new_rev, rev, size);
-    new_rev->ref_count--;
-    set_gl_obj(trace, type, fake, new_rev);
-    free(new_rev);
-}
-
-const trc_gl_obj_rev_t* trc_lookup_gl_obj(trace_t* trace, uint revision, uint64_t fake, trc_gl_obj_type_t type) {
-    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[type]; i++) {
-        if (trace->inspection.gl_obj_history[type][i].fake != fake) continue;
-        trc_gl_obj_history_t* history = &trace->inspection.gl_obj_history[type][i];
-        for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
-            if (history->revisions[j]->revision <= revision)
-                return history->revisions[j];
-        }
-    }
-    return NULL;
-}
-
-static trc_gl_context_history_t* find_ctx_history(trace_t* trace, uint64_t fake) {
-    for (size_t i = 0; i < trace->inspection.gl_context_history_count; i++) {
-        if (trace->inspection.gl_context_history[i].fake == fake)
-            return &trace->inspection.gl_context_history[i];
-    }
-    return NULL;
-}
-
-uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint revision) {
+uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision) {
     for (ptrdiff_t i = trace->inspection.cur_ctx_revision_count-1; i >= 0; i--) {
         if (trace->inspection.cur_ctx_revisions[i].revision <= revision)
             return trace->inspection.cur_ctx_revisions[i].context;
@@ -1320,81 +1029,213 @@ void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake) {
     i->cur_ctx_revisions[i->cur_ctx_revision_count++].context = fake;
 }
 
-const trc_gl_context_rev_t* trc_get_gl_context(trace_t* trace, uint64_t fake) {
-    if (!fake) fake = trc_get_current_fake_gl_context(trace);
-    trc_gl_context_history_t* h = find_ctx_history(trace, fake);
-    if (!h) return NULL;
-    if (!h->revision_count) return NULL;
-    return h->revisions[h->revision_count-1];
-}
-
-void trc_set_gl_context(trace_t* trace, uint64_t fake, const trc_gl_context_rev_t* rev) {
-    if (!fake) fake = trc_get_current_fake_gl_context(trace);
-    
-    trc_gl_context_history_t* h = find_ctx_history(trace, fake);
-    if (!h) {
-        trc_gl_inspection_t* i = &trace->inspection;
-        i->gl_context_history = realloc(i->gl_context_history,
-                                       (i->gl_context_history_count+1) *
-                                       sizeof(trc_gl_context_history_t));
-        h = &i->gl_context_history[i->gl_context_history_count++];
-        h->fake = fake;
-        h->revision_count = 1;
-        h->revisions = malloc(sizeof(trc_gl_context_rev_t*));
-        goto do_newrev;
-    }
-    
-    trc_gl_context_rev_t* dest = h->revisions[h->revision_count-1];
-    if (dest->revision == trace->inspection.cur_revision) {
-        *dest = *rev;
-        dest->revision = trace->inspection.cur_revision;
-        return;
-    } else {
-        h->revisions = realloc(h->revisions, ++h->revision_count*sizeof(trc_gl_context_rev_t*));
-        goto do_newrev;
-    }
-    
-    do_newrev: ;
-        trc_gl_context_rev_t* newrev = malloc(sizeof(trc_gl_context_rev_t));
-        memcpy(newrev, rev, sizeof(trc_gl_context_rev_t));
-        newrev->revision = trace->inspection.cur_revision;
-        h->revisions[h->revision_count-1] = newrev;
-}
-
-void* trc_get_real_gl_context(trace_t* trace, uint64_t fake) {
-    const trc_gl_context_rev_t* rev = trc_get_gl_context(trace, fake);
-    if (!rev) return NULL;
-    return rev->real;
-}
-
-const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint revision, uint64_t fake) {
-    for (size_t i = 0; i < trace->inspection.gl_context_history_count; i++) {
-        if (trace->inspection.gl_context_history[i].fake != fake) continue;
-        trc_gl_context_history_t* history = &trace->inspection.gl_context_history[i];
-        for (ptrdiff_t j = history->revision_count-1; j >= 0; j--) {
-            if (history->revisions[j]->revision <= revision)
-                return history->revisions[j];
-        }
-    }
-    return NULL;
-}
-
 #define WIP15_STATE_GEN_IMPL
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_IMPL
 
+static size_t obj_sizes[Trc_ObjMax] = {
+    [TrcBuffer] = sizeof(trc_gl_buffer_rev_t),
+    [TrcSampler] = sizeof(trc_gl_sampler_rev_t),
+    [TrcTexture] = sizeof(trc_gl_texture_rev_t),
+    [TrcQuery] = sizeof(trc_gl_query_rev_t),
+    [TrcFramebuffer] = sizeof(trc_gl_framebuffer_rev_t),
+    [TrcRenderbuffer] = sizeof(trc_gl_renderbuffer_rev_t),
+    [TrcSync] = sizeof(trc_gl_sync_rev_t),
+    [TrcProgram] = sizeof(trc_gl_program_rev_t),
+    [TrcProgramPipeline] = sizeof(trc_gl_program_pipeline_rev_t),
+    [TrcShader] = sizeof(trc_gl_shader_rev_t),
+    [TrcVAO] = sizeof(trc_gl_vao_rev_t),
+    [TrcTransformFeedback] = sizeof(trc_gl_transform_feedback_rev_t),
+    [TrcContext] = sizeof(trc_gl_context_rev_t)
+};
+
+trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, const void* revdata) {
+    trc_gl_inspection_t* in = &trace->inspection;
+    
+    trc_obj_t* obj = malloc(sizeof(trc_obj_t));
+    obj->trace = trace;
+    obj->name_table = name_table;
+    obj->type = type;
+    obj->revision_count = 1;
+    trc_obj_rev_head_t* rev = malloc(name_table?sizeof(trc_name_table_rev_t):obj_sizes[type]);
+    obj->revisions = malloc(sizeof(void*));
+    obj->revisions[0] = rev;
+    
+    rev->obj = obj;
+    rev->revision = in->cur_revision;
+    rev->ref_count = 1;
+    if (name_table) {
+        trc_name_table_rev_t* table = (trc_name_table_rev_t*)rev;
+        table->entry_count = 0;
+        table->names = table->objects = trc_create_data(trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    } else {
+        memcpy(rev+1, (trc_obj_rev_head_t*)revdata+1, obj_sizes[type]-sizeof(trc_obj_rev_head_t));
+        in->objects[type] = realloc(in->objects[type], (in->object_count[type]+1)*sizeof(trc_obj_t*));
+        in->objects[type][in->object_count[type]++] = obj;
+    }
+    
+    return obj;
+}
+
+void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev) {
+    for (size_t i = obj->revision_count-1; ; i--) {
+        trc_obj_rev_head_t* head = obj->revisions[i];
+        if (head->revision <= rev)
+            return obj->revisions[i];
+        if (i == 0) break;
+    }
+    return NULL;
+}
+
+void trc_obj_set_rev(trc_obj_t* obj, const void* rev) {
+    trc_gl_inspection_t* in = &obj->trace->inspection;
+    size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
+    for (size_t i = 0; i < obj->revision_count; i++) {
+        trc_obj_rev_head_t* head = obj->revisions[i];
+        if (head->revision == in->cur_revision) {
+            memcpy(obj->revisions[i], rev, rev_size);
+            return;
+        }
+    }
+    
+    trc_obj_rev_head_t* newrev = malloc(rev_size);
+    memcpy(newrev, rev, rev_size);
+    newrev->revision = in->cur_revision;
+    
+    obj->revisions = realloc(obj->revisions, (obj->revision_count+1)*sizeof(void*));
+    obj->revisions[obj->revision_count] = newrev;
+    obj->revision_count++;
+}
+
+void trc_grab_obj(trc_obj_t* obj) {
+    trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
+    if (!head) return; //TODO: How to handle this
+    
+    //TODO: unnecessary memory allocation
+    size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
+    trc_obj_rev_head_t* newrev = malloc(rev_size);
+    memcpy(newrev, head, rev_size);
+    
+    newrev->ref_count++;
+    trc_obj_set_rev(obj, newrev);
+    
+    free(newrev);
+}
+
+void trc_drop_obj(trc_obj_t* obj) {
+    trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
+    if (!head) return; //TODO: How to handle this
+    
+    //TODO: unnecessary memory allocation
+    size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
+    trc_obj_rev_head_t* newrev = malloc(rev_size);
+    memcpy(newrev, head, rev_size);
+    
+    newrev->ref_count--;
+    trc_obj_set_rev(obj, newrev);
+    
+    free(newrev);
+}
+
+void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
+    trc_gl_inspection_t* in = &trace->inspection;
+    trc_obj_t* table_obj = in->name_tables[type];
+    trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
+    
+    uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
+    trc_obj_t** objects = trc_map_data(table->objects, TRC_MAP_READ);
+    size_t index = 0;
+    
+    for (; index < table->entry_count; index++) {
+        if (names[index] == name) {
+            size_t objects_size = table->entry_count*sizeof(trc_obj_t*);
+            trc_obj_t** newobjects = malloc(objects_size);
+            
+            memcpy(newobjects, objects, objects_size);
+            newobjects[index] = obj;
+            
+            trc_name_table_rev_t newtable = *table;
+            newtable.objects = trc_create_data_no_copy(trace, objects_size,
+                                                       newobjects, TRC_DATA_IMMUTABLE);
+            
+            trc_obj_set_rev(table_obj, &newtable);
+            break;
+        }
+    }
+    
+    if (index == table->entry_count) { //Create a new entry
+        uint64_t* newnames = malloc((table->entry_count+1)*sizeof(uint64_t));
+        trc_obj_t** newobjects = malloc((table->entry_count+1)*sizeof(trc_obj_t*));
+        
+        memcpy(newnames, names, table->entry_count*sizeof(uint64_t));
+        memcpy(newobjects, objects, table->entry_count*sizeof(trc_obj_t*));
+        
+        newnames[table->entry_count] = name;
+        newobjects[table->entry_count] = obj;
+        
+        trc_name_table_rev_t newtable = *table;
+        newtable.entry_count++;
+        newtable.names = trc_create_data_no_copy(trace, newtable.entry_count*sizeof(uint64_t),
+                                                 newnames, TRC_DATA_IMMUTABLE);
+        newtable.objects = trc_create_data_no_copy(trace, newtable.entry_count*sizeof(trc_obj_t*),
+                                                   newobjects, TRC_DATA_IMMUTABLE);
+        
+        trc_obj_set_rev(table_obj, &newtable);
+    }
+    
+    trc_unmap_data(table->objects);
+    trc_unmap_data(table->names);
+}
+
+void trc_unset_name(trace_t* trace, trc_obj_type_t type, uint64_t name) {
+    trc_set_name(trace, type, name, NULL);
+}
+
+trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev) {
+    trc_gl_inspection_t* in = &trace->inspection;
+    trc_obj_t* table_obj = in->name_tables[type];
+    trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, rev);
+    if (!table) return NULL;
+    
+    uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
+    size_t index = 0;
+    for (; index < table->entry_count; index++) {
+        if (names[index] == name) break;
+    }
+    trc_unmap_data(table->names);
+    
+    trc_obj_t* res = NULL;
+    if (index != table->entry_count) {
+        res = ((trc_obj_t**)trc_map_data(table->objects, TRC_MAP_READ))[index];
+        trc_unmap_data(table->objects);
+    }
+    
+    return res;
+}
+
+void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, void* rev) {
+    trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
+    if (!obj) return;
+    trc_obj_set_rev(obj, rev);
+}
+
+void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name) {
+    trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
+    return obj ? trc_obj_get_rev(obj, -1) : NULL;
+}
+
 static void queue_push_to_back(trace_t* trace, trc_data_t* data) {
-    mutex_lock(&trace->data_queue_mutex);
+    pthread_mutex_lock(&trace->data_queue_mutex);
     if (trace->data_queue_end != NULL)
         trace->data_queue_end->queue_next = data;
     trace->data_queue_end = data;
     if (trace->data_queue_start == NULL)
         trace->data_queue_start = trace->data_queue_end;
-    mutex_unlock(&trace->data_queue_mutex);
+    pthread_mutex_unlock(&trace->data_queue_mutex);
 }
 
 static trc_data_t* queue_pop_from_front(trace_t* trace) {
-    mutex_lock(&trace->data_queue_mutex);
+    pthread_mutex_lock(&trace->data_queue_mutex);
     trc_data_t* data = NULL;
     if (trace->data_queue_start != NULL) {
         data = trace->data_queue_start;
@@ -1402,7 +1243,7 @@ static trc_data_t* queue_pop_from_front(trace_t* trace) {
         if (trace->data_queue_start == NULL) trace->data_queue_end = NULL;
         data->queue_next = NULL;
     }
-    mutex_unlock(&trace->data_queue_mutex);
+    pthread_mutex_unlock(&trace->data_queue_mutex);
     return data;
 }
 
@@ -1449,13 +1290,13 @@ static void* compress_thread(void* userdata) {
     while (atomic_load(&trace->threads_running)) {
         trc_data_t* data = queue_pop_from_front(trace);
         if (!data) goto wait;
-        mutex_lock(&data->mutex);
+        pthread_rwlock_wrlock(&data->lock);
         
         assert(data->storage_type == TrcStorage_Plain);
         
         compress_data(data);
         
-        mutex_unlock(&data->mutex);
+        pthread_rwlock_unlock(&data->lock);
         continue;
         wait:;
             struct timespec sleep_time;
@@ -1469,7 +1310,7 @@ static void* compress_thread(void* userdata) {
 
 static trc_data_t* create_data(trace_t* trace, size_t size, void* data, uint32_t flags, bool copy) {
     trc_data_t* res = malloc(sizeof(trc_data_t));
-    res->mutex = 0;
+    res->lock = (pthread_rwlock_t)PTHREAD_RWLOCK_INITIALIZER;
     res->flags = flags;
     res->storage_type = TrcStorage_Plain;
     res->size = size;
@@ -1509,7 +1350,8 @@ trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uin
 }
 
 void* trc_map_data(trc_data_t* data, uint32_t flags) {
-    mutex_lock(&data->mutex);
+    if (flags & TRC_MAP_WRITE) pthread_rwlock_wrlock(&data->lock);
+    else pthread_rwlock_rdlock(&data->lock);
     if ((flags&TRC_MAP_WRITE) && data->flags&TRC_DATA_IMMUTABLE)
         assert(false);
     data_mapping_t mapping;
@@ -1563,7 +1405,7 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
     }
     }
     
-    mutex_lock(&mapping_mutex);
+    pthread_mutex_lock(&mapping_mutex);
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
         if (mappings[i].data == NULL) {
             mappings[i] = mapping;
@@ -1572,12 +1414,12 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
     }
     assert(false);
     success:
-    mutex_unlock(&mapping_mutex);
+    pthread_mutex_unlock(&mapping_mutex);
     return mapping.ptr;
 }
 
 void trc_unmap_data(trc_data_t* data) {
-    mutex_lock(&mapping_mutex);
+    pthread_mutex_lock(&mapping_mutex);
     
     data_mapping_t* mapping = NULL;
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
@@ -1591,15 +1433,16 @@ void trc_unmap_data(trc_data_t* data) {
         mapping->data = NULL;
     }
     
-    mutex_unlock(&mapping_mutex);
-    mutex_unlock(&data->mutex);
+    pthread_mutex_unlock(&mapping_mutex);
+    if (mapping->flags & TRC_MAP_WRITE) pthread_rwlock_unlock(&data->lock);
+    else pthread_rwlock_unlock(&data->lock);
 }
 
 void trc_freeze_data(trace_t* trace, trc_data_t* data) {
-    mutex_lock(&data->mutex);
+    pthread_rwlock_wrlock(&data->lock);
     data->flags |= TRC_DATA_IMMUTABLE;
     bool no_compress = !(data->flags&TRC_DATA_NO_COMPRESS);
-    mutex_unlock(&data->mutex);
+    pthread_rwlock_unlock(&data->lock);
     if (no_compress) {
         if (trace->thread_count == 0) compress_data(data);
         else queue_push_to_back(trace, data);

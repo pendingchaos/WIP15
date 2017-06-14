@@ -16,19 +16,15 @@ void init_queries_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Query]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Query][i];
-        const trc_gl_obj_rev_t* query = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Query);
-        if (query && query->ref_count) {
-            char str[64];
-            memset(str, 0, 64);
-            snprintf(str, 64, "%lx", h->fake);
-            
-            GtkTreeIter row;
-            gtk_tree_store_append(store, &row, NULL);
-            gtk_tree_store_set(store, &row, 0, str, -1);
-        }
-    }
+    TRC_ITER_OBJECTS_BEGIN(TrcQuery, trc_gl_query_rev_t)
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", (uint)rev->fake);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    TRC_ITER_OBJECTS_END
 }
 
 void query_select_callback(GObject* obj, gpointer user_data) {
@@ -39,13 +35,13 @@ void query_select_callback(GObject* obj, gpointer user_data) {
     size_t index = gtk_tree_path_get_indices(path)[0];
     
     size_t count = 0;
-    trc_gl_query_rev_t* query = NULL;
-    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Query]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Query][i];
-        query = (trc_gl_query_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Query);
-        if (query && query->ref_count) count++;
-        if (count == index+1) break;
-    }
+    const trc_gl_query_rev_t* query = NULL;
+    TRC_ITER_OBJECTS_BEGIN(TrcQuery, trc_gl_query_rev_t)
+        if (count == index+1) {
+            query = rev;
+            break;
+        }
+    TRC_ITER_OBJECTS_END
     
     if (!query) return; //TODO: Is this possible?
     

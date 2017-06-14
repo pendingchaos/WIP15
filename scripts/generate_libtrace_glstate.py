@@ -504,7 +504,7 @@ typedef struct trc_gl_buffer_binding_point_t {
     uint size;
 } trc_gl_buffer_binding_point_t;'''
 print 'typedef struct trc_gl_context_rev_t {'
-print '    uint64_t revision;'
+print '    trc_obj_rev_head_t head;'
 print '    void* real;'
 print '    '
 for prop in properties:

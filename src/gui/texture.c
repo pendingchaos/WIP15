@@ -35,14 +35,13 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     //Initialize params
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     size_t count = 0;
-    trc_gl_texture_rev_t* tex = NULL;
-    for (size_t i = 0; i <= trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
-        tex = (trc_gl_texture_rev_t*)trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
-        if (tex && tex->ref_count) count++;
-        if (count == tex_index+1) break;
-    }
-    if (!tex) return; //TODO: Is this possible?
+    const trc_gl_texture_rev_t* tex = NULL;
+    TRC_ITER_OBJECTS_BEGIN(TrcTexture, trc_gl_texture_rev_t)
+        if (count == tex_index+1) {
+            tex = rev;
+            break;
+        }
+    TRC_ITER_OBJECTS_END
     //TODO
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count-1*/0);
     
@@ -189,19 +188,15 @@ void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    for (size_t i = 0; i < trace->inspection.gl_obj_history_count[TrcGLObj_Texture]; i++) {
-        trc_gl_obj_history_t* h = &trace->inspection.gl_obj_history[TrcGLObj_Texture][i];
-        const trc_gl_obj_rev_t* tex = trc_lookup_gl_obj(trace, revision, h->fake, TrcGLObj_Texture);
-        if (tex && tex->ref_count) {
-            char str[64];
-            memset(str, 0, 64);
-            snprintf(str, 64, "%u", (uint)h->fake);
-            
-            GtkTreeIter row;
-            gtk_tree_store_append(store, &row, NULL);
-            gtk_tree_store_set(store, &row, 0, str, -1);
-        }
-    }
+    TRC_ITER_OBJECTS_BEGIN(TrcTexture, trc_gl_texture_rev_t)
+        char str[64];
+        memset(str, 0, 64);
+        snprintf(str, 64, "%u", (uint)rev->fake);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
+    TRC_ITER_OBJECTS_END
 }
 
 void texture_init() {
