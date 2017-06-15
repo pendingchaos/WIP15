@@ -633,6 +633,8 @@ static void handle_limits() {
             }
             
             UPDATE_VERSION
+            
+            #undef UPDATE_VERSION
         } else if (c == '#') {
             while (true) {
                 c = fgetc(file);
@@ -759,8 +761,7 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         components = 1;
         break;
     case GL_DEPTH_STENCIL:
-        //TODO
-        break;
+        return type == GL_UNSIGNED_INT_24_8_EXT ? 4 : 0;
     case GL_RG:
     case GL_RG_INTEGER:
         components = 2;
@@ -957,7 +958,7 @@ static void link_program_extras(GLuint program) {
         add_program_extra("replay/program/uniform_block", name, 0, F(glGetUniformBlockIndex)(program, name));
     }
     
-    /*GLint major, minor;
+    GLint major, minor;
     F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
     F(glGetIntegerv)(GL_MINOR_VERSION, &minor);
     uint ver = major*100 + minor*10;
@@ -993,7 +994,7 @@ static void link_program_extras(GLuint program) {
                 add_program_extra("replay/program/subroutine_uniform", name, stage, j);
             }
         }
-    }*/
+    }
 }
 
 static size_t tex_param_count(GLenum param) {

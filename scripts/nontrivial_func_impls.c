@@ -2199,6 +2199,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
     }
     real(p_first, p_count, real_tex);
 
+//TODO: Support malsized data in gl*Image*D
 glTexImage1D: //GLenum p_target, GLint p_level, GLint p_internalformat, GLsizei p_width, GLint p_border, GLenum p_format, GLenum p_type, const void* p_pixels
     if (tex_image(ctx, cmd, false, p_target, p_level, p_internalformat, p_border, p_format, p_type, false, 1, p_width)) {
         real(p_target, p_level, p_internalformat, p_width, p_border, p_format, p_type, p_pixels);

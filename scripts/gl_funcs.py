@@ -627,10 +627,10 @@ Func((3, 3), 'glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'
 Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                         P(tGLuint, 'param', 'tex_param_count(pname)')])
 
-#Func((3, 3), 'glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 3), 'glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 3), 'glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 3), 'glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 3), 'glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
+Func((3, 3), 'glGetSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
+Func((3, 3), 'glGetSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tGLfloat, 'params', 'tex_param_count(pname)')])
+Func((3, 3), 'glGetSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tGLuint, 'params', 'tex_param_count(pname)')])
 Func((3, 3), 'glVertexAttribDivisor', [P(tGLuint, 'index'), P(tGLuint, 'divisor')], None)
 Func((3, 3), 'glVertexAttribP1ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
 Func((3, 3), 'glVertexAttribP2ui', [P(tGLuint, 'index'), P(tGLenum, 'type', None, 'PackedAttribType'), P(tGLboolean, 'normalized', None, 'Boolean'), P(tGLuint, 'value')])
@@ -686,7 +686,7 @@ Func((4, 0), 'glUniformMatrix4x3dv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((4, 0), 'glGetUniformdv', [P(tGLuint, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func((4, 0), 'glGetActiveSubroutineUniformiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'values')])
 Func((4, 0), 'glGetActiveSubroutineUniformName', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tGLsizei, 'length', 1), P(tGLchar, 'name', 'bufsize')])
-Func((4, 0), 'glGetActiveSubroutineName', [P(tGLProgram, 'program'), P(tGLenum, 'shadertype', None, 'ShaderType'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tGLsizei, 'length', 'length?1:0'), P(tMutableString, 'name', 'bufsize')])
+Func((4, 0), 'glGetActiveSubroutineName', [P(tGLProgram, 'program'), P(tGLenum, 'shadertype', None, 'ShaderType'), P(tGLuint, 'index'), P(tGLsizei, 'bufsize'), P(tGLsizei, 'length', 'length?1:0'), P(tData('bufsize'), 'name')])
 Func((4, 0), 'glUniformSubroutinesuiv', [P(tGLenum, 'shadertype', None, 'ShaderType'), P(tGLsizei, 'count'), P(tGLuint, 'indices', 'count')])
 Func((4, 0), 'glGetUniformSubroutineuiv', [P(tGLenum, 'shadertype'), P(tGLint, 'location'), P(tGLuint, 'params', 1)])
 Func((4, 0), 'glGetProgramStageiv', [P(tGLuint, 'program'), P(tGLenum, 'shadertype'), P(tGLenum, 'pname'), P(tGLint, 'values', 1)])
