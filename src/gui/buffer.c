@@ -78,13 +78,10 @@ static void update_buffer_view(size_t buf_index) {
     
     size_t count = 0;
     const trc_gl_buffer_rev_t* buf = NULL;
-    TRC_ITER_OBJECTS_BEGIN(TrcBuffer, trc_gl_buffer_rev_t)
-        if (count == buf_index) {
-            buf = rev;
-            break;
-        }
+    for (size_t i = 0; trc_iter_objects(trace, TrcBuffer, &i, revision, (const void**)&buf);) {
+        if (count == buf_index-1) break;
         count++;
-    TRC_ITER_OBJECTS_END
+    }
     
     if (!buf->data) return;
     
@@ -186,7 +183,8 @@ void init_buffer_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    TRC_ITER_OBJECTS_BEGIN(TrcBuffer, trc_gl_buffer_rev_t)
+    const trc_gl_buffer_rev_t* rev;
+    for (size_t i = 0; trc_iter_objects(trace, TrcBuffer, &i, revision, (const void**)&rev);) {
         char str[64];
         memset(str, 0, 64);
         snprintf(str, 64, "%u", (uint)rev->fake);
@@ -194,7 +192,7 @@ void init_buffer_list(GtkTreeView* tree) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
-    TRC_ITER_OBJECTS_END
+    }
 }
 
 void buffer_init() {

@@ -1238,6 +1238,22 @@ void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev) {
     trc_set_obj(trace, TrcContext, trc_get_current_fake_gl_context(trace), rev);
 }
 
+bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64_t revision, const void** rev) {
+    const trc_obj_rev_head_t* head = NULL;
+    while (true) {
+        if (*index >= trace->inspection.object_count[type]) return false;
+        
+        trc_obj_t* obj = trace->inspection.objects[type][*index];
+        (*index)++;
+        
+        head = trc_obj_get_rev(obj, revision);
+        if (head && head->ref_count>0) break;
+    }
+    
+    *rev = head;
+    return true;
+}
+
 static void queue_push_to_back(trace_t* trace, trc_data_t* data) {
     pthread_mutex_lock(&trace->data_queue_mutex);
     if (trace->data_queue_end != NULL)

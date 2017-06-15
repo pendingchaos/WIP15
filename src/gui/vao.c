@@ -18,7 +18,8 @@ void init_vao_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    TRC_ITER_OBJECTS_BEGIN(TrcVAO, trc_gl_vao_rev_t)
+    const trc_gl_vao_rev_t* rev;
+    for (size_t i = 0; trc_iter_objects(trace, TrcVAO, &i, revision, (const void**)&rev);) {
         char str[64];
         memset(str, 0, 64);
         snprintf(str, 64, "%u", (uint)rev->fake);
@@ -26,7 +27,7 @@ void init_vao_list(GtkTreeView* tree) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
-    TRC_ITER_OBJECTS_END
+    }
 }
 
 void vao_select_callback(GObject* obj, gpointer user_data) {
@@ -46,13 +47,10 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
     
     size_t count = 0;
     const trc_gl_vao_rev_t* vao = NULL;
-    TRC_ITER_OBJECTS_BEGIN(TrcVAO, trc_gl_vao_rev_t)
-        if (count == index) {
-            vao = rev;
-            break;
-        }
+    for (size_t i = 0; trc_iter_objects(trace, TrcVAO, &i, revision, (const void**)&vao);) {
+        if (count == index-1) break;
         count++;
-    TRC_ITER_OBJECTS_END
+    }
     
     trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {

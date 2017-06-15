@@ -1,3 +1,15 @@
+static void grab_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
+    if (!fake) return;
+    trc_grab_obj(trc_lookup_name(trace, type, fake, -1));
+}
+
+static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
+    if (!fake) return;
+    trc_drop_obj(trc_lookup_name(trace, type, fake, -1));
+    if (((trc_obj_rev_head_t*)trc_get_obj(trace, type, fake))->ref_count == 0)
+        trc_unset_name(trace, type, fake);
+}
+
 static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* params,
                                 GLenum param, uint32_t count, const double* val) {
     switch (param) {
@@ -2118,7 +2130,7 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     for (size_t i = 0; i < p_n; ++i)
         if (!(textures[i] = trc_get_real_texture(ctx->trace, p_textures[i])))
             trc_add_error(cmd, "Invalid texture name");
-        else trc_rel_gl_obj(ctx->trace, p_textures[i], TrcTexture);
+        else drop_obj(ctx->trace, p_textures[i], TrcTexture);
     real(p_n, textures);
 
 glActiveTexture: //GLenum p_texture
@@ -2402,7 +2414,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     for (size_t i = 0; i < p_n; ++i) {
         if (!(buffers[i] = trc_get_real_buffer(ctx->trace, p_buffers[i])))
             trc_add_error(cmd, "Invalid buffer name");
-        else trc_rel_gl_obj(ctx->trace, p_buffers[i], TrcBuffer);
+        else drop_obj(ctx->trace, p_buffers[i], TrcBuffer);
     }
     real(p_n, buffers);
 
@@ -2534,7 +2546,7 @@ glDeleteShader: //GLuint p_shader
     
     F(glDeleteShader)(real_shdr);
     
-    trc_rel_gl_obj(ctx->trace, p_shader, TrcShader);
+    drop_obj(ctx->trace, p_shader, TrcShader);
 
 glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string, const GLint* p_length
     GLuint shader = trc_get_real_shader(ctx->trace, p_shader);
@@ -2615,13 +2627,13 @@ glDeleteProgram: //GLuint p_program
     size_t shader_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
-        trc_rel_gl_obj(ctx->trace, shaders[i].fake_shader, TrcShader);
+        drop_obj(ctx->trace, shaders[i].fake_shader, TrcShader);
     trc_unmap_data(rev.shaders);
     
     rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     set_program(ctx->trace, p_program, &rev);
     
-    trc_rel_gl_obj(ctx->trace, p_program, TrcProgram);
+    drop_obj(ctx->trace, p_program, TrcProgram);
 
 glProgramParameteri: //GLuint p_program, GLenum p_pname, GLint p_value
     if (!p_program_rev) ERROR("Invalid program name");
@@ -2662,7 +2674,7 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     trc_unmap_data(old.shaders);
     trc_unmap_freeze_data(ctx->trace, program.shaders);
     
-    trc_grab_gl_obj(ctx->trace, p_shader, TrcShader);
+    grab_obj(ctx->trace, p_shader, TrcShader);
     set_program(ctx->trace, p_program, &program);
 
 glDetachShader: //GLuint p_program, GLuint p_shader
@@ -2692,7 +2704,7 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     trc_unmap_freeze_data(ctx->trace, program.shaders);
     if (!found) ERROR("Shader is not attached to program");
     
-    trc_rel_gl_obj(ctx->trace, p_shader, TrcShader);
+    drop_obj(ctx->trace, p_shader, TrcShader);
     
     set_program(ctx->trace, p_program, &program);
 
@@ -2933,8 +2945,8 @@ glUseProgram: //GLuint p_program
         ERROR("The program binding cannot be modified while transform feedback is active and unpaused");
     
     trc_gl_context_rev_t state = *trc_get_context(ctx->trace);
-    trc_grab_gl_obj(ctx->trace, p_program, TrcProgram);
-    trc_rel_gl_obj(ctx->trace, state.bound_program, TrcProgram);
+    grab_obj(ctx->trace, p_program, TrcProgram);
+    drop_obj(ctx->trace, state.bound_program, TrcProgram);
     state.bound_program = p_program;
     trc_set_context(ctx->trace, &state);
     
@@ -2958,7 +2970,7 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     for (size_t i = 0; i < p_n; ++i) {
         if (!(pipelines[i] = trc_get_real_program_pipeline(ctx->trace, p_pipelines[i])))
             trc_add_error(cmd, "Invalid program pipeline name");
-        else trc_rel_gl_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
+        else drop_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
     }
     real(p_n, pipelines);
 
@@ -4392,7 +4404,7 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
             trc_gl_state_set_bound_vao(ctx->trace, 0);
         if (!(arrays[i]=trc_get_real_vao(ctx->trace, p_arrays[i])))
             trc_add_error(cmd, "Invalid vertex array name");
-        else trc_rel_gl_obj(ctx->trace, p_arrays[i], TrcVAO);
+        else drop_obj(ctx->trace, p_arrays[i], TrcVAO);
     }
     real(p_n, arrays);
 
@@ -4493,7 +4505,7 @@ glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     for (size_t i = 0; i < p_count; ++i) {
         if (!(samplers[i] = trc_get_real_sampler(ctx->trace, p_samplers[i])))
             trc_add_error(cmd, "Invalid sampler name");
-        else trc_rel_gl_obj(ctx->trace, p_samplers[i], TrcSampler);
+        else drop_obj(ctx->trace, p_samplers[i], TrcSampler);
     }
     
     real(p_count, samplers);
@@ -4576,7 +4588,7 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
             trc_gl_state_set_draw_framebuffer(ctx->trace, 0);
         if (!(fbs[i] = trc_get_real_framebuffer(ctx->trace, p_framebuffers[i])))
             trc_add_error(cmd, "Invalid framebuffer name");
-        else trc_rel_gl_obj(ctx->trace, p_framebuffers[i], TrcFramebuffer);
+        else drop_obj(ctx->trace, p_framebuffers[i], TrcFramebuffer);
     }
     real(p_n, fbs);
 
@@ -4621,7 +4633,7 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
         if (!(rbs[i] = trc_get_real_renderbuffer(ctx->trace, p_renderbuffers[i])))
             trc_add_error(cmd, "Invalid renderbuffer name");
-        else trc_rel_gl_obj(ctx->trace, p_renderbuffers[i], TrcRenderbuffer);
+        else drop_obj(ctx->trace, p_renderbuffers[i], TrcRenderbuffer);
     }
     
     real(p_n, rbs);
@@ -4771,7 +4783,7 @@ glFenceSync: //GLenum p_condition, GLbitfield p_flags
 glDeleteSync: //GLsync p_sync
     if (!p_sync_rev && p_sync) ERROR("Invalid sync name");
     real(p_sync?(GLsync)p_sync_rev->real:0);
-    if (p_sync) trc_rel_gl_obj(ctx->trace, p_sync, TrcSync);
+    if (p_sync) drop_obj(ctx->trace, p_sync, TrcSync);
 
 glWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
     if (!p_sync_rev) ERROR("Invalid sync name");
@@ -4800,7 +4812,7 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
         //TODO: Handle when queries are in use
         if (!(queries[i] = trc_get_real_query(ctx->trace, p_ids[i])))
             trc_add_error(cmd, "Invalid query name");
-        else trc_rel_gl_obj(ctx->trace, p_ids[i], TrcQuery);
+        else drop_obj(ctx->trace, p_ids[i], TrcQuery);
     }
     real(p_n, queries);
 

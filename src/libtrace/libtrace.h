@@ -409,6 +409,7 @@ typedef struct trc_replay_context_t {
     const char* current_test_name;
 } trc_replay_context_t;
 
+//Traces
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);
 void trc_free_value(trace_value_t value);
@@ -435,7 +436,7 @@ void trc_add_warning(trace_command_t* command, const char* format, ...);
 void trc_add_error(trace_command_t* command, const char* format, ...);
 void trc_run_inspection(trace_t* trace);
 
-//Object
+//Objects
 trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, const void* rev);
 
 void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev);
@@ -454,42 +455,17 @@ void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name);
 const trc_gl_context_rev_t* trc_get_context(trace_t* trace);
 void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev);
 
-#define TRC_ITER_OBJECTS_BEGIN(type, revt) for (size_t i = 0; i < trace->inspection.object_count[type]; i++) {\
-    trc_obj_t* obj = trace->inspection.objects[type][i];\
-    const revt* rev = trc_obj_get_rev(obj, revision);\
-    if (!rev || rev->head.ref_count==0) continue;
-#define TRC_ITER_OBJECTS_END }
-
-static inline void trc_grab_gl_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
-    if (!fake) return;
-    trc_grab_obj(trc_lookup_name(trace, type, fake, -1));
-}
-
-static inline void trc_rel_gl_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
-    if (!fake) return;
-    trc_drop_obj(trc_lookup_name(trace, type, fake, -1));
-    if (((trc_obj_rev_head_t*)trc_get_obj(trace, type, fake))->ref_count == 0)
-        trc_unset_name(trace, type, fake);
-}
-
-static inline const void* trc_lookup_gl_obj(trace_t* trace, uint64_t revision, uint64_t fake, trc_obj_type_t type) {
-    return trc_lookup_name(trace, type, fake, revision);
-}
+bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64_t revision, const void** rev);
 
 uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision);
 uint64_t trc_get_current_fake_gl_context(trace_t* trace);
 void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
 
-static inline const trc_gl_context_rev_t* trc_lookup_gl_context(trace_t* trace, uint64_t revision, uint64_t fake) {
-    trc_obj_t* obj = trc_lookup_name(trace, TrcContext, fake, revision);
-    if (!obj) return NULL;
-    return trc_obj_get_rev(obj, revision);
-}
-
 #define WIP15_STATE_GEN_FUNC_DECL
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_FUNC_DECL
 
+//Data
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
 void* trc_map_data(trc_data_t* data, uint32_t flags);

@@ -36,13 +36,11 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     size_t count = 0;
     const trc_gl_texture_rev_t* tex = NULL;
-    TRC_ITER_OBJECTS_BEGIN(TrcTexture, trc_gl_texture_rev_t)
-        if (count == tex_index) {
-            tex = rev;
-            break;
-        }
+    for (size_t i = 0; trc_iter_objects(trace, TrcTexture, &i, revision, (const void**)&tex);) {
+        if (count == tex_index-1) break;
         count++;
-    TRC_ITER_OBJECTS_END
+    }
+    
     //TODO
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count-1*/0);
     
@@ -189,7 +187,8 @@ void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    TRC_ITER_OBJECTS_BEGIN(TrcTexture, trc_gl_texture_rev_t)
+    const trc_gl_texture_rev_t* rev;
+    for (size_t i = 0; trc_iter_objects(trace, TrcTexture, &i, revision, (const void**)&rev);) {
         char str[64];
         memset(str, 0, 64);
         snprintf(str, 64, "%u", (uint)rev->fake);
@@ -197,7 +196,7 @@ void init_texture_list(GtkTreeView* tree) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
         gtk_tree_store_set(store, &row, 0, str, -1);
-    TRC_ITER_OBJECTS_END
+    }
 }
 
 void texture_init() {
