@@ -26,7 +26,8 @@ typedef enum {
     BaseType_Double = 6,
     BaseType_String = 7,
     BaseType_Data = 8,
-    BaseType_FunctionPtr = 9
+    BaseType_FunctionPtr = 9,
+    BaseType_Variant = 10
 } base_type_t;
 
 typedef enum {
@@ -236,7 +237,9 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         val->count = 1;
     }
     
-    switch (type->base) {
+    base_type_t base = type->base;
+    while (true) {
+        switch (base) {
         case BaseType_Void: {
             val->type = Type_Void;
             break;
@@ -302,8 +305,7 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             val->type = Type_Boolean;
             if (val->count == 1) {
                 uint8_t v;
-                if (!readf(&v, 1, 1, file))
-                    return false;
+                if (!readf(&v, 1, 1, file)) return false;
                 val->bl = v;
             } else {
                 val->bl_array = malloc(val->count);
@@ -323,8 +325,7 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             val->type = Type_Double;
             if (val->count == 1) {
                 float v;
-                if (!readf(&v, 4, 1, file))
-                    return false;
+                if (!readf(&v, 4, 1, file)) return false;
                 val->dbl = v;
             } else {
                 val->dbl_array = malloc(sizeof(double)*val->count);
@@ -343,8 +344,7 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         case BaseType_Double: { //TODO: Make this more portable.
             val->type = Type_Double;
             if (val->count == 1) {
-                if (!readf(&val->dbl, 8, 1, file))
-                    return false;
+                if (!readf(&val->dbl, 8, 1, file)) return false;
             } else {
                 val->dbl_array = malloc(sizeof(double)*val->count);
                 
@@ -358,8 +358,7 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             val->type = Type_Str;
             if (val->count == 1) {
                 val->str = read_str(file);
-                if (!val->str)
-                    return false;
+                if (!val->str) return false;
             } else {
                 val->str_array = malloc(sizeof(char*)*val->count);
                 
@@ -402,6 +401,14 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             val->type = Type_FunctionPtr;
             break;
         }
+        case BaseType_Variant: {
+            uint8_t v;
+            if (!readf(&v, 1, 1, file)) return false;
+            base = v;
+            break;
+        }
+        }
+        if (base != BaseType_Variant) break;
     }
     
     if (type->has_group) {

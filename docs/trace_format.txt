@@ -22,6 +22,7 @@ BaseType (uint8)
     String = 7
     Data = 8
     FunctionPtr = 9
+    Variant = 10
 
 CompressionMethod (uint8)
     None = 0
@@ -60,10 +61,10 @@ ValueElement<UnsignedInt>
     uvari
 
 ValueElement<Int>
-    svari
+    svari val
 
 ValueElement<Ptr>
-    uvari
+    uvari val
 
 ValueElement<Bool>
     bool val
@@ -83,6 +84,10 @@ ValueElement<Data>
 
 ValueElement<FunctionPtr>
     (nothing)
+
+ValueElement<Variant>
+    BaseType base
+    ValueElement<base> val
 
 Value<type>
     if type.is_array
