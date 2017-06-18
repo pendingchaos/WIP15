@@ -107,10 +107,14 @@ static void add_fb_attachment(GtkTreeStore* store, const char* name, const trc_g
     GtkTreeIter row;
     if (attach->has_renderbuffer) {
         gtk_tree_store_append(store, &row, &parent);
-        gtk_tree_store_set(store, &row, 0, "Renderbuffer", 1, static_format("%u", attach->fake_renderbuffer), -1);
+        //TODO: Handle when the object has no name
+        const trc_gl_renderbuffer_rev_t* rev = trc_obj_get_rev(attach->renderbuffer.obj, revision);
+        gtk_tree_store_set(store, &row, 0, "Renderbuffer", 1, static_format("%u", rev->fake), -1);
     } else {
+        //TODO: Handle when the object has no name
         gtk_tree_store_append(store, &row, &parent);
-        gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", attach->fake_texture), -1);
+        const trc_gl_texture_rev_t* rev = trc_obj_get_rev(attach->texture.obj, revision);
+        gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", rev->fake), -1);
         
         gtk_tree_store_append(store, &row, &parent);
         gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);

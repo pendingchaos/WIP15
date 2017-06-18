@@ -485,8 +485,8 @@ static const trc_gl_%s_rev_t* get_%s(trace_t* trace, uint64_t fake) {
     return trc_get_obj(trace, %s, fake);
 }
 
-static void set_%s(trace_t* trace, uint64_t fake, const trc_gl_%s_rev_t* rev) {
-    trc_set_obj(trace, %s, fake, rev);
+static void set_%s(trace_t* trace, const trc_gl_%s_rev_t* rev) {
+    trc_set_obj(trace, %s, rev->fake, rev);
 }
 
 static uint64_t trc_get_real_%s(trace_t* trace, uint64_t fake) {

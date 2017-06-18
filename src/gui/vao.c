@@ -90,7 +90,10 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         
         char buffer_str[64];
         memset(buffer_str, 0, 64);
-        if (attr->buffer) snprintf(buffer_str, 64, "%u", attr->buffer);
+        if (attr->buffer.obj) {
+            const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(attr->buffer.obj, revision);
+            snprintf(buffer_str, 64, "%lu", rev->fake); //TODO: Handle when the object has no name
+        }
         
         GtkTreeIter row;
         gtk_tree_store_append(attr_store, &row, NULL);

@@ -148,12 +148,11 @@ void program_select_callback(GObject* obj, gpointer user_data) {
     size_t shader_count = program->shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* shaders = trc_map_data(program->shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++) {
+        const trc_gl_shader_rev_t* shdr = trc_obj_get_rev(shaders[i].shader.obj, revision);
+        
         char id[64];
         memset(id, 0, 64);
-        snprintf(id, 64, "%u", shaders[i].fake_shader);
-        
-        trc_gl_shader_rev_t* shdr = (trc_gl_shader_rev_t*)
-            trc_lookup_name(trace, TrcShader, shaders[i].fake_shader, shaders[i].shader_revision);
+        snprintf(id, 64, "%lu", shdr->fake);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -209,15 +208,14 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     
     trc_gl_program_shader_t* shaders = trc_map_data(selected_program->shaders, TRC_MAP_READ);
     trc_gl_program_shader_t shader = shaders[shdr_index];
+    const trc_gl_shader_rev_t* shdr = trc_obj_get_rev(shaders[shdr_index].shader.obj, revision);
     trc_unmap_data(selected_program->shaders);
     
-    trc_gl_shader_rev_t* shdr =
-        (trc_gl_shader_rev_t*)trc_lookup_name(trace, TrcShader, shader.fake_shader, shader.shader_revision);
-    char* source = shdr ? get_shader_source(shdr) : NULL;
+    char* source = get_shader_source(shdr);
     
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "shdr_src_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
-    gtk_text_buffer_set_text(source_buffer, source?source:"", -1);
+    gtk_text_buffer_set_text(source_buffer, source, -1);
     
     free(source);
 }

@@ -143,6 +143,10 @@ struct trc_obj_t {
     void** revisions; //sorted from lowest revision to highest
 };
 
+typedef struct trc_obj_ref_t {
+    trc_obj_t* obj;
+} trc_obj_ref_t;
+
 typedef struct trc_name_table_rev_t {
     trc_obj_rev_head_t head;
     size_t entry_count;
@@ -227,9 +231,9 @@ typedef struct trc_gl_framebuffer_attachment_t {
     uint attachment;
     bool has_renderbuffer;
     //when has_renderbuffer == true
-    uint fake_renderbuffer;
+    trc_obj_ref_t renderbuffer;
     //when has_renderbuffer == false
-    uint fake_texture;
+    trc_obj_ref_t texture;
     uint level;
     uint layer;
     uint face; //0 for non-cubemap or non-cubemap-array textures
@@ -263,7 +267,7 @@ typedef struct trc_gl_sync_rev_t {
 } trc_gl_sync_rev_t;
 
 typedef struct trc_gl_program_shader_t {
-    uint fake_shader;
+    trc_obj_ref_t shader;
     uint shader_revision;
 } trc_gl_program_shader_t;
 
@@ -318,7 +322,7 @@ typedef struct trc_gl_vao_attrib_t {
     uint64_t offset;
     uint type;
     uint divisor;
-    uint buffer;
+    trc_obj_ref_t buffer;
 } trc_gl_vao_attrib_t;
 
 typedef struct trc_gl_vao_rev_t {
@@ -439,7 +443,7 @@ void trc_run_inspection(trace_t* trace);
 //Objects
 trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, const void* rev);
 
-void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev);
+const void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev);
 void trc_obj_set_rev(trc_obj_t* obj, const void* rev);
 void trc_grab_obj(trc_obj_t* obj);
 void trc_drop_obj(trc_obj_t* obj);
@@ -450,12 +454,15 @@ trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, u
 
 trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
 void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
-void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name);
+const void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name);
 
 const trc_gl_context_rev_t* trc_get_context(trace_t* trace);
 void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev);
 
 bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64_t revision, const void** rev);
+
+void trc_del_obj_ref(trc_obj_ref_t ref);
+void trc_set_obj_ref(trc_obj_ref_t* ref, trc_obj_t* obj);
 
 uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision);
 uint64_t trc_get_current_fake_gl_context(trace_t* trace);

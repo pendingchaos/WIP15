@@ -110,6 +110,10 @@ static uint* get_stateu(trc_data_t* data) {
     return (uint*)get_state(data);
 }
 
+static trc_obj_ref_t* get_stateobj(trc_data_t* data) {
+    return (trc_obj_ref_t*)get_state(data);
+}
+
 static size_t category_stack_size;
 static GtkTreeIter category_stack[64];
 
@@ -152,8 +156,10 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     //TODO: The current context
     value(store, "Drawable Size", static_format("%ux%u", ctx->drawable_width, ctx->drawable_height));
     
+    #define GET_FAKE(t, obj_ref) ((obj_ref).obj?((const t*)trc_obj_get_rev(obj_ref.obj, revision))->fake:0)
+    
     begin_category(store, "Buffer Bindings");
-    #define BUFFER(type) value(store, #type, "%u", ctx->bound_buffer_##type);
+    #define BUFFER(type) value(store, #type, "%u", GET_FAKE(trc_gl_buffer_rev_t, ctx->bound_buffer_##type));
     BUFFER(GL_ARRAY_BUFFER);
     BUFFER(GL_ELEMENT_ARRAY_BUFFER);
     BUFFER(GL_UNIFORM_BUFFER);
@@ -186,6 +192,7 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     
     #define STATE_FLOAT(prefix, name) STATE(prefix, name, get_statef, float, "%f", val[i])
     #define STATE_UINT(prefix, name) STATE(prefix, name, get_stateu, uint, "%u", val[i])
+    #define STATE_TEX(prefix, name) STATE(prefix, name, get_stateobj, trc_obj_ref_t, "%u", GET_FAKE(trc_gl_texture_rev_t, val[i]))
     #define STATE_INT(prefix, name) STATE(prefix, name, get_statei, int, "%d", val[i])
     #define STATE_ENUM(prefix, group, name) STATE(prefix, name, get_stateu, uint, "%s", get_enum_str(group, val[i]))
     #define STATE_BOOL(prefix, name) STATE(prefix, name, get_stateb, bool, "%s", val[i]?"true":"false")
@@ -200,24 +207,24 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     end_category();
     
     begin_category(store, "Texture Bindings");
-    STATE_UINT(bound_textures, GL_TEXTURE_1D);
-    STATE_UINT(bound_textures, GL_TEXTURE_2D);
-    STATE_UINT(bound_textures, GL_TEXTURE_3D);
-    STATE_UINT(bound_textures, GL_TEXTURE_1D_ARRAY);
-    STATE_UINT(bound_textures, GL_TEXTURE_2D_ARRAY);
-    STATE_UINT(bound_textures, GL_TEXTURE_RECTANGLE);
-    STATE_UINT(bound_textures, GL_TEXTURE_CUBE_MAP);
-    STATE_UINT(bound_textures, GL_TEXTURE_CUBE_MAP_ARRAY);
-    STATE_UINT(bound_textures, GL_TEXTURE_BUFFER);
-    STATE_UINT(bound_textures, GL_TEXTURE_2D_MULTISAMPLE);
-    STATE_UINT(bound_textures, GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+    STATE_TEX(bound_textures, GL_TEXTURE_1D);
+    STATE_TEX(bound_textures, GL_TEXTURE_2D);
+    STATE_TEX(bound_textures, GL_TEXTURE_3D);
+    STATE_TEX(bound_textures, GL_TEXTURE_1D_ARRAY);
+    STATE_TEX(bound_textures, GL_TEXTURE_2D_ARRAY);
+    STATE_TEX(bound_textures, GL_TEXTURE_RECTANGLE);
+    STATE_TEX(bound_textures, GL_TEXTURE_CUBE_MAP);
+    STATE_TEX(bound_textures, GL_TEXTURE_CUBE_MAP_ARRAY);
+    STATE_TEX(bound_textures, GL_TEXTURE_BUFFER);
+    STATE_TEX(bound_textures, GL_TEXTURE_2D_MULTISAMPLE);
+    STATE_TEX(bound_textures, GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
     end_category();
     
-    value(store, "GL_CURRENT_PROGRAM", static_format("%u", ctx->bound_program));
-    value(store, "GL_VERTEX_ARRAY_BINDING", static_format("%u", ctx->bound_vao));
-    value(store, "GL_RENDERBUFFER_BINDING", static_format("%u", ctx->bound_renderbuffer));
-    value(store, "GL_READ_FRAMEBUFFER_BINDING", static_format("%u", ctx->read_framebuffer));
-    value(store, "GL_DRAW_FRAMEBUFFER_BINDING", static_format("%u", ctx->draw_framebuffer));
+    value(store, "GL_CURRENT_PROGRAM", static_format("%u", GET_FAKE(trc_gl_program_rev_t, ctx->bound_program)));
+    value(store, "GL_VERTEX_ARRAY_BINDING", static_format("%u", GET_FAKE(trc_gl_vao_rev_t, ctx->bound_vao)));
+    value(store, "GL_RENDERBUFFER_BINDING", static_format("%u", GET_FAKE(trc_gl_renderbuffer_rev_t, ctx->bound_renderbuffer)));
+    value(store, "GL_READ_FRAMEBUFFER_BINDING", static_format("%u", GET_FAKE(trc_gl_framebuffer_rev_t, ctx->read_framebuffer)));
+    value(store, "GL_DRAW_FRAMEBUFFER_BINDING", static_format("%u", GET_FAKE(trc_gl_framebuffer_rev_t, ctx->draw_framebuffer)));
     STATE_ENUM(state_enum, "DrawBufferBuffer", GL_DRAW_BUFFER);
     
     begin_category(store, "Enabled");
@@ -369,9 +376,11 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_INT(state_int, GL_MAX_PATCH_VERTICES);
     end_category();
     
+    #undef GET_FAKE
     #undef STATE_BOOL
     #undef STATE_ENUM
     #undef STATE_INT
+    #undef STATE_TEX
     #undef STATE_UINT
     #undef STATE_FLOAT
 }

@@ -1,12 +1,9 @@
-static void grab_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
-    if (!fake) return;
-    trc_grab_obj(trc_lookup_name(trace, type, fake, -1));
-}
-
 static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
-    trc_drop_obj(trc_lookup_name(trace, type, fake, -1));
-    if (((trc_obj_rev_head_t*)trc_get_obj(trace, type, fake))->ref_count == 0)
+    trc_obj_t* obj = trc_lookup_name(trace, type, fake, -1);
+    if (!obj) return;
+    trc_drop_obj(obj);
+    if (((const trc_obj_rev_head_t*)trc_obj_get_rev(obj, -1))->ref_count == 0)
         trc_unset_name(trace, type, fake);
 }
 
@@ -118,25 +115,25 @@ static void init_context(trc_replay_context_t* ctx) {
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     trc_gl_state_set_drawable_width(trace, w);
     trc_gl_state_set_drawable_height(trace, h);
-    trc_gl_state_set_bound_buffer(trace, GL_ARRAY_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_ATOMIC_COUNTER_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_COPY_READ_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_COPY_WRITE_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_DISPATCH_INDIRECT_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_DRAW_INDIRECT_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_ELEMENT_ARRAY_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_PIXEL_PACK_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_PIXEL_UNPACK_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_QUERY_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_SHADER_STORAGE_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_TEXTURE_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_TRANSFORM_FEEDBACK_BUFFER, 0);
-    trc_gl_state_set_bound_buffer(trace, GL_UNIFORM_BUFFER, 0);
-    trc_gl_state_set_bound_program(trace, 0);
-    trc_gl_state_set_bound_vao(trace, 0);
-    trc_gl_state_set_bound_renderbuffer(trace, 0);
-    trc_gl_state_set_read_framebuffer(trace, 0);
-    trc_gl_state_set_draw_framebuffer(trace, 0);
+    trc_gl_state_bound_buffer_init(trace, GL_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_ATOMIC_COUNTER_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_COPY_READ_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_COPY_WRITE_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_DISPATCH_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_DRAW_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_ELEMENT_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_PIXEL_PACK_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_PIXEL_UNPACK_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_QUERY_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_SHADER_STORAGE_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_TEXTURE_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_TRANSFORM_FEEDBACK_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_UNIFORM_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_program_init(trace, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_vao_init(trace, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_renderbuffer_init(trace, (trc_obj_ref_t){NULL});
+    trc_gl_state_read_framebuffer_init(trace, (trc_obj_ref_t){NULL});
+    trc_gl_state_draw_framebuffer_init(trace, (trc_obj_ref_t){NULL});
     trc_gl_state_set_active_texture_unit(trace, 0);
     
     GLint max_query_bindings = 64; //TODO
@@ -378,7 +375,7 @@ static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, 
     F(glPixelStorei)(pname, param);
 }
 
-static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_texture_rev_t* rev, uint level, uint face,
+static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t* rev, uint level, uint face,
                                      uint internal_format, uint width, uint height, uint depth, trc_data_t* data) {
     trc_gl_texture_image_t img;
     memset(&img, 0, sizeof(img)); //Fill in padding to fix use of uninitialized memory errors because of compression
@@ -411,11 +408,11 @@ static void replay_set_texture_image(trace_t* trace, uint fake, const trc_gl_tex
     size_t size = img_count * sizeof(trc_gl_texture_image_t);
     newrev.images = trc_create_data_no_copy(trace, size, newimages, TRC_DATA_IMMUTABLE);
     
-    set_texture(trace, fake, &newrev);
+    set_texture(trace, &newrev);
 }
 
 static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_texture_rev_t* tex,
-                                    uint fake, uint level, uint face) {
+                                    uint level, uint face) {
     GLenum prevget;
     switch (tex->type) {
     case GL_TEXTURE_1D: prevget = GL_TEXTURE_BINDING_1D; break;
@@ -583,34 +580,29 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     
     trc_unmap_freeze_data(ctx->trace, data);
     
-    replay_set_texture_image(ctx->trace, fake, tex, level, face, internal_format, width, height, depth, data);
+    replay_set_texture_image(ctx->trace, tex, level, face, internal_format, width, height, depth, data);
 }
 
-static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, uint target, uint* fake) {
+static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, uint target) {
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    *fake = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
-    const trc_gl_texture_rev_t* rev = get_texture(ctx->trace, *fake);
-    return rev;
+    return trc_obj_get_rev(trc_gl_state_get_bound_textures(ctx->trace, target, unit), -1);
 }
 
 static void replay_update_bound_tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, uint target, uint level) {
-    uint fake;
-    const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, target, &fake);
+    const trc_gl_texture_rev_t* rev = replay_get_bound_tex(ctx, target);
     if (!rev) ERROR2(, "No texture bound to target");
     
     uint face = 0;
     if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
         face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-    replay_update_tex_image(ctx, rev, fake, level, face);
+    replay_update_tex_image(ctx, rev, level, face);
 }
 
 static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint tex_or_target, bool dsa,
                        GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size) {
     const trc_gl_texture_rev_t* rev = NULL;
-    if (!dsa)
-        rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
-    else
-        rev = get_texture(ctx->trace, tex_or_target);
+    if (!dsa) rev = replay_get_bound_tex(ctx, tex_or_target);
+    else rev = get_texture(ctx->trace, tex_or_target);
     if (!rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!rev->has_object) ERROR2(false, "Texture name has no object");
     
@@ -629,13 +621,13 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
     
     trc_gl_texture_rev_t newrev = *rev;
     newrev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
-    set_texture(ctx->trace, tex_or_target, &newrev);
+    set_texture(ctx->trace, &newrev);
     
     return true;
 }
 
-static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, uint fb, const trc_gl_framebuffer_attachment_t* attach) {
-    const trc_gl_framebuffer_rev_t* rev = get_framebuffer(ctx->trace, fb);
+static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* fb, const trc_gl_framebuffer_attachment_t* attach) {
+    const trc_gl_framebuffer_rev_t* rev = trc_obj_get_rev(fb, -1);
     if (!rev) ERROR2(false, dsa?"Invalid framebuffer name":"No framebuffer bound to target");
     if (!rev->has_object) ERROR2(false, "Framebuffer name has no object");
     
@@ -660,12 +652,12 @@ static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command
     size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
     newrev.attachments = trc_create_data_no_copy(ctx->trace, size, newattachs, TRC_DATA_IMMUTABLE);
     
-    set_framebuffer(ctx->trace, fb, &newrev);
+    set_framebuffer(ctx->trace, &newrev);
     
     return true;
 }
 
-static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, uint fb, uint attachment, bool dsa,
+static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, trc_obj_t* fb, uint attachment, bool dsa,
                               uint fake_tex, const trc_gl_texture_rev_t* tex, uint target, uint level, uint layer) {
     if (!tex && fake_tex) ERROR2(false, "Invalid texture name");
     if (fake_tex && !tex->has_object) ERROR2(false, "Texture name has no object");
@@ -675,7 +667,8 @@ static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, u
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = false;
     attach.attachment = attachment;
-    attach.fake_texture = fake_tex;
+    trc_set_obj_ref(&attach.renderbuffer, NULL);
+    trc_set_obj_ref(&attach.texture, tex->head.obj);
     attach.level = level;
     attach.layer = layer;
     attach.face = 0;
@@ -688,7 +681,7 @@ static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, u
     return replay_append_fb_attachment(ctx, cmd, dsa, fb, &attach);
 }
 
-static bool add_fb_attachment_rb(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, uint fb,
+static bool add_fb_attachment_rb(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* fb,
                                  uint attachment, uint fake_rb, const trc_gl_renderbuffer_rev_t* rb) {
     if (!rb && fake_rb) ERROR2(false, "Invalid renderbuffer name");
     if (fake_rb && !rb->has_object) ERROR2(false, "Renderbuffer name has no object");
@@ -696,12 +689,13 @@ static bool add_fb_attachment_rb(trc_replay_context_t* ctx, trace_command_t* cmd
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = true;
     attach.attachment = attachment;
-    attach.fake_renderbuffer = fake_rb;
+    trc_set_obj_ref(&attach.texture, NULL);
+    trc_set_obj_ref(&attach.renderbuffer, rb->head.obj);
     return replay_append_fb_attachment(ctx, cmd, dsa, fb, &attach);
 }
 
 static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_renderbuffer_rev_t* rev,
-                                       uint fake, uint width, uint height, uint internal_format, uint samples) {
+                                       uint width, uint height, uint internal_format, uint samples) {
     GLint bits[6];
     GLint prev;
     F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &prev);
@@ -724,7 +718,7 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
     newrev.stencil_bits = bits[5];
     newrev.has_storage = true;
     
-    set_renderbuffer(ctx->trace, fake, &newrev);
+    set_renderbuffer(ctx->trace, &newrev);
 }
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
@@ -732,11 +726,8 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                  GLuint tex_or_target, GLenum param, uint32_t count, const double* val) {
     const trc_gl_texture_rev_t* rev = NULL;
-    if (dsa) {
-        rev = get_texture(ctx->trace, tex_or_target);
-    } else {
-        rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
-    }
+    if (dsa) rev = get_texture(ctx->trace, tex_or_target);
+    else rev = replay_get_bound_tex(ctx, tex_or_target);
     if (!rev) ERROR2(true, dsa?"Invalid texture name":"No texture bound to target");
     if (!rev->has_object) ERROR2(true, "Texture name has no object");
     trc_gl_texture_rev_t newrev = *rev;
@@ -753,7 +744,7 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
     case GL_TEXTURE_COMPARE_FUNC:
     case GL_TEXTURE_BORDER_COLOR: {
         bool res = sample_param_double(cmd, &newrev.sample_params, param, count, val);
-        set_texture(ctx->trace, tex_or_target, &newrev);
+        set_texture(ctx->trace, &newrev);
         return res;
     } case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
@@ -807,16 +798,16 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
         break;
     }
     
-    set_texture(ctx->trace, tex_or_target, &newrev);
+    set_texture(ctx->trace, &newrev);
     
     return false;
 }
 
-static GLuint get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
+static trc_obj_t* get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
     return trc_gl_state_get_bound_buffer(ctx->trace, target);
 }
 
-static GLuint get_active_program_for_stage(trc_replay_context_t* ctx, GLenum stage) {
+static trc_obj_t* get_active_program_for_stage(trc_replay_context_t* ctx, GLenum stage) {
     //TODO
     return trc_gl_state_get_bound_program(ctx->trace);
 }
@@ -827,10 +818,9 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     uint8_t* data = data_;
     
     uint arg_pos = 0;
-    uint program;
-    if (dsa) program = gl_param_GLuint(cmd, arg_pos++);
-    else program = trc_gl_state_get_bound_program(ctx->trace);
-    const trc_gl_program_rev_t* rev = get_program(ctx->trace, program);
+    const trc_gl_program_rev_t* rev;
+    if (dsa) rev = get_program(ctx->trace, gl_param_GLuint(cmd, arg_pos++));
+    else rev = trc_obj_get_rev(trc_gl_state_get_bound_program(ctx->trace), -1);
     if (!rev) ERROR2(-1, dsa?"Invalid program":"No current program");
     if (realprogram) *realprogram = rev->real;
     
@@ -913,7 +903,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     dest[uniform_index] = uniform;
     trc_unmap_freeze_data(ctx->trace, new_uniforms);
     
-    set_program(ctx->trace, trc_get_context(ctx->trace)->bound_program, &newrev);
+    set_program(ctx->trace, &newrev);
     
     return uniform.real;
 }
@@ -1054,17 +1044,17 @@ static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd
     F(glVertexAttrib4dv(index, res));
 }
 
-static GLint get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
+static trc_obj_t* get_bound_framebuffer(trc_replay_context_t* ctx, GLenum target) {
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
     switch (target) {
     case GL_DRAW_FRAMEBUFFER: 
-        return state->draw_framebuffer;
+        return state->draw_framebuffer.obj;
     case GL_READ_FRAMEBUFFER: 
-        return state->read_framebuffer;
+        return state->read_framebuffer.obj;
     case GL_FRAMEBUFFER: 
-        return state->draw_framebuffer;
+        return state->draw_framebuffer.obj;
     }
-    return 0;
+    return NULL;
 }
 
 static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint fake_id, GLuint id) {
@@ -1079,7 +1069,7 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
     
     trc_gl_query_rev_t query = *get_query(ctx->trace, fake_id);
     query.result = res;
-    set_query(ctx->trace, fake_id, &query);
+    set_query(ctx->trace, &query);
 }
 
 static void begin_get_fb0_data(trc_replay_context_t* ctx, GLint prev[11]) {
@@ -1185,23 +1175,23 @@ static bool not_one_of(int val, ...) {
     return true;
 }
 
-static GLuint* get_tf_buffer_list(trc_replay_context_t* ctx, size_t* count) {
+static trc_obj_t** get_tf_buffer_list(trc_replay_context_t* ctx, size_t* count) {
     size_t max = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0) + 1;
-    GLuint* bufs = replay_alloc(max*sizeof(GLuint));
+    trc_obj_t** bufs = replay_alloc(max*sizeof(trc_obj_t*));
     *count = 0;
     
-    GLuint buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
+    trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
     if (buf) bufs[(*count)++] = buf;
     
     for (uint i = 0; i < max-1; i++) {
-        buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i).buf_id;
+        buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i).buf.obj;
         if (buf) bufs[(*count)++] = buf;
     }
     
     return bufs;
 }
 
-static bool is_tf_buffer(uint count, GLuint* bufs, GLuint test) {
+static bool is_tf_buffer(uint count, trc_obj_t** bufs, trc_obj_t* test) {
     for (uint i = 0; i < count; i++) if (bufs[i] == test) return true;
     return false;
 }
@@ -1210,13 +1200,13 @@ static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, 
     if (!trc_gl_state_get_tf_active_not_paused(ctx->trace)) return true;
     
     size_t buf_count;
-    GLuint* bufs = get_tf_buffer_list(ctx, &buf_count);
+    trc_obj_t** bufs = get_tf_buffer_list(ctx, &buf_count);
     
     //Find any buffers that can be accessed by the program(s) that are also transform feedback buffers
     //TODO: Find out if the binding is actually referenced in the shader
     #define T(max, type) do {int count = trc_gl_state_get_state_int(ctx->trace, max, 0);\
     for (size_t i = 0; i < count; i++) {\
-        GLuint buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, type, i).buf_id;\
+        trc_obj_t* buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, type, i).buf.obj;\
         if (is_tf_buffer(buf_count, bufs, buf))\
             trc_add_warning(cmd, "A transform feedback buffer is bound to "#type"[%u]", i);\
     }} while (0)
@@ -1228,10 +1218,10 @@ static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, 
     //Test the primitive
     GLint test_primitive = primitive;
     
-    GLuint geom_program;
+    trc_obj_t* geom_program;
     if ((geom_program=trc_gl_state_get_bound_program(ctx->trace))) {
         F(glGetError)(); //TODO: Do this in a less hackish way
-        F(glGetProgramiv)(get_program(ctx->trace, geom_program)->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
+        F(glGetProgramiv)(((trc_gl_program_rev_t*)trc_obj_get_rev(geom_program, -1))->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
         if (F(glGetError)() == GL_INVALID_OPERATION) test_primitive = primitive; //No geometry shader
     } //TODO: Handle program pipelines
     
@@ -1255,14 +1245,13 @@ static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, 
 
 static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum primitive) {
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
-    const trc_gl_vao_rev_t* vao = get_vao(ctx->trace, state->bound_vao);
-    if (vao == NULL) ERROR2(false, "No VAO bound");
-    const trc_gl_program_rev_t* program = get_program(ctx->trace, state->bound_program);
-    if (program == NULL) ERROR2(false, "No program bound");
+    const trc_gl_vao_rev_t* vao = trc_obj_get_rev(state->bound_vao.obj, -1);
+    if (!vao) ERROR2(false, "No VAO bound");
+    const trc_gl_program_rev_t* program = trc_obj_get_rev(state->bound_program.obj, -1);
+    if (!program) ERROR2(false, "No program bound");
     //TODO: Support program pipelines
     
-    if (!tf_draw_validation(ctx, cmd, primitive))
-        return false;
+    if (!tf_draw_validation(ctx, cmd, primitive)) return false;
     
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
@@ -1272,7 +1261,7 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
         trc_gl_vao_attrib_t* a = &vao_attribs[i];
         if (!a->enabled) continue;
-        const trc_gl_buffer_rev_t* buf = get_buffer(ctx->trace, a->buffer);
+        const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(a->buffer.obj, -1);
         if (buf->mapped) {
             trc_unmap_data(vao->attribs);
             ERROR2(false, "Buffer for vertex attribute %zu is mapped", i);
@@ -1299,7 +1288,7 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         
         F(glEnableVertexAttribArray)(real_loc);
         
-        F(glBindBuffer)(GL_ARRAY_BUFFER, trc_get_real_buffer(ctx->trace, a->buffer));
+        F(glBindBuffer)(GL_ARRAY_BUFFER, ((trc_gl_buffer_rev_t*)trc_obj_get_rev(a->buffer.obj, -1))->real);
         if (a->integer)
             F(glVertexAttribIPointer)(real_loc, a->size, a->type, a->stride, (const void*)(uintptr_t)a->offset);
         else
@@ -1324,14 +1313,14 @@ if (p_drawbuffer<0 || (p_drawbuffer==0&&p_buffer!=GL_COLOR) || p_drawbuffer>=max
 
 static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint drawbuffer) {
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
-    if (state->draw_framebuffer == 0) {
+    if (state->draw_framebuffer.obj == NULL) {
         switch (buffer) {
         case GL_COLOR: replay_update_fb0_buffers(ctx, true, false, false, false); break;
         case GL_DEPTH: replay_update_fb0_buffers(ctx, false, false, true, false); break;
         case GL_STENCIL: replay_update_fb0_buffers(ctx, false, false, false, true); break;
         }
     } else {
-        const trc_gl_framebuffer_rev_t* rev = get_framebuffer(ctx->trace, state->draw_framebuffer);
+        const trc_gl_framebuffer_rev_t* rev = trc_obj_get_rev(state->draw_framebuffer.obj, -1);
         uint attachment;
         if (drawbuffer>=rev->draw_buffers->size/sizeof(GLenum)) {
             attachment = GL_NONE;
@@ -1346,22 +1335,20 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
             const trc_gl_framebuffer_attachment_t* attach = &attachs[i];
             if (attach->attachment != attachment) continue;
             if (attach->has_renderbuffer) continue;
-            const trc_gl_texture_rev_t* tex = get_texture(ctx->trace, attach->fake_texture);
-            assert(tex);
-            replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
+            replay_update_tex_image(ctx, trc_obj_get_rev(attach->texture.obj, -1), attach->level, attach->face);
         }
         trc_unmap_data(rev->attachments);
     }
 }
 
-static void update_buffers(trc_replay_context_t* ctx, GLuint fb, GLbitfield mask) {
+static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield mask) {
     if (fb == 0) {
         bool color = mask & GL_COLOR_BUFFER_BIT;
         bool depth = mask & GL_DEPTH_BUFFER_BIT;
         bool stencil = mask & GL_STENCIL_BUFFER_BIT;
         replay_update_fb0_buffers(ctx, color, false, depth, stencil);
     } else {
-        const trc_gl_framebuffer_rev_t* rev = get_framebuffer(ctx->trace, fb);
+        const trc_gl_framebuffer_rev_t* rev = trc_obj_get_rev(fb, -1);
         
         size_t max_updates = rev->draw_buffers->size/sizeof(GLenum) + 3;
         GLenum* updates = replay_alloc(max_updates*sizeof(GLenum));
@@ -1387,8 +1374,7 @@ static void update_buffers(trc_replay_context_t* ctx, GLuint fb, GLbitfield mask
                 const trc_gl_framebuffer_attachment_t* attach = &attachs[j];
                 if (attach->attachment == updates[i]) continue;
                 if (attach->has_renderbuffer) continue;
-                const trc_gl_texture_rev_t* tex = get_texture(ctx->trace, attach->fake_texture);
-                replay_update_tex_image(ctx, tex, attach->fake_texture, attach->level, attach->face);
+                replay_update_tex_image(ctx, trc_obj_get_rev(attach->texture.obj, -1), attach->level, attach->face);
             }
         }
         trc_unmap_data(rev->attachments);
@@ -1528,7 +1514,7 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
         attribs[j].offset = 0;
         attribs[j].type = GL_FLOAT;
         attribs[j].divisor = 0;
-        attribs[j].buffer = 0;
+        attribs[j].buffer = (trc_obj_ref_t){NULL};
     }
     trc_unmap_data(rev.attribs);
     for (size_t i = 0; i < count; ++i) {
@@ -1538,23 +1524,23 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
     }
 }
 
-static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLsizeiptr size, const void* data, GLenum usage) {
+static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* buf, GLsizeiptr size, const void* data, GLenum usage) {
     if (size < 0) ERROR2(false, "Invalid size");
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, fake);
+    const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(buf, -1);
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
-    set_buffer(ctx->trace, fake, &newrev);
+    set_buffer(ctx->trace, &newrev);
     return true;
 }
 
-static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLintptr offset, GLsizeiptr size, const void* data) {
+static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* buf, GLintptr offset, GLsizeiptr size, const void* data) {
     if (offset<0) ERROR2(false, "Invalid offset");
     if (size<0) ERROR2(false, "Invalid size");
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, fake);
+    const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(buf, -1);
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->data) ERROR2(false, "Buffer has no data");
     if (!rev->has_object) ERROR2(false, "Buffer name does not have an object");
@@ -1571,16 +1557,15 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     memcpy((uint8_t*)newdata+offset, data, size);
     trc_unmap_freeze_data(ctx->trace, newrev.data);
     
-    set_buffer(ctx->trace, fake, &newrev);
-    
+    set_buffer(ctx->trace, &newrev);
     return true;
 }
 
-static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint read,
-                             GLuint write, GLintptr read_off, GLintptr write_off, GLsizeiptr size) {
+static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* read,
+                             trc_obj_t* write, GLintptr read_off, GLintptr write_off, GLsizeiptr size) {
     if (read_off<0 || write_off<0 || size<0) ERROR2(false, "The read offset, write offset or size is negative");
     
-    const trc_gl_buffer_rev_t* read_rev = get_buffer(ctx->trace, read);
+    const trc_gl_buffer_rev_t* read_rev = trc_obj_get_rev(read, -1);
     if (!read_rev) ERROR2(false, dsa?"Invalid read buffer name":"No buffer bound to read target");
     if (!read_rev->has_object) ERROR2(false, "Read buffer name has no object");
     if (!read_rev->data) ERROR2(false, "Read buffer has no data");
@@ -1588,7 +1573,7 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
         trc_add_warning(cmd, "Read buffer cannot be read as it is a transform feedback one while transform feedback is active and unpaused");
     if (read_off+size > read_rev->data->size) ERROR2(false, "Invalid size and read offset");
     
-    const trc_gl_buffer_rev_t* write_rev = get_buffer(ctx->trace, write);
+    const trc_gl_buffer_rev_t* write_rev = trc_obj_get_rev(write, -1);
     if (!write_rev) ERROR2(false, dsa?"Invalid write buffer name":"No buffer bound to write target");
     if (!write_rev->has_object) ERROR2(false, "Write buffer name has no object");
     if (!write_rev->data) ERROR2(false, "Write buffer has no data");
@@ -1596,7 +1581,7 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
         trc_add_warning(cmd, "Write buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (write_off+size > write_rev->data->size) ERROR2(false, "Invalid size and write offset");
     
-    trc_gl_buffer_rev_t res;
+    trc_gl_buffer_rev_t res = *write_rev;
     
     res.data = trc_create_data(ctx->trace, write_rev->data->size, trc_map_data(write_rev->data, TRC_MAP_READ), 0);
     trc_unmap_data(write_rev->data);
@@ -1607,8 +1592,7 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     trc_unmap_data(read_rev->data);
     trc_unmap_freeze_data(ctx->trace, res.data);
     
-    set_buffer(ctx->trace, write, &res);
-    
+    set_buffer(ctx->trace, &res);
     return true;
 }
 
@@ -1631,7 +1615,7 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     case GL_READ_WRITE: newrev.map_access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT; break;
     }
     
-    set_buffer(ctx->trace, fake, &newrev);
+    set_buffer(ctx->trace, &newrev);
 }
 
 static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake,
@@ -1669,12 +1653,13 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     newrev.map_length = length;
     newrev.map_access = access;
     
-    set_buffer(ctx->trace, fake, &newrev);
+    set_buffer(ctx->trace, &newrev);
 }
 
 static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint target_or_buf) {
-    uint fake = dsa ? target_or_buf : get_bound_buffer(ctx, target_or_buf);
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, fake);
+    const trc_gl_buffer_rev_t* rev;
+    if (dsa) rev = get_buffer(ctx->trace, target_or_buf);
+    else rev = trc_obj_get_rev(get_bound_buffer(ctx, target_or_buf), -1);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->data) ERROR2(, "Buffer has no data");
     if (!rev->mapped) ERROR2(, "Unmapping a buffer that is not mapped");
@@ -1709,13 +1694,14 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
     newrev.map_length = 0;
     newrev.map_access = 0;
     
-    set_buffer(ctx->trace, fake, &newrev);
+    set_buffer(ctx->trace, &newrev);
 }
 
 static bool flush_mapped_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                       GLenum target_or_buf, GLintptr offset, GLsizeiptr length) {
-    if (!dsa) target_or_buf = get_bound_buffer(ctx, target_or_buf);
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, target_or_buf);
+    const trc_gl_buffer_rev_t* rev;
+    if (dsa) rev = get_buffer(ctx->trace, target_or_buf);
+    else rev = trc_obj_get_rev(get_bound_buffer(ctx, target_or_buf), -1);
     if (!rev) ERROR2(false, "No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
     if (!rev->mapped) ERROR2(false, "Buffer object is not mapped");
@@ -1728,8 +1714,8 @@ static bool flush_mapped_buffer_range(trc_replay_context_t* ctx, trace_command_t
     return true;
 }
 
-static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLintptr offset, GLsizeiptr size) {
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, fake);
+static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, trc_obj_t* obj, GLintptr offset, GLsizeiptr size) {
+    const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(obj, -1);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) ERROR2(, "Buffer is mapped without GL_MAP_PERSISTENT_BIT");
@@ -1751,7 +1737,7 @@ static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd
 static bool begin_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint index, GLuint id) {
     if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
         ERROR2(false, "Index is greater than maximum");
-    if (trc_gl_state_get_bound_queries(ctx->trace, target, index) != 0)
+    if (trc_gl_state_get_bound_queries(ctx->trace, target, index))
         ERROR2(false, "Query is already active at target");
     
     const trc_gl_query_rev_t* rev = get_query(ctx->trace, id);
@@ -1764,9 +1750,9 @@ static bool begin_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum 
     newrev.type = target;
     newrev.has_object = true;
     newrev.active_index = index;
-    set_query(ctx->trace, id, &newrev);
+    set_query(ctx->trace, &newrev);
     
-    trc_gl_state_set_bound_queries(ctx->trace, target, index, id);
+    trc_gl_state_set_bound_queries(ctx->trace, target, index, newrev.head.obj);
     
     return true;
 }
@@ -1774,15 +1760,14 @@ static bool begin_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum 
 static bool end_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum target, GLuint index) {
     if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
         ERROR2(false, "Index is greater than maximum");
-    int id = trc_gl_state_get_bound_queries(ctx->trace, target, index);
-    if (id == 0) ERROR2(false, "No query active at target");
+    trc_obj_t* query = trc_gl_state_get_bound_queries(ctx->trace, target, index);
+    if (!query) ERROR2(false, "No query active at target");
     
-    trc_gl_query_rev_t newrev = *get_query(ctx->trace, id);
+    trc_gl_query_rev_t newrev = *(const trc_gl_query_rev_t*)trc_obj_get_rev(query, -1);
     newrev.active_index = -1;
-    set_query(ctx->trace, id, &newrev);
+    set_query(ctx->trace, &newrev);
     
-    trc_gl_state_set_bound_queries(ctx->trace, target, index, 0);
-    
+    trc_gl_state_set_bound_queries(ctx->trace, target, index, NULL);
     return true;
 }
 
@@ -1799,7 +1784,7 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     
     const trc_gl_texture_rev_t* tex_rev;
     if (dsa) tex_rev = get_texture(ctx->trace, tex_or_target);
-    else tex_rev = replay_get_bound_tex(ctx, tex_or_target, &tex_or_target);
+    else tex_rev = replay_get_bound_tex(ctx, tex_or_target);
     if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
     
@@ -1843,31 +1828,31 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
         ERROR2(false, "Invalid format + internal format combination");
     
-    GLuint pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
-    const trc_gl_buffer_rev_t* pu_buf_rev = get_buffer(ctx->trace, pu_buf);
+    trc_obj_t* pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
+    const trc_gl_buffer_rev_t* pu_buf_rev = trc_obj_get_rev(pu_buf, -1);
     if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
     //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
     
     return true;
 }
 
-static const trc_gl_buffer_rev_t* on_change_tf_binding(trc_replay_context_t* ctx, GLuint prev_buf, GLuint new_buf) {
+static const trc_gl_buffer_rev_t* on_change_tf_binding(trc_replay_context_t* ctx, trc_obj_t* prev_buf, trc_obj_t* new_buf) {
     if (prev_buf) {
-        trc_gl_buffer_rev_t newrev = *get_buffer(ctx->trace, prev_buf);
+        trc_gl_buffer_rev_t newrev = *(const trc_gl_buffer_rev_t*)trc_obj_get_rev(prev_buf, -1);
         newrev.tf_binding_count--;
-        set_buffer(ctx->trace, prev_buf, &newrev);
+        trc_obj_set_rev(prev_buf, &newrev);
     }
-    trc_gl_buffer_rev_t newrev = *get_buffer(ctx->trace, new_buf);
+    trc_gl_buffer_rev_t newrev = *(const trc_gl_buffer_rev_t*)trc_obj_get_rev(new_buf, -1);
     newrev.tf_binding_count++;
-    set_buffer(ctx->trace, new_buf, &newrev);
-    return get_buffer(ctx->trace, new_buf);
+    trc_obj_set_rev(new_buf, &newrev);
+    return trc_obj_get_rev(new_buf, -1);
 }
 
 static void on_activate_tf(trc_replay_context_t* ctx, trace_command_t* cmd) {
     size_t buf_count;
-    GLuint* bufs = get_tf_buffer_list(ctx, &buf_count);
+    trc_obj_t** bufs = get_tf_buffer_list(ctx, &buf_count);
     for (size_t i = 0; i < buf_count; i++) {
-        if (get_buffer(ctx->trace, bufs[i])->mapped)
+        if (((const trc_gl_buffer_rev_t*)trc_obj_get_rev(bufs[i], -1))->mapped)
             trc_add_warning(cmd, "Buffer bound to GL_TRANSFORM_FEEDBACK_BUFFER is mapped");
     }
 }
@@ -2148,13 +2133,13 @@ glBindTexture: //GLenum p_target, GLuint p_texture
         newrev.has_object = true;
         newrev.type = p_target;
         newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
-        set_texture(ctx->trace, p_texture, &newrev);
+        set_texture(ctx->trace, &newrev);
     } else if (rev && rev->type!=p_target) {
         ERROR("Invalid target for texture object");
     }
     //TODO: Reference counting
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, p_texture);
+    trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, rev?rev->head.obj:NULL);
 
 glBindTextureUnit: //GLuint p_unit, GLuint p_texture
     if (p_unit>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
@@ -2163,7 +2148,7 @@ glBindTextureUnit: //GLuint p_unit, GLuint p_texture
     if (!p_texture_rev->has_object) ERROR("Texture name has no object");
     real(p_unit, p_texture_rev->real);
     if (p_texture) {
-        trc_gl_state_set_bound_textures(ctx->trace, p_texture_rev->type, p_unit, p_texture);
+        trc_gl_state_set_bound_textures(ctx->trace, p_texture_rev->type, p_unit, p_texture_rev->head.obj);
     } else {
         GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
                             GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
@@ -2171,7 +2156,7 @@ glBindTextureUnit: //GLuint p_unit, GLuint p_texture
                             GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
                             GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
         for (size_t i = 0; i < sizeof(targets)/sizeof(targets[0]); i++)
-            trc_gl_state_set_bound_textures(ctx->trace, targets[i], p_unit, 0);
+            trc_gl_state_set_bound_textures(ctx->trace, targets[i], p_unit, NULL);
     }
 
 glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
@@ -2186,7 +2171,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
         real_tex[i] = rev->real;
         
         if (p_textures[i]) {
-            trc_gl_state_set_bound_textures(ctx->trace, rev->type, i, p_textures[i]);
+            trc_gl_state_set_bound_textures(ctx->trace, rev->type, i, trc_lookup_name(ctx->trace, TrcTexture, p_textures[i], -1));
         } else {
             GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
                                 GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
@@ -2194,7 +2179,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
                                 GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
                                 GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
             for (size_t j = 0; j < sizeof(targets)/sizeof(targets[0]); j++)
-                trc_gl_state_set_bound_textures(ctx->trace, targets[j], i, 0);
+                trc_gl_state_set_bound_textures(ctx->trace, targets[j], i, NULL);
         }
     }
     real(p_first, p_count, real_tex);
@@ -2312,8 +2297,8 @@ glGenerateMipmap: //GLenum p_target
     real(p_target);
     
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    uint fake = trc_gl_state_get_bound_textures(ctx->trace, p_target, unit);
-    if (!fake) ERROR("No texture bound");
+    trc_obj_t* tex = trc_gl_state_get_bound_textures(ctx->trace, p_target, unit);
+    if (!tex) ERROR("No texture bound");
     
     GLint base;
     F(glGetTexParameteriv)(p_target, GL_TEXTURE_BASE_LEVEL, &base);
@@ -2427,12 +2412,12 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
     real(p_target, p_buffer?rev->real:0);
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, get_bound_buffer(ctx, p_target), p_buffer);
-    trc_gl_state_set_bound_buffer(ctx->trace, p_target, p_buffer);
+        rev = on_change_tf_binding(ctx, get_bound_buffer(ctx, p_target), rev?rev->head.obj:NULL);
+    trc_gl_state_set_bound_buffer(ctx->trace, p_target, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_buffer(ctx->trace, p_buffer, &newrev);
+        set_buffer(ctx->trace, &newrev);
     }
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
@@ -2445,12 +2430,12 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     real(p_target, p_index, p_buffer?rev->real:0);
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf_id, p_buffer);
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){p_buffer, 0, 0});
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf.obj, rev?rev->head.obj:NULL);
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_buffer(ctx->trace, p_buffer, &newrev);
+        set_buffer(ctx->trace, &newrev);
     }
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
@@ -2466,52 +2451,54 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf_id, p_buffer);
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){p_buffer, p_offset, p_size});
+        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf.obj, rev?rev->head.obj:NULL);
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_buffer(ctx->trace, p_buffer, &newrev);
+        set_buffer(ctx->trace, &newrev);
     }
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
-    uint fake = get_bound_buffer(ctx, p_target);
-    if (buffer_data(ctx, cmd, false, fake, p_size, p_data, p_usage))
+    if (buffer_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_size, p_data, p_usage))
         real(p_target, p_size, p_data, p_usage);
 
 glNamedBufferData: //GLuint p_buffer, GLsizeiptr p_size, const void* p_data, GLenum p_usage
-    if (buffer_data(ctx, cmd, true, p_buffer, p_size, p_data, p_usage))
+    if (buffer_data(ctx, cmd, true, p_buffer_rev?p_buffer_rev->head.obj:NULL, p_size, p_data, p_usage))
         real(p_buffer_rev->real, p_size, p_data, p_usage);
 
 glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void* p_data
-    uint fake = get_bound_buffer(ctx, p_target);
-    if (!fake) ERROR("No buffer bound to target");
-    if (buffer_sub_data(ctx, cmd, false, fake, p_offset, p_size, p_data))
+    trc_obj_t* buf = get_bound_buffer(ctx, p_target);
+    if (!buf) ERROR("No buffer bound to target");
+    if (buffer_sub_data(ctx, cmd, false, buf, p_offset, p_size, p_data))
         real(p_target, p_offset, p_size, p_data);
 
 glNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, const void* p_data
-    if (buffer_sub_data(ctx, cmd, true, p_buffer, p_offset, p_size, p_data))
+    if (buffer_sub_data(ctx, cmd, true, trc_lookup_name(ctx->trace, TrcBuffer, p_buffer, -1), p_offset, p_size, p_data))
         real(p_buffer_rev->real, p_offset, p_size, p_data);
 
 glCopyBufferSubData: //GLenum p_readTarget, GLenum p_writeTarget, GLintptr p_readOffset, GLintptr p_writeOffset, GLsizeiptr p_size
-    uint read_fake = get_bound_buffer(ctx, p_readTarget);
-    uint write_fake = get_bound_buffer(ctx, p_writeTarget);
-    if (copy_buffer_data(ctx, cmd, false, read_fake, write_fake, p_readOffset, p_writeOffset, p_size))
+    trc_obj_t* read = get_bound_buffer(ctx, p_readTarget);
+    trc_obj_t* write = get_bound_buffer(ctx, p_writeTarget);
+    if (copy_buffer_data(ctx, cmd, false, read, write, p_readOffset, p_writeOffset, p_size))
         real(p_readTarget, p_writeTarget, p_readOffset, p_writeOffset, p_size);
 
-glCopyNamedBufferSubData: //GLenum p_readBuffer, GLenum p_writeBuffer, GLintptr p_readOffset, GLintptr p_writeOffset, GLsizeiptr p_size
-    if (copy_buffer_data(ctx, cmd, true, p_readBuffer, p_writeBuffer, p_readOffset, p_writeOffset, p_size))
+glCopyNamedBufferSubData: //GLuint p_readBuffer, GLuint p_writeBuffer, GLintptr p_readOffset, GLintptr p_writeOffset, GLsizeiptr p_size
+    trc_obj_t* read = p_readBuffer_rev ? p_readBuffer_rev->head.obj : NULL;
+    trc_obj_t* write = p_writeBuffer_rev ? p_writeBuffer_rev->head.obj : NULL;
+    if (copy_buffer_data(ctx, cmd, true, read, write, p_readOffset, p_writeOffset, p_size))
         real(p_readBuffer_rev->real, p_writeBuffer_rev->real, p_readOffset, p_writeOffset, p_size);
 
 glMapBuffer: //GLenum p_target, GLenum p_access
-    uint fake = get_bound_buffer(ctx, p_target);
-    map_buffer(ctx, cmd, false, fake, p_access);
+    const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(get_bound_buffer(ctx, p_target), -1);
+    map_buffer(ctx, cmd, false, rev?rev->fake:0, p_access);
 
 glMapNamedBuffer: //GLuint p_buffer, GLenum p_access
     map_buffer(ctx, cmd, true, p_buffer, p_access);
 
 glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
-    map_buffer_range(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_offset, p_length, p_access);
+    const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(get_bound_buffer(ctx, p_target), -1);
+    map_buffer_range(ctx, cmd, false, rev?rev->fake:0, p_offset, p_length, p_access);
 
 glMapNamedBufferRange: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
     map_buffer_range(ctx, cmd, true, p_buffer, p_offset, p_length, p_access);
@@ -2578,7 +2565,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, TRC_DATA_IMMUTABLE);
     
-    set_shader(ctx->trace, p_shader, &shdr);
+    set_shader(ctx->trace, &shdr);
 
 glCompileShader: //GLuint p_shader
     GLuint real_shdr = trc_get_real_shader(ctx->trace, p_shader);
@@ -2594,7 +2581,7 @@ glCompileShader: //GLuint p_shader
     F(glGetShaderInfoLog)(real_shdr, len+1, NULL, trc_map_data(shdr.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, shdr.info_log);
     
-    set_shader(ctx->trace, p_shader, &shdr);
+    set_shader(ctx->trace, &shdr);
     
     GLint status;
     F(glGetShaderiv)(real_shdr, GL_COMPILE_STATUS, &status);
@@ -2628,11 +2615,11 @@ glDeleteProgram: //GLuint p_program
     size_t shader_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
-        drop_obj(ctx->trace, shaders[i].fake_shader, TrcShader);
+        trc_del_obj_ref(shaders[i].shader);
     trc_unmap_data(rev.shaders);
     
     rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
-    set_program(ctx->trace, p_program, &rev);
+    set_program(ctx->trace, &rev);
     
     drop_obj(ctx->trace, p_program, TrcProgram);
 
@@ -2643,17 +2630,17 @@ glProgramParameteri: //GLuint p_program, GLenum p_pname, GLint p_value
     case GL_PROGRAM_BINARY_RETRIEVABLE_HINT: newrev.binary_retrievable_hint = p_value ? 1 : 0; break;
     case GL_PROGRAM_SEPARABLE: newrev.separable = p_value; break;
     }
-    set_program(ctx->trace, p_program, &newrev);
+    set_program(ctx->trace, &newrev);
     real(p_program, p_pname, p_value);
 
 glAttachShader: //GLuint p_program, GLuint p_shader
     GLuint real_program = trc_get_real_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
     
-    GLuint real_shader = trc_get_real_shader(ctx->trace, p_shader);
-    if (!real_shader) ERROR("Invalid shader name");
+    const trc_gl_shader_rev_t* shader_rev = trc_obj_get_rev(trc_lookup_name(ctx->trace, TrcShader, p_shader, -1), -1);
+    if (!shader_rev) ERROR("Invalid shader name");
     
-    real(real_program, real_shader);
+    real(real_program, shader_rev->real);
     
     trc_gl_program_rev_t program = *get_program(ctx->trace, p_program);
     trc_gl_program_rev_t old = program;
@@ -2663,29 +2650,29 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
     
     for (size_t i = 0; i < shader_count; i++) {
-        if (src[i].fake_shader == p_shader) ERROR("Shader is already attached");
+        if (src[i].shader.obj == shader_rev->head.obj) ERROR("Shader is already attached");
     }
     
     program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL, TRC_DATA_NO_ZERO);
     
     trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
     memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
-    dest[shader_count].fake_shader = p_shader;
+    dest[shader_count].shader.obj = shader_rev->head.obj;
+    trc_grab_obj(shader_rev->head.obj);
     dest[shader_count].shader_revision = shader->head.revision;
     trc_unmap_data(old.shaders);
     trc_unmap_freeze_data(ctx->trace, program.shaders);
     
-    grab_obj(ctx->trace, p_shader, TrcShader);
-    set_program(ctx->trace, p_program, &program);
+    set_program(ctx->trace, &program);
 
 glDetachShader: //GLuint p_program, GLuint p_shader
     GLuint real_program = trc_get_real_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
     
-    GLuint real_shader = trc_get_real_shader(ctx->trace, p_shader);
-    if (!real_shader) ERROR("Invalid shader name");
+    const trc_gl_shader_rev_t* shader_rev = trc_obj_get_rev(trc_lookup_name(ctx->trace, TrcShader, p_shader, -1), -1);
+    if (!shader_rev) ERROR("Invalid shader name");
     
-    real(real_program, real_shader);
+    real(real_program, shader_rev->real);
     
     trc_gl_program_rev_t program = *get_program(ctx->trace, p_program);
     trc_gl_program_rev_t old = program;
@@ -2698,16 +2685,18 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     size_t next = 0;
     bool found = false;
     for (size_t i = 0; i < shader_count; i++) {
-        if (src[i].fake_shader == p_shader) {found = true; continue;}
+        if (src[i].shader.obj == shader_rev->head.obj) {
+            found = true;
+            trc_del_obj_ref(src[i].shader);
+            continue;
+        }
         dest[next++] = src[i];
     }
     trc_unmap_data(old.shaders);
     trc_unmap_freeze_data(ctx->trace, program.shaders);
     if (!found) ERROR("Shader is not attached to program");
     
-    drop_obj(ctx->trace, p_shader, TrcShader);
-    
-    set_program(ctx->trace, p_program, &program);
+    set_program(ctx->trace, &program);
 
 typedef struct link_program_extra_t {
     char* name;
@@ -2888,35 +2877,35 @@ static void get_program_subroutine_uniforms(trace_command_t* cmd, trc_replay_con
 }
 
 glLinkProgram: //GLuint p_program
-    GLuint real_program = trc_get_real_program(ctx->trace, p_program);
-    if (!real_program) ERROR("Invalid program name");
+    trc_obj_t* program = trc_lookup_name(ctx->trace, TrcProgram, p_program, -1);
+    if (!program) ERROR("Invalid program name");
     
     //TODO: Also test if it is part of the current program pipeline
-    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_program==trc_gl_state_get_bound_program(ctx->trace))
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && program==trc_gl_state_get_bound_program(ctx->trace))
         ERROR("The bound program cannot be modified while transform feedback is active and unpaused");
     
-    real(real_program);
+    trc_gl_program_rev_t rev = *(const trc_gl_program_rev_t*)trc_obj_get_rev(program, -1);
     
-    trc_gl_program_rev_t rev = *get_program(ctx->trace, p_program);
+    real(rev.real);
     
     GLint len;
-    F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
+    F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
-    F(glGetProgramInfoLog)(real_program, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
+    F(glGetProgramInfoLog)(rev.real, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
-    rev.uniforms = get_program_uniforms(cmd, ctx, real_program);
-    rev.vertex_attribs = get_program_vertex_attribs(cmd, ctx, real_program);
-    rev.uniform_blocks = get_program_uniform_blocks(cmd, ctx, real_program);
+    rev.uniforms = get_program_uniforms(cmd, ctx, rev.real);
+    rev.vertex_attribs = get_program_vertex_attribs(cmd, ctx, rev.real);
+    rev.uniform_blocks = get_program_uniform_blocks(cmd, ctx, rev.real);
     if (trc_gl_state_get_ver(ctx->trace) >= 400) { //TODO: Check for the extension
-        get_program_subroutines(cmd, ctx, real_program, rev.subroutines);
-        get_program_subroutine_uniforms(cmd, ctx, real_program, rev.subroutine_uniforms);
+        get_program_subroutines(cmd, ctx, rev.real, rev.subroutines);
+        get_program_subroutine_uniforms(cmd, ctx, rev.real, rev.subroutine_uniforms);
     }
     
-    set_program(ctx->trace, p_program, &rev);
+    set_program(ctx->trace, &rev);
     
     GLint status;
-    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
     if (!status) ERROR("Failed to link program");
 
 glValidateProgram: //GLuint p_program
@@ -2933,25 +2922,21 @@ glValidateProgram: //GLuint p_program
     F(glGetProgramInfoLog)(real_program, len, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
-    set_program(ctx->trace, p_program, &rev);
+    set_program(ctx->trace, &rev);
     
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
     if (!status) ERROR("Program validation failed");
 
 glUseProgram: //GLuint p_program
-    GLuint real_program = trc_get_real_program(ctx->trace, p_program);
-    if (!real_program && p_program) ERROR("Invalid program name");
+    const trc_gl_program_rev_t* program_rev = get_program(ctx->trace, p_program);
+    if (!program_rev && p_program) ERROR("Invalid program name");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace))
         ERROR("The program binding cannot be modified while transform feedback is active and unpaused");
     
-    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);
-    grab_obj(ctx->trace, p_program, TrcProgram);
-    drop_obj(ctx->trace, state.bound_program, TrcProgram);
-    state.bound_program = p_program;
-    trc_set_context(ctx->trace, &state);
+    trc_gl_state_set_bound_program(ctx->trace, program_rev?program_rev->head.obj:NULL);
     
-    real(real_program);
+    real(program_rev->real);
 
 glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
@@ -3094,7 +3079,7 @@ glGetProgramiv: //GLuint p_program, GLenum p_pname, GLint* p_params
     if (!real_prog) ERROR("Invalid program name");
 
 glGetFramebufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    GLuint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (!fb && not_one_of(p_pname, GL_DOUBLEBUFFER, GL_IMPLEMENTATION_COLOR_READ_FORMAT,
                           GL_IMPLEMENTATION_COLOR_READ_TYPE, GL_SAMPLES, GL_SAMPLE_BUFFERS, GL_STEREO, -1))
         ERROR("Invalid parameter name");
@@ -3237,7 +3222,7 @@ glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, voi
     get_buffer_sub_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_offset, p_size);
 
 glGetNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, void* p_data
-    get_buffer_sub_data(ctx, cmd, true, p_buffer, p_offset, p_size);
+    get_buffer_sub_data(ctx, cmd, true, trc_lookup_name(ctx->trace, TrcBuffer, p_buffer, -1), p_offset, p_size);
 
 glGetTexImage: //GLenum p_target, GLint p_level, GLenum p_format, GLenum p_type, void * p_pixels
     ;
@@ -3360,7 +3345,7 @@ glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_
             newrev.uniform_blocks = trc_create_data(ctx->trace, rev.uniform_blocks->size, blocks, 0);
             ((trc_gl_program_uniform_block_t*)trc_map_data(newrev.uniform_blocks, TRC_MAP_MODIFY))[i].binding = p_uniformBlockBinding;
             trc_unmap_data(newrev.uniform_blocks);
-            set_program(ctx->trace, p_program, &newrev);
+            set_program(ctx->trace, &newrev);
             goto success;
         }
     }
@@ -3939,8 +3924,8 @@ glProgramUniformMatrix4x3dv: //GLuint p_program, GLint p_location, GLsizei p_cou
 //TODO: There is some duplicate code among glVertexAttrib*Pointer and gl*VertexAttribArray
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
-    trc_gl_vao_rev_t rev = *get_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
@@ -3951,16 +3936,16 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
         a->stride = p_stride;
         a->offset = p_pointer;
         a->type = p_type;
-        a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
+        trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
-        set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+        set_vao(ctx->trace, &rev);
     }
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
-    trc_gl_vao_rev_t rev = *get_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
@@ -3970,16 +3955,15 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
         a->stride = p_stride;
         a->offset = p_pointer;
         a->type = p_type;
-        a->buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER);
+        trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
-        set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+        set_vao(ctx->trace, &rev);
     }
-    set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glEnableVertexAttribArray: //GLuint p_index
-    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
-    trc_gl_vao_rev_t rev = *get_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
@@ -3987,13 +3971,12 @@ glEnableVertexAttribArray: //GLuint p_index
         a->enabled = true;
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
-        set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+        set_vao(ctx->trace, &rev);
     }
-    set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glDisableVertexAttribArray: //GLuint p_index
-    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
-    trc_gl_vao_rev_t rev = *get_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
@@ -4001,13 +3984,12 @@ glDisableVertexAttribArray: //GLuint p_index
         a->enabled = true;
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
-        set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+        set_vao(ctx->trace, &rev);
     }
-    set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
-    if (trc_gl_state_get_bound_vao(ctx->trace) == 0) RETURN;
-    trc_gl_vao_rev_t rev = *get_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace));
+    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
@@ -4015,9 +3997,8 @@ glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
         a->divisor = p_divisor;
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
-        set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
+        set_vao(ctx->trace, &rev);
     }
-    set_vao(ctx->trace, trc_gl_state_get_bound_vao(ctx->trace), &rev);
 
 glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
     vertex_attrib(ctx, cmd, 1, GL_FLOAT, false, false, GL_FLOAT);
@@ -4250,9 +4231,9 @@ glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
     end_draw(ctx, cmd);
 
 glDrawArraysIndirect: //GLenum p_mode, const void* p_indirect
-    GLuint buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
+    trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
     if (!buf) ERROR("No buffer bound to GL_DRAW_INDIRECT_BUFFER");
-    if (get_buffer(ctx->trace, buf)->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
+    if (((trc_gl_buffer_rev_t*)trc_obj_get_rev(buf, -1))->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
     if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, (const GLvoid*)p_indirect);
     end_draw(ctx, cmd);
@@ -4298,9 +4279,9 @@ glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_i
     end_draw(ctx, cmd);
 
 glDrawElementsIndirect: //GLenum p_mode, GLenum p_type, const void* indirect
-    GLuint buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
+    trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
     if (!buf) ERROR("No buffer bound to GL_DRAW_INDIRECT_BUFFER");
-    if (get_buffer(ctx->trace, buf)->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
+    if (((trc_gl_buffer_rev_t*)trc_obj_get_rev(buf, -1))->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
     if (!begin_draw(ctx, cmd, p_mode)) RETURN;
     real(p_mode, p_type, (const void*)p_indirect);
     end_draw(ctx, cmd);
@@ -4401,7 +4382,8 @@ glCreateVertexArrays: //GLsizei p_n, GLuint* p_arrays
 glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (p_arrays[i] && p_arrays[i]==trc_gl_state_get_bound_vao(ctx->trace))
+        trc_obj_t* vao = trc_lookup_name(ctx->trace, TrcVAO, p_arrays[i], -1);
+        if (vao && vao==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
         if (!(arrays[i]=trc_get_real_vao(ctx->trace, p_arrays[i])))
             trc_add_error(cmd, "Invalid vertex array name");
@@ -4412,11 +4394,11 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
 glBindVertexArray: //GLuint p_array
     const trc_gl_vao_rev_t* rev = get_vao(ctx->trace, p_array);
     if (!rev && p_array) ERROR("Invalid vertex array name");
-    trc_gl_state_set_bound_vao(ctx->trace, p_array);
+    trc_gl_state_set_bound_vao(ctx->trace, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_vao_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_vao(ctx->trace, p_array, &newrev);
+        set_vao(ctx->trace, &newrev);
     }
 
 glGetFragDataIndex: //GLuint p_program, const GLchar* p_name
@@ -4518,7 +4500,7 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     if (rev && !rev->has_object) {
         trc_gl_sampler_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_sampler(ctx->trace, p_sampler, &newrev);
+        set_sampler(ctx->trace, &newrev);
     }
 
 glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
@@ -4529,7 +4511,6 @@ glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
         const trc_gl_sampler_rev_t* rev = get_sampler(ctx->trace, p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
         if (!rev->has_object) ERROR("Sampler name at index %zu has no object", i);
-        //if (!rev->has_object) ERROR("Sample name at index %zu has no object", i); //TODO
         real_tex[i] = rev->real;
     }
     real(p_first, p_count, real_tex);
@@ -4583,10 +4564,11 @@ glCreateFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
 glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (p_framebuffers[i] && p_framebuffers[i]==trc_gl_state_get_read_framebuffer(ctx->trace))
-            trc_gl_state_set_read_framebuffer(ctx->trace, 0);
-        if (p_framebuffers[i] && p_framebuffers[i]==trc_gl_state_get_draw_framebuffer(ctx->trace))
-            trc_gl_state_set_draw_framebuffer(ctx->trace, 0);
+        trc_obj_t* fb = trc_lookup_name(ctx->trace, TrcFramebuffer, p_framebuffers[i], -1);
+        if (fb && fb==trc_gl_state_get_read_framebuffer(ctx->trace))
+            trc_gl_state_set_read_framebuffer(ctx->trace, NULL);
+        if (fb && fb==trc_gl_state_get_draw_framebuffer(ctx->trace))
+            trc_gl_state_set_draw_framebuffer(ctx->trace, NULL);
         if (!(fbs[i] = trc_get_real_framebuffer(ctx->trace, p_framebuffers[i])))
             trc_add_error(cmd, "Invalid framebuffer name");
         else drop_obj(ctx->trace, p_framebuffers[i], TrcFramebuffer);
@@ -4601,7 +4583,7 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     if (rev && !rev->has_object) {
         trc_gl_framebuffer_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_framebuffer(ctx->trace, p_framebuffer, &newrev);
+        set_framebuffer(ctx->trace, &newrev);
     }
     
     bool read = true;
@@ -4610,8 +4592,9 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     case GL_READ_FRAMEBUFFER: draw = false; break;
     case GL_DRAW_FRAMEBUFFER: read = false; break;
     }
-    if (read) trc_gl_state_set_read_framebuffer(ctx->trace, p_framebuffer);
-    if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, p_framebuffer);
+    
+    if (read) trc_gl_state_set_read_framebuffer(ctx->trace, rev?rev->head.obj:NULL);
+    if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, rev?rev->head.obj:NULL);
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     if (p_n < 0) ERROR("Invalid renderbuffer name count");
@@ -4628,8 +4611,9 @@ glCreateRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
 glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     GLuint* rbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (p_renderbuffers[i] && p_renderbuffers[i]==trc_gl_state_get_bound_renderbuffer(ctx->trace))
-            trc_gl_state_set_bound_renderbuffer(ctx->trace, 0);
+        trc_obj_t* rb = trc_lookup_name(ctx->trace, TrcRenderbuffer, p_renderbuffers[i], -1);
+        if (p_renderbuffers[i] && rb==trc_gl_state_get_bound_renderbuffer(ctx->trace))
+            trc_gl_state_set_bound_renderbuffer(ctx->trace, NULL);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
         if (!(rbs[i] = trc_get_real_renderbuffer(ctx->trace, p_renderbuffers[i])))
@@ -4643,11 +4627,11 @@ glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
     const trc_gl_renderbuffer_rev_t* rev = get_renderbuffer(ctx->trace, p_renderbuffer);
     if (!rev && p_renderbuffer) ERROR("Invalid renderbuffer name");
     real(p_target, p_renderbuffer?rev->real:0);
-    trc_gl_state_set_bound_renderbuffer(ctx->trace, p_renderbuffer);
+    trc_gl_state_set_bound_renderbuffer(ctx->trace, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_renderbuffer_rev_t newrev = *rev;
         newrev.has_object = true;
-        set_renderbuffer(ctx->trace, p_renderbuffer, &newrev);
+        set_renderbuffer(ctx->trace, &newrev);
     }
 
 glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
@@ -4689,7 +4673,7 @@ glGetFramebufferAttachmentParameteriv: //GLenum p_target, GLenum p_attachment, G
     real(p_target, p_attachment, p_pname, &params);
 
 glGetRenderbufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    const trc_gl_renderbuffer_rev_t* rev = get_renderbuffer(ctx->trace, trc_gl_state_get_bound_renderbuffer(ctx->trace));
+    const trc_gl_renderbuffer_rev_t* rev = trc_obj_get_rev(trc_gl_state_get_bound_renderbuffer(ctx->trace), -1);
     if (!rev) ERROR("No renderbuffer bound");
     if (!rev->has_object) ERROR("Renderbuffer name has no object");
 
@@ -4698,73 +4682,76 @@ glGetNamedRenderbufferParameteriv: //GLuint p_renderbuffer, GLenum p_pname, GLin
     if (!p_renderbuffer_rev->has_object) ERROR("Renderbuffer name has no object");
 
 glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment_rb(ctx, cmd, false, fb, p_attachment, p_renderbuffer, p_renderbuffer_rev))
         real(p_target, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
 
 glNamedFramebufferRenderbuffer: //GLuint p_framebuffer, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
-    if (add_fb_attachment_rb(ctx, cmd, true, p_framebuffer, p_attachment, p_renderbuffer, p_renderbuffer_rev))
+    trc_obj_t* fb = trc_lookup_name(ctx->trace, TrcFramebuffer, p_framebuffer, -1);
+    if (add_fb_attachment_rb(ctx, cmd, true, fb, p_attachment, p_renderbuffer, p_renderbuffer_rev))
         real(p_framebuffer_rev->real, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
 
 glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, GLint p_level
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
         real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level);
 
 glNamedFramebufferTexture: //GLuint p_framebuffer, GLenum p_attachment, GLuint p_texture, GLint p_level
-    if (add_fb_attachment(ctx, cmd, p_framebuffer, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
+    trc_obj_t* fb = trc_lookup_name(ctx->trace, TrcFramebuffer, p_framebuffer, -1);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
         real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTextureLayer: //GLenum p_target, GLenum p_attachment GLuint p_texture, GLint p_level, GLint p_layer
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
         real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
 
 glNamedFramebufferTextureLayer: //GLuint p_framebuffer, GLenum p_attachment GLuint p_texture, GLint p_level, GLint p_layer
-    if (add_fb_attachment(ctx, cmd, p_framebuffer, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
+    trc_obj_t* fb = trc_lookup_name(ctx->trace, TrcFramebuffer, p_framebuffer, -1);
+    if (add_fb_attachment(ctx, cmd, fb, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
         real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
 
 glFramebufferTexture1D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, 0))
         real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTexture2D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, 0))
         real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level);
 
 glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarget, GLuint p_texture, GLint p_level, GLint p_zoffset
-    GLint fb = get_bound_framebuffer(ctx, p_target);
+    trc_obj_t* fb = get_bound_framebuffer(ctx, p_target);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, false, p_texture, p_texture_rev, p_textarget, p_level, p_zoffset))
         real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level, p_zoffset);
 
 glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
-    const trc_gl_renderbuffer_rev_t* rb_rev = get_renderbuffer(ctx->trace, rb);
+    trc_obj_t* rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    const trc_gl_renderbuffer_rev_t* rb_rev = trc_obj_get_rev(rb, -1);
     if (renderbuffer_storage(ctx, cmd, rb_rev, false, p_internalformat, p_width, p_height, 1)) {
         real(p_target, p_internalformat, p_width, p_height);
-        replay_update_renderbuffer(ctx, rb_rev, rb, p_width, p_height, p_internalformat, 1);
+        replay_update_renderbuffer(ctx, rb_rev, p_width, p_height, p_internalformat, 1);
     }
 
 glNamedRenderbufferStorage: //GLuint p_renderbuffer, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     if (renderbuffer_storage(ctx, cmd, p_renderbuffer_rev, false, p_internalformat, p_width, p_height, 1)) {
         real(p_renderbuffer_rev->real, p_internalformat, p_width, p_height);
-        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_renderbuffer, p_width, p_height, p_internalformat, 1);
+        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_width, p_height, p_internalformat, 1);
     }
 
 glRenderbufferStorageMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    uint rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
-    const trc_gl_renderbuffer_rev_t* rb_rev = get_renderbuffer(ctx->trace, rb);
+    trc_obj_t* rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    const trc_gl_renderbuffer_rev_t* rb_rev = trc_obj_get_rev(rb, -1);
     if (renderbuffer_storage(ctx, cmd, rb_rev, false, p_internalformat, p_width, p_height, p_samples)) {
         real(p_target, p_samples, p_internalformat, p_width, p_height);
-        replay_update_renderbuffer(ctx, rb_rev, rb, p_width, p_height, p_internalformat, p_samples);
+        replay_update_renderbuffer(ctx, rb_rev, p_width, p_height, p_internalformat, p_samples);
     }
 
 glNamedRenderbufferStorageMultisample: //GLuint p_renderbuffer, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     if (renderbuffer_storage(ctx, cmd, p_renderbuffer_rev, false, p_internalformat, p_width, p_height, p_samples)) {
         real(p_renderbuffer, p_samples, p_internalformat, p_width, p_height);
-        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_renderbuffer, p_width, p_height, p_internalformat, p_samples);
+        replay_update_renderbuffer(ctx, p_renderbuffer_rev, p_width, p_height, p_internalformat, p_samples);
     }
 
 glFenceSync: //GLenum p_condition, GLbitfield p_flags
@@ -4839,7 +4826,7 @@ glQueryCounter: //GLuint p_id, GLenum p_target
         trc_gl_query_rev_t newrev = *rev;
         newrev.has_object = true;
         newrev.type = GL_TIMESTAMP;
-        set_query(ctx->trace, p_id, &newrev);
+        set_query(ctx->trace, &newrev);
     }
     //TODO: This clears any errors
     if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, p_id, rev->real);
@@ -4857,14 +4844,14 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     if (p_n > trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0))
         ERROR("buffer count is greater than GL_MAX_DRAW_BUFFERS");
     
-    GLuint fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
+    trc_obj_t* fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
     
     uint color_min = GL_COLOR_ATTACHMENT0;
     uint color_max = GL_COLOR_ATTACHMENT0 + trc_gl_state_get_state_int(ctx->trace, GL_MAX_COLOR_ATTACHMENTS, 0);
     for (uint i = 0; i < p_n; i++) {
-        if (fb==0 && not_one_of(p_bufs[i], GL_NONE, GL_FRONT_LEFT, GL_FRONT_RIGHT, GL_BACK_LEFT, GL_BACK_RIGHT, -1))
+        if (fb==NULL && not_one_of(p_bufs[i], GL_NONE, GL_FRONT_LEFT, GL_FRONT_RIGHT, GL_BACK_LEFT, GL_BACK_RIGHT, -1))
             ERROR("Invalid buffer");
-        else if (fb>0 && (p_bufs[i]<color_min||p_bufs[i]>color_max) && p_bufs[i]!=GL_NONE)
+        else if (fb && (p_bufs[i]<color_min||p_bufs[i]>color_max) && p_bufs[i]!=GL_NONE)
             ERROR("Invalid buffer");
         for (uint j = 0; j < p_n; j++) {
             if (p_bufs[j]==p_bufs[i] && i!=j && p_bufs[i]!=GL_NONE)
@@ -4877,12 +4864,12 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     //    GL_INVALID_OPERATION is generated if any of the entries in bufs (other than GL_NONE)
     //    indicates a color buffer that does not exist in the current GL context.
     
-    if (fb == 0) {
+    if (!fb) {
         trc_gl_state_state_enum_init(ctx->trace, GL_DRAW_BUFFER, p_n, p_bufs);
     } else {
-        trc_gl_framebuffer_rev_t rev = *get_framebuffer(ctx->trace, fb);
+        trc_gl_framebuffer_rev_t rev = *(const trc_gl_framebuffer_rev_t*)trc_obj_get_rev(fb, -1);
         rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), p_bufs, TRC_DATA_IMMUTABLE);
-        set_framebuffer(ctx->trace, fb, &rev);
+        set_framebuffer(ctx->trace, &rev);
     }
     
     real(p_n, p_bufs);
@@ -5352,7 +5339,7 @@ glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GL
         ERROR("Framebuffer name has no object");
     VALIDATE_BLIT_FRAMEBUFFER
     real(p_readFramebuffer_rev->real, p_drawFramebuffer_rev->real, p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
-    update_buffers(ctx, p_drawFramebuffer, p_mask);
+    update_buffers(ctx, p_drawFramebuffer_rev->head.obj, p_mask);
 
 glBeginTransformFeedback: //GLenum p_primitiveMode
     if (trc_gl_state_get_tf_active(ctx->trace))
@@ -5393,10 +5380,10 @@ glResumeTransformFeedback: //
     on_activate_tf(ctx, cmd);
 
 glUniformSubroutinesuiv: //GLenum p_shadertype, GLsizei p_count, const GLuint* p_indices
-    GLuint program = get_active_program_for_stage(ctx, p_shadertype);
+    trc_obj_t* program = get_active_program_for_stage(ctx, p_shadertype);
     if (!program) ERROR("No program is current for stage");
     GLint reqCount, subroutineCount;
-    const trc_gl_program_rev_t* program_rev = get_program(ctx->trace, program);
+    const trc_gl_program_rev_t* program_rev = trc_obj_get_rev(program, -1);
     F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &reqCount);
     F(glGetProgramStageiv)(program_rev->real, p_shadertype, GL_ACTIVE_SUBROUTINES, &subroutineCount);
     if (p_count != reqCount) ERROR("Count must be GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS");

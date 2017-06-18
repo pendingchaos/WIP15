@@ -1084,7 +1084,8 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     return obj;
 }
 
-void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev) {
+const void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev) {
+    if (!obj) return NULL;
     for (size_t i = obj->revision_count-1; ; i--) {
         trc_obj_rev_head_t* head = obj->revisions[i];
         if (head->revision <= rev)
@@ -1115,7 +1116,9 @@ void trc_obj_set_rev(trc_obj_t* obj, const void* rev) {
 }
 
 void trc_grab_obj(trc_obj_t* obj) {
-    trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
+    if (!obj) return;
+    
+    const trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
     if (!head) return; //TODO: How to handle this
     
     //TODO: unnecessary memory allocation
@@ -1130,7 +1133,9 @@ void trc_grab_obj(trc_obj_t* obj) {
 }
 
 void trc_drop_obj(trc_obj_t* obj) {
-    trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
+    if (!obj) return;
+    
+    const trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
     if (!head) return; //TODO: How to handle this
     
     //TODO: unnecessary memory allocation
@@ -1147,7 +1152,7 @@ void trc_drop_obj(trc_obj_t* obj) {
 void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
     trc_gl_inspection_t* in = &trace->inspection;
     trc_obj_t* table_obj = in->name_tables[type];
-    trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
+    const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
     
     uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
     trc_obj_t** objects = trc_map_data(table->objects, TRC_MAP_READ);
@@ -1201,7 +1206,7 @@ void trc_unset_name(trace_t* trace, trc_obj_type_t type, uint64_t name) {
 trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev) {
     trc_gl_inspection_t* in = &trace->inspection;
     trc_obj_t* table_obj = in->name_tables[type];
-    trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, rev);
+    const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, rev);
     if (!table) return NULL;
     
     uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
@@ -1232,7 +1237,7 @@ void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void*
     trc_obj_set_rev(obj, rev);
 }
 
-void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name) {
+const void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name) {
     trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
     return obj ? trc_obj_get_rev(obj, -1) : NULL;
 }
@@ -1259,6 +1264,16 @@ bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64
     
     *rev = head;
     return true;
+}
+
+void trc_del_obj_ref(trc_obj_ref_t ref) {
+    if (ref.obj) trc_drop_obj(ref.obj);
+}
+
+void trc_set_obj_ref(trc_obj_ref_t* ref, trc_obj_t* obj) {
+    if (obj) trc_grab_obj(obj);
+    if (ref->obj) trc_drop_obj(ref->obj);
+    ref->obj = obj;
 }
 
 static void queue_push_to_back(trace_t* trace, trc_data_t* data) {
@@ -1478,9 +1493,9 @@ void trc_unmap_data(trc_data_t* data) {
 void trc_freeze_data(trace_t* trace, trc_data_t* data) {
     pthread_rwlock_wrlock(&data->lock);
     data->flags |= TRC_DATA_IMMUTABLE;
-    bool no_compress = !(data->flags&TRC_DATA_NO_COMPRESS);
+    bool compress = !(data->flags&TRC_DATA_NO_COMPRESS);
     pthread_rwlock_unlock(&data->lock);
-    if (no_compress) {
+    if (compress) {
         if (trace->thread_count == 0) compress_data(data);
         else queue_push_to_back(trace, data);
     }
