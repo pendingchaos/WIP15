@@ -156,7 +156,9 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     //TODO: The current context
     value(store, "Drawable Size", static_format("%ux%u", ctx->drawable_width, ctx->drawable_height));
     
-    #define GET_FAKE(t, obj_ref) ((obj_ref).obj?((const t*)trc_obj_get_rev(obj_ref.obj, revision))->fake:0)
+    //This assumes the object has the name
+    //This should be the case because objects are unbound when deleted
+    #define GET_FAKE(t, obj_ref) ((obj_ref).obj?(((trc_obj_rev_head_t*)trc_obj_get_rev(obj_ref.obj, revision))->name):0)
     
     begin_category(store, "Buffer Bindings");
     #define BUFFER(type) value(store, #type, "%u", GET_FAKE(trc_gl_buffer_rev_t, ctx->bound_buffer_##type));

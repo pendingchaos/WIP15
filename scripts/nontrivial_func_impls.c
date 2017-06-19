@@ -4,7 +4,7 @@ static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!obj) return;
     trc_drop_obj(obj);
     if (((const trc_obj_rev_head_t*)trc_obj_get_rev(obj, -1))->ref_count == 0)
-        trc_unset_name(trace, type, fake);
+        trc_free_name(trace, type, fake);
 }
 
 static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* params,
@@ -305,7 +305,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_float_init(trace, GL_VIEWPORT, max_viewports*4, zerof);
     trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, max_viewports*4, NULL);
     float depth_range[max_viewports*2];
-    for (int i = 0; i < max_viewports; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
+    for (int i = 0; i < max_viewports*2; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
     trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, max_viewports*2, depth_range);
     
     trc_gl_state_state_enum_init1(trace, GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
@@ -1422,7 +1422,6 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.images = NULL;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcTexture, fake[i], &rev);
     }
 }
@@ -1441,7 +1440,6 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.map_access = 0;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcBuffer, fake[i], &rev);
     }
 }
@@ -1455,7 +1453,6 @@ static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLui
     rev.draw_buffers = empty_data;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcFramebuffer, fake[i], &rev);
     }
 }
@@ -1469,7 +1466,6 @@ static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.active_index = -1;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcQuery, fake[i], &rev);
     }
 }
@@ -1480,7 +1476,6 @@ static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.has_object = create;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcSampler, fake[i], &rev);
     }
 }
@@ -1492,7 +1487,6 @@ static void gen_renderbuffers(trc_replay_context_t* ctx, size_t count, const GLu
     rev.has_storage = false;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcRenderbuffer, fake[i], &rev);
     }
 }
@@ -1519,7 +1513,6 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
     trc_unmap_data(rev.attribs);
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        rev.fake = fake[i];
         trc_create_named_obj(ctx->trace, TrcVAO, fake[i], &rev);
     }
 }
@@ -2491,14 +2484,14 @@ glCopyNamedBufferSubData: //GLuint p_readBuffer, GLuint p_writeBuffer, GLintptr 
 
 glMapBuffer: //GLenum p_target, GLenum p_access
     const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(get_bound_buffer(ctx, p_target), -1);
-    map_buffer(ctx, cmd, false, rev?rev->fake:0, p_access);
+    map_buffer(ctx, cmd, false, rev?rev->head.name:0, p_access);
 
 glMapNamedBuffer: //GLuint p_buffer, GLenum p_access
     map_buffer(ctx, cmd, true, p_buffer, p_access);
 
 glMapBufferRange: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
     const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(get_bound_buffer(ctx, p_target), -1);
-    map_buffer_range(ctx, cmd, false, rev?rev->fake:0, p_offset, p_length, p_access);
+    map_buffer_range(ctx, cmd, false, rev?rev->head.name:0, p_offset, p_length, p_access);
 
 glMapNamedBufferRange: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_length, GLbitfield p_access
     map_buffer_range(ctx, cmd, true, p_buffer, p_offset, p_length, p_access);
@@ -2521,7 +2514,6 @@ glCreateShader: //GLenum p_type
     trc_gl_shader_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = real_shdr;
-    rev.fake = fake;
     rev.sources = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
     rev.type = p_type;
@@ -2577,7 +2569,7 @@ glCompileShader: //GLuint p_shader
     
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
-    shdr.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
+    shdr.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
     F(glGetShaderInfoLog)(real_shdr, len+1, NULL, trc_map_data(shdr.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, shdr.info_log);
     
@@ -2593,7 +2585,6 @@ glCreateProgram: //
     trc_gl_program_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = real_program;
-    rev.fake = fake;
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.uniforms = empty_data;
     rev.vertex_attribs = empty_data;
@@ -2657,6 +2648,7 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     
     trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
     memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
+    memset(&dest[shader_count], 0, sizeof(trc_gl_program_shader_t));
     dest[shader_count].shader.obj = shader_rev->head.obj;
     trc_grab_obj(shader_rev->head.obj);
     dest[shader_count].shader_revision = shader->head.revision;
@@ -2890,7 +2882,7 @@ glLinkProgram: //GLuint p_program
     
     GLint len;
     F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
-    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
+    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
     F(glGetProgramInfoLog)(rev.real, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
@@ -2918,7 +2910,7 @@ glValidateProgram: //GLuint p_program
     
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
-    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, TRC_DATA_NO_ZERO);
+    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
     F(glGetProgramInfoLog)(real_program, len, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
     trc_unmap_freeze_data(ctx->trace, rev.info_log);
     
@@ -2946,7 +2938,6 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = pipelines[i];
-        rev.fake = p_pipelines[i];
         rev.has_object = false;
         trc_create_named_obj(ctx->trace, TrcProgramPipeline, p_pipelines[i], &rev);
     }
@@ -4762,7 +4753,6 @@ glFenceSync: //GLenum p_condition, GLbitfield p_flags
     trc_gl_sync_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = (uint64_t)real_sync;
-    rev.fake = fake;
     rev.type = GL_SYNC_FENCE;
     rev.condition = p_condition;
     rev.flags = p_flags;

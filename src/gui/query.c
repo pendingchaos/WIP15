@@ -16,16 +16,7 @@ void init_queries_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    const trc_gl_query_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcQuery, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcQuery);
 }
 
 void query_select_callback(GObject* obj, gpointer user_data) {

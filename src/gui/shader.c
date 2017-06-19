@@ -34,16 +34,7 @@ void init_shader_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    const trc_gl_shader_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcShader, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcShader);
     
     GtkTextView* source_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "selected_shader_textview"));
     GtkTextBuffer* source_buffer = gtk_text_view_get_buffer(source_view);
@@ -62,16 +53,7 @@ void init_program_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    const trc_gl_program_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcProgram, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcProgram);
     
     GtkTextView* info_log_view = GTK_TEXT_VIEW(gtk_builder_get_object(builder, "program_info_log"));
     GtkTextBuffer* info_log_buffer = gtk_text_view_get_buffer(info_log_view);
@@ -151,8 +133,7 @@ void program_select_callback(GObject* obj, gpointer user_data) {
         const trc_gl_shader_rev_t* shdr = trc_obj_get_rev(shaders[i].shader.obj, revision);
         
         char id[64];
-        memset(id, 0, 64);
-        snprintf(id, 64, "%lu", shdr->fake);
+        fmt_object_id(id, 64, &shdr->head);
         
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, NULL);
@@ -207,7 +188,6 @@ void prog_shdr_select_callback(GObject* obj, gpointer userdata) {
     size_t shdr_index = gtk_tree_path_get_indices(path)[0];
     
     trc_gl_program_shader_t* shaders = trc_map_data(selected_program->shaders, TRC_MAP_READ);
-    trc_gl_program_shader_t shader = shaders[shdr_index];
     const trc_gl_shader_rev_t* shdr = trc_obj_get_rev(shaders[shdr_index].shader.obj, revision);
     trc_unmap_data(selected_program->shaders);
     

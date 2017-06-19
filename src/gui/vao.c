@@ -18,24 +18,14 @@ void init_vao_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    const trc_gl_vao_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcVAO, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcVAO);
 }
 
 void vao_select_callback(GObject* obj, gpointer user_data) {
     GtkTreeView* attr_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "vao_attributes"));
     GtkTreeStore* attr_store = GTK_TREE_STORE(gtk_tree_view_get_model(attr_tree));
     
-    if (!attr_store)
-        return;
+    if (!attr_store) return;
     
     gtk_tree_store_clear(attr_store);
     
@@ -70,30 +60,29 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
         
         char index_str[64];
         memset(index_str, 0, 64);
-        snprintf(index_str, 64, "%u", (uint)i);
+        snprintf(index_str, 63, "%u", (uint)i);
         
         char size_str[64];
         memset(size_str, 0, 64);
-        snprintf(size_str, 64, "%u", attr->size);
+        snprintf(size_str, 63, "%u", attr->size);
         
         char stride_str[64];
         memset(stride_str, 0, 64);
-        snprintf(stride_str, 64, "%u", attr->stride);
+        snprintf(stride_str, 63, "%u", attr->stride);
         
         char offset_str[64];
         memset(offset_str, 0, 64);
-        snprintf(offset_str, 64, "%"PRIu64, attr->offset);
+        snprintf(offset_str, 63, "%"PRIu64, attr->offset);
         
         char divisor_str[64];
         memset(divisor_str, 0, 64);
-        snprintf(divisor_str, 64, "%u", attr->divisor);
+        snprintf(divisor_str, 63, "%u", attr->divisor);
         
         char buffer_str[64];
-        memset(buffer_str, 0, 64);
-        if (attr->buffer.obj) {
-            const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(attr->buffer.obj, revision);
-            snprintf(buffer_str, 64, "%lu", rev->fake); //TODO: Handle when the object has no name
-        }
+        if (attr->buffer.obj)
+            fmt_object_id(buffer_str, 64, trc_obj_get_rev(attr->buffer.obj, revision));
+        else
+            strcpy(buffer_str, "");
         
         GtkTreeIter row;
         gtk_tree_store_append(attr_store, &row, NULL);

@@ -26,16 +26,7 @@ void init_framebuffers_list(GtkTreeView* tree) {
     gtk_tree_store_append(store, &row, NULL);
     gtk_tree_store_set(store, &row, 0, "0", -1);
     
-    const trc_gl_framebuffer_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcFramebuffer, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcFramebuffer);
 }
 
 static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data, bool depth) {
@@ -107,14 +98,14 @@ static void add_fb_attachment(GtkTreeStore* store, const char* name, const trc_g
     GtkTreeIter row;
     if (attach->has_renderbuffer) {
         gtk_tree_store_append(store, &row, &parent);
-        //TODO: Handle when the object has no name
-        const trc_gl_renderbuffer_rev_t* rev = trc_obj_get_rev(attach->renderbuffer.obj, revision);
-        gtk_tree_store_set(store, &row, 0, "Renderbuffer", 1, static_format("%u", rev->fake), -1);
+        char buf[64];
+        fmt_object_id(buf, 64, trc_obj_get_rev(attach->renderbuffer.obj, revision));
+        gtk_tree_store_set(store, &row, 0, "Renderbuffer", 1, buf, -1);
     } else {
-        //TODO: Handle when the object has no name
         gtk_tree_store_append(store, &row, &parent);
-        const trc_gl_texture_rev_t* rev = trc_obj_get_rev(attach->texture.obj, revision);
-        gtk_tree_store_set(store, &row, 0, "Texture", 1, static_format("%u", rev->fake), -1);
+        char buf[64];
+        fmt_object_id(buf, 64, trc_obj_get_rev(attach->texture.obj, revision));
+        gtk_tree_store_set(store, &row, 0, "Texture", 1, buf, -1);
         
         gtk_tree_store_append(store, &row, &parent);
         gtk_tree_store_set(store, &row, 0, "Level", 1, static_format("%u", attach->level), -1);
@@ -189,16 +180,7 @@ void init_renderbuffers_list(GtkTreeView* tree) {
     store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
     
-    const trc_gl_renderbuffer_rev_t* rev;
-    for (size_t i = 0; trc_iter_objects(trace, TrcRenderbuffer, &i, revision, (const void**)&rev);) {
-        char str[64];
-        memset(str, 0, 64);
-        snprintf(str, 64, "%u", (uint)rev->fake);
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(store, &row, NULL);
-        gtk_tree_store_set(store, &row, 0, str, -1);
-    }
+    create_obj_list(store, TrcRenderbuffer);
 }
 
 void renderbuffer_select_callback(GObject* obj, gpointer user_data) {

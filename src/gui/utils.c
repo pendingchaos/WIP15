@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include <inttypes.h>
 
+extern trace_t* trace;
+extern int64_t revision;
+
 const glapi_group_t* find_group(const char* name) {
     for (size_t i = 0; i < glapi.group_count; i++)
         if (strcmp(glapi.groups[i]->name, name) == 0)
@@ -183,5 +186,24 @@ void init_treeview(GtkBuilder* builder, const char* name, size_t column_count) {
         GtkTreeViewColumn* column = gtk_tree_view_get_column(GTK_TREE_VIEW(view), i);
         gtk_tree_view_column_pack_start(column, renderer, FALSE);
         gtk_tree_view_column_set_attributes(column, renderer, "text", i, NULL);
+    }
+}
+
+void fmt_object_id(char* buf, size_t buf_size, const trc_obj_rev_head_t* rev) {
+    memset(buf, 0, buf_size);
+    if (!buf_size) return;
+    if (rev->has_name) snprintf(buf, buf_size-1, "%lu", rev->name);
+    else snprintf(buf, buf_size-1, "0x%lx", (uint64_t)(uintptr_t)rev->obj);
+}
+
+void create_obj_list(GtkTreeStore* store, trc_obj_type_t type) {
+    const trc_obj_rev_head_t* rev;
+    for (size_t i = 0; trc_iter_objects(trace, type, &i, revision, (const void**)&rev);) {
+        char str[64];
+        fmt_object_id(str, 64, rev);
+        
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, str, -1);
     }
 }

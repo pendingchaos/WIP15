@@ -10,8 +10,7 @@
 
 #define TRC_GL_OBJ_HEAD trc_obj_rev_head_t head;\
 uint64_t fake_context;\
-uint64_t real;\
-uint64_t fake;\
+uint64_t real;
 
 #define TRC_DATA_IMMUTABLE (1<<0)
 #define TRC_DATA_NO_COMPRESS (1<<1)
@@ -131,6 +130,8 @@ typedef struct trc_obj_rev_head_t {
     trc_obj_t* obj;
     uint64_t revision;
     uint ref_count;
+    bool has_name;
+    uint64_t name;
 } trc_obj_rev_head_t;
 
 typedef struct trace_t trace_t;
@@ -268,7 +269,7 @@ typedef struct trc_gl_sync_rev_t {
 
 typedef struct trc_gl_program_shader_t {
     trc_obj_ref_t shader;
-    uint shader_revision;
+    uint64_t shader_revision;
 } trc_gl_program_shader_t;
 
 typedef struct trc_gl_program_uniform_t {
@@ -448,8 +449,8 @@ void trc_obj_set_rev(trc_obj_t* obj, const void* rev);
 void trc_grab_obj(trc_obj_t* obj);
 void trc_drop_obj(trc_obj_t* obj);
 
-void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj);
-void trc_unset_name(trace_t* trace, trc_obj_type_t type, uint64_t name);
+bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj);
+void trc_free_name(trace_t* trace, trc_obj_type_t type, uint64_t name);
 trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev);
 
 trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);

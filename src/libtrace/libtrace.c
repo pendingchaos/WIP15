@@ -1071,6 +1071,8 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     rev->obj = obj;
     rev->revision = in->cur_revision;
     rev->ref_count = 1;
+    rev->has_name = false;
+    rev->name = 0;
     if (name_table) {
         trc_name_table_rev_t* table = (trc_name_table_rev_t*)rev;
         table->entry_count = 0;
@@ -1149,7 +1151,26 @@ void trc_drop_obj(trc_obj_t* obj) {
     free(newrev);
 }
 
-void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
+static void set_obj_name(trc_obj_t* obj, bool has_name, uint64_t name) {
+    const trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
+    if (head) {
+        //TODO: unnecessary memory allocation
+        size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
+        trc_obj_rev_head_t* newrev = malloc(rev_size);
+        memcpy(newrev, head, rev_size);
+        
+        newrev->has_name = has_name;
+        newrev->name = name;
+        trc_obj_set_rev(obj, newrev);
+        
+        free(newrev);
+    }
+}
+
+bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
+    const trc_obj_rev_head_t* obj_head = trc_obj_get_rev(obj, -1);
+    if (obj_head && obj_head->has_name) return false; //Already named
+    
     trc_gl_inspection_t* in = &trace->inspection;
     trc_obj_t* table_obj = in->name_tables[type];
     const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
@@ -1158,10 +1179,14 @@ void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
     trc_obj_t** objects = trc_map_data(table->objects, TRC_MAP_READ);
     size_t index = 0;
     
+    trc_obj_t* prevobj = NULL;
+    
     for (; index < table->entry_count; index++) {
         if (names[index] == name) {
             size_t objects_size = table->entry_count*sizeof(trc_obj_t*);
             trc_obj_t** newobjects = malloc(objects_size);
+            
+            prevobj = objects[index];
             
             memcpy(newobjects, objects, objects_size);
             newobjects[index] = obj;
@@ -1197,9 +1222,14 @@ void trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
     
     trc_unmap_data(table->objects);
     trc_unmap_data(table->names);
+    
+    if (prevobj) set_obj_name(obj, false, 0);
+    if (obj) set_obj_name(obj, true, name);
+    
+    return true;
 }
 
-void trc_unset_name(trace_t* trace, trc_obj_type_t type, uint64_t name) {
+void trc_free_name(trace_t* trace, trc_obj_type_t type, uint64_t name) {
     trc_set_name(trace, type, name, NULL);
 }
 
