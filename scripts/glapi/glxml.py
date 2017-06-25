@@ -96,7 +96,6 @@ class GL:
         self.functions['glDrawableSizeWIP15'] = glDrawableSizeWIP15
         
         ext = Extension()
-        ext.functions.append('glSetContextCapsWIP15')
         ext.functions.append('glTestFBWIP15')
         ext.functions.append('glCurrentTestWIP15')
         ext.functions.append('glDrawableSizeWIP15')

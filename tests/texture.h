@@ -5,6 +5,7 @@ void draw_texture1d(GLuint prog) {
     glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    test_fb("glDrawArrays");
 }
 
 void draw_texture2d(GLuint prog) {
@@ -14,6 +15,7 @@ void draw_texture2d(GLuint prog) {
     glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    test_fb("glDrawArrays");
 }
 
 void draw_texture3d(GLuint prog) {
@@ -23,6 +25,7 @@ void draw_texture3d(GLuint prog) {
     glUniform1i(glGetUniformLocation(prog, "tex"), 0);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    test_fb("glDrawArrays");
 }
 
 //TODO: Sometimes these textures result in a black screen.

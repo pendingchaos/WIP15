@@ -75,9 +75,7 @@ void __attribute__ ((constructor)) wip15_gl_init() {
         fprintf(stderr, "Unable to open/create %s.", output==NULL?"output.trace":output);
         exit(1);
     }
-    
-    test_mode = getenv("WIP15_TEST") != NULL;
-    
+        
     char* comp_level = getenv("WIP15_COMPRESSION_LEVEL");
     if (comp_level) {
         char* end;

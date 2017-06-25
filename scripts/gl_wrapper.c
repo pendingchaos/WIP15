@@ -135,7 +135,6 @@ static limits_t gl43_limits;
 static limits_t gl44_limits;
 static limits_t gl45_limits;
 static limits_t* current_limits = NULL;
-static bool test_mode = false;
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
@@ -854,31 +853,6 @@ static void update_drawable_size() {
         drawable_width = w;
         drawable_height = h;
         glDrawableSizeWIP15(w, h);
-    }
-}
-
-static void test_fb(const char* name) {
-    if (test_mode) {
-        update_drawable_size();
-        
-        F(glFinish)();
-        
-        GLint last_buf;
-        F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-        
-        F(glReadBuffer)(GL_BACK);
-        void* back = malloc(drawable_width*drawable_height*4);
-        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_RGBA, GL_UNSIGNED_BYTE, back);
-        
-        void* depth = malloc(drawable_width*drawable_height*4);
-        F(glReadPixels)(0, 0, drawable_width, drawable_height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
-        
-        F(glReadBuffer)(last_buf);
-        
-        glTestFBWIP15(name, back, depth);
-        
-        free(back);
-        free(depth);
     }
 }
 

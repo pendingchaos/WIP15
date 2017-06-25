@@ -7,6 +7,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+void (*glCurrentTestWIP15)(const GLchar* name);
+void (*glTestFBWIP15)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void (*glDrawableSizeWIP15)(GLsizei width, GLsizei height);
+
+static SDL_Window* window;
+
 static char* static_format(const char* format, ...) {
     static char data[1024];
     memset(data, 0, 1024);
@@ -19,9 +25,31 @@ static char* static_format(const char* format, ...) {
     return data;
 }
 
-void (*glCurrentTestWIP15)(const GLchar*);
-
-void null_current_test(const GLchar* name) {}
+static void test_fb(const char* name) {
+    int drawable_width, drawable_height;
+    SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
+    
+    glDrawableSizeWIP15(drawable_width, drawable_height);
+    
+    glFinish();
+    
+    GLint last_buf;
+    glGetIntegerv(GL_READ_BUFFER, &last_buf);
+    
+    glReadBuffer(GL_BACK);
+    void* back = malloc(drawable_width*drawable_height*4);
+    glReadPixels(0, 0, drawable_width, drawable_height, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    void* depth = malloc(drawable_width*drawable_height*4);
+    glReadPixels(0, 0, drawable_width, drawable_height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    
+    glReadBuffer(last_buf);
+    
+    //glTestFBWIP15(name, back, depth);
+    
+    free(back);
+    free(depth);
+}
 
 GLuint create_program(const char* vert, const char* frag) {
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
@@ -54,15 +82,16 @@ GLuint buffer(GLenum target, size_t size, void* data) {
 #include "texture.h"
 #include "uniform.h"
 
+void null_current_test(const GLchar* name) {}
+void null_test_fb(const GLchar* name, const GLvoid* color, const GLvoid* depth) {}
+void null_drawable_size(GLsizei width, GLsizei height) {}
+
+//TODO: Test if the program is being traced and print a warning if it is not
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window *window = SDL_CreateWindow("",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          100,
-                                          100,
-                                          SDL_WINDOW_OPENGL |
-                                          SDL_WINDOW_SHOWN);
+    int pos = SDL_WINDOWPOS_UNDEFINED;
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+    window = SDL_CreateWindow("", pos, pos, 100, 100, flags);
     
     void (*tests[])() = {&draw_test, &buffer_test, &texture_test,
                          &uniform_test};
@@ -72,14 +101,24 @@ int main(int argc, char** argv) {
     for (size_t i = 0; i < sizeof(tests)/sizeof(tests[0]); i++) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
         
+        bool problem = false;
         glCurrentTestWIP15 = SDL_GL_GetProcAddress("glCurrentTestWIP15");
-        if (!glCurrentTestWIP15)
-            glCurrentTestWIP15 = &null_current_test;
+        if ((problem|=!glCurrentTestWIP15)) glCurrentTestWIP15 = &null_current_test;
+        glTestFBWIP15 = SDL_GL_GetProcAddress("glTestFBWIP15");
+        if ((problem|=!glTestFBWIP15)) glTestFBWIP15 = &null_test_fb;
+        glDrawableSizeWIP15 = SDL_GL_GetProcAddress("glDrawableSizeWIP15");
+        if ((problem|=!glDrawableSizeWIP15)) glDrawableSizeWIP15 = &null_drawable_size;
+        
+        if (problem) {
+            fprintf(stderr, "Warning: Failed to get function pointers for "
+                            "glCurrentTestWIP15, glTestFBWIP15 and/or glDrawableSizeWIP15\n");
+        }
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
         
         tests[i]();
         SDL_GL_SwapWindow(window);
+        test_fb("glXSwapBuffers");
         
         /*bool running = true;
         SDL_Event event;
