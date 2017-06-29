@@ -14,20 +14,22 @@ class glXGetProcAddressFunc(Func):
         
         return res
 
-class glDrawableSizeWIP15(Func):
+class wip15DrawableSize(Func):
     def gen_wrapper(self):
-        return '''void glDrawableSizeWIP15(GLsizei width, GLsizei height) {
-    func_decl_glDrawableSizeWIP15();
+        return '''void wip15DrawableSize(GLsizei width, GLsizei height) {
+    func_decl_wip15DrawableSize();
     gl_start_call(%d);
     gl_write_sleb128(width);
     gl_write_sleb128(height);
     gl_end_call();
+    drawable_width = width;
+    drawable_height = height;
 }''' % self.func_id
 
-class glTestFBWIP15(Func):
+class wip15TestFB(Func):
     def gen_wrapper(self):
-        return '''void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth) {
-    func_decl_glTestFBWIP15();
+        return '''void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth) {
+    func_decl_wip15TestFB();
     gl_start_call(%d);
     gl_write_str(name);
     gl_write_data(drawable_width*drawable_height*4, color);
@@ -36,12 +38,49 @@ class glTestFBWIP15(Func):
 }
 ''' % self.func_id
 
-class glCurrentTestWIP15(Func):
+class wip15CurrentTest(Func):
     def gen_wrapper(self):
-        return '''void glCurrentTestWIP15(const GLchar* name) {
-    func_decl_glCurrentTestWIP15();
+        return '''void wip15CurrentTest(const GLchar* name) {
+    func_decl_wip15CurrentTest();
     gl_start_call(%d);
     gl_write_str(name);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15ExpectPropertyi64(Func):
+    def gen_wrapper(self):
+        return '''void wip15ExpectPropertyi64(GLenum objType, GLuint64 objName, const GLchar* name, GLint64 val) {
+    func_decl_wip15ExpectPropertyi64();
+    gl_start_call(%d);
+    gl_write_uleb128(objType);
+    gl_write_uleb128(objName);
+    gl_write_str(name);
+    gl_write_sleb128(val);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15ExpectPropertyd(Func):
+    def gen_wrapper(self):
+        return '''void wip15ExpectPropertyd(GLenum objType, GLuint64 objName, const GLchar* name, GLdouble val) {
+    func_decl_wip15ExpectPropertyd();
+    gl_start_call(%d);
+    gl_write_uleb128(objType);
+    gl_write_uleb128(objName);
+    gl_write_str(name);
+    gl_write_double(val);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15ExpectPropertybv(Func):
+    def gen_wrapper(self):
+        return '''void wip15ExpectPropertybv(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 size, const GLvoid* data) {
+    func_decl_wip15ExpectPropertybv();
+    gl_start_call(%d);
+    gl_write_uleb128(objType);
+    gl_write_uleb128(objName);
+    gl_write_str(name);
+    gl_write_uleb128(size);
+    gl_write_data(size, data);
     gl_end_call();
 }''' % self.func_id
 
@@ -1076,10 +1115,13 @@ Func((3, 2), 'glFramebufferTexture', [P(tGLenum, 'target', None, FramebufferTarg
 Func((4, 3), 'glFramebufferParameteri', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'param')])
 Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 
-glDrawableSizeWIP15((1, 0), 'glDrawableSizeWIP15', [P(tGLsizei, 'width'), P(tGLsizei, 'height')])
-glTestFBWIP15((1, 0), 'glTestFBWIP15', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
-                                        P(tData('drawable_width*drawable_height*4'), 'depth')])
-glCurrentTestWIP15((1, 0), 'glCurrentTestWIP15', [P(tString, 'name')])
+wip15DrawableSize(None, 'wip15DrawableSize', [P(tGLsizei, 'width'), P(tGLsizei, 'height')])
+wip15TestFB(None, 'wip15TestFB', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
+                                  P(tData('drawable_width*drawable_height*4'), 'depth')])
+wip15CurrentTest(None, 'wip15CurrentTest', [P(tString, 'name')])
+wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLint64, 'val')])
+wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLdouble, 'val')])
+wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
 
 #Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 #Func(None, 'glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)
@@ -1160,7 +1202,8 @@ Func(None, 'glXGetCurrentDisplay', [], tMutablePointer)
 #Func(None, 'glXGetCurrentReadDrawable', [], tGLXDrawable)
 #Func(None, 'glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
 #Func(None, 'glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
-Func(None, 'glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
+f = Func(None, 'glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
+f.trace_epilogue_code = 'update_drawable_size();'
 #Func(None, 'glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
 #Func(None, 'glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
 #Func(None, 'glXSelectEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tunsignedlong, 'event_mask')])
@@ -1186,7 +1229,8 @@ glXGetProcAddressFunc(None, 'glXGetProcAddressARB', [P(tString, 'procName')], t_
 #Func(None, 'glXWaitGL', [])
 #Func(None, 'glXQueryCurrentRendererStringMESA', [P(tint, 'attribute')], tPointer)
 #Func(None, 'glXCopyBufferSubDataNV', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'readCtx'), P(tGLXContext, 'writeCtx'), P(tGLenum, 'readTarget'), P(tGLenum, 'writeTarget'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
-Func(None, 'glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')])
+f = Func(None, 'glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable')])
+f.trace_epilogue_code = 'update_drawable_size();'
 #Func(None, 'glXWaitX', [])
 #Func(None, 'glXQueryHyperpipeNetworkSGIX', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'npipes')], tPointer)
 #Func(None, 'glXGetVideoDeviceNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tint, 'numVideoDevices'), P(tMutablePointer, 'pVideoDevice')], tint)
@@ -1201,7 +1245,7 @@ Func(None, 'glXSwapBuffers', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawab
 
 #TODO: Choose the correct limits
 f = Func(None, 'glXMakeCurrent', [P(tMutablePointer, 'dpy', None), P(tGLXDrawable, 'drawable', None), P(tGLXContext, 'ctx', None)], tBool)
-f.trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs();'
+f.trace_epilogue_code = 'current_limits=ctx?&gl30_limits : NULL; reset_gl_funcs(); update_drawable_size();'
 f.trace_extras_code = '''
 int32_t size[2] = {-1, -1};
 if (dpy && drawable!=None) {

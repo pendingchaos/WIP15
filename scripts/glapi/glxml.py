@@ -75,32 +75,45 @@ class GL:
         root = tree.getroot()
         self._run(root)
         
-        self._create_wip15_extension()
+        self._create_wip15_functions()
     
-    def _create_wip15_extension(self):
-        self.functions['glSetContextCapsWIP15'] = Function('void')
+    def _create_wip15_functions(self):
+        wip15TestFB = Function('void')
+        wip15TestFB.params.append(FunctionParam('const GLchar*', 'name'))
+        wip15TestFB.params.append(FunctionParam('const GLvoid*', 'color'))
+        wip15TestFB.params.append(FunctionParam('const GLvoid*', 'depth'))
+        self.functions['wip15TestFB'] = wip15TestFB
         
-        glTestFBWIP15 = Function('void')
-        glTestFBWIP15.params.append(FunctionParam('const GLchar*', 'name'))
-        glTestFBWIP15.params.append(FunctionParam('const GLvoid*', 'color'))
-        glTestFBWIP15.params.append(FunctionParam('const GLvoid*', 'depth'))
-        self.functions['glTestFBWIP15'] = glTestFBWIP15
+        wip15CurrentTest = Function('void')
+        wip15CurrentTest.params.append(FunctionParam('const GLchar*', 'name'))
+        self.functions['wip15CurrentTest'] = wip15CurrentTest
         
-        glCurrentTestWIP15 = Function('void')
-        glCurrentTestWIP15.params.append(FunctionParam('const GLchar*', 'name'))
-        self.functions['glCurrentTestWIP15'] = glCurrentTestWIP15
+        wip15DrawableSize = Function('void');
+        wip15DrawableSize.params.append(FunctionParam('GLsizei', 'width'))
+        wip15DrawableSize.params.append(FunctionParam('GLsizei', 'height'))
+        self.functions['wip15DrawableSize'] = wip15DrawableSize
         
-        glDrawableSizeWIP15 = Function('void');
-        glDrawableSizeWIP15.params.append(FunctionParam('GLsizei', 'width'))
-        glDrawableSizeWIP15.params.append(FunctionParam('GLsizei', 'height'))
-        self.functions['glDrawableSizeWIP15'] = glDrawableSizeWIP15
+        wip15ExpectPropertyi64 = Function('void')
+        wip15ExpectPropertyi64.params.append(FunctionParam('GLenum', 'objType'))
+        wip15ExpectPropertyi64.params.append(FunctionParam('GLuint64', 'objName'))
+        wip15ExpectPropertyi64.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertyi64.params.append(FunctionParam('GLint64', 'val'))
+        self.functions['wip15ExpectPropertyi64'] = wip15ExpectPropertyi64
         
-        ext = Extension()
-        ext.functions.append('glTestFBWIP15')
-        ext.functions.append('glCurrentTestWIP15')
-        ext.functions.append('glDrawableSizeWIP15')
+        wip15ExpectPropertyd = Function('void')
+        wip15ExpectPropertyd.params.append(FunctionParam('GLenum', 'objType'))
+        wip15ExpectPropertyd.params.append(FunctionParam('GLuint64', 'objName'))
+        wip15ExpectPropertyd.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertyd.params.append(FunctionParam('GLdouble', 'val'))
+        self.functions['wip15ExpectPropertyd'] = wip15ExpectPropertyd
         
-        self.extensions['GL_WIP15_debug_internal'] = ext
+        wip15ExpectPropertybv = Function('void')
+        wip15ExpectPropertybv.params.append(FunctionParam('GLenum', 'objType'))
+        wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'objName'))
+        wip15ExpectPropertybv.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'size'))
+        wip15ExpectPropertybv.params.append(FunctionParam('const void*', 'data'))
+        self.functions['wip15ExpectPropertybv'] = wip15ExpectPropertybv
     
     def _run(self, root):
         groups = {}

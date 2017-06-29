@@ -67,7 +67,7 @@ gl_c.write('#define FUNC_COUNT %d\n' % len(funcs))
 gl_c.write('#define GROUP_COUNT %d\n' % len(groups))
 
 gl_c.write('''
-void __attribute__ ((constructor)) wip15_gl_init() {
+void __attribute__((constructor)) wip15_gl_init() {
     char *output = getenv("WIP15_OUTPUT");
     trace_file = fopen(output == NULL ? "output.trace" : output, "wb");
     

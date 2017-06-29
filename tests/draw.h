@@ -3,50 +3,50 @@ void draw(GLuint program, GLenum pos_type, GLenum col_type, void* pos, void* col
     GLushort ushort_indices[] = {0, 1, 2};
     GLuint uint_indices[] = {0, 1, 2};
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: gl*Pointer and buffer creation", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: gl*Pointer and buffer creation", pos_type, col_type));
     buffer(GL_ARRAY_BUFFER, pos_size, pos);
     glVertexAttribPointer(glGetAttribLocation(program, "pos"), 2, pos_type, GL_TRUE, 0, (const GLvoid*)0);
     buffer(GL_ARRAY_BUFFER, col_size, col);
     glVertexAttribPointer(glGetAttribLocation(program, "col"), 3, col_type, GL_TRUE, 0, (const GLvoid*)0);
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawArrays", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawArrays", pos_type, col_type));
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     test_fb("glDrawArrays");
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glMultiDrawarrays", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glMultiDrawarrays", pos_type, col_type));
     glClear(GL_COLOR_BUFFER_BIT);
     GLint first = 0;
     GLsizei count = 3;
     glMultiDrawArrays(GL_TRIANGLES, &first, &count, 1);
     test_fb("glMultiDrawArrays");
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_BTYE", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_BTYE", pos_type, col_type));
     buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(ubyte_indices), ubyte_indices);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, (const GLvoid*)0);
     test_fb("glDrawElements");
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawRangeElements(GL_TRIANGLES, 0, 2, 3, GL_UNSIGNED_BYTE, (const GLvoid*)0);
     test_fb("glDrawRangeElements");
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_SHORT", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_SHORT", pos_type, col_type));
     buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(ushort_indices), ushort_indices);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (const GLvoid*)0);
     test_fb("glDrawElements");
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawRangeElements(GL_TRIANGLES, 0, 2, 3, GL_UNSIGNED_SHORT, (const GLvoid*)0);
     test_fb("glDrawRangeElements");
     
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_INT", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawElements with GL_UNSIGNED_INT", pos_type, col_type));
     buffer(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint_indices), uint_indices);
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (const GLvoid*)0);
     test_fb("glDrawElements");
-    glCurrentTestWIP15(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
+    wip15CurrentTest(static_format("Draw with %u positions and %u colors: glDrawRangeElements with GL_UNSIGNED_INT", pos_type, col_type));
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawRangeElements(GL_TRIANGLES, 0, 2, 3, GL_UNSIGNED_INT, (const GLvoid*)0);
     test_fb("glDrawRangeElements");
@@ -56,7 +56,7 @@ void draw(GLuint program, GLenum pos_type, GLenum col_type, void* pos, void* col
 }
 
 void draw_test() {
-    glCurrentTestWIP15("Drawing");
+    wip15CurrentTest("Drawing");
     
     GLshort short_positions[] = {-1, -1, 1, -1, 0,  1};
     GLint int_positions[] = {-1, -1, 1, -1, 0,  1};

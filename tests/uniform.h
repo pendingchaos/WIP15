@@ -1,5 +1,5 @@
 void uniform_test() {
-    glCurrentTestWIP15("Uniforms");
+    wip15CurrentTest("Uniforms");
     
     GLfloat pos[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
                      -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f};

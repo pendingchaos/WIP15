@@ -7,9 +7,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-void (*glCurrentTestWIP15)(const GLchar* name);
-void (*glTestFBWIP15)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
-void (*glDrawableSizeWIP15)(GLsizei width, GLsizei height);
+void (*wip15CurrentTest)(const GLchar* name);
+void (*wip15TestFB)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void (*wip15DrawableSize)(GLsizei width, GLsizei height);
 
 static SDL_Window* window;
 
@@ -29,7 +29,7 @@ static void test_fb(const char* name) {
     int drawable_width, drawable_height;
     SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
     
-    glDrawableSizeWIP15(drawable_width, drawable_height);
+    wip15DrawableSize(drawable_width, drawable_height);
     
     glFinish();
     
@@ -45,7 +45,7 @@ static void test_fb(const char* name) {
     
     glReadBuffer(last_buf);
     
-    //glTestFBWIP15(name, back, depth);
+    wip15TestFB(name, back, depth);
     
     free(back);
     free(depth);
@@ -102,16 +102,16 @@ int main(int argc, char** argv) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
         
         bool problem = false;
-        glCurrentTestWIP15 = SDL_GL_GetProcAddress("glCurrentTestWIP15");
-        if ((problem|=!glCurrentTestWIP15)) glCurrentTestWIP15 = &null_current_test;
-        glTestFBWIP15 = SDL_GL_GetProcAddress("glTestFBWIP15");
-        if ((problem|=!glTestFBWIP15)) glTestFBWIP15 = &null_test_fb;
-        glDrawableSizeWIP15 = SDL_GL_GetProcAddress("glDrawableSizeWIP15");
-        if ((problem|=!glDrawableSizeWIP15)) glDrawableSizeWIP15 = &null_drawable_size;
+        wip15CurrentTest = SDL_GL_GetProcAddress("wip15CurrentTest");
+        if ((problem|=!wip15CurrentTest)) wip15CurrentTest = &null_current_test;
+        wip15TestFB = SDL_GL_GetProcAddress("wip15TestFB");
+        if ((problem|=!wip15TestFB)) wip15TestFB = &null_test_fb;
+        wip15DrawableSize = SDL_GL_GetProcAddress("wip15DrawableSize");
+        if ((problem|=!wip15DrawableSize)) wip15DrawableSize = &null_drawable_size;
         
         if (problem) {
             fprintf(stderr, "Warning: Failed to get function pointers for "
-                            "glCurrentTestWIP15, glTestFBWIP15 and/or glDrawableSizeWIP15\n");
+                            "wip15CurrentTest, wip15TestFB and/or wip15DrawableSize\n");
         }
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);

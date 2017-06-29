@@ -503,7 +503,7 @@ current_name = ""
 current = ""
 print_func = False
 for line in nontrivial_str.split("\n"):
-    if line.split('//')[0].rstrip().endswith(":") and line.startswith("gl"):
+    if line.split('//')[0].rstrip().endswith(":") and (line.startswith("gl") or line.startswith("wip15")):
         if current_name != '':
             nontrivial[current_name] = current
         current_name = line.split('//')[0].rstrip()[:-1]
@@ -531,7 +531,7 @@ output.write("""#pragma GCC diagnostic push
 for name, func in func_dict.iteritems():
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
     
-    if not name.startswith("glX"):
+    if not name.startswith("glX") and not name.startswith("wip15"):
         output.write("""    if (!trc_get_current_fake_gl_context(ctx->trace)) {
         trc_add_error(cmd, "No current OpenGL context.");
         return;

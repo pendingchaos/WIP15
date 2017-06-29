@@ -826,8 +826,8 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     return final_size;
 }
 
-void glTestFBWIP15(const GLchar* name, const GLvoid* color, const GLvoid* depth);
-void glDrawableSizeWIP15(GLsizei width, GLsizei height);
+void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void wip15DrawableSize(GLsizei width, GLsizei height);
 
 static void update_drawable_size() {
     Display* dpy = F(glXGetCurrentDisplay)();
@@ -849,11 +849,8 @@ static void update_drawable_size() {
         h = -1;
     }
     
-    if (w!=drawable_width || h!=drawable_height) {
-        drawable_width = w;
-        drawable_height = h;
-        glDrawableSizeWIP15(w, h);
-    }
+    if (w!=drawable_width || h!=drawable_height)
+        wip15DrawableSize(w, h);
 }
 
 size_t glx_attrib_int_count(const int* attribs) {

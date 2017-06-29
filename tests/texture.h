@@ -30,7 +30,7 @@ void draw_texture3d(GLuint prog) {
 
 //TODO: Sometimes these textures result in a black screen.
 void test_tex(GLenum internal, GLenum format, GLenum type, GLuint prog1d, GLuint prog2d, GLuint prog3d) {
-    glCurrentTestWIP15(static_format("Texture test with 0x%x internal format, 0x%x format and 0x%x type", internal, format, type));
+    wip15CurrentTest(static_format("Texture test with 0x%x internal format, 0x%x format and 0x%x type", internal, format, type));
     
     uint8_t data[4096];
     #define GEN_DATA switch (type) {\
@@ -78,7 +78,7 @@ void test_tex(GLenum internal, GLenum format, GLenum type, GLuint prog1d, GLuint
 }
 
 void texture_test() {
-    glCurrentTestWIP15("Textures");
+    wip15CurrentTest("Textures");
     
     GLuint tex1d;
     glGenTextures(1, &tex1d);

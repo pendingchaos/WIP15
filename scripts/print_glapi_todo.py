@@ -16,7 +16,7 @@ implemented = set()
 current_name = ""
 print_func = False
 for line in replay_func_impls_str.split("\n"):
-    if line.split('//')[0].rstrip().endswith(":") and line.startswith("gl"):
+    if line.split('//')[0].rstrip().endswith(":") and (line.startswith("gl") or line.startswith("wip15")):
         if len(current_name) != 0:
             implemented.add(current_name)
         current_name = line.split('//')[0].rstrip()[:-1]

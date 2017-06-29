@@ -1,3 +1,153 @@
+typedef struct testing_property_t {
+    const char* name;
+    
+    bool (*test_func_int)(const void* rev, int64_t val);
+    bool (*test_func_gl_int)(trc_replay_context_t* ctx, const void* rev, int64_t val);
+    
+    bool (*test_func_double)(const void* rev, double val);
+    bool (*test_func_gl_double)(trc_replay_context_t* ctx, const void* rev, double val);
+    
+    bool (*test_func_data)(const void* rev, size_t amount, const void* data);
+    bool (*test_func_gl_data)(trc_replay_context_t* ctx, const void* rev, size_t amount, const void* data);
+    struct testing_property_t* next;
+} testing_property_t;
+
+static testing_property_t* buffer_properties = NULL;
+
+static int64_t get_int_prop_buffer_gl(trc_replay_context_t* ctx, GLuint real, GLenum param) {
+    GLint prev;
+    F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev);
+    F(glBindBuffer)(GL_ARRAY_BUFFER, real);
+    GLint64 res;
+    F(glGetBufferParameteri64v)(GL_ARRAY_BUFFER, param, &res);
+    F(glBindBuffer)(GL_ARRAY_BUFFER, prev);
+    return res;
+}
+
+#define PROPERTY_INT(obj, propname, getparam, get_code)\
+bool test_int_prop_##obj##_##propname(const void* rev_, int64_t val) {\
+    const trc_gl_##obj##_rev_t* rev = rev_;\
+    return (get_code) == val;\
+}\
+bool test_int_prop_##obj##_##propname##_gl(trc_replay_context_t* ctx, const void* rev_, int64_t val) {\
+    const trc_gl_##obj##_rev_t* rev = rev_;\
+    return get_int_prop_##obj##_gl(ctx, rev->real, getparam) == val;\
+}\
+void __attribute__((constructor)) register_##obj_##propname##_property() {\
+    static testing_property_t p;\
+    p.name = #propname;\
+    p.test_func_int = &test_int_prop_##obj##_##propname;\
+    p.test_func_gl_int = getparam ? &test_int_prop_##obj##_##propname##_gl : NULL;\
+    p.test_func_double = NULL;\
+    p.test_func_gl_double = NULL;\
+    p.test_func_data = NULL;\
+    p.test_func_gl_data = NULL;\
+    p.next = obj##_properties;\
+    obj##_properties = &p;\
+}
+
+PROPERTY_INT(buffer, size, GL_BUFFER_SIZE,
+    rev->has_data?rev->data->size:0)
+PROPERTY_INT(buffer, usage, GL_BUFFER_USAGE,
+    rev->data_usage)
+PROPERTY_INT(buffer, mapped, GL_BUFFER_MAPPED,
+    rev->mapped)
+PROPERTY_INT(buffer, map_offset, GL_BUFFER_MAP_OFFSET,
+    rev->map_offset)
+PROPERTY_INT(buffer, map_length, GL_BUFFER_MAP_LENGTH,
+    rev->map_length)
+PROPERTY_INT(buffer, map_access, GL_BUFFER_ACCESS_FLAGS,
+    rev->map_access)
+//TODO: More properties (including one for the buffer's data)
+
+static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum objType, GLuint64 objName,
+                                   const void** rev, const testing_property_t** properties) {
+    switch (objType) {
+    case GL_BUFFER:
+        *rev = get_buffer(ctx->trace, objName);
+        *properties = buffer_properties;
+        break;
+    //TODO
+    }
+    if (!*rev) fprintf(stderr, "Invalid object name");
+    return *rev;
+}
+
+#define EXPECT_NUMERICAL_PROPERTY do {\
+    bool success = true;\
+    const void* rev = NULL;\
+    const testing_property_t* properties = NULL;\
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &properties)) return;\
+    for (const testing_property_t* prop = properties; prop; prop = prop->next) {\
+        if (strcmp(prop->name, p_name) != 0) continue;\
+        if (prop->test_func_int)\
+            success = success && prop->test_func_int(rev, p_val);\
+        if (prop->test_func_gl_int)\
+            success = success && prop->test_func_gl_int(ctx, rev, p_val);\
+        if (prop->test_func_double)\
+            success = success && prop->test_func_double(rev, p_val);\
+        if (prop->test_func_gl_double)\
+            success = success && prop->test_func_gl_double(ctx, rev, p_val);\
+        bool tested = prop->test_func_int || prop->test_func_gl_int;\
+        tested = tested || prop->test_func_double || prop->test_func_gl_double;\
+        if (!tested) fprintf(stderr, "Property is not of a compatible type");\
+    }\
+    if (!success) fprintf(stderr, "Expectation failed");\
+} while (0)
+
+wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLint64 p_val
+    EXPECT_NUMERICAL_PROPERTY;
+
+wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLdouble p_val
+    EXPECT_NUMERICAL_PROPERTY;
+
+wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_size, const void* p_data
+    bool success = true;
+    const void* rev = NULL;
+    const testing_property_t* properties = NULL;
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &properties)) return;
+    for (const testing_property_t* prop = properties; prop; prop = prop->next) {
+        if (strcmp(prop->name, p_name) != 0) continue;
+        if (prop->test_func_data)
+            success = success && prop->test_func_data(rev, p_size, p_data);
+        if (prop->test_func_gl_data)
+            success = success && prop->test_func_gl_data(ctx, rev, p_size, p_data);
+        bool tested = prop->test_func_data || prop->test_func_gl_data;
+        if (!tested) fprintf(stderr, "Property is not of a compatible type");
+    }
+    if (!success) fprintf(stderr, "Expectation failed");
+
+wip15TestFB: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_depth
+    F(glFinish)();
+    
+    //TODO: Save, modify and restore more state (e.g. pack parameters)
+    
+    GLint last_buf;
+    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
+    
+    int w, h;
+    SDL_GL_GetDrawableSize(ctx->window, &w, &h);
+    
+    F(glReadBuffer)(GL_BACK);
+    uint32_t* back = malloc(w*h*4);
+    F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, back);
+    
+    uint32_t* depth = malloc(w*h*4);
+    F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
+    
+    F(glReadBuffer)(last_buf);
+    
+    if (memcmp(back, p_color, w*h*4) != 0)
+        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
+    if (memcmp(depth, p_depth, w*h*4) != 0)
+        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
+    
+    free(back);
+    free(depth);
+
+wip15CurrentTest: //const GLchar* p_name
+    ctx->current_test_name = p_name;
+
 static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
     trc_obj_t* obj = trc_lookup_name(trace, type, fake, -1);
@@ -1432,7 +1582,7 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.has_object = create;
     rev.tf_binding_count = 0;
     rev.has_data = false;
-    rev.data_usage = 0;
+    rev.data_usage = GL_STATIC_DRAW;
     rev.data = NULL;
     rev.mapped = false;
     rev.map_offset = 0;
@@ -2084,8 +2234,18 @@ glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
     SDL_GL_SwapWindow(ctx->window);
     replay_update_fb0_buffers(ctx, false, true, false, false);
 
-glSetContextCapsWIP15: //
-    ;
+wip15DrawableSize: //GLsizei p_width, GLsizei p_height
+    if (p_width < 0) p_width = 100;
+    if (p_height < 0) p_height = 100;
+    
+    SDL_SetWindowSize(ctx->window, p_width, p_height);
+    
+    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);
+    if (state.drawable_width==p_width && state.drawable_height==p_height) return;
+    state.drawable_width = p_width;
+    state.drawable_height = p_height;
+    replay_create_context_buffers(ctx->trace, &state);
+    trc_set_context(ctx->trace, &state);
 
 glClear: //GLbitfield p_mask
     real(p_mask);
@@ -4327,37 +4487,6 @@ glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GL
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw(ctx, cmd);
 
-glTestFBWIP15: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_depth
-    F(glFinish)();
-    
-    //TODO: Save, modify and restore more state (e.g. pack parameters)
-    
-    GLint last_buf;
-    F(glGetIntegerv)(GL_READ_BUFFER, &last_buf);
-    
-    int w, h;
-    SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-    
-    F(glReadBuffer)(GL_BACK);
-    uint32_t* back = malloc(w*h*4);
-    F(glReadPixels)(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, back);
-    
-    uint32_t* depth = malloc(w*h*4);
-    F(glReadPixels)(0, 0, w, h, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
-    
-    F(glReadBuffer)(last_buf);
-    
-    if (memcmp(back, p_color, w*h*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
-    if (memcmp(depth, p_depth, w*h*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
-    
-    free(back);
-    free(depth);
-
-glCurrentTestWIP15: //const GLchar* p_name
-    ctx->current_test_name = p_name;
-
 glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
     if (p_n < 0) ERROR("Invalid vertex array object name count");
     GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
@@ -4407,19 +4536,6 @@ glGetUniformBlockIndex: //GLuint p_program, const GLchar* p_uniformBlockName
 glGetUniformIndices: //GLuint p_program, GLsizei p_uniformCount, const GLchar  *const* p_uniformNames, GLuint* p_uniformIndices
     GLuint real_program = trc_get_real_program(ctx->trace, p_program);
     if (!real_program) ERROR("Invalid program name");
-
-glDrawableSizeWIP15: //GLsizei p_width, GLsizei p_height
-    if (p_width < 0) p_width = 100;
-    if (p_height < 0) p_height = 100;
-    
-    SDL_SetWindowSize(ctx->window, p_width, p_height);
-    
-    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);
-    if (state.drawable_width==p_width && state.drawable_height==p_height) return;
-    state.drawable_width = p_width;
-    state.drawable_height = p_height;
-    replay_create_context_buffers(ctx->trace, &state);
-    trc_set_context(ctx->trace, &state);
 
 glGetUniformfv: //GLuint p_program, GLint p_location, GLfloat* p_params
     validate_get_uniform(ctx, cmd);
