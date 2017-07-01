@@ -1,98 +1,48 @@
-typedef struct testing_property_t {
-    const char* name;
-    
-    bool (*test_func_int)(const void* rev, int64_t val);
-    bool (*test_func_gl_int)(trc_replay_context_t* ctx, const void* rev, int64_t val);
-    
-    bool (*test_func_double)(const void* rev, double val);
-    bool (*test_func_gl_double)(trc_replay_context_t* ctx, const void* rev, double val);
-    
-    bool (*test_func_data)(const void* rev, size_t amount, const void* data);
-    bool (*test_func_gl_data)(trc_replay_context_t* ctx, const void* rev, size_t amount, const void* data);
-    struct testing_property_t* next;
-} testing_property_t;
-
-static testing_property_t* buffer_properties = NULL;
-
-static int64_t get_int_prop_buffer_gl(trc_replay_context_t* ctx, GLuint real, GLenum param) {
-    GLint prev;
-    F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev);
-    F(glBindBuffer)(GL_ARRAY_BUFFER, real);
-    GLint64 res;
-    F(glGetBufferParameteri64v)(GL_ARRAY_BUFFER, param, &res);
-    F(glBindBuffer)(GL_ARRAY_BUFFER, prev);
-    return res;
-}
-
-#define PROPERTY_INT(obj, propname, getparam, get_code)\
-bool test_int_prop_##obj##_##propname(const void* rev_, int64_t val) {\
-    const trc_gl_##obj##_rev_t* rev = rev_;\
-    return (get_code) == val;\
-}\
-bool test_int_prop_##obj##_##propname##_gl(trc_replay_context_t* ctx, const void* rev_, int64_t val) {\
-    const trc_gl_##obj##_rev_t* rev = rev_;\
-    return get_int_prop_##obj##_gl(ctx, rev->real, getparam) == val;\
-}\
-void __attribute__((constructor)) register_##obj_##propname##_property() {\
-    static testing_property_t p;\
-    p.name = #propname;\
-    p.test_func_int = &test_int_prop_##obj##_##propname;\
-    p.test_func_gl_int = getparam ? &test_int_prop_##obj##_##propname##_gl : NULL;\
-    p.test_func_double = NULL;\
-    p.test_func_gl_double = NULL;\
-    p.test_func_data = NULL;\
-    p.test_func_gl_data = NULL;\
-    p.next = obj##_properties;\
-    obj##_properties = &p;\
-}
-
-PROPERTY_INT(buffer, size, GL_BUFFER_SIZE,
-    rev->has_data?rev->data->size:0)
-PROPERTY_INT(buffer, usage, GL_BUFFER_USAGE,
-    rev->data_usage)
-PROPERTY_INT(buffer, mapped, GL_BUFFER_MAPPED,
-    rev->mapped)
-PROPERTY_INT(buffer, map_offset, GL_BUFFER_MAP_OFFSET,
-    rev->map_offset)
-PROPERTY_INT(buffer, map_length, GL_BUFFER_MAP_LENGTH,
-    rev->map_length)
-PROPERTY_INT(buffer, map_access, GL_BUFFER_ACCESS_FLAGS,
-    rev->map_access)
-//TODO: More properties (including one for the buffer's data)
+#define REPLAY 1
+#define SWITCH_REPLAY(a, b) a
+#include "testing/objects/objects.h"
+#undef REPLAY
+#undef SWITCH_REPLAY
 
 static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum objType, GLuint64 objName,
-                                   const void** rev, const testing_property_t** properties) {
+                                   const trc_obj_rev_head_t** rev, uint64_t* real, const testing_property_t** properties) {
+    *properties = get_object_type_properties(objType);
     switch (objType) {
-    case GL_BUFFER:
-        *rev = get_buffer(ctx->trace, objName);
-        *properties = buffer_properties;
+    case GL_BUFFER: {
+        const trc_gl_buffer_rev_t* obj_rev = get_buffer(ctx->trace, objName);
+        *rev = &obj_rev->head;
+        *real = obj_rev ? obj_rev->real : 0;
         break;
+    }
     //TODO
     }
-    if (!*rev) fprintf(stderr, "Invalid object name");
+    if (!*rev) fprintf(stderr, "Invalid object name\n");
     return *rev;
 }
 
+//        printf("%s: %ld %ld | %ld\n", p_name, prop->get_func_int?prop->get_func_int(rev):-1, prop->get_func_gl_int?prop->get_func_gl_int(ctx, realobj):-1, p_val);
+
 #define EXPECT_NUMERICAL_PROPERTY do {\
     bool success = true;\
-    const void* rev = NULL;\
+    const trc_obj_rev_head_t* rev = NULL;\
     const testing_property_t* properties = NULL;\
-    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &properties)) return;\
+    uint64_t realobj;\
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;\
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {\
         if (strcmp(prop->name, p_name) != 0) continue;\
-        if (prop->test_func_int)\
-            success = success && prop->test_func_int(rev, p_val);\
-        if (prop->test_func_gl_int)\
-            success = success && prop->test_func_gl_int(ctx, rev, p_val);\
-        if (prop->test_func_double)\
-            success = success && prop->test_func_double(rev, p_val);\
-        if (prop->test_func_gl_double)\
-            success = success && prop->test_func_gl_double(ctx, rev, p_val);\
-        bool tested = prop->test_func_int || prop->test_func_gl_int;\
-        tested = tested || prop->test_func_double || prop->test_func_gl_double;\
-        if (!tested) fprintf(stderr, "Property is not of a compatible type");\
+        if (prop->get_func_int)\
+            success = success && prop->get_func_int(rev)==p_val;\
+        if (prop->get_func_gl_int)\
+            success = success && prop->get_func_gl_int(ctx, realobj)==p_val;\
+        if (prop->get_func_double)\
+            success = success && prop->get_func_double(rev)==p_val;\
+        if (prop->get_func_gl_double)\
+            success = success && prop->get_func_gl_double(ctx, realobj)==p_val;\
+        bool tested = prop->get_func_int || prop->get_func_gl_int;\
+        tested = tested || prop->get_func_double || prop->get_func_gl_double;\
+        if (!tested) fprintf(stderr, "Property is not of a compatible type\n");\
     }\
-    if (!success) fprintf(stderr, "Expectation failed");\
+    if (!success) fprintf(stderr, "Expectation failed\n");\
 } while (0)
 
 wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLint64 p_val
@@ -103,19 +53,27 @@ wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name
 
 wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_size, const void* p_data
     bool success = true;
-    const void* rev = NULL;
+    const trc_obj_rev_head_t* rev = NULL;
     const testing_property_t* properties = NULL;
-    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &properties)) return;
+    uint64_t realobj;
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {
         if (strcmp(prop->name, p_name) != 0) continue;
-        if (prop->test_func_data)
-            success = success && prop->test_func_data(rev, p_size, p_data);
-        if (prop->test_func_gl_data)
-            success = success && prop->test_func_gl_data(ctx, rev, p_size, p_data);
-        bool tested = prop->test_func_data || prop->test_func_gl_data;
-        if (!tested) fprintf(stderr, "Property is not of a compatible type");
+        size_t size;
+        if (prop->get_func_data) {
+            void* data = prop->get_func_data(rev, &size);
+            success = success && size==p_size && memcmp(data, p_data, size)==0;
+            free(data);
+        }
+        if (prop->get_func_gl_data) {
+            void* data = prop->get_func_gl_data(ctx, realobj, &size);
+            success = success && size==p_size && memcmp(data, p_data, size)==0;
+            free(data);
+        }
+        bool tested = prop->get_func_data || prop->get_func_gl_data;
+        if (!tested) fprintf(stderr, "Property is not of a compatible type\n");
     }
-    if (!success) fprintf(stderr, "Expectation failed");
+    if (!success) fprintf(stderr, "Expectation failed\n");
 
 wip15TestFB: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_depth
     F(glFinish)();
@@ -147,6 +105,7 @@ wip15TestFB: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_dept
 
 wip15CurrentTest: //const GLchar* p_name
     ctx->current_test_name = p_name;
+    fprintf(stderr, "Current test: %s\n", p_name);
 
 static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
@@ -1676,6 +1635,7 @@ static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool ds
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
+    newrev.has_data = true;
     set_buffer(ctx->trace, &newrev);
     return true;
 }
@@ -1862,7 +1822,11 @@ static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd,
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) ERROR2(, "Buffer is mapped without GL_MAP_PERSISTENT_BIT");
-    if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
+    if (rev->has_data) {
+        if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
+    } else {
+        if (offset!=0 || size!=0) ERROR2(, "Invalid offset and/or size");
+    }
 }
 
 static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd, const trc_gl_renderbuffer_rev_t* rb,

@@ -19,7 +19,7 @@ output.write("""#include <X11/Xlib.h>
 #include "libtrace/libtrace.h"
 #include "shared/glapi.h"
 
-#define F(name) (((replay_gl_funcs_t*)ctx->_replay_gl)->real_##name)
+#define F(name) (((replay_gl_funcs_t*)((const trc_replay_context_t*)ctx)->_replay_gl)->real_##name)
 #define RETURN do {replay_end_cmd(ctx, FUNC, cmd);return;} while(0)
 #define ERROR(...) do {trc_add_error(cmd, __VA_ARGS__); RETURN;} while (0)
 #define ERROR2(ret, ...) do {trc_add_error(cmd, __VA_ARGS__); return ret;} while (0)
