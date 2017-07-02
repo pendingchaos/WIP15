@@ -33,7 +33,7 @@ obj = $(join $(dir $(base_obj)), $(addprefix ., $(notdir $(base_obj))))
 
 dep = $(obj:.o=.d)
 
-all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/leakcheck bin/testtrace bin/test bin/tests
+all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/replaytrace bin/test bin/tests
 
 -include $(dep)
 
@@ -70,11 +70,8 @@ bin/libtrace.so: $(libtrace_obj) src/libtrace/.replay_gl.o
 bin/inspect-gui: $(gui_obj) src/shared/.glapi.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
 
-bin/leakcheck: src/.leakcheck.o bin/libtrace.so
-	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.leakcheck.o -o bin/leakcheck -g -rdynamic $(CFLAGS)
-
-bin/testtrace: src/.testtrace.o bin/libtrace.so
-	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.testtrace.o -o bin/testtrace -g -rdynamic $(CFLAGS)
+bin/replaytrace: src/.replaytrace.o bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.replaytrace.o -o bin/replaytrace -g -rdynamic $(CFLAGS)
 
 bin/trace: src/.trace.o
 	$(CC) $^ -o bin/trace -g $(CFLAGS)
