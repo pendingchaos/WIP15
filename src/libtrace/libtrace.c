@@ -692,6 +692,13 @@ trace_t *load_trace(const char* filename) {
         return NULL;
 }
 
+static void free_obj(trc_obj_t* obj) {
+    for (size_t i = 0; i < obj->revision_count; i++)
+        free(obj->revisions[i]);
+    free(obj->revisions);
+    free(obj);
+}
+
 void free_trace(trace_t* trace) {
     atomic_store(&trace->threads_running, false);
     for (size_t i = 0; i < trace->thread_count; i++)
@@ -710,10 +717,12 @@ void free_trace(trace_t* trace) {
     trc_gl_inspection_t* ti = &trace->inspection;
     
     for (size_t i = 0; i < Trc_ObjMax; i++) {
-        for (size_t j = 0; j < ti->object_count[i]; j++)
-            free(ti->objects[i][j]);
+        for (size_t j = 0; j < ti->object_count[i]; j++) {
+            trc_obj_t* obj = ti->objects[i][j];
+            free_obj(obj);
+        }
         free(ti->objects[i]);
-        free(ti->name_tables[i]);
+        free_obj(ti->name_tables[i]);
     }
     free(ti->cur_ctx_revisions);
     
