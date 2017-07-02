@@ -20,41 +20,55 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
     return *rev;
 }
 
-#define EXPECT_NUMERICAL_PROPERTY do {\
-    bool success = true;\
+#define EXPECT_NUMERICAL_PROPERTY(type, fmt) do {\
     const trc_obj_rev_head_t* rev = NULL;\
     const testing_property_t* properties = NULL;\
     uint64_t realobj;\
     if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;\
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {\
         if (strcmp(prop->name, p_name) != 0) continue;\
+        type val, gl_val;\
+        bool success = true;\
         if (prop->get_func_int)\
-            success = success && prop->get_func_int(rev)==p_val;\
+            success = (val=prop->get_func_int(rev))==p_val && success;\
         if (prop->get_func_gl_int)\
-            success = success && prop->get_func_gl_int(ctx, realobj)==p_val;\
+            success = (gl_val=prop->get_func_gl_int(ctx, realobj))==p_val && success;\
         if (prop->get_func_double)\
-            success = success && prop->get_func_double(rev)==p_val;\
+            success = (val=prop->get_func_double(rev))==p_val && success;\
         if (prop->get_func_gl_double)\
-            success = success && prop->get_func_gl_double(ctx, realobj)==p_val;\
-        bool tested = prop->get_func_int || prop->get_func_gl_int;\
-        tested = tested || prop->get_func_double || prop->get_func_gl_double;\
-        if (!tested) ERROR("Property is not of a compatible type");\
-    }\
-    if (!success) {\
-        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));\
-        snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");\
-        f->next = ctx->current_test->failures;\
-        ctx->current_test->failures = f;\
+            success = (gl_val=prop->get_func_gl_double(ctx, realobj))==p_val && success;\
+        bool has_val = prop->get_func_int || prop->get_func_double;\
+        bool has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
+        if (!has_val && !has_gl_val) ERROR("Property is not of a compatible type");\
+        if (!success) {\
+            trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));\
+            f->error_message[sizeof(f->error_message)-1] = 0;\
+            size_t len = 0;\
+            len += snprintf(f->error_message, sizeof(f->error_message)-1,\
+                           "Expectation of '%s' failed. Expected "fmt", got ", p_name, p_val);\
+            if (has_gl_val)\
+                len += snprintf(&f->error_message[len], sizeof(f->error_message)-len-1, fmt"(gl)", gl_val);\
+            if (has_gl_val && has_val) {\
+                strncat(&f->error_message[len], " and ", sizeof(f->error_message)-len-1);\
+                len += 5;\
+            }\
+            if (has_val)\
+                len += snprintf(&f->error_message[len], sizeof(f->error_message)-len-1, fmt"(rev)", val);\
+            strncat(f->error_message, ".", sizeof(f->error_message)-len-1);\
+            f->next = ctx->current_test->failures;\
+            ctx->current_test->failures = f;\
+        }\
+        break;\
     }\
 } while (0)
 
 wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLint64 p_val
     if (!ctx->current_test) ERROR("No test is current");
-    EXPECT_NUMERICAL_PROPERTY;
+    EXPECT_NUMERICAL_PROPERTY(int64_t, "%"PRIu64);
 
 wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLdouble p_val
     if (!ctx->current_test) ERROR("No test is current");
-    EXPECT_NUMERICAL_PROPERTY;
+    EXPECT_NUMERICAL_PROPERTY(double, "%f");
 
 wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_size, const void* p_data
     if (!ctx->current_test) ERROR("No test is current");
@@ -82,7 +96,7 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
     }
     if (!success) {
         trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
-        snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");
+        snprintf(f->error_message, sizeof(f->error_message), "Expectation of '%s' failed.", p_name);
         f->next = ctx->current_test->failures;
         ctx->current_test->failures = f;
     }
@@ -115,7 +129,7 @@ wip15ExpectError: //const char* p_error
     }
     
     trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
-    snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");
+    snprintf(f->error_message, sizeof(f->error_message), "Expectation of error failed.");
     f->next = ctx->current_test->failures;
     ctx->current_test->failures = f;
     success: ;
