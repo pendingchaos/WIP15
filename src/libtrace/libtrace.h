@@ -349,6 +349,9 @@ typedef struct trc_cur_context_rev_t {
 typedef struct trc_gl_inspection_t {
     uint64_t cur_revision;
     
+    size_t frame_index;
+    size_t cmd_index;
+    
     size_t data_count;
     trc_data_t** data;
     
@@ -407,11 +410,24 @@ struct trace_t {
     pthread_t* threads;
 };
 
+typedef struct trc_replay_test_failure_t {
+    char error_message[1024];
+    struct trc_replay_test_failure_t* next;
+} trc_replay_test_failure_t;
+
+typedef struct trc_replay_test_t {
+    char name[1024];
+    size_t successes;
+    trc_replay_test_failure_t* failures;
+    struct trc_replay_test_t* next;
+} trc_replay_test_t;
+
 typedef struct trc_replay_context_t {
     void* _replay_gl;
     trace_t* trace;
     struct SDL_Window* window;
-    const char* current_test_name;
+    trc_replay_test_t* tests;
+    trc_replay_test_t* current_test;
 } trc_replay_context_t;
 
 //Traces

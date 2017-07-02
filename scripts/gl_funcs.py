@@ -38,12 +38,28 @@ class wip15TestFB(Func):
 }
 ''' % self.func_id
 
-class wip15CurrentTest(Func):
+class wip15BeginTest(Func):
     def gen_wrapper(self):
-        return '''void wip15CurrentTest(const GLchar* name) {
-    func_decl_wip15CurrentTest();
+        return '''void wip15BeginTest(const GLchar* name) {
+    func_decl_wip15BeginTest();
     gl_start_call(%d);
     gl_write_str(name);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15EndTest(Func):
+    def gen_wrapper(self):
+        return '''void wip15EndTest() {
+    func_decl_wip15EndTest();
+    gl_start_call(%d);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15PrintTestResults(Func):
+    def gen_wrapper(self):
+        return '''void wip15PrintTestResults() {
+    func_decl_wip15PrintTestResults();
+    gl_start_call(%d);
     gl_end_call();
 }''' % self.func_id
 
@@ -81,6 +97,15 @@ class wip15ExpectPropertybv(Func):
     gl_write_str(name);
     gl_write_uleb128(size);
     gl_write_data(size, data);
+    gl_end_call();
+}''' % self.func_id
+
+class wip15ExpectError(Func):
+    def gen_wrapper(self):
+        return '''void wip15ExpectError(const GLchar* error) {
+    func_decl_wip15ExpectError();
+    gl_start_call(%d);
+    gl_write_str(error);
     gl_end_call();
 }''' % self.func_id
 
@@ -1116,12 +1141,15 @@ Func((4, 3), 'glFramebufferParameteri', [P(tGLenum, 'target', None, FramebufferT
 Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 
 wip15DrawableSize(None, 'wip15DrawableSize', [P(tGLsizei, 'width'), P(tGLsizei, 'height')])
+wip15BeginTest(None, 'wip15BeginTest', [P(tString, 'name')])
+wip15EndTest(None, 'wip15EndTest', [])
+wip15PrintTestResults(None, 'wip15PrintTestResults', [])
 wip15TestFB(None, 'wip15TestFB', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
                                   P(tData('drawable_width*drawable_height*4'), 'depth')])
-wip15CurrentTest(None, 'wip15CurrentTest', [P(tString, 'name')])
 wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLint64, 'val')])
 wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLdouble, 'val')])
 wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
+wip15ExpectError(None, 'wip15ExpectError', [P(tString, 'error')])
 
 #Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 #Func(None, 'glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)

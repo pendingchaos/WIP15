@@ -12,7 +12,9 @@ test_t* tests;
 
 static SDL_Window* window;
 
-void (*wip15CurrentTest)(const GLchar* name);
+void (*wip15BeginTest)(const GLchar* name);
+void (*wip15EndTest)();
+void (*wip15PrintTestResults)();
 void (*wip15TestFB)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 void (*wip15DrawableSize)(GLsizei width, GLsizei height);
 void (*wip15ExpectPropertyi64)(GLenum objType, GLuint64 objName,
@@ -22,6 +24,7 @@ void (*wip15ExpectPropertyd)(GLenum objType, GLuint64 objName,
 void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
                               const char* name, GLuint64 size,
                               const GLvoid* data);
+void (*wip15ExpectError)(const GLchar* error);
 
 void assert_properties(GLenum objType, GLuint64 objName, ...) {
     va_list list;
@@ -94,8 +97,10 @@ int main(int argc, char** argv) {
     for (test_t* test = tests; test; test=test->next) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
         
-        wip15CurrentTest = SDL_GL_GetProcAddress("wip15CurrentTest");
-        if (!wip15CurrentTest) goto fp_fail;
+        wip15BeginTest = SDL_GL_GetProcAddress("wip15BeginTest");
+        if (!wip15BeginTest) goto fp_fail;
+        wip15EndTest = SDL_GL_GetProcAddress("wip15EndTest");
+        if (!wip15EndTest) goto fp_fail;
         wip15TestFB = SDL_GL_GetProcAddress("wip15TestFB");
         if (!wip15TestFB) goto fp_fail;
         wip15DrawableSize = SDL_GL_GetProcAddress("wip15DrawableSize");
@@ -106,8 +111,10 @@ int main(int argc, char** argv) {
         if (!wip15ExpectPropertyd) goto fp_fail;
         wip15ExpectPropertybv = SDL_GL_GetProcAddress("wip15ExpectPropertybv");
         if (!wip15ExpectPropertybv) goto fp_fail;
+        wip15ExpectError = SDL_GL_GetProcAddress("wip15ExpectError");
+        if (!wip15ExpectError) goto fp_fail;
         
-        wip15CurrentTest(test->name);
+        wip15BeginTest(test->name);
         
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
         
@@ -116,6 +123,8 @@ int main(int argc, char** argv) {
         SDL_GL_SwapWindow(window);
         test_fb("glXSwapBuffers");
         
+        wip15EndTest();
+        
         SDL_GL_DeleteContext(context);
         
         continue;
@@ -123,6 +132,14 @@ int main(int argc, char** argv) {
         fprintf(stderr, "%s error: Failed to get WIP15 function pointers\n", argv[0]);
         fprintf(stderr, "Ensure that the program is being traced\n");
     }
+    
+    wip15PrintTestResults = SDL_GL_GetProcAddress("wip15PrintTestResults");
+    if (!wip15PrintTestResults) {
+        fprintf(stderr, "%s error: Failed to get WIP15 function pointers\n", argv[0]);
+        fprintf(stderr, "Ensure that the program is being traced\n");
+    }
+    
+    wip15PrintTestResults();
     
     SDL_DestroyWindow(window);
     SDL_Quit();

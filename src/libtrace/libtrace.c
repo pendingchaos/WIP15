@@ -994,20 +994,45 @@ void trc_run_inspection(trace_t* trace) {
         fflush(stderr);
     }
     
-    ctx.current_test_name = "Unnamed";
+    ctx.current_test = NULL;
+    ctx.tests = NULL;
     
     init_replay_gl(&ctx);
     
     for (size_t i = 0; i < trace->frame_count; i++) {
         trace_frame_t* frame = &trace->frames[i];
+        trace->inspection.frame_index = i;
         for (size_t j = 0; j < frame->command_count; j++) {
             trace_command_t* cmd = &frame->commands[j];
+            trace->inspection.cmd_index = j;
             funcs[cmd->func_index](&ctx, cmd);
             cmd->revision = trace->inspection.cur_revision++;
         }
     }
     
     deinit_replay_gl(&ctx);
+    
+    for (trc_replay_test_t* test = ctx.tests; test;) {
+        for (trc_replay_test_failure_t* e = test->failures; e;) {
+            trc_replay_test_failure_t* next = e->next;
+            free(e);
+            e = next;
+        }
+        trc_replay_test_t* next = test->next;
+        free(test);
+        test = next;
+    }
+    ctx.tests = NULL;
+    
+    if (ctx.current_test) {
+        for (trc_replay_test_failure_t* e = ctx.current_test->failures; e;) {
+            trc_replay_test_failure_t* next = e->next;
+            free(e);
+            e = next;
+        }
+        free(ctx.current_test);
+        ctx.current_test = NULL;
+    }
     
     SDL_DestroyWindow(ctx.window);
     if (!sdl_was_init)

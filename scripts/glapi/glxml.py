@@ -84,9 +84,12 @@ class GL:
         wip15TestFB.params.append(FunctionParam('const GLvoid*', 'depth'))
         self.functions['wip15TestFB'] = wip15TestFB
         
-        wip15CurrentTest = Function('void')
-        wip15CurrentTest.params.append(FunctionParam('const GLchar*', 'name'))
-        self.functions['wip15CurrentTest'] = wip15CurrentTest
+        wip15BeginTest = Function('void')
+        wip15BeginTest.params.append(FunctionParam('const GLchar*', 'name'))
+        self.functions['wip15BeginTest'] = wip15BeginTest
+        
+        self.functions['wip15EndTest'] = Function('void')
+        self.functions['wip15PrintTestResults'] = Function('void')
         
         wip15DrawableSize = Function('void');
         wip15DrawableSize.params.append(FunctionParam('GLsizei', 'width'))
@@ -114,6 +117,10 @@ class GL:
         wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'size'))
         wip15ExpectPropertybv.params.append(FunctionParam('const void*', 'data'))
         self.functions['wip15ExpectPropertybv'] = wip15ExpectPropertybv
+        
+        wip15ExpectError = Function('void')
+        wip15ExpectError.params.append(FunctionParam('const GLchar*', 'name'))
+        self.functions['wip15ExpectError'] = wip15ExpectError
     
     def _run(self, root):
         groups = {}

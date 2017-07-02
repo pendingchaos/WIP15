@@ -20,8 +20,6 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
     return *rev;
 }
 
-//        printf("%s: %ld %ld | %ld\n", p_name, prop->get_func_int?prop->get_func_int(rev):-1, prop->get_func_gl_int?prop->get_func_gl_int(ctx, realobj):-1, p_val);
-
 #define EXPECT_NUMERICAL_PROPERTY do {\
     bool success = true;\
     const trc_obj_rev_head_t* rev = NULL;\
@@ -40,18 +38,27 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
             success = success && prop->get_func_gl_double(ctx, realobj)==p_val;\
         bool tested = prop->get_func_int || prop->get_func_gl_int;\
         tested = tested || prop->get_func_double || prop->get_func_gl_double;\
-        if (!tested) fprintf(stderr, "Property is not of a compatible type\n");\
+        if (!tested) ERROR("Property is not of a compatible type");\
     }\
-    if (!success) fprintf(stderr, "Expectation failed\n");\
+    if (!success) {\
+        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));\
+        snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");\
+        f->next = ctx->current_test->failures;\
+        ctx->current_test->failures = f;\
+    }\
 } while (0)
 
 wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLint64 p_val
+    if (!ctx->current_test) ERROR("No test is current");
     EXPECT_NUMERICAL_PROPERTY;
 
 wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLdouble p_val
+    if (!ctx->current_test) ERROR("No test is current");
     EXPECT_NUMERICAL_PROPERTY;
 
 wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_size, const void* p_data
+    if (!ctx->current_test) ERROR("No test is current");
+    
     bool success = true;
     const trc_obj_rev_head_t* rev = NULL;
     const testing_property_t* properties = NULL;
@@ -71,11 +78,51 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
             free(data);
         }
         bool tested = prop->get_func_data || prop->get_func_gl_data;
-        if (!tested) fprintf(stderr, "Property is not of a compatible type\n");
+        if (!tested) ERROR("Property is not of a compatible type");
     }
-    if (!success) fprintf(stderr, "Expectation failed\n");
+    if (!success) {
+        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
+        snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");
+        f->next = ctx->current_test->failures;
+        ctx->current_test->failures = f;
+    }
+
+wip15ExpectError: //const char* p_error
+    if (!ctx->current_test) ERROR("No test is current");
+    
+    size_t frame_index = ctx->trace->inspection.frame_index;
+    size_t cmd_index = ctx->trace->inspection.cmd_index;
+    trace_command_t* other_cmd;
+    while (true) {
+        trace_frame_t* frame = &ctx->trace->frames[frame_index];
+        other_cmd = &frame->commands[cmd_index];
+        const char* name = ctx->trace->func_names[other_cmd->func_index];
+        if (strncmp(name, "wip15", 5) == 0) {
+            if (frame_index==0 && cmd_index==0) {
+                RETURN;
+            } else if (cmd_index == 0) {
+                frame_index--;
+                cmd_index = ctx->trace->frames[frame_index].command_count - 1;
+            } else {
+                cmd_index--;
+            }
+        }
+        break;
+    }
+    for (trc_attachment_t* a = other_cmd->attachments; a; a=a->next) {
+        if (a->type != TrcAttachType_Error) continue;
+        if (strcmp(a->message, p_error) == 0) goto success;
+    }
+    
+    trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
+    snprintf(f->error_message, sizeof(f->error_message), "Expectation failed");
+    f->next = ctx->current_test->failures;
+    ctx->current_test->failures = f;
+    success: ;
 
 wip15TestFB: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_depth
+    if (!ctx->current_test) ERROR("No test is current");
+    
     F(glFinish)();
     
     //TODO: Save, modify and restore more state (e.g. pack parameters)
@@ -95,17 +142,54 @@ wip15TestFB: //const GLchar* p_name, const GLvoid* p_color, const GLvoid* p_dept
     
     F(glReadBuffer)(last_buf);
     
-    if (memcmp(back, p_color, w*h*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
-    if (memcmp(depth, p_depth, w*h*4) != 0)
-        fprintf(stderr, "%s did not result in the correct back color buffer (test: %s).\n", p_name, ctx->current_test_name);
+    if (memcmp(back, p_color, w*h*4) != 0) {
+        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
+        snprintf(f->error_message, sizeof(f->error_message),
+            "%s did not result in the correct back color buffer", p_name);
+        f->next = ctx->current_test->failures;
+        ctx->current_test->failures = f;
+    }
+    if (memcmp(depth, p_depth, w*h*4) != 0) {
+        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
+        snprintf(f->error_message, sizeof(f->error_message),
+            "%s did not result in the correct depth buffer", p_name);
+        f->next = ctx->current_test->failures;
+        ctx->current_test->failures = f;
+    }
     
     free(back);
     free(depth);
 
-wip15CurrentTest: //const GLchar* p_name
-    ctx->current_test_name = p_name;
-    fprintf(stderr, "Current test: %s\n", p_name);
+wip15BeginTest: //const GLchar* p_name
+    if (ctx->current_test) ERROR("A test is already current");
+    
+    trc_replay_test_t* test = malloc(sizeof(trc_replay_test_t));
+    test->name[sizeof(test->name)-1] = 0;
+    strncpy(test->name, p_name, sizeof(test->name)-1);
+    test->successes = 0;
+    test->failures = NULL;
+    test->next = NULL;
+    ctx->current_test = test;
+
+wip15EndTest: //
+    ctx->current_test->next = ctx->tests;
+    ctx->tests = ctx->current_test;
+    ctx->current_test = NULL;
+
+wip15PrintTestResults: //
+    size_t tests = 0;
+    size_t tests_passed = 0;
+    for (const trc_replay_test_t* test = ctx->tests; test; test = test->next) {
+        for (const trc_replay_test_failure_t* e = test->failures;
+             e; e = e->next) {
+            fprintf(stderr, "\x1b[38;5;196m%s failed: %s\x1b[39m\n",
+                    test->name, e->error_message);
+        }
+        tests++;
+        if (test->failures == NULL)
+            tests_passed++;
+    }
+    fprintf(stderr, "%zu/%zu tests passed\n", tests_passed, tests);
 
 static void drop_obj(trace_t* trace, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;

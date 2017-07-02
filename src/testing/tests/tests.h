@@ -8,6 +8,7 @@ typedef struct test_t {
 } test_t;
 
 extern test_t* tests;
+extern void (*wip15ExpectError)(const GLchar* error);
 
 #define _STR_INTERNAL(v) #v
 #define _STR(v) _STR_INTERNAL(v)
