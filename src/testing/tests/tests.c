@@ -59,6 +59,10 @@ void assert_properties(GLenum objType, GLuint64 objName, ...) {
     va_end(list);
 }
 
+void assert_error(const char* message) {
+    wip15ExpectError(message);
+}
+
 static void test_fb(const char* name) {
     int drawable_width, drawable_height;
     SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
