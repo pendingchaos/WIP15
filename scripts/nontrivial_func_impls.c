@@ -1750,6 +1750,8 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (offset+size > rev->data->size) ERROR2(false, "Invalid range");
+    if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
+        ERROR2(false, "Buffer is mapped without persistent access");
     
     trc_gl_buffer_rev_t newrev = *rev;
     
@@ -1803,7 +1805,6 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
-    if (!rev->data) ERROR2(, "Buffer has no data");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     if (rev->mapped) ERROR2(, "Buffer is already mapped");
@@ -1811,7 +1812,7 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.mapped = true;
     newrev.map_offset = 0;
-    newrev.map_length = rev->data->size;
+    newrev.map_length = rev->data ? rev->data->size : 0;
     switch (access) {
     case GL_READ_ONLY: newrev.map_access = GL_MAP_READ_BIT; break;
     case GL_WRITE_ONLY: newrev.map_access = GL_MAP_WRITE_BIT; break;
@@ -1846,9 +1847,9 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
-    if (!newrev.data) ERROR2(, "Buffer has no data");
     
-    if (offset+length > newrev.data->size) ERROR2(, "offset+length is greater than the buffer's size");
+    if (offset+length > (newrev.data?newrev.data->size:0))
+        ERROR2(, "offset+length is greater than the buffer's size");
     if (newrev.mapped) ERROR2(, "Buffer is already mapped");
     
     newrev.mapped = true;
@@ -1864,8 +1865,7 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
     if (dsa) rev = get_buffer(ctx->trace, target_or_buf);
     else rev = trc_obj_get_rev(get_bound_buffer(ctx, target_or_buf), -1);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
-    if (!rev->data) ERROR2(, "Buffer has no data");
-    if (!rev->mapped) ERROR2(, "Unmapping a buffer that is not mapped");
+    if (!rev->mapped) ERROR2(, "Buffer is not mapped");
     
     trc_gl_buffer_rev_t newrev = *rev;
     
@@ -1873,20 +1873,24 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
         trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
         if (!extra) trc_add_error(cmd, "replay/glUnmapBuffer/data extra not found");
         
+        size_t size = rev->data ? rev->data->size : 0;
+        
         if (extra) {
-            if (extra->size != rev->data->size) ERROR2(, "Invalid trace");
+            if (extra->size != size) ERROR2(, "Invalid trace");
             if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
                 F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
             else
                 F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
         }
         
-        newrev.data = trc_create_data(ctx->trace, rev->data->size, NULL, TRC_DATA_NO_ZERO);
+        newrev.data = trc_create_data(ctx->trace, size, NULL, TRC_DATA_NO_ZERO);
         void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
         
-        void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
-        memcpy(newdata, olddata, rev->data->size);
-        trc_unmap_data(rev->data);
+        if (rev->data) {
+            void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
+            memcpy(newdata, olddata, size);
+            trc_unmap_data(rev->data);
+        }
         
         if (extra) memcpy(newdata, extra->data, extra->size);
         trc_unmap_freeze_data(ctx->trace, newrev.data);
