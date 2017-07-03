@@ -818,7 +818,7 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
     const trc_gl_buffer_rev_t* buffer_rev = buffer ? get_buffer(ctx->trace, buffer) : NULL;
     if (!buffer_rev && buffer) ERROR2(false, "Invalid buffer name");
     if (buffer && !buffer_rev->has_object) ERROR2(false, "Buffer name has no object");
-    if (offset<0 || size<=0 || offset+size>(buffer_rev->data?buffer_rev->data->size:0)) ERROR2(false, "Invalid range");
+    if (offset<0 || size<=0 || offset+size>buffer_rev->data->size) ERROR2(false, "Invalid range");
     //TODO: Check alignment
     
     trc_gl_texture_image_t img;
@@ -826,7 +826,7 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
     img.internal_format = internalformat;
     img.buffer = buffer;
     img.buffer_start = offset;
-    img.buffer_size = buffer ? (size<0?(buffer_rev->data?buffer_rev->data->size:0):size) : 0;
+    img.buffer_size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
     
     trc_gl_texture_rev_t newrev = *rev;
     newrev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
@@ -1819,7 +1819,8 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
 
 static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake,
                              GLintptr offset, GLsizeiptr length, GLbitfield access) {
-    if (offset<0 || length<=0) ERROR2(, "Invalid length or offset");
+    if (offset < 0) ERROR2(, "Invalid offset");
+    if (length <= 0) ERROR2(, "Invalid length");
     
     if (!(access&GL_MAP_READ_BIT) && !(access&GL_MAP_WRITE_BIT))
         ERROR2(, "Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
@@ -1827,13 +1828,11 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     if (access&GL_MAP_READ_BIT && (access&GL_MAP_INVALIDATE_RANGE_BIT ||
                                    access&GL_MAP_INVALIDATE_BUFFER_BIT ||
                                    access&GL_MAP_UNSYNCHRONIZED_BIT))
-        ERROR2(, "GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set");
+        ERROR2(, "GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT and/or GL_MAP_UNSYNCHRONIZED_BIT is set");
     
     if (access&GL_MAP_FLUSH_EXPLICIT_BIT && !(access&GL_MAP_WRITE_BIT))
         ERROR2(, "GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
-    
-    if (access&!(GLbitfield)0xff) ERROR2(, "Invalid access flags");
-    
+        
     //TODO:
     //Make sure the access is valid with the buffer's storage flags
     
@@ -1843,8 +1842,8 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
         trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     
-    if (offset+length > (newrev.data?newrev.data->size:0))
-        ERROR2(, "offset+length is greater than the buffer's size");
+    if (offset+length > newrev.data->size)
+        ERROR2(, "Invalid range");
     if (newrev.mapped) ERROR2(, "Buffer is already mapped");
     
     newrev.mapped = true;
@@ -2653,7 +2652,7 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->trace, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    if (rev && (p_size<=0 || p_offset+p_size>(rev->data?rev->data->size:0)))
+    if (rev && (p_size<=0 || p_offset+p_size>rev->data->size))
         ERROR("Invalid range");
     //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);

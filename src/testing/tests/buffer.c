@@ -159,3 +159,44 @@ BEGIN_TEST(glMapBufferRange_1)
     glUnmapBuffer(GL_ARRAY_BUFFER);
     assert_properties(GL_BUFFER, buf, "data", 5, "HHelo", NULL);
 END_TEST(glMapBufferRange_1)
+
+BEGIN_TEST(glMapBufferRange_2)
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("No buffer bound to target");
+END_TEST(glMapBufferRange_2)
+
+BEGIN_TEST(glMapBufferRange_3)
+    glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
+    
+    glMapBufferRange(GL_ARRAY_BUFFER, -1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Invalid offset");
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, -3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Invalid length");
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 0, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Invalid length");
+    glMapBufferRange(GL_ARRAY_BUFFER, 5, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Invalid range");
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 7, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Invalid range");
+END_TEST(glMapBufferRange_3)
+
+BEGIN_TEST(glMapBufferRange_4)
+    glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
+    
+    glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
+    assert_error("Buffer is already mapped");
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, 0);
+    assert_error("Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
+    
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_READ_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
+    assert_error("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT and/or GL_MAP_UNSYNCHRONIZED_BIT is set");
+    
+    glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_FLUSH_EXPLICIT_BIT|GL_MAP_READ_BIT);
+    assert_error("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
+    
+    //TODO: Test access bits against buffer storage flags
+END_TEST(glMapBufferRange_4)
