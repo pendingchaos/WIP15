@@ -1640,9 +1640,8 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     rev.tf_binding_count = 0;
-    rev.has_data = false;
     rev.data_usage = GL_STATIC_DRAW;
-    rev.data = NULL;
+    rev.data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.mapped = false;
     rev.map_offset = 0;
     rev.map_length = 0;
@@ -1735,7 +1734,6 @@ static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool ds
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
-    newrev.has_data = true;
     set_buffer(ctx->trace, &newrev);
     return true;
 }
@@ -1745,7 +1743,6 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     if (size<0) ERROR2(false, "Invalid size");
     const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(buf, -1);
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
-    if (!rev->data) ERROR2(false, "Buffer has no data");
     if (!rev->has_object) ERROR2(false, "Buffer name does not have an object");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
@@ -1773,7 +1770,6 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     const trc_gl_buffer_rev_t* read_rev = trc_obj_get_rev(read, -1);
     if (!read_rev) ERROR2(false, dsa?"Invalid read buffer name":"No buffer bound to read target");
     if (!read_rev->has_object) ERROR2(false, "Read buffer name has no object");
-    if (!read_rev->data) ERROR2(false, "Read buffer has no data");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && read_rev->tf_binding_count)
         trc_add_warning(cmd, "Read buffer cannot be read as it is a transform feedback one while transform feedback is active and unpaused");
     if (read_off+size > read_rev->data->size) ERROR2(false, "Invalid size and read offset");
@@ -1781,7 +1777,6 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     const trc_gl_buffer_rev_t* write_rev = trc_obj_get_rev(write, -1);
     if (!write_rev) ERROR2(false, dsa?"Invalid write buffer name":"No buffer bound to write target");
     if (!write_rev->has_object) ERROR2(false, "Write buffer name has no object");
-    if (!write_rev->data) ERROR2(false, "Write buffer has no data");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && write_rev->tf_binding_count)
         trc_add_warning(cmd, "Write buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (write_off+size > write_rev->data->size) ERROR2(false, "Invalid size and write offset");
@@ -1812,7 +1807,7 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.mapped = true;
     newrev.map_offset = 0;
-    newrev.map_length = rev->data ? rev->data->size : 0;
+    newrev.map_length = rev->data->size;
     switch (access) {
     case GL_READ_ONLY: newrev.map_access = GL_MAP_READ_BIT; break;
     case GL_WRITE_ONLY: newrev.map_access = GL_MAP_WRITE_BIT; break;
@@ -1873,24 +1868,20 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
         trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
         if (!extra) trc_add_error(cmd, "replay/glUnmapBuffer/data extra not found");
         
-        size_t size = rev->data ? rev->data->size : 0;
-        
         if (extra) {
-            if (extra->size != size) ERROR2(, "Invalid trace");
+            if (extra->size != rev->data->size) ERROR2(, "Invalid trace");
             if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
                 F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
             else
                 F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
         }
         
-        newrev.data = trc_create_data(ctx->trace, size, NULL, TRC_DATA_NO_ZERO);
+        newrev.data = trc_create_data(ctx->trace, rev->data->size, NULL, TRC_DATA_NO_ZERO);
         void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
         
-        if (rev->data) {
-            void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
-            memcpy(newdata, olddata, size);
-            trc_unmap_data(rev->data);
-        }
+        void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
+        memcpy(newdata, olddata, rev->data->size);
+        trc_unmap_data(rev->data);
         
         if (extra) memcpy(newdata, extra->data, extra->size);
         trc_unmap_freeze_data(ctx->trace, newrev.data);
@@ -1926,11 +1917,7 @@ static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd,
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) ERROR2(, "Buffer is mapped without GL_MAP_PERSISTENT_BIT");
-    if (rev->has_data) {
-        if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
-    } else {
-        if (offset!=0 || size!=0) ERROR2(, "Invalid offset and/or size");
-    }
+    if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
 }
 
 static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd, const trc_gl_renderbuffer_rev_t* rb,

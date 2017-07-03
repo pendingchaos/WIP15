@@ -13,8 +13,7 @@ static int64_t get_int_prop_buffer_gl(void* ctx, GLuint real, GLenum param) {
 #if REPLAY
 static void* get_data_prop_buffer_data(const void* rev_, size_t* size) {
     const trc_gl_buffer_rev_t* rev = rev_;
-    *size = rev->has_data ? rev->data->size : 0;
-    if (!rev->has_data) return NULL;
+    *size = rev->data->size;
     void* data = malloc(*size);
     memcpy(data, trc_map_data(rev->data, TRC_MAP_READ), rev->data->size);
     trc_unmap_data(rev->data);
@@ -39,7 +38,7 @@ static void* get_data_prop_buffer_data_gl(void* ctx, GLuint64 real, size_t* size
 }
 
 PROPERTY_INT(buffer, size, GL_BUFFER_SIZE,
-    rev->has_data?rev->data->size:0)
+    rev->data->size)
 PROPERTY_INT(buffer, usage, GL_BUFFER_USAGE,
     rev->data_usage)
 PROPERTY_INT(buffer, mapped, SWITCH_REPLAY(0, GL_BUFFER_MAPPED),

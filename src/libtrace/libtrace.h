@@ -161,7 +161,6 @@ typedef struct trc_gl_buffer_rev_t {
     
     uint tf_binding_count;
     
-    bool has_data;
     uint data_usage;
     trc_data_t* data;
     
