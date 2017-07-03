@@ -14,7 +14,6 @@ replay_func_impls_str = open("nontrivial_func_impls.c").read()
 implemented = set()
 
 current_name = ""
-print_func = False
 for line in replay_func_impls_str.split("\n"):
     if line.split('//')[0].rstrip().endswith(":") and (line.startswith("gl") or line.startswith("wip15")):
         if len(current_name) != 0:
@@ -44,7 +43,7 @@ for func_name, func in func_dict.iteritems():
         done += 1
 
 for ver in versions:
-    for f in todo[ver]:
+    for f in sorted(todo[ver]):
         if ver == None:
             print 'TODO other: %s' % f
         else:
