@@ -113,13 +113,14 @@ wip15ExpectError: //const char* p_error
         const char* name = ctx->trace->func_names[other_cmd->func_index];
         if (strncmp(name, "wip15", 5) == 0) {
             if (frame_index==0 && cmd_index==0) {
-                RETURN;
+                goto failure;
             } else if (cmd_index == 0) {
                 frame_index--;
                 cmd_index = ctx->trace->frames[frame_index].command_count - 1;
             } else {
                 cmd_index--;
             }
+            continue;
         }
         break;
     }
@@ -128,6 +129,7 @@ wip15ExpectError: //const char* p_error
         if (strcmp(a->message, p_error) == 0) goto success;
     }
     
+    failure: ;
     trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
     snprintf(f->error_message, sizeof(f->error_message), "Expectation of error failed.");
     f->next = ctx->current_test->failures;

@@ -437,16 +437,11 @@ trace_t *load_trace(const char* filename) {
         return NULL;
     }
     
-    trace_t *trace = malloc(sizeof(trace_t));
+    trace_t *trace = calloc(1, sizeof(trace_t));
     
-    trace->func_name_count = 0;
-    trace->group_name_count = 0;
-    trace->func_names = NULL;
-    trace->group_names = NULL;
     trace->frame_count = 1;
-    trace->frames = malloc(sizeof(trace_frame_t));
+    trace->frames = calloc(1, sizeof(trace_frame_t));
     trace_frame_t *frame = trace->frames;
-    frame->command_count = 0;
     frame->commands = NULL;
     
     char magic[6];
@@ -590,8 +585,7 @@ trace_t *load_trace(const char* filename) {
         }
         case Op_Call: {
             trace_command_t command;
-            command.revision = 0;
-            command.attachments = NULL;
+            memset(&command, 0, sizeof(trace_command_t));
             
             if (!readf(&command.func_index, 4, 1, file))
                 ERROR("Unable to read function index");
@@ -722,7 +716,7 @@ void free_trace(trace_t* trace) {
             free_obj(obj);
         }
         free(ti->objects[i]);
-        free_obj(ti->name_tables[i]);
+        if (ti->name_tables[i]) free_obj(ti->name_tables[i]);
     }
     free(ti->cur_ctx_revisions);
     

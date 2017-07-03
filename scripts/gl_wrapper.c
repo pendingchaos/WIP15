@@ -195,7 +195,9 @@ static void gl_write_type(uint8_t base, bool has_group, bool is_array) {
 int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize);
 #endif
 
-static void gl_write_data(size_t size, const void* data) {
+static void gl_write_data(ptrdiff_t size, const void* data) {
+    if (size < 0) size = 0;
+    
     #ifdef ZLIB_ENABLED
     if (compression_method == COMPRESSION_ZLIB) {
         void* compressed = malloc(size);
