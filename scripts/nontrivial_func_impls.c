@@ -30,13 +30,13 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
         type val, gl_val;\
         bool success = true;\
         if (prop->get_func_int)\
-            success = (val=prop->get_func_int(rev))==p_val && success;\
+            success = (val=prop->get_func_int(index, rev))==p_val && success;\
         if (prop->get_func_gl_int)\
-            success = (gl_val=prop->get_func_gl_int(ctx, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_int(index, ctx, realobj))==p_val && success;\
         if (prop->get_func_double)\
-            success = (val=prop->get_func_double(rev))==p_val && success;\
+            success = (val=prop->get_func_double(index, rev))==p_val && success;\
         if (prop->get_func_gl_double)\
-            success = (gl_val=prop->get_func_gl_double(ctx, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_double(index, ctx, realobj))==p_val && success;\
         bool has_val = prop->get_func_int || prop->get_func_double;\
         bool has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
         if (!has_val && !has_gl_val) ERROR("Property is not of a compatible type");\
@@ -62,15 +62,15 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
     }\
 } while (0)
 
-wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLint64 p_val
+wip15ExpectPropertyi64: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_index, GLint64 p_val
     if (!ctx->current_test) ERROR("No test is current");
     EXPECT_NUMERICAL_PROPERTY(int64_t, "%"PRIu64);
 
-wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLdouble p_val
+wip15ExpectPropertyd: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_index, GLdouble p_val
     if (!ctx->current_test) ERROR("No test is current");
     EXPECT_NUMERICAL_PROPERTY(double, "%f");
 
-wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_size, const void* p_data
+wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_name, GLuint64 p_index, GLuint64 p_size, const void* p_data
     if (!ctx->current_test) ERROR("No test is current");
     
     bool success = true;
@@ -82,12 +82,12 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
         if (strcmp(prop->name, p_name) != 0) continue;
         size_t size;
         if (prop->get_func_data) {
-            void* data = prop->get_func_data(rev, &size);
+            void* data = prop->get_func_data(index, rev, &size);
             success = success && size==p_size && memcmp(data, p_data, size)==0;
             free(data);
         }
         if (prop->get_func_gl_data) {
-            void* data = prop->get_func_gl_data(ctx, realobj, &size);
+            void* data = prop->get_func_gl_data(index, ctx, realobj, &size);
             success = success && size==p_size && memcmp(data, p_data, size)==0;
             free(data);
         }

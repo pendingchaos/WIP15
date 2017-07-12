@@ -18,12 +18,12 @@ void (*wip15PrintTestResults)();
 void (*wip15TestFB)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
 void (*wip15DrawableSize)(GLsizei width, GLsizei height);
 void (*wip15ExpectPropertyi64)(GLenum objType, GLuint64 objName,
-                               const char* name, GLint64 val);
+                               const char* name, GLuint64 index, GLint64 val);
 void (*wip15ExpectPropertyd)(GLenum objType, GLuint64 objName,
-                             const char* name, GLdouble val);
+                             const char* name, GLuint64 index, GLdouble val);
 void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
-                              const char* name, GLuint64 size,
-                              const GLvoid* data);
+                              const char* name, GLuint64 index,
+                              GLuint64 size, const GLvoid* data);
 void (*wip15ExpectError)(const GLchar* error);
 
 void assert_properties(GLenum objType, GLuint64 objName, ...) {
@@ -38,18 +38,18 @@ void assert_properties(GLenum objType, GLuint64 objName, ...) {
              prop; prop = prop->next) {
             if (!wildcard && strcmp(prop->name, name)!=0) continue;
             if (prop->get_func_gl_int) {
-                int64_t val = wildcard ? prop->get_func_gl_int(NULL, objName) :
+                int64_t val = wildcard ? prop->get_func_gl_int(0, NULL, objName) :
                                          va_arg(list, int64_t);
-                wip15ExpectPropertyi64(objType, objName, prop->name, val);
+                wip15ExpectPropertyi64(objType, objName, prop->name, 0, val);
             } else if (prop->get_func_gl_double) {
-                double val = wildcard ? prop->get_func_gl_double(NULL, objName) :
+                double val = wildcard ? prop->get_func_gl_double(0, NULL, objName) :
                                         va_arg(list, double);
-                wip15ExpectPropertyd(objType, objName, prop->name, val);
+                wip15ExpectPropertyd(objType, objName, prop->name, 0, val);
             } else if (prop->get_func_gl_data) {
                 size_t size = wildcard ? 0 : va_arg(list, int);
-                void* val = wildcard ? prop->get_func_gl_data(NULL, objName, &size) :
+                void* val = wildcard ? prop->get_func_gl_data(0, NULL, objName, &size) :
                                        va_arg(list, void*);
-                wip15ExpectPropertybv(objType, objName, prop->name, size, val);
+                wip15ExpectPropertybv(objType, objName, prop->name, 0, size, val);
                 if (wildcard) free(val);
             }
             if (!wildcard) break;

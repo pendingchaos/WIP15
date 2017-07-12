@@ -100,6 +100,7 @@ class GL:
         wip15ExpectPropertyi64.params.append(FunctionParam('GLenum', 'objType'))
         wip15ExpectPropertyi64.params.append(FunctionParam('GLuint64', 'objName'))
         wip15ExpectPropertyi64.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertyi64.params.append(FunctionParam('GLuint64', 'index'))
         wip15ExpectPropertyi64.params.append(FunctionParam('GLint64', 'val'))
         self.functions['wip15ExpectPropertyi64'] = wip15ExpectPropertyi64
         
@@ -107,6 +108,7 @@ class GL:
         wip15ExpectPropertyd.params.append(FunctionParam('GLenum', 'objType'))
         wip15ExpectPropertyd.params.append(FunctionParam('GLuint64', 'objName'))
         wip15ExpectPropertyd.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertyd.params.append(FunctionParam('GLuint64', 'index'))
         wip15ExpectPropertyd.params.append(FunctionParam('GLdouble', 'val'))
         self.functions['wip15ExpectPropertyd'] = wip15ExpectPropertyd
         
@@ -114,6 +116,7 @@ class GL:
         wip15ExpectPropertybv.params.append(FunctionParam('GLenum', 'objType'))
         wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'objName'))
         wip15ExpectPropertybv.params.append(FunctionParam('const char*', 'name'))
+        wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'index'))
         wip15ExpectPropertybv.params.append(FunctionParam('GLuint64', 'size'))
         wip15ExpectPropertybv.params.append(FunctionParam('const void*', 'data'))
         self.functions['wip15ExpectPropertybv'] = wip15ExpectPropertybv

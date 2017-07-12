@@ -1,14 +1,14 @@
 typedef struct testing_property_t {
     const char* name;
     
-    int64_t (*get_func_int)(const void* rev);
-    int64_t (*get_func_gl_int)(void* ctx, GLuint64 real);
+    int64_t (*get_func_int)(uint64_t index, const void* rev);
+    int64_t (*get_func_gl_int)(uint64_t index, void* ctx, GLuint64 real);
     
-    double (*get_func_double)(const void* rev);
-    double (*get_func_gl_double)(void* ctx, GLuint64 real);
+    double (*get_func_double)(uint64_t index, const void* rev);
+    double (*get_func_gl_double)(uint64_t index, void* ctx, GLuint64 real);
     
-    void* (*get_func_data)(const void* rev, size_t* size);
-    void* (*get_func_gl_data)(void* ctx, GLuint64 real, size_t* size);
+    void* (*get_func_data)(uint64_t index, const void* rev, size_t* size);
+    void* (*get_func_gl_data)(uint64_t index, void* ctx, GLuint64 real, size_t* size);
     struct testing_property_t* next;
 } testing_property_t;
 
@@ -47,35 +47,25 @@ REGISTER_PROPERTY(obj, propname,\
 
 #if REPLAY
 #define PROPERTY_INT(obj, propname, getparam, get_code)\
-int64_t get_int_prop_##obj##_##propname(const void* rev_) {\
+int64_t get_int_prop_##obj##_##propname(uint64_t index, const void* rev_) {\
     const trc_gl_##obj##_rev_t* rev = rev_;\
     return get_code;\
 }\
-int64_t get_int_prop_##obj##_##propname##_gl(void* ctx, GLuint64 real) {\
-    return get_int_prop_##obj##_gl(ctx, real, getparam);\
+int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, GLuint64 real) {\
+    return get_int_prop_##obj##_gl(index, ctx, real, getparam);\
 }\
 REGISTER_PROPERTY_INT(obj, propname, &get_int_prop_##obj##_##propname, (getparam?&get_int_prop_##obj##_##propname##_gl:NULL))
 
 #define PROPERTY_DOUBLE(obj, propname, getparam, get_code)\
-double test_double_prop_##obj##_##propname(const void* rev_) {\
-    const trc_gl_##obj##_rev_t* rev = rev_;\
-    return get_code;\
-}\
-double test_double_prop_##obj##_##propname##_gl(void* ctx, GLuint64 real) {\
-    return get_double_prop_##obj##_gl(ctx, real, getparam);\
-}\
 REGISTER_PROPERTY_DOUBLE(obj, propname, &get_double_prop_##obj##_##propname, (getparam?&get_double_prop_##obj##_##propname##_gl:NULL))
 #else
 #define PROPERTY_INT(obj, propname, getparam, get_code)\
-int64_t get_int_prop_##obj##_##propname##_gl(void* ctx, GLuint64 real) {\
-    return get_int_prop_##obj##_gl(ctx, real, getparam);\
+int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, GLuint64 real) {\
+    return get_int_prop_##obj##_gl(index, ctx, real, getparam);\
 }\
 REGISTER_PROPERTY_INT(obj, propname, NULL, (getparam?&get_int_prop_##obj##_##propname##_gl:NULL))
 
 #define PROPERTY_DOUBLE(obj, propname, getparam, get_code)\
-double test_double_prop_##obj##_##propname##_gl(void* ctx, GLuint64 real) {\
-    return get_double_prop_##obj##_gl(ctx, real, getparam);\
-}\
 REGISTER_PROPERTY_DOUBLE(obj, propname, NULL, (getparam?&get_double_prop_##obj##_##propname##_gl:NULL))
 #endif
 

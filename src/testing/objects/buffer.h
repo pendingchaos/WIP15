@@ -1,6 +1,6 @@
 static testing_property_t* buffer_properties = NULL;
 
-static int64_t get_int_prop_buffer_gl(void* ctx, GLuint real, GLenum param) {
+static int64_t get_int_prop_buffer_gl(uint64_t index, void* ctx, GLuint real, GLenum param) {
     GLint prev;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev);
     F(glBindBuffer)(GL_ARRAY_BUFFER, real);
@@ -11,7 +11,7 @@ static int64_t get_int_prop_buffer_gl(void* ctx, GLuint real, GLenum param) {
 }
 
 #if REPLAY
-static void* get_data_prop_buffer_data(const void* rev_, size_t* size) {
+static void* get_data_prop_buffer_data(uint64_t index, const void* rev_, size_t* size) {
     const trc_gl_buffer_rev_t* rev = rev_;
     *size = rev->data->size;
     void* data = malloc(*size);
@@ -21,7 +21,7 @@ static void* get_data_prop_buffer_data(const void* rev_, size_t* size) {
 }
 #endif
 
-static void* get_data_prop_buffer_data_gl(void* ctx, GLuint64 real, size_t* size) {
+static void* get_data_prop_buffer_data_gl(uint64_t index, void* ctx, GLuint64 real, size_t* size) {
     GLint prev;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev);
     F(glBindBuffer)(GL_ARRAY_BUFFER, real);

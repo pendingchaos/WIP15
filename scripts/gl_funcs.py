@@ -65,36 +65,39 @@ class wip15PrintTestResults(Func):
 
 class wip15ExpectPropertyi64(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertyi64(GLenum objType, GLuint64 objName, const GLchar* name, GLint64 val) {
+        return '''void wip15ExpectPropertyi64(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLint64 val) {
     func_decl_wip15ExpectPropertyi64();
     gl_start_call(%d);
     gl_write_uleb128(objType);
     gl_write_uleb128(objName);
     gl_write_str(name);
+    gl_write_uleb128(index);
     gl_write_sleb128(val);
     gl_end_call();
 }''' % self.func_id
 
 class wip15ExpectPropertyd(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertyd(GLenum objType, GLuint64 objName, const GLchar* name, GLdouble val) {
+        return '''void wip15ExpectPropertyd(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLdouble val) {
     func_decl_wip15ExpectPropertyd();
     gl_start_call(%d);
     gl_write_uleb128(objType);
     gl_write_uleb128(objName);
     gl_write_str(name);
+    gl_write_uleb128(index);
     gl_write_double(val);
     gl_end_call();
 }''' % self.func_id
 
 class wip15ExpectPropertybv(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertybv(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 size, const GLvoid* data) {
+        return '''void wip15ExpectPropertybv(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLuint64 size, const GLvoid* data) {
     func_decl_wip15ExpectPropertybv();
     gl_start_call(%d);
     gl_write_uleb128(objType);
     gl_write_uleb128(objName);
     gl_write_str(name);
+    gl_write_uleb128(index);
     gl_write_uleb128(size);
     gl_write_data(size, data);
     gl_end_call();
