@@ -1149,9 +1149,9 @@ wip15EndTest(None, 'wip15EndTest', [])
 wip15PrintTestResults(None, 'wip15PrintTestResults', [])
 wip15TestFB(None, 'wip15TestFB', [P(tString, 'name'), P(tData('drawable_width*drawable_height*4'), 'color'),
                                   P(tData('drawable_width*drawable_height*4'), 'depth')])
-wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLint64, 'val')])
-wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLdouble, 'val')])
-wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
+wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLint64, 'val')])
+wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLdouble, 'val')])
+wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
 wip15ExpectError(None, 'wip15ExpectError', [P(tString, 'error')])
 
 #Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)

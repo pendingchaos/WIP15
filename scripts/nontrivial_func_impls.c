@@ -30,13 +30,13 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
         type val, gl_val;\
         bool success = true;\
         if (prop->get_func_int)\
-            success = (val=prop->get_func_int(index, rev))==p_val && success;\
+            success = (val=prop->get_func_int(p_index, rev))==p_val && success;\
         if (prop->get_func_gl_int)\
-            success = (gl_val=prop->get_func_gl_int(index, ctx, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_int(p_index, ctx, realobj))==p_val && success;\
         if (prop->get_func_double)\
-            success = (val=prop->get_func_double(index, rev))==p_val && success;\
+            success = (val=prop->get_func_double(p_index, rev))==p_val && success;\
         if (prop->get_func_gl_double)\
-            success = (gl_val=prop->get_func_gl_double(index, ctx, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_double(p_index, ctx, realobj))==p_val && success;\
         bool has_val = prop->get_func_int || prop->get_func_double;\
         bool has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
         if (!has_val && !has_gl_val) ERROR("Property is not of a compatible type");\
@@ -82,12 +82,12 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
         if (strcmp(prop->name, p_name) != 0) continue;
         size_t size;
         if (prop->get_func_data) {
-            void* data = prop->get_func_data(index, rev, &size);
+            void* data = prop->get_func_data(p_index, rev, &size);
             success = success && size==p_size && memcmp(data, p_data, size)==0;
             free(data);
         }
         if (prop->get_func_gl_data) {
-            void* data = prop->get_func_gl_data(index, ctx, realobj, &size);
+            void* data = prop->get_func_gl_data(p_index, ctx, realobj, &size);
             success = success && size==p_size && memcmp(data, p_data, size)==0;
             free(data);
         }
