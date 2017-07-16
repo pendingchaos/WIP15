@@ -276,7 +276,8 @@ typedef struct trc_gl_program_uniform_t {
     uint fake; //fake location
     uint dim[2];
     uint count; //for non-matrices: 0 -> non-array
-    trc_data_t* value; //array of double
+    uint dtype;
+    trc_data_t* value; //array of double if dtype==0, array of uint64_t if dtype==1, int64_t if dtype==2
 } trc_gl_program_uniform_t;
 
 typedef struct trc_gl_program_uniform_block_t {

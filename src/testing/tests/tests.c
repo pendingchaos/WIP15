@@ -38,16 +38,16 @@ void assert_properties(GLenum objType, GLuint64 objName, ...) {
              prop; prop = prop->next) {
             if (!wildcard && strcmp(prop->name, name)!=0) continue;
             if (prop->get_func_gl_int) {
-                int64_t val = wildcard ? prop->get_func_gl_int(0, NULL, objName) :
+                int64_t val = wildcard ? prop->get_func_gl_int(0, NULL, NULL, objName) :
                                          va_arg(list, int64_t);
                 wip15ExpectPropertyi64(objType, objName, prop->name, 0, val);
             } else if (prop->get_func_gl_double) {
-                double val = wildcard ? prop->get_func_gl_double(0, NULL, objName) :
+                double val = wildcard ? prop->get_func_gl_double(0, NULL, NULL, objName) :
                                         va_arg(list, double);
                 wip15ExpectPropertyd(objType, objName, prop->name, 0, val);
             } else if (prop->get_func_gl_data) {
                 size_t size = wildcard ? 0 : va_arg(list, int);
-                void* val = wildcard ? prop->get_func_gl_data(0, NULL, objName, &size) :
+                void* val = wildcard ? prop->get_func_gl_data(0, NULL, NULL, objName, &size) :
                                        va_arg(list, void*);
                 wip15ExpectPropertybv(objType, objName, prop->name, 0, size, val);
                 if (wildcard) free(val);
@@ -147,4 +147,31 @@ int main(int argc, char** argv) {
     
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+GLuint create_program(const char* vert, const char* frag) {
+    GLuint vertex=0, fragment=0;
+    if (vert) {
+        vertex = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertex, 1, &vert, NULL);
+        glCompileShader(vertex);
+    }
+    
+    if (frag) {
+        fragment = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragment, 1, &frag, NULL);
+        glCompileShader(fragment);
+    }
+    
+    GLuint program = glCreateProgram();
+    if (vertex) glAttachShader(program, vertex);
+    if (fragment) glAttachShader(program, fragment);
+    glLinkProgram(program);
+    glValidateProgram(program);
+    if (vertex) glDetachShader(program, vertex);
+    if (fragment) glDetachShader(program, fragment);
+    if (vertex) glDeleteShader(vertex);
+    if (fragment) glDeleteShader(fragment);
+    
+    return program;
 }

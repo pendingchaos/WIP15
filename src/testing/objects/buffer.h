@@ -21,7 +21,7 @@ static void* get_data_prop_buffer_data(uint64_t index, const void* rev_, size_t*
 }
 #endif
 
-static void* get_data_prop_buffer_data_gl(uint64_t index, void* ctx, GLuint64 real, size_t* size) {
+static void* get_data_prop_buffer_data_gl(uint64_t index, void* ctx, const void* rev, GLuint64 real, size_t* size) {
     GLint prev;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev);
     F(glBindBuffer)(GL_ARRAY_BUFFER, real);

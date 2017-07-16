@@ -8,13 +8,30 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
                                    const trc_obj_rev_head_t** rev, uint64_t* real, const testing_property_t** properties) {
     *properties = get_object_type_properties(objType);
     switch (objType) {
-    case GL_BUFFER: {
-        const trc_gl_buffer_rev_t* obj_rev = get_buffer(ctx->trace, objName);
+    #define O(val, name)\
+    case val: {\
+        const trc_gl_##name##_rev_t* obj_rev = get_##name(ctx->trace, objName);\
+        *rev = &obj_rev->head;\
+        *real = obj_rev ? obj_rev->real : 0;\
+        break;\
+    }
+    O(GL_BUFFER, buffer)
+    O(GL_SHADER, shader)
+    O(GL_PROGRAM, program)
+    O(GL_VERTEX_ARRAY, vao)
+    O(GL_QUERY, query)
+    O(GL_PROGRAM_PIPELINE, program_pipeline)
+    O(GL_TRANSFORM_FEEDBACK, transform_feedback)
+    O(GL_SAMPLER, sampler)
+    O(GL_TEXTURE, texture)
+    O(GL_RENDERBUFFER, renderbuffer)
+    O(GL_FRAMEBUFFER, framebuffer)
+    case 0: {
+        const trc_gl_context_rev_t* obj_rev = trc_get_context(ctx->trace);
         *rev = &obj_rev->head;
-        *real = obj_rev ? obj_rev->real : 0;
+        *real = obj_rev ? (uintptr_t)obj_rev->real : 0;
         break;
     }
-    //TODO
     }
     if (!*rev) fprintf(stderr, "Invalid object name\n");
     return *rev;
@@ -25,27 +42,33 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
     const testing_property_t* properties = NULL;\
     uint64_t realobj;\
     if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;\
+    bool tested = false;\
+    type val, gl_val;\
+    bool has_val, has_gl_val, success = true;\
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {\
         if (strcmp(prop->name, p_name) != 0) continue;\
-        type val, gl_val;\
-        bool success = true;\
         if (prop->get_func_int)\
             success = (val=prop->get_func_int(p_index, rev))==p_val && success;\
         if (prop->get_func_gl_int)\
-            success = (gl_val=prop->get_func_gl_int(p_index, ctx, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_int(p_index, ctx, rev, realobj))==p_val && success;\
         if (prop->get_func_double)\
             success = (val=prop->get_func_double(p_index, rev))==p_val && success;\
         if (prop->get_func_gl_double)\
-            success = (gl_val=prop->get_func_gl_double(p_index, ctx, realobj))==p_val && success;\
-        bool has_val = prop->get_func_int || prop->get_func_double;\
-        bool has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
+            success = (gl_val=prop->get_func_gl_double(p_index, ctx, rev, realobj))==p_val && success;\
+        has_val = prop->get_func_int || prop->get_func_double;\
+        has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
         if (!has_val && !has_gl_val) ERROR("Property is not of a compatible type");\
-        if (!success) {\
-            trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));\
-            f->error_message[sizeof(f->error_message)-1] = 0;\
-            size_t len = 0;\
-            len += snprintf(f->error_message, sizeof(f->error_message)-1,\
-                           "Expectation of '%s' failed. Expected "fmt", got ", p_name, p_val);\
+        tested = true;\
+        break;\
+    }\
+    if (!tested || !success) {\
+        trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));\
+        f->error_message[sizeof(f->error_message)-1] = 0;\
+        size_t len = 0;\
+        if (!tested) {\
+            len += snprintf(f->error_message, sizeof(f->error_message)-1, "No such property: '%s'", p_name);\
+        } else {\
+            len += snprintf(f->error_message, sizeof(f->error_message)-1, "Expectation of '%s' failed. Expected "fmt", got ", p_name, p_val);\
             if (has_gl_val)\
                 len += snprintf(&f->error_message[len], sizeof(f->error_message)-len-1, fmt"(gl)", gl_val);\
             if (has_gl_val && has_val) {\
@@ -55,10 +78,9 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
             if (has_val)\
                 len += snprintf(&f->error_message[len], sizeof(f->error_message)-len-1, fmt"(rev)", val);\
             strncat(f->error_message, ".", sizeof(f->error_message)-len-1);\
-            f->next = ctx->current_test->failures;\
-            ctx->current_test->failures = f;\
         }\
-        break;\
+        f->next = ctx->current_test->failures;\
+        ctx->current_test->failures = f;\
     }\
 } while (0)
 
@@ -78,6 +100,7 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
     const testing_property_t* properties = NULL;
     uint64_t realobj;
     if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;
+    bool tested = false;
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {
         if (strcmp(prop->name, p_name) != 0) continue;
         size_t size;
@@ -87,16 +110,18 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
             free(data);
         }
         if (prop->get_func_gl_data) {
-            void* data = prop->get_func_gl_data(p_index, ctx, realobj, &size);
+            void* data = prop->get_func_gl_data(p_index, ctx, rev, realobj, &size);
             success = success && size==p_size && memcmp(data, p_data, size)==0;
             free(data);
         }
-        bool tested = prop->get_func_data || prop->get_func_gl_data;
+        tested = prop->get_func_data || prop->get_func_gl_data;
         if (!tested) ERROR("Property is not of a compatible type");
+        break;
     }
-    if (!success) {
+    if (!success || !tested) {
         trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
-        snprintf(f->error_message, sizeof(f->error_message), "Expectation of '%s' failed.", p_name);
+        if (!tested) snprintf(f->error_message, sizeof(f->error_message), "No such property: '%s'", p_name);
+        else snprintf(f->error_message, sizeof(f->error_message), "Expectation of '%s' failed.", p_name);
         f->next = ctx->current_test->failures;
         ctx->current_test->failures = f;
     }
@@ -2955,6 +2980,7 @@ static trc_data_t* get_program_uniforms(trace_command_t* cmd, trc_replay_context
             uniforms = realloc(uniforms, (uniform_count+1)*sizeof(trc_gl_program_uniform_t));
             trc_gl_program_uniform_t uni;
             memset(&uni, 0, sizeof(uni)); //initialize padding to zero - it might be compressed
+            uni.dtype = 0;
             uni.real = real_loc;
             uni.fake = extra.val;
             uni.dim[0] = 0;

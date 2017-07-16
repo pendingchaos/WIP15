@@ -2,13 +2,13 @@ typedef struct testing_property_t {
     const char* name;
     
     int64_t (*get_func_int)(uint64_t index, const void* rev);
-    int64_t (*get_func_gl_int)(uint64_t index, void* ctx, GLuint64 real);
+    int64_t (*get_func_gl_int)(uint64_t index, void* ctx, const void* rev, GLuint64 real);
     
     double (*get_func_double)(uint64_t index, const void* rev);
-    double (*get_func_gl_double)(uint64_t index, void* ctx, GLuint64 real);
+    double (*get_func_gl_double)(uint64_t index, void* ctx, const void* rev, GLuint64 real);
     
     void* (*get_func_data)(uint64_t index, const void* rev, size_t* size);
-    void* (*get_func_gl_data)(uint64_t index, void* ctx, GLuint64 real, size_t* size);
+    void* (*get_func_gl_data)(uint64_t index, void* ctx, const void* rev, GLuint64 real, size_t* size);
     struct testing_property_t* next;
 } testing_property_t;
 
@@ -51,7 +51,7 @@ int64_t get_int_prop_##obj##_##propname(uint64_t index, const void* rev_) {\
     const trc_gl_##obj##_rev_t* rev = rev_;\
     return get_code;\
 }\
-int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, GLuint64 real) {\
+int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, const void* rev, GLuint64 real) {\
     return get_int_prop_##obj##_gl(index, ctx, real, getparam);\
 }\
 REGISTER_PROPERTY_INT(obj, propname, &get_int_prop_##obj##_##propname, (getparam?&get_int_prop_##obj##_##propname##_gl:NULL))
@@ -60,7 +60,7 @@ REGISTER_PROPERTY_INT(obj, propname, &get_int_prop_##obj##_##propname, (getparam
 REGISTER_PROPERTY_DOUBLE(obj, propname, &get_double_prop_##obj##_##propname, (getparam?&get_double_prop_##obj##_##propname##_gl:NULL))
 #else
 #define PROPERTY_INT(obj, propname, getparam, get_code)\
-int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, GLuint64 real) {\
+int64_t get_int_prop_##obj##_##propname##_gl(uint64_t index, void* ctx, const void* rev, GLuint64 real) {\
     return get_int_prop_##obj##_gl(index, ctx, real, getparam);\
 }\
 REGISTER_PROPERTY_INT(obj, propname, NULL, (getparam?&get_int_prop_##obj##_##propname##_gl:NULL))
@@ -70,11 +70,14 @@ REGISTER_PROPERTY_DOUBLE(obj, propname, NULL, (getparam?&get_double_prop_##obj##
 #endif
 
 #include "buffer.h"
+#include "program.h"
 
 static const testing_property_t* get_object_type_properties(GLenum objType) {
     switch (objType) {
     case GL_BUFFER:
         return buffer_properties;
+    case GL_PROGRAM:
+        return program_properties;
     //TODO
     }
     return NULL;

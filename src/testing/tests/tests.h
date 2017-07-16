@@ -8,6 +8,18 @@ typedef struct test_t {
 } test_t;
 
 extern test_t* tests;
+extern void (*wip15BeginTest)(const GLchar* name);
+extern void (*wip15EndTest)();
+extern void (*wip15PrintTestResults)();
+extern void (*wip15TestFB)(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+extern void (*wip15DrawableSize)(GLsizei width, GLsizei height);
+extern void (*wip15ExpectPropertyi64)(GLenum objType, GLuint64 objName,
+                                      const char* name, GLuint64 index, GLint64 val);
+extern void (*wip15ExpectPropertyd)(GLenum objType, GLuint64 objName,
+                                    const char* name, GLuint64 index, GLdouble val);
+extern void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
+                                     const char* name, GLuint64 index,
+                                     GLuint64 size, const GLvoid* data);
 extern void (*wip15ExpectError)(const GLchar* error);
 
 #define _STR_INTERNAL(v) #v
@@ -33,3 +45,5 @@ void __attribute__((constructor)) _CONCAT4(register_test_, TEST_SUITE, _, testna
 
 void assert_properties(GLenum objType, GLuint64 objName, ...);
 void assert_error(const char* message);
+
+GLuint create_program(const char* vert, const char* frag);

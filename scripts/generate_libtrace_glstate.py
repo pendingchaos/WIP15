@@ -385,8 +385,6 @@ class Property(object):
         self.size_func_sig = ''
         self.init_func_sig = ''
         self.init1_func_sig = ''
-        self.insert_func_sig = ''
-        self.erase_func_sig = ''
         self.get_keys_func_sig = ''
         self.c_type = {'uint': 'uint',
                        'char': 'char',
@@ -531,7 +529,6 @@ for prop in properties:
     if prop.array:
         print prop.size_func_sig + ';'
         print prop.init1_func_sig + ';'
-        print prop.insert_func_sig + ';'
 print '#endif'
 print
 
