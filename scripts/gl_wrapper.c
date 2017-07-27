@@ -873,6 +873,404 @@ static void add_program_extra(const char* type, const char* name, GLenum stage, 
     gl_add_extra(type, strlen(name)+12, data);
 }
 
+typedef enum uniform_type_t {
+    UniformType_Variable,
+    UniformType_Struct,
+    UniformType_Array,
+    UniformType_Unspecified
+} uniform_type_t;
+
+typedef struct uniform_t {
+    union {
+        char* name;
+        size_t index;
+    };
+    uniform_type_t type;
+    struct uniform_t* prev;
+    struct uniform_t* next;
+    union {
+        struct {
+            GLenum dtype;
+            GLuint location;
+        };
+        struct {
+            size_t child_count;
+            struct uniform_t* first_child;
+        };
+    };
+} uniform_t;
+
+//TODO: Make this smaller
+static bool add_uniform_variable(GLuint program, uniform_t** uniforms, GLchar* name, GLint size,
+                                 GLenum type, GLint loc, bool array) {
+    GLchar name_temp[strlen(name)+1];
+    strcpy(name_temp, name);
+    GLchar* name_ptr = name_temp;
+    uniform_t* cur = NULL;
+    
+    char* name_end = name_ptr;
+    for (; *name_end!=0 && *name_end!='.' && *name_end!='['; name_end++) ;
+    size_t name_len = name_end - name_ptr;
+    
+    for (cur = *uniforms; cur; cur = cur->next) {
+        if (strlen(cur->name)==name_len && strncmp(cur->name, name_ptr, name_len)==0)
+            goto cont;
+    }
+    
+    cur = malloc(sizeof(uniform_t));
+    cur->name = calloc(name_len+1, 1);
+    memcpy(cur->name, name_ptr, name_len);
+    cur->type = UniformType_Unspecified;
+    cur->prev = NULL;
+    cur->next = *uniforms;
+    *uniforms = cur;
+    
+    cont:
+    name_ptr = name_end;
+    
+    while (*name_ptr != 0) {
+        if (*name_ptr == '.') {
+            if (cur->type == UniformType_Unspecified) {
+                cur->type = UniformType_Struct;
+                cur->child_count = 0;
+                cur->first_child = NULL;
+            }
+            if (cur->type != UniformType_Struct) return false;
+            name_ptr++;
+            
+            char* name_end = name_ptr;
+            for (; *name_end!=0 && *name_end!='.' && *name_end!='['; name_end++) ;
+            size_t name_len = name_end - name_ptr;
+            
+            uniform_t* member;
+            for (member = cur->first_child; member; member = member->next) {
+                if (strlen(member->name)==name_len && strncmp(member->name, name_ptr, name_len)==0)
+                    goto cont2;
+            }
+            
+            member = calloc(sizeof(uniform_t), 1);
+            member->name = calloc(name_len+1, 1);
+            memcpy(member->name, name_ptr, name_len);
+            member->type = UniformType_Unspecified;
+            member->next = cur->first_child;
+            cur->first_child = member;
+            cur->child_count++;
+            
+            cont2:
+            cur = member;
+            name_ptr = name_end;
+        } else if (*name_ptr == '[') {
+            if (cur->type == UniformType_Unspecified) {
+                cur->type = UniformType_Array;
+                cur->child_count = 0;
+                cur->first_child = NULL;
+            }
+            if (cur->type != UniformType_Array) return false;
+            
+            name_ptr++;
+            unsigned long long int index = strtoull(name_ptr, &name_ptr, 10);
+            if (*name_ptr != ']') return false;
+            name_ptr++;
+            
+            uniform_t* element;
+            for (element = cur->first_child; element; element = element->next) {
+                if (element->index == index)
+                    goto cont3;
+            }
+            
+            element = calloc(sizeof(uniform_t), 1);
+            element->index = index;
+            element->type = UniformType_Unspecified;
+            element->next = cur->first_child;
+            cur->first_child = element;
+            cur->child_count++;
+            
+            cont3:
+            cur = element;
+        } else {
+            return false;
+        }
+    }
+    
+    if (cur->type != UniformType_Unspecified) return false;
+    
+    if (array) {
+        cur->type = UniformType_Array;
+        cur->first_child = NULL;
+        cur->child_count = size;
+        for (size_t j = 0; j < size; j++) {
+            uniform_t* element = malloc(sizeof(uniform_t));
+            element->index = j;
+            element->type = UniformType_Variable;
+            element->prev = NULL;
+            element->next = cur->first_child;
+            cur->first_child = element;
+            element->dtype = type;
+            GLchar element_name[strlen(name)+8];
+            sprintf(element_name, "%s[%zu]", name, j);
+            element->location = F(glGetUniformLocation)(program, element_name);
+        }
+    } else {
+        cur->type = UniformType_Variable;
+        cur->dtype = type;
+        cur->location = loc;
+    }
+    
+    return true;
+}
+
+static size_t get_uniforms_extra_max_size(uniform_t* uniform, bool array_element) {
+    switch (uniform->type) {
+    case UniformType_Variable: {
+        return array_element ? 14 : 14+strlen(uniform->name);
+    }
+    case UniformType_Struct:
+    case UniformType_Array: {
+        size_t size = array_element ? 9+uniform->child_count*4
+                                    : 9+uniform->child_count*4+strlen(uniform->name);
+        for (uniform_t* child = uniform->first_child; child; child = child->next)
+            size += get_uniforms_extra_max_size(child, uniform->type==UniformType_Array);
+        return size;
+    }
+    case UniformType_Unspecified: {
+        return 0;
+    }
+    }
+    return 0;
+}
+
+static size_t get_uniforms_spec_count(uniform_t* uniform) {
+    switch (uniform->type) {
+    case UniformType_Variable: {
+        return 1;
+    }
+    case UniformType_Struct:
+    case UniformType_Array: {
+        size_t count = 1;
+        for (uniform_t* child = uniform->first_child; child; child = child->next)
+            count += get_uniforms_spec_count(child);
+        return count;
+    }
+    case UniformType_Unspecified: {
+        return 0;
+    }
+    }
+    return 0;
+}
+
+typedef struct uniform_dtype_info_t {
+    GLenum type;
+    uint8_t base_type;
+    uint8_t dim[2];
+    uint8_t tex_type;
+    bool tex_shadow;
+    bool tex_array;
+    bool tex_multisample;
+    uint8_t tex_dtype;
+} uniform_dtype_info_t;
+
+static uniform_dtype_info_t uniform_dtype_info[] = {
+    {GL_FLOAT, 0, {1, 1}, 0, false, false, false, 0},
+    {GL_FLOAT_VEC2, 0, {2, 1}, 0, false, false, false, 0},
+    {GL_FLOAT_VEC3, 0, {3, 1}, 0, false, false, false, 0},
+    {GL_FLOAT_VEC4, 0, {4, 1}, 0, false, false, false, 0},
+    {GL_DOUBLE, 1, {1, 1}, 0, false, false, false, 0},
+    {GL_DOUBLE_VEC2, 1, {2, 1}, 0, false, false, false, 0},
+    {GL_DOUBLE_VEC3, 1, {3, 1}, 0, false, false, false, 0},
+    {GL_DOUBLE_VEC4, 1, {4, 1}, 0, false, false, false, 0},
+    {GL_INT, 3, {1, 1}, 0, false, false, false, 0},
+    {GL_INT_VEC2, 3, {2, 1}, 0, false, false, false, 0},
+    {GL_INT_VEC3, 3, {3, 1}, 0, false, false, false, 0},
+    {GL_INT_VEC4, 3, {4, 1}, 0, false, false, false, 0},
+    {GL_UNSIGNED_INT, 2, {1, 1}, 0, false, false, false, 0},
+    {GL_UNSIGNED_INT_VEC2, 2, {2, 1}, 0, false, false, false, 0},
+    {GL_UNSIGNED_INT_VEC3, 2, {3, 1}, 0, false, false, false, 0},
+    {GL_UNSIGNED_INT_VEC4, 2, {4, 1}, 0, false, false, false, 0},
+    {GL_BOOL, 6, {1, 1}, 0, false, false, false, 0},
+    {GL_BOOL_VEC2, 6, {2, 1}, 0, false, false, false, 0},
+    {GL_BOOL_VEC3, 6, {3, 1}, 0, false, false, false, 0},
+    {GL_BOOL_VEC4, 6, {4, 1}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT2, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT3, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT4, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT2x3, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT2x4, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT3x2, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT3x4, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT4x2, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_FLOAT_MAT4x3, 0, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT2, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT3, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT4, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT2x3, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT2x4, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT3x2, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT3x4, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT4x2, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_DOUBLE_MAT4x3, 1, {0, 0}, 0, false, false, false, 0},
+    {GL_SAMPLER_1D, 7, {0, 0}, 0, False, False, False, 0},
+    {GL_SAMPLER_2D, 7, {0, 0}, 1, False, False, False, 0},
+    {GL_SAMPLER_3D, 7, {0, 0}, 2, False, False, False, 0},
+    {GL_SAMPLER_CUBE, 7, {0, 0}, 3, False, False, False, 0},
+    {GL_SAMPLER_1D_SHADOW, 7, {0, 0}, 0, True, False, False, 0},
+    {GL_SAMPLER_2D_SHADOW, 7, {0, 0}, 1, True, False, False, 0},
+    {GL_SAMPLER_1D_ARRAY, 7, {0, 0}, 0, False, True, False, 0},
+    {GL_SAMPLER_2D_ARRAY, 7, {0, 0}, 1, False, True, False, 0},
+    {GL_SAMPLER_CUBE_MAP_ARRAY, 7, {0, 0}, 3, False, True, False, 0},
+    {GL_SAMPLER_1D_ARRAY_SHADOW, 7, {0, 0}, 0, True, True, False, 0},
+    {GL_SAMPLER_2D_ARRAY_SHADOW, 7, {0, 0}, 1, True, True, False, 0},
+    {GL_SAMPLER_2D_MULTISAMPLE, 7, {0, 0}, 1, False, False, True, 0},
+    {GL_SAMPLER_2D_MULTISAMPLE_ARRAY, 7, {0, 0}, 1, False, True, True, 0},
+    {GL_SAMPLER_CUBE_SHADOW, 7, {0, 0}, 3, True, False, False, 0},
+    {GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW, 7, {0, 0}, 3, True, True, False, 0},
+    {GL_SAMPLER_BUFFER, 7, {0, 0}, 5, False, False, False, 0},
+    {GL_SAMPLER_2D_RECT, 7, {0, 0}, 4, False, False, False, 0},
+    {GL_SAMPLER_2D_RECT_SHADOW, 7, {0, 0}, 4, True, False, False, 0},
+    {GL_INT_SAMPLER_1D, 7, {0, 0}, 0, False, False, False, 3},
+    {GL_INT_SAMPLER_2D, 7, {0, 0}, 1, False, False, False, 3},
+    {GL_INT_SAMPLER_3D, 7, {0, 0}, 2, False, False, False, 3},
+    {GL_INT_SAMPLER_CUBE, 7, {0, 0}, 3, False, False, False, 3},
+    {GL_INT_SAMPLER_1D_ARRAY, 7, {0, 0}, 0, False, True, False, 3},
+    {GL_INT_SAMPLER_2D_ARRAY, 7, {0, 0}, 1, False, True, False, 3},
+    {GL_INT_SAMPLER_CUBE_MAP_ARRAY, 7, {0, 0}, 3, False, True, False, 3},
+    {GL_INT_SAMPLER_2D_MULTISAMPLE, 7, {0, 0}, 1, False, False, True, 3},
+    {GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY, 7, {0, 0}, 1, False, True, True, 3},
+    {GL_INT_SAMPLER_BUFFER, 7, {0, 0}, 5, False, False, False, 3},
+    {GL_INT_SAMPLER_2D_RECT, 7, {0, 0}, 4, False, False, False, 3},
+    {GL_UNSIGNED_INT_SAMPLER_1D, 7, {0, 0}, 0, False, False, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_2D, 7, {0, 0}, 1, False, False, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_3D, 7, {0, 0}, 2, False, False, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_CUBE, 7, {0, 0}, 3, False, False, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_1D_ARRAY, 7, {0, 0}, 0, False, True, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_2D_ARRAY, 7, {0, 0}, 1, False, True, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY, 7, {0, 0}, 3, False, True, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE, 7, {0, 0}, 1, False, False, True, 2},
+    {GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY, 7, {0, 0}, 1, False, True, True, 2},
+    {GL_UNSIGNED_INT_SAMPLER_BUFFER, 7, {0, 0}, 5, False, False, False, 2},
+    {GL_UNSIGNED_INT_SAMPLER_2D_RECT, 7, {0, 0}, 4, False, False, False, 2},
+    {GL_IMAGE_1D, 8, {0, 0}, 0, False, False, False, 0},
+    {GL_IMAGE_2D, 8, {0, 0}, 1, False, False, False, 0},
+    {GL_IMAGE_3D, 8, {0, 0}, 2, False, False, False, 0},
+    {GL_IMAGE_2D_RECT, 8, {0, 0}, 4, False, False, False, 0},
+    {GL_IMAGE_CUBE, 8, {0, 0}, 3, False, False, False, 0},
+    {GL_IMAGE_BUFFER, 8, {0, 0}, 5, False, False, False, 0},
+    {GL_IMAGE_1D_ARRAY, 8, {0, 0}, 0, False, True, False, 0},
+    {GL_IMAGE_2D_ARRAY, 8, {0, 0}, 1, False, True, False, 0},
+    {GL_IMAGE_CUBE_MAP_ARRAY, 8, {0, 0}, 3, False, True, False, 0},
+    {GL_IMAGE_2D_MULTISAMPLE, 8, {0, 0}, 1, False, False, True, 0},
+    {GL_IMAGE_2D_MULTISAMPLE_ARRAY, 8, {0, 0}, 1, False, True, True, 0},
+    {GL_INT_IMAGE_1D, 8, {0, 0}, 0, False, False, False, 3},
+    {GL_INT_IMAGE_2D, 8, {0, 0}, 1, False, False, False, 3},
+    {GL_INT_IMAGE_3D, 8, {0, 0}, 2, False, False, False, 3},
+    {GL_INT_IMAGE_2D_RECT, 8, {0, 0}, 4, False, False, False, 3},
+    {GL_INT_IMAGE_CUBE, 8, {0, 0}, 3, False, False, False, 3},
+    {GL_INT_IMAGE_BUFFER, 8, {0, 0}, 5, False, False, False, 3},
+    {GL_INT_IMAGE_1D_ARRAY, 8, {0, 0}, 0, False, True, False, 3},
+    {GL_INT_IMAGE_2D_ARRAY, 8, {0, 0}, 1, False, True, False, 3},
+    {GL_INT_IMAGE_CUBE_MAP_ARRAY, 8, {0, 0}, 3, False, True, False, 3},
+    {GL_INT_IMAGE_2D_MULTISAMPLE, 8, {0, 0}, 1, False, False, True, 3},
+    {GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY, 8, {0, 0}, 1, False, True, True, 3},
+    {GL_UNSIGNED_INT_IMAGE_1D, 8, {0, 0}, 0, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_2D, 8, {0, 0}, 1, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_3D, 8, {0, 0}, 2, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_2D_RECT, 8, {0, 0}, 4, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_CUBE, 8, {0, 0}, 3, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_BUFFER, 8, {0, 0}, 5, False, False, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_1D_ARRAY, 8, {0, 0}, 0, False, True, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_2D_ARRAY, 8, {0, 0}, 1, False, True, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY, 8, {0, 0}, 3, False, True, False, 2},
+    {GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE, 8, {0, 0}, 1, False, False, True, 2},
+    {GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY, 8, {0, 0}, 1, False, True, True, 2},
+    {GL_UNSIGNED_INT_ATOMIC_COUNTER, 9, {0, 0}, 0, false, false, false, 0},
+};
+
+static uint8_t* write_uniform_extra(uint8_t* data, uniform_t* uniform, bool array_element) {
+    uint32_t name_len = htole32(array_element?0:strlen(uniform->name));
+    memcpy(data, &name_len, 4);
+    memcpy(data+4, uniform->name, name_len);
+    data += 4 + name_len;
+    switch (uniform->type) {
+    case UniformType_Variable: {
+        uniform_dtype_info_t info;
+        for (size_t i = 0; i < sizeof(uniform_dtype_info)/sizeof(uniform_dtype_info[0]); i++) {
+            if (uniform_dtype_info[i].type == uniform->dtype) {
+                info = uniform_dtype_info[i];
+                goto found;
+            }
+        }
+        //TODO: Handle
+        found:
+        *data++ = info.base_type;
+        uint32_t loc = htole32(uniform->location);
+        memcpy(data, &loc, 4);
+        data += 4;
+        if (info.dim[0]==0 && info.dim[0]==0) {
+            *data++ = info.tex_type;
+            *data++ = info.tex_shadow;
+            *data++ = info.tex_array;
+            *data++ = info.tex_multisample;
+            *data++ = info.tex_dtype;
+        } else {
+            *data++ = info.dim[0];
+            *data++ = info.dim[1];
+        }
+        break;
+    }
+    case UniformType_Struct: {
+        *data++ = 10;
+        uint32_t member_count = htole32(uniform->child_count);
+        memcpy(data, &member_count, 4);
+        data += 4;
+        for (uniform_t* member = uniform->first_child; member; member = member->next)
+            data = write_uniform_extra(data, member, false);
+        break;
+    }
+    case UniformType_Array: {
+        *data++ = 11;
+        uint32_t element_count = htole32(uniform->child_count);
+        memcpy(data, &element_count, 4);
+        data += 4;
+        for (size_t i = 0; i < uniform->child_count; i++) {
+            uniform_t* element = uniform->first_child;
+            for (; element&&element->index!=i; element = element->next)
+            if (!element) ; //TODO: This should never happen because of previous validation
+            data = write_uniform_extra(data, element, true);
+        }
+        break;
+    }
+    case UniformType_Unspecified: {
+        break;
+    }
+    }
+    return data;
+}
+
+static void write_uniforms_extra(uniform_t* uniforms) {
+    size_t size = 8;
+    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
+        size += get_uniforms_extra_max_size(uniform, false);
+    uint8_t* data = malloc(size);
+    
+    uint32_t spec_count = 0;
+    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
+        spec_count += get_uniforms_spec_count(uniform);
+    spec_count = htole32(spec_count);
+    memcpy(data, &spec_count, 4);
+    
+    uint32_t root_spec_count = 0;
+    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next) root_spec_count++;
+    root_spec_count = htole32(root_spec_count);
+    memcpy(data+4, &root_spec_count, 4);
+    
+    uint8_t* data_ptr = data + 8;
+    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
+        data_ptr = write_uniform_extra(data_ptr, uniform, false);
+    
+    gl_add_extra("replay/program/uniforms", size, data);
+    
+    free(data);
+}
+
 static void link_program_extras(GLuint program) {
     GLint count;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORMS, &count);
@@ -885,7 +1283,7 @@ static void link_program_extras(GLuint program) {
         GLenum type;
         F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
         GLint loc = F(glGetUniformLocation)(program, name);
-        if (loc < 0) continue; //Probably part of a uniform block or something
+        if (loc < 0) continue; //Probably part of a uniform buffer block or a builtin variable
         
         if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
             name[strlen(name)-3] = 0;
@@ -898,6 +1296,31 @@ static void link_program_extras(GLuint program) {
             add_program_extra("replay/program/uniform", new_name, 0, F(glGetUniformLocation)(program, new_name));
         }
     }
+    
+    uniform_t* uniforms = NULL;
+    for (size_t i = 0; i < count; i++) {
+        GLchar name[maxNameLen+1];
+        memset(name, 0, maxNameLen+1);
+        GLint size;
+        GLenum type;
+        F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
+        GLint loc = F(glGetUniformLocation)(program, name);
+        if (loc < 0) continue; //Probably part of a uniform buffer block or a builtin variable
+        
+        bool array = strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0;
+        array = array || size!=1;
+        
+        if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
+            name[strlen(name)-3] = 0;
+        
+        if (!add_uniform_variable(program, &uniforms, name, size, type, loc, array)) {
+            //TODO: Free uniforms and don't write the extra
+        }
+    }
+    
+    //TODO: Validate uniforms
+    
+    write_uniforms_extra(uniforms);
     
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTES, &count);
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxNameLen);

@@ -38,7 +38,7 @@ void vao_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_vao_rev_t* vao = NULL;
     for (size_t i = 0; trc_iter_objects(trace, TrcVAO, &i, revision, (const void**)&vao);) {
-        if (count == index-1) break;
+        if (count == index) break;
         count++;
     }
     

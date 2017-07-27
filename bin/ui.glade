@@ -675,15 +675,15 @@
                                   <object class="GtkTreeSelection"/>
                                 </child>
                                 <child>
-                                  <object class="GtkTreeViewColumn" id="location">
-                                    <property name="resizable">True</property>
-                                    <property name="title" translatable="yes">Location</property>
-                                  </object>
-                                </child>
-                                <child>
                                   <object class="GtkTreeViewColumn" id="name7">
                                     <property name="resizable">True</property>
                                     <property name="title" translatable="yes">Name</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkTreeViewColumn" id="location">
+                                    <property name="resizable">True</property>
+                                    <property name="title" translatable="yes">Location</property>
                                   </object>
                                 </child>
                                 <child>

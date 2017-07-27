@@ -137,7 +137,7 @@ void framebuffer_select_callback(GObject* obj, gpointer user_data) {
         size_t count = 0;
         const trc_gl_framebuffer_rev_t* fb = NULL;
         for (size_t i = 0; trc_iter_objects(trace, TrcFramebuffer, &i, revision, (const void**)&fb);) {
-            if (count == index-1) break;
+            if (count == index) break;
             count++;
         }
         
@@ -193,7 +193,7 @@ void renderbuffer_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_renderbuffer_rev_t* rb = NULL;
     for (size_t i = 0; trc_iter_objects(trace, TrcRenderbuffer, &i, revision, (const void**)&rb);) {
-        if (count == index-1) break;
+        if (count == index) break;
         count++;
     }
     

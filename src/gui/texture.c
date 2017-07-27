@@ -37,7 +37,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_texture_rev_t* tex = NULL;
     for (size_t i = 0; trc_iter_objects(trace, TrcTexture, &i, revision, (const void**)&tex);) {
-        if (count == tex_index-1) break;
+        if (count == tex_index) break;
         count++;
     }
     

@@ -193,7 +193,7 @@ void fmt_object_id(char* buf, size_t buf_size, const trc_obj_rev_head_t* rev) {
     memset(buf, 0, buf_size);
     if (!buf_size) return;
     if (rev->has_name) snprintf(buf, buf_size-1, "%lu", rev->name);
-    else snprintf(buf, buf_size-1, "0x%lx", (uint64_t)(uintptr_t)rev->obj);
+    else snprintf(buf, buf_size-1, "0x%lx", (uint64_t)(uintptr_t)rev->obj); //TODO: Show past name
 }
 
 void create_obj_list(GtkTreeStore* store, trc_obj_type_t type) {

@@ -30,7 +30,7 @@ void sync_select_callback(GObject* obj, gpointer user_data) {
     size_t count = 0;
     const trc_gl_sync_rev_t* sync = NULL;
     for (size_t i = 0; trc_iter_objects(trace, TrcSync, &i, revision, (const void**)&sync);) {
-        if (count == index-1) break;
+        if (count == index) break;
         count++;
     }
     

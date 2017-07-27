@@ -37,22 +37,6 @@ Bugs:
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
     The state, textures, etc will not be updated when opening a trace in the GUI.
     Group indices are stored in traces
-    have only one uniform storage for an array
-        so if you have 'float v[2]'
-        have location translations for v[0] and v[1] but store only v
-        notes:
-            struct S {float b[2];}
-            S a[2];
-            2 names returned:
-                a[0].b[0]
-                a[1].b[0]
-            4 locations:
-                a[0].b[0]
-                a[0].b[1]
-                a[1].b[0]
-                a[1].b[1]
-            2 storages:
-                a[0].b and a[1].b
     ensure that packed and shared layout for UBOs work
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
         both in replay and tracing

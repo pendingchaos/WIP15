@@ -271,14 +271,57 @@ typedef struct trc_gl_program_shader_t {
     uint64_t shader_revision;
 } trc_gl_program_shader_t;
 
-typedef struct trc_gl_program_uniform_t {
-    uint real; //real location
-    uint fake; //fake location
+typedef enum trc_gl_uniform_base_dtype_t {
+    TrcUniformBaseType_Float = 0,
+    TrcUniformBaseType_Double = 1,
+    TrcUniformBaseType_Uint = 2,
+    TrcUniformBaseType_Int = 3,
+    TrcUniformBaseType_Uint64 = 4,
+    TrcUniformBaseType_Int64 = 5,
+    TrcUniformBaseType_Bool = 6,
+    TrcUniformBaseType_Sampler = 7,
+    TrcUniformBaseType_Image = 8,
+    TrcUniformBaseType_AtomicCounter = 9,
+    TrcUniformBaseType_Struct = 10,
+    TrcUniformBaseType_Array = 11
+} trc_gl_uniform_base_dtype_t;
+
+typedef enum trc_gl_uniform_tex_type_t {
+    TrcUniformTexType_1D = 0,
+    TrcUniformTexType_2D = 1,
+    TrcUniformTexType_3D = 2,
+    TrcUniformTexType_Cube = 3,
+    TrcUniformTexType_Rect = 4,
+    TrcUniformTexType_Buffer = 5
+} trc_gl_uniform_tex_type_t;
+
+typedef struct trc_gl_uniform_dtype_t {
+    trc_gl_uniform_base_dtype_t base;
     uint dim[2];
-    uint count; //for non-matrices: 0 -> non-array
-    uint dtype;
-    trc_data_t* value; //array of double if dtype==0, array of uint64_t if dtype==1, int64_t if dtype==2
-} trc_gl_program_uniform_t;
+    
+    trc_gl_uniform_tex_type_t tex_type;
+    bool tex_shadow;
+    bool tex_array;
+    bool tex_multisample;
+    trc_gl_uniform_base_dtype_t tex_dtype; //Float, Uint or Int
+} trc_gl_uniform_dtype_t;
+
+typedef struct trc_gl_uniform_t {
+    trc_data_t* name; //Null in the case of array elements
+    trc_gl_uniform_dtype_t dtype;
+    uint parent; //can be 0xffffffff for root uniforms
+    uint next; //next member or array element, or 0xffffffff if none
+    union {
+    struct {
+        int real_loc;
+        uint fake_loc;
+        uint data_offset;
+    };
+    //For Array(s), all element types must be the same
+    //Unordered in the case of Struct(s)
+    uint first_child;
+    };
+} trc_gl_uniform_t;
 
 typedef struct trc_gl_program_uniform_block_t {
     uint real; //real index
@@ -288,7 +331,10 @@ typedef struct trc_gl_program_uniform_block_t {
 
 typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
-    trc_data_t* uniforms; //array of trc_gl_program_uniform_t
+    size_t root_uniform_count;
+    //may be larger than root_uniform_count*sizeof(trc_gl_uniform_t)
+    trc_data_t* uniforms; //array of trc_gl_uniform_spec_t
+    trc_data_t* uniform_data;
     trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
     trc_data_t* uniform_blocks; //array of trc_gl_program_uniform_block_t
     

@@ -79,7 +79,7 @@ static void update_buffer_view(size_t buf_index) {
     size_t count = 0;
     const trc_gl_buffer_rev_t* buf = NULL;
     for (size_t i = 0; trc_iter_objects(trace, TrcBuffer, &i, revision, (const void**)&buf);) {
-        if (count == buf_index-1) break;
+        if (count == buf_index) break;
         count++;
     }
     

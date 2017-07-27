@@ -33,14 +33,38 @@ static void uniform_testd(const char* name, size_t count, ...) {
     va_end(list);
 }
 
-BEGIN_TEST(glUniform1f)
+BEGIN_TEST(float_0)
     UNIFORM_SETUP("uniform float u;\n", "vec4(u)");
     glUniform1f(glGetUniformLocation(program, "u"), 1.0f);
     uniform_testd("u", 1, 1.0);
-END_TEST(glUniform1f)
+END_TEST(float_0)
 
-BEGIN_TEST(glUniform2f)
+BEGIN_TEST(float_1)
+    UNIFORM_SETUP("uniform float u=1.0;\n", "vec4(u)");
+    uniform_testd("u", 1, 1.0);
+END_TEST(float_1)
+
+BEGIN_TEST(vec2_0)
     UNIFORM_SETUP("uniform vec2 u;\n", "vec4(u, u)");
     glUniform2f(glGetUniformLocation(program, "u"), 1.0f, 2.0f);
     uniform_testd("u", 2, 1.0, 2.0);
-END_TEST(glUniform2f)
+END_TEST(vec2_0)
+
+BEGIN_TEST(vec2_1)
+    UNIFORM_SETUP("uniform vec2 u=vec2(1.0, 2.0);\n", "vec4(u, u)");
+    uniform_testd("u", 2, 1.0, 2.0);
+END_TEST(vec2_1)
+
+BEGIN_TEST(float_vec2_0)
+    UNIFORM_SETUP("uniform float u0;\nuniform vec2 u1;\n", "vec4(u0, u0, u1)");
+    glUniform1f(glGetUniformLocation(program, "u0"), 1.0f);
+    glUniform2f(glGetUniformLocation(program, "u1"), 2.0f, 3.0f);
+    uniform_testd("u0", 1, 1.0);
+    uniform_testd("u1", 2, 2.0, 3.0);
+END_TEST(float_vec2_0)
+
+BEGIN_TEST(float_vec2_1)
+    UNIFORM_SETUP("uniform float u0=1.0;\nuniform vec2 u1=vec2(2.0, 3.0);\n", "vec4(u0, u0, u1)");
+    uniform_testd("u0", 1, 1.0);
+    uniform_testd("u1", 2, 2.0, 3.0);
+END_TEST(float_vec2_1)
