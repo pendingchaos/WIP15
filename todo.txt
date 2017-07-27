@@ -30,7 +30,6 @@ Debugging:
     Replay should check to see if the user supplied limits have been reached.
 
 Tests:
-    Compare expected objects with actual objects?
     Implement more of them
 
 Bugs:
