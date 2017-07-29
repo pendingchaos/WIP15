@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import glapi.glxml
 import math
-from gl_state import *
 from glapi.glapi import *
 
 for fname, func in func_dict.iteritems():
