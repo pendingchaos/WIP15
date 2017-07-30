@@ -77,6 +77,16 @@ const char* format_float(double val) {
     return data;
 }
 
+static void cat_str(char* buf, const char* src, size_t buf_size) {
+    char* dest = buf;
+    if (buf_size > 1) {
+        while (*dest) dest++;
+        while (*src && dest-buf < buf_size-1)
+            *dest++ = *src++;
+    }
+    *dest++ = 0;
+}
+
 void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
@@ -93,78 +103,99 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
                 const glapi_group_entry_t *entry = group->entries[i];
                 
                 if (entry->value == val) {
-                    strncat(str, entry->name, n);
+                    cat_str(str, entry->name, n);
                     return;
                 }
             }
         }
     }
     
-    if (value.count != 1) strncat(str, "[", n);
+    if (value.count != 1) cat_str(str, "[", n);
     for (size_t i = 0; i < value.count; ++i) {
         switch (value.type) {
         case Type_Void: {
-            strncat(str, "void", n);
+            cat_str(str, "void", n);
             break;
         }
         case Type_UInt: {
-            strncat(str, static_format("%"PRIu64, trc_get_uint(&value)[i]), n);
+            cat_str(str, static_format("%"PRIu64, trc_get_uint(&value)[i]), n);
             break;
         }
         case Type_Int: {
-            strncat(str, static_format("%"PRId64, trc_get_int(&value)[i]), n);
+            cat_str(str, static_format("%"PRId64, trc_get_int(&value)[i]), n);
             break;
         }
         case Type_Double: {
-            strncat(str, static_format("%s", format_float(trc_get_double(&value)[i])), n);
+            cat_str(str, static_format("%s", format_float(trc_get_double(&value)[i])), n);
             break;
         }
         case Type_Boolean: {
-            strncat(str, static_format(trc_get_bool(&value)[i] ? "true" : "false"), n);
+            cat_str(str, static_format(trc_get_bool(&value)[i] ? "true" : "false"), n);
             break;
         }
         case Type_Str: {
             const char* strval = trc_get_str(&value)[i];
             bool multiline = false;
             for (const char* c = strval; *c; c++) multiline |= *c == '\n';
-            if (multiline) strncat(str, "...", n);
-            else strncat(str, static_format("'%s'", strval), n);
+            if (multiline) cat_str(str, "...", n);
+            else cat_str(str, static_format("'%s'", strval), n);
             break;
         }
         case Type_FunctionPtr: {
-            strncat(str, static_format("<function pointer>"), n);
+            cat_str(str, static_format("<function pointer>"), n);
             break;
         }
         case Type_Ptr: {
-            strncat(str, static_format("0x%"PRIx64, trc_get_ptr(&value)[i]), n);
+            cat_str(str, static_format("0x%"PRIx64, trc_get_ptr(&value)[i]), n);
             break;
         }
         case Type_Data: {
-            strncat(str, static_format("<data>"), n);
+            cat_str(str, static_format("<data>"), n);
             break;
         }
         }
         
-        if (i != value.count-1) strncat(str, ", ", n);
+        if (i != value.count-1) cat_str(str, ", ", n);
     }
-    if (value.count != 1) strncat(str, "]", n);
+    if (value.count != 1) cat_str(str, "]", n);
+}
+
+static void format_cmd(trace_t* trace, char* str, trace_command_t* cmd, size_t n, bool ext) {
+    *str = 0;
+    
+    cat_str(str, static_format("%s(", trace->func_names[cmd->func_index]), n);
+    
+    char* func_name = trace->func_names[cmd->func_index];
+    glapi_function_t* func = NULL;
+    for (size_t i = 0; ext && i<glapi.function_count; i++) {
+        if (strcmp((func=glapi.functions[i])->name, func_name) == 0)
+            break;
+    }
+    
+    for (size_t i = 0; i < cmd->arg_count; i++) {
+        if (ext) {
+            cat_str(str, func->args[i]->name, n);
+            cat_str(str, "=", n);
+        }
+        format_value(trace, str, cmd->args[i], n);
+        if (i != cmd->arg_count-1)
+            cat_str(str, static_format(", "), n);
+    }
+    
+    cat_str(str, ")", n);
+    
+    if (cmd->ret.type != Type_Void) {
+        cat_str(str, " = ", n);
+        format_value(trace, str, cmd->ret, n);
+    }
 }
 
 void format_command(trace_t* trace, char* str, trace_command_t* cmd, size_t n) {
-    strncat(str, static_format("%s(", trace->func_names[cmd->func_index]), n);
-    
-    for (size_t i = 0; i < cmd->arg_count; i++) {
-        format_value(trace, str, cmd->args[i], n);
-        if (i != cmd->arg_count-1)
-            strncat(str, static_format(", "), n);
-    }
-    
-    strncat(str, ")", n);
-    
-    if (cmd->ret.type != Type_Void) {
-        strncat(str, " = ", n);
-        format_value(trace, str, cmd->ret, n);
-    }
+    format_cmd(trace, str, cmd, n, false);
+}
+
+void format_command_ext(trace_t* trace, char* str, trace_command_t* cmd, size_t n) {
+    format_cmd(trace, str, cmd, n, true);
 }
 
 void init_treeview(GtkBuilder* builder, const char* name, size_t column_count) {

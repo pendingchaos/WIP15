@@ -29,9 +29,8 @@ static void init_trace_tree(GtkTreeView* tree) {
     for (size_t i = 0; i < trace->frame_count; ++i) {
         trace_frame_t* frame = trace->frames + i;
         
-        char frame_str[4096];
-        memset(frame_str, 0, 4096);
-        snprintf(frame_str, 4096, "Frame %zu", i);
+        char frame_str[32] = {0};
+        snprintf(frame_str, 32, "Frame %zu", i);
         
         bool error = false;
         bool warning = false;
@@ -60,8 +59,7 @@ static void init_trace_tree(GtkTreeView* tree) {
             gtk_tree_store_append(store, &cmd_row, &frame_row);
             
             trace_command_t* cmd = frame->commands + j;
-            char cmd_str[1024];
-            memset(cmd_str, 0, 1024);
+            char cmd_str[1024] = {0};
             format_command(trace, cmd_str, cmd, 1024);
             
             bool error = false;
@@ -137,7 +135,7 @@ static void end_category() {
 static void value(GtkTreeStore* store, const char* name, const char* format, ...) {
     va_list list;
     va_start(list, format);
-    char value[1024];
+    char value[1024] = {0};
     vsnprintf(value, sizeof(value), format, list);
     va_end(list);
     
@@ -414,6 +412,13 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         GObject* view = gtk_builder_get_object(builder, "selected_command_attachments");
         GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(view)));
         gtk_tree_store_clear(store);
+        
+        
+        char cmd_str[1024] = {0};
+        format_command_ext(trace, cmd_str, cmd, 1024);
+        GtkTreeIter row;
+        gtk_tree_store_append(store, &row, NULL);
+        gtk_tree_store_set(store, &row, 0, cmd_str, -1);
         
         trc_attachment_t* attachment = cmd->attachments;
         while (attachment) {

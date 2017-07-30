@@ -67,7 +67,5 @@ Multiple thread support
 Reduce memory usage during replaying.
     Reduce amount of memory needed to store state
 
-add detailed function call on bottom
-
 cleanup objects after replay
     don't forget trc_gl_context_rev_t::draw_vao
