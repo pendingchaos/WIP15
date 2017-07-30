@@ -16,9 +16,10 @@ def indent(s, amount):
     return '\n'.join(['    '*amount+l for l in s.split('\n')])
 
 class Group(object):
-    def __init__(self, name=None):
+    def __init__(self, name=None, bitmask=False):
         global next_group_id, groups
         self.name = name if name!=None else 'group_%u'%next_group_id
+        self.bitmask = bitmask
         self.vals = {}
         self.minvers = {}
         if self.name in group_dict:

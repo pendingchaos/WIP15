@@ -69,8 +69,9 @@ for name, group in group_dict.iteritems():
                  (i,
                   ", ".join(["&entry_%d_%d" % (i, id(vn)) for vn in group.vals.keys()])))
     
-    output.write("static const glapi_group_t group_%s = {false, \"%s\", %d, entries_%d};\n" %
+    output.write("static const glapi_group_t group_%s = {%s, \"%s\", %d, entries_%d};\n" %
                  (group.name,
+                  str(group.bitmask).lower(),
                   name,
                   len(group.vals.keys()),
                   i))

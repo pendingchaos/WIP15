@@ -47,7 +47,7 @@ for f in gl.functions.keys():
         funcs.append(f)
 
 for name, group in groups.iteritems():
-    output.write('Group(\'%s\')' % name)
+    output.write('Group(\'%s\', %s)' % (name, str(gl.groups[name].bitmask)))
     for en in group:
         ver = (3, 2)
         for v in gl.versions.iteritems():

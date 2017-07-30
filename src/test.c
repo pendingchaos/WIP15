@@ -126,12 +126,10 @@ int main(int argc, char **argv)
     static const char* frag_source = "#version 130\n"
                                      "in vec2 frag_texCoord;\n"
                                      "out vec4 out_color;\n"
-                                     "struct S {vec3 color; vec3 color2[2];};"
-                                     "uniform S s;\n"
-                                     "uniform vec3 c[];\n"
+                                     "uniform vec3 color;\n"
                                      "uniform sampler2D tex;\n"
                                      "void main() {\n"
-                                     "    out_color = texture(tex, frag_texCoord) * vec4(s.color+s.color2[0]+s.color2[1]+c[0]+c[1], 1.0);\n"
+                                     "    out_color = texture(tex, frag_texCoord) * vec4(color, 1.0);\n"
                                      "}\n";
     glShaderSource(fragment, 1, &frag_source, NULL);
     glCompileShader(fragment);

@@ -97,10 +97,22 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         
         if (!group) {
         } else if (group->bitmask) {
-            //TODO
+            bool first = true;
+            for (size_t i = 0; i < group->entry_count; i++) {
+                const glapi_group_entry_t* entry = group->entries[i];
+                if (entry->value & val) {
+                    if (!first) cat_str(str, "|", n);
+                    cat_str(str, entry->name, n);
+                    first = false;
+                    val &= ~entry->value;
+                }
+            }
+            if (val && !first) cat_str(str, "|", n);
+            if (val) cat_str(str, static_format("0x"PRIx64"%", val), n);
+            return;
         } else {
             for (size_t i = 0; i < group->entry_count; i++) {
-                const glapi_group_entry_t *entry = group->entries[i];
+                const glapi_group_entry_t* entry = group->entries[i];
                 
                 if (entry->value == val) {
                     cat_str(str, entry->name, n);
