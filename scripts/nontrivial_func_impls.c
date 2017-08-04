@@ -2904,11 +2904,12 @@ glDeleteProgram: //GLuint p_program
     if (!rev.real) ERROR("Invalid program name");
     real(rev.real);
     
-    size_t shader_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
+    //TODO: This code should only be ran when the reference count is zero
+    /*size_t shader_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
         trc_del_obj_ref(shaders[i].shader);
-    trc_unmap_data(rev.shaders);
+    trc_unmap_data(rev.shaders);*/
     
     rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     set_program(ctx->trace, &rev);
@@ -3400,17 +3401,18 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(pipelines[i] = trc_get_real_program_pipeline(ctx->trace, p_pipelines[i])))
+        if (!(pipelines[i] = trc_get_real_program_pipeline(ctx->trace, p_pipelines[i]))) {
             trc_add_error(cmd, "Invalid program pipeline name");
-        else {
-            trc_gl_program_pipeline_rev_t rev = *get_program_pipeline(ctx->trace, p_pipelines[i]);
+        } else {
+            //TODO: This code should only be ran when the reference count is zero
+            /*trc_gl_program_pipeline_rev_t rev = *get_program_pipeline(ctx->trace, p_pipelines[i]);
             trc_del_obj_ref(rev.active_program);
             trc_del_obj_ref(rev.vertex_program);
             trc_del_obj_ref(rev.fragment_program);
             trc_del_obj_ref(rev.geometry_program);
             trc_del_obj_ref(rev.tess_control_program);
             trc_del_obj_ref(rev.tess_eval_program);
-            trc_del_obj_ref(rev.compue_program);
+            trc_del_obj_ref(rev.compute_program);*/
             drop_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
         }
     }
@@ -4825,9 +4827,17 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
         trc_obj_t* vao = trc_lookup_name(ctx->trace, TrcVAO, p_arrays[i], -1);
         if (vao && vao==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
-        if (!(arrays[i]=trc_get_real_vao(ctx->trace, p_arrays[i])))
+        if (!(arrays[i]=trc_get_real_vao(ctx->trace, p_arrays[i]))) {
             trc_add_error(cmd, "Invalid vertex array name");
-        else drop_obj(ctx->trace, p_arrays[i], TrcVAO);
+        } else {
+            //TODO: This code should only be run when the reference count is zero
+            /*size_t count = vao->attribs->size / sizeof(trc_gl_vao_attrib_t);
+            trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
+            for (size_t i = 0; i < count; i++)
+                trc_del_obj_ref(attribs[i].buffer);
+            trc_unmap_data(vao->attribs);*/
+            drop_obj(ctx->trace, p_arrays[i], TrcVAO);
+        }
     }
     real(p_n, arrays);
 
@@ -5010,9 +5020,20 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
             trc_gl_state_set_read_framebuffer(ctx->trace, NULL);
         if (fb && fb==trc_gl_state_get_draw_framebuffer(ctx->trace))
             trc_gl_state_set_draw_framebuffer(ctx->trace, NULL);
-        if (!(fbs[i] = trc_get_real_framebuffer(ctx->trace, p_framebuffers[i])))
+        if (!(fbs[i] = trc_get_real_framebuffer(ctx->trace, p_framebuffers[i]))) {
             trc_add_error(cmd, "Invalid framebuffer name");
-        else drop_obj(ctx->trace, p_framebuffers[i], TrcFramebuffer);
+        } else {
+            //TODO: This code should only be ran when the reference count is zero
+            /*trc_gl_framebuffer_rev_t rev = *get_framebuffer(ctx->trace, p_framebuffers[i]);
+            size_t count = rev.attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
+            trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev.attachments, TRC_MAP_READ);
+            for (size_t i = 0; i < count; i++) {
+                trc_del_obj_ref(attachments[i].renderbuffer);
+                trc_del_obj_ref(attachments[i].texture);
+            }
+            trc_unmap_data(rev.attachments);*/
+            drop_obj(ctx->trace, p_framebuffers[i], TrcFramebuffer);
+        }
     }
     real(p_n, fbs);
 
