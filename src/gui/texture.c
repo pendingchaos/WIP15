@@ -32,7 +32,6 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
         return;
     }
     
-    //Initialize params
     size_t tex_index = gtk_tree_path_get_indices(path)[0];
     size_t count = 0;
     const trc_gl_texture_rev_t* tex = NULL;
@@ -44,10 +43,11 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     //TODO
     gtk_adjustment_set_upper(gtk_spin_button_get_adjustment(layer_spinbutton), /*tex->layer_count-1*/0);
     
+    if (!tex->has_object) return;
+    
     GtkTreeIter row;
     #define VAL(name, val) do {gtk_tree_store_append(param_store, &row, NULL);\
     gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);} while (0)
-    if (!tex->has_object) return;
     
     VAL("Type", get_enum_str(NULL, tex->type));
     VAL("Depth Stencil Mode", static_format("%s", get_enum_str(NULL, tex->depth_stencil_mode)));
@@ -109,6 +109,8 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     if (dim_count > 2) VAL("Depth", static_format("%zu", dims[2]));
     if (layers != -1) VAL("Layers", static_format("%zu", dims[layers]/layers_div));
     VAL("Mipmap Count", static_format("%zu", max_level+1));
+    
+    #undef VAL
     
     //TODO: Currently assumes 2d floating point data
     for (size_t level = 0; level <= max_level; level++) {
@@ -183,6 +185,47 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     }*/
 }
 
+void sampler_select_callback(GObject* obj, gpointer user_data) {
+    GtkTreeView* param_tree = GTK_TREE_VIEW(gtk_builder_get_object(builder, "selected_sampler_treeview"));
+    GtkTreeStore* param_store = GTK_TREE_STORE(gtk_tree_view_get_model(param_tree));
+    if (!param_store) return;
+    
+    gtk_tree_store_clear(param_store);
+    
+    GtkTreePath* path;
+    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    if (!path) return;
+    
+    size_t index = gtk_tree_path_get_indices(path)[0];
+    size_t count = 0;
+    const trc_gl_sampler_rev_t* sampler = NULL;
+    for (size_t i = 0; trc_iter_objects(trace, TrcSampler, &i, revision, (const void**)&sampler);) {
+        if (count == index) break;
+        count++;
+    }
+    
+    GtkTreeIter row;
+    #define VAL(name, val) do {gtk_tree_store_append(param_store, &row, NULL);\
+    gtk_tree_store_set(param_store, &row, 0, (name), 1, (val), -1);} while (0)
+    
+    VAL("Min Filter", static_format("%s", get_enum_str("TextureMinFilter", sampler->params.min_filter)));
+    VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", sampler->params.mag_filter)));
+    VAL("Min LOD", static_format("%s", format_float(sampler->params.min_lod)));
+    VAL("Max LOD", static_format("%s", format_float(sampler->params.max_lod)));
+    VAL("Wrap S", static_format("%s", get_enum_str("TextureWrapMode", sampler->params.wrap_s)));
+    VAL("Wrap T", static_format("%s", get_enum_str("TextureWrapMode", sampler->params.wrap_t)));
+    VAL("Wrap R", static_format("%s", get_enum_str("TextureWrapMode", sampler->params.wrap_r)));
+    VAL("Border Color", static_format("[%s, %s, %s, %s]",
+                                      format_float(sampler->params.border_color[0]),
+                                      format_float(sampler->params.border_color[1]),
+                                      format_float(sampler->params.border_color[2]),
+                                      format_float(sampler->params.border_color[3])));
+    VAL("Compare Mode", static_format("%s", get_enum_str(NULL, sampler->params.compare_mode))); //TODO: The group
+    VAL("Compare Func", static_format("%s", get_enum_str("DepthFunction", sampler->params.compare_func)));
+    
+    #undef VAL
+}
+
 void init_texture_list(GtkTreeView* tree) {
     GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
     gtk_tree_store_clear(store);
@@ -190,9 +233,18 @@ void init_texture_list(GtkTreeView* tree) {
     create_obj_list(store, TrcTexture);
 }
 
+void init_sampler_list(GtkTreeView* tree) {
+    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
+    gtk_tree_store_clear(store);
+    
+    create_obj_list(store, TrcSampler);
+}
+
 void texture_init() {
     init_treeview(builder, "texture_list_treeview", 1);
     init_treeview(builder, "selected_texture_treeview", 2);
+    init_treeview(builder, "sampler_list_treeview", 1);
+    init_treeview(builder, "selected_sampler_treeview", 2);
     
     //Initialize texture image view
     GObject* tex_image_view = gtk_builder_get_object(builder, "selected_texture_images");

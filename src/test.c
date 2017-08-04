@@ -73,8 +73,13 @@ int main(int argc, char **argv)
     glGenTextures(1, &fb_texture);
     glBindTexture(GL_TEXTURE_2D, fb_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 640, 640, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    
+    //Sampler
+    GLuint sampler;
+    glGenSamplers(1, &sampler);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     
     //Depth stencil renderbuffer
     GLuint rb;
@@ -249,9 +254,11 @@ int main(int argc, char **argv)
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, fb_texture);
+        glBindSampler(0, sampler);
         glUniform1i(glGetUniformLocation(dpy_prog, "tex"), 0);
         
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindSampler(0, 0);
         glEndQuery(GL_SAMPLES_PASSED);
         
         SDL_GL_SwapWindow(window);
@@ -270,6 +277,7 @@ int main(int argc, char **argv)
     glDeleteBuffers(1, &element_buffer);
     glDeleteBuffers(1, &pos_buffer);
     glDeleteBuffers(1, &tex_coord_buffer);
+    glDeleteSamplers(1, &sampler);
     glDeleteTextures(1, &fb_texture);
     glDeleteTextures(1, &texture);
     

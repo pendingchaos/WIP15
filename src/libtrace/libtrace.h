@@ -178,14 +178,17 @@ typedef struct trc_gl_sample_params_t {
     uint wrap_s;
     uint wrap_t;
     uint wrap_r;
-    float border_color[4];
+    double border_color[4];
     uint compare_mode;
     uint compare_func;
 } trc_gl_sample_params_t;
 
 typedef struct trc_gl_sampler_rev_t {
     TRC_GL_OBJ_HEAD
-    bool has_object;
+    //Although a sampler name can have no object, one is created when it is used
+    //so there is no need to keep track of whether a revision has an object
+    //bool has_object;
+    trc_gl_sample_params_t params;
 } trc_gl_sampler_rev_t;
 
 typedef struct trc_gl_texture_image_t {

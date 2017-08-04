@@ -17,6 +17,7 @@ void init_vao_list(GtkTreeView* tree);
 void init_framebuffers_list(GtkTreeView* tree);
 void init_renderbuffers_list(GtkTreeView* tree);
 void init_texture_list(GtkTreeView* tree);
+void init_sampler_list(GtkTreeView* tree);
 void init_shader_list(GtkTreeView* tree);
 void init_program_list(GtkTreeView* tree);
 void init_syncs_list(GtkTreeView* tree);
@@ -400,6 +401,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         revision = cmd->revision;
         
         init_texture_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "texture_list_treeview")));
+        init_sampler_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "sampler_list_treeview")));
         init_buffer_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "buffers_treeview")));
         init_shader_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "shader_list_treeview")));
         init_program_list(GTK_TREE_VIEW(gtk_builder_get_object(builder, "program_list_view")));

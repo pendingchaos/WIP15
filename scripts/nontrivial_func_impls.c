@@ -1743,10 +1743,22 @@ static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* r
     }
 }
 
-static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake) {
     trc_gl_sampler_rev_t rev;
     rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
-    rev.has_object = create;
+    rev.params.border_color[0] = 0;
+    rev.params.border_color[1] = 0;
+    rev.params.border_color[2] = 0;
+    rev.params.border_color[3] = 0;
+    rev.params.compare_func = GL_LEQUAL;
+    rev.params.compare_mode = GL_NONE;
+    rev.params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
+    rev.params.mag_filter = GL_LINEAR;
+    rev.params.min_lod = -1000;
+    rev.params.max_lod = 1000;
+    rev.params.wrap_s = GL_REPEAT;
+    rev.params.wrap_t = GL_REPEAT;
+    rev.params.wrap_r = GL_REPEAT;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->trace, TrcSampler, fake[i], &rev);
@@ -3532,7 +3544,7 @@ glGetObjectLabel: //GLenum p_identifier, GLuint p_name, GLsizei p_bufSize, GLsiz
     case GL_QUERY: A(get_query, trc_gl_query_rev_t)
     case GL_PROGRAM_PIPELINE: A(get_program_pipeline, trc_gl_program_pipeline_rev_t)
     case GL_TRANSFORM_FEEDBACK: A(get_transform_feedback, trc_gl_transform_feedback_rev_t)
-    case GL_SAMPLER: A(get_sampler, trc_gl_sampler_rev_t)
+    case GL_SAMPLER: B(get_sampler, trc_gl_sampler_rev_t)
     case GL_TEXTURE: A(get_texture, trc_gl_texture_rev_t)
     case GL_RENDERBUFFER: A(get_renderbuffer, trc_gl_renderbuffer_rev_t)
     case GL_FRAMEBUFFER: A(get_framebuffer, trc_gl_framebuffer_rev_t)
@@ -4851,12 +4863,12 @@ glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
 glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     real(p_count, samplers);
-    gen_samplers(ctx, p_count, samplers, p_samplers, false);
+    gen_samplers(ctx, p_count, samplers, p_samplers);
 
 glCreateSamplers: //GLsizei p_n, GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, samplers);
-    gen_samplers(ctx, p_n, samplers, p_samplers, true);
+    gen_samplers(ctx, p_n, samplers, p_samplers);
 
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
@@ -4872,57 +4884,69 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     const trc_gl_sampler_rev_t* rev = get_sampler(ctx->trace, p_sampler);
     if (!rev && p_sampler) ERROR("Invalid sampler name");
     real(p_unit, p_sampler?rev->real:0);
-    if (rev && !rev->has_object) {
-        trc_gl_sampler_rev_t newrev = *rev;
-        newrev.has_object = true;
-        set_sampler(ctx->trace, &newrev);
-    }
 
 glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
     if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
         ERROR("Invalid range");
-    GLuint* real_tex = replay_alloc(p_count*sizeof(GLuint));
+    GLuint* real_samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; i++) {
         const trc_gl_sampler_rev_t* rev = get_sampler(ctx->trace, p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
-        if (!rev->has_object) ERROR("Sampler name at index %zu has no object", i);
-        real_tex[i] = rev->real;
+        real_samplers[i] = rev->real;
     }
-    real(p_first, p_count, real_tex);
+    real(p_first, p_count, real_samplers);
 
 glGetSynciv: //GLsync p_sync, GLenum p_pname, GLsizei p_bufSize, GLsizei* p_length, GLint* p_values
     if (!trc_get_real_sync(ctx->trace, p_sync)) ERROR("Invalid sync name");
     //TODO: More validation should be done
 
 glSamplerParameterf: //GLuint p_sampler, GLenum p_pname, GLfloat p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    double double_param = p_param;
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, 1, &double_param)) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(ctx->trace, &newrev);
+    }
 
 glSamplerParameteri: //GLuint p_sampler, GLenum p_pname, GLint p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    double double_param = p_param;
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, 1, &double_param)) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(ctx->trace, &newrev);
+    }
 
 glSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, const GLfloat* p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, trc_get_double(&cmd->args[2]))) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(ctx->trace, &newrev);
+    }
 
 glSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    
+    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
+    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+    
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(ctx->trace, &newrev);
+    }
 
 glSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    //TODO
+    real(p_sampler_rev->real, p_pname, p_param);
 
 glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_param
-    GLuint sampler = trc_get_real_sampler(ctx->trace, p_sampler);
-    if (!sampler) ERROR("Invalid sampler name");
-    real(sampler, p_pname, p_param);
+    if (!p_sampler_rev) ERROR("Invalid sampler name");
+    //TODO
+    real(p_sampler_rev->real, p_pname, p_param);
 
 glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     if (p_n < 0) ERROR("Invalid framebuffer name count");

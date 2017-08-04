@@ -673,22 +673,22 @@ Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'Primiti
 Func((3, 3), 'glGenSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 Func((3, 3), 'glDeleteSamplers', [P(tGLsizei, 'count'), P(tGLuint, 'samplers', 'count')])
 
-Func((3, 3), 'glSamplerParameteri', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameteri', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                      P(tGLint, 'param')])
 
-Func((3, 3), 'glSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameteriv', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                       P(tGLint, 'param', 'tex_param_count(pname)')])
 
-Func((3, 3), 'glSamplerParameterf', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameterf', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                      P(tGLfloat, 'param')])
 
-Func((3, 3), 'glSamplerParameterfv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameterfv', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                       P(tGLfloat, 'param', 'tex_param_count(pname)')])
 
-Func((3, 3), 'glSamplerParameterIiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameterIiv', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                        P(tGLint, 'param', 'tex_param_count(pname)')])
 
-Func((3, 3), 'glSamplerParameterIuiv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
+Func((3, 3), 'glSamplerParameterIuiv', [P(tGLSampler, 'sampler'), P(tGLenum, 'pname', None, 'SamplerParameterName'),
                                         P(tGLuint, 'param', 'tex_param_count(pname)')])
 
 Func((3, 3), 'glGetSamplerParameteriv', [P(tGLuint, 'sampler'), P(tGLenum, 'pname'), P(tGLint, 'params', 'tex_param_count(pname)')])
