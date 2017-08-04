@@ -38,9 +38,9 @@ class GL:
         
         if download:
             try:
-                print 'Retreiving gl.xml from khronos.org.'
+                print 'Retreiving gl.xml from the registry.'
                 
-                url = 'https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml'
+                url = 'https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/xml/gl.xml'
                 data = urllib2.urlopen(url).read()
                 
                 print 'Writing to gl.xml on this computer.'
@@ -48,9 +48,9 @@ class GL:
                 with open(os.path.join(base, 'gl.xml'), 'w') as glXML:
                     glXML.write(data)
                 
-                print 'Retreiving glx.xml from khronos.org.'
+                print 'Retreiving glx.xml from the registry.'
                 
-                url = 'https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/glx.xml'
+                url = 'https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/xml/glx.xml'
                 data = urllib2.urlopen(url).read()
                 
                 print 'Writing to glx.xml on this computer.'
