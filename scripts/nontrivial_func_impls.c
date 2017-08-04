@@ -1045,13 +1045,29 @@ static trc_obj_t* get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
 }
 
 static trc_obj_t* get_active_program_for_stage(trc_replay_context_t* ctx, GLenum stage) {
-    //TODO
-    return trc_gl_state_get_bound_program(ctx->trace);
+    trc_obj_t* program = trc_gl_state_get_bound_program(ctx->trace);
+    if (program) return program;
+    trc_obj_t* pipeline = trc_gl_state_get_bound_pipeline(ctx->trace);
+    if (!pipeline) return NULL;
+    const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
+    switch (stage) {
+    case GL_VERTEX_SHADER: return rev->vertex_program.obj;
+    case GL_FRAGMENT_SHADER: return rev->fragment_program.obj;
+    case GL_GEOMETRY_SHADER: return rev->geometry_program.obj;
+    case GL_TESS_CONTROL_SHADER: return rev->tess_control_program.obj;
+    case GL_TESS_EVALUATION_SHADER: return rev->tess_eval_program.obj;
+    case GL_COMPUTE_SHADER: return rev->compute_program.obj;
+    default: return NULL;
+    }
 }
 
-static trc_obj_t* get_active_program(trc_replay_context_t* ctx, GLenum stage) {
-    //TODO
-    return trc_gl_state_get_bound_program(ctx->trace);
+static trc_obj_t* get_active_program(trc_replay_context_t* ctx) {
+    trc_obj_t* program = trc_gl_state_get_bound_program(ctx->trace);
+    if (program) return program;
+    trc_obj_t* pipeline = trc_gl_state_get_bound_pipeline(ctx->trace);
+    if (!pipeline) return NULL;
+    const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
+    return rev->active_program.obj;
 }
 
 #define D(e, t) case e: *(t*)data = val; return 1 + (t*)data;
@@ -1081,8 +1097,8 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     uint arg_pos = 0;
     const trc_gl_program_rev_t* rev;
     if (dsa) rev = get_program(ctx->trace, gl_param_GLuint(cmd, arg_pos++));
-    else rev = trc_obj_get_rev(trc_gl_state_get_bound_program(ctx->trace), -1);
-    if (!rev) ERROR2(-1, dsa?"Invalid program":"No current program");
+    else rev = trc_obj_get_rev(get_active_program(ctx), -1);
+    if (!rev) ERROR2(-1, dsa?"Invalid program":"No active program");
     if (realprogram) *realprogram = rev->real;
     
     int location = gl_param_GLint(cmd, arg_pos++);
@@ -3418,18 +3434,26 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     }
     real(p_n, pipelines);
 
-//NOTE: Do transform feedback checks in glBindProgramPipeline
+//TODO: Do transform feedback checks in glBindProgramPipeline
+glBindProgramPipeline: //GLuint p_pipeline
+    if (p_pipeline && !p_pipeline_rev) ERROR("Invalid program pipeline name");
+    if (p_pipeline_rev && !p_pipeline_rev->has_object) {
+        trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
+        newrev.has_object = true;
+        set_program_pipeline(ctx->trace, &newrev);
+    }
+    trc_gl_state_set_bound_pipeline(ctx->trace, p_pipeline_rev->head.obj);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (!p_program_rev) ERROR("Invalid program name");
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) &&
-        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace).obj) {
+        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace)) {
         ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     }
     real(p_pipeline_rev->real, p_stages, p_program_rev->real);
-    trc_gl_program_pipeline_rev_t newrev = *p_program_rev;
+    trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
     if (p_stages & GL_VERTEX_SHADER_BIT)
         trc_set_obj_ref(&newrev.vertex_program, p_program_rev->head.obj);
     if (p_stages & GL_FRAGMENT_SHADER_BIT)
@@ -3442,6 +3466,19 @@ glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
         trc_set_obj_ref(&newrev.tess_eval_program, p_program_rev->head.obj);
     if (p_stages & GL_COMPUTE_SHADER_BIT)
         trc_set_obj_ref(&newrev.compute_program, p_program_rev->head.obj);
+    set_program_pipeline(ctx->trace, &newrev);
+
+glActiveShaderProgram: //GLuint p_pipeline, GLuint p_program
+    if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
+    if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
+    if (!p_program_rev) ERROR("Invalid program name");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) &&
+        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace)) {
+        ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
+    }
+    real(p_pipeline_rev->real, p_program_rev->real);
+    trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
+    trc_set_obj_ref(&newrev.active_program, p_program_rev->head.obj);
     set_program_pipeline(ctx->trace, &newrev);
 
 glFlush: //

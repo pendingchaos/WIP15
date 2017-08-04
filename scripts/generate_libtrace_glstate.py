@@ -425,7 +425,7 @@ class Property(object):
                                   'renderbuffer': 'NULL',
                                   'framebuffer': 'NULL',
                                   'buffer_binding_point': '(trc_gl_buffer_binding_point_t){(trc_obj_ref_t){NULL}, 0, 0}'}[base]
-        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'pipeline', 'vao', 'query', 'renderbuffer', 'framebuffer']
+        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'program_pipeline', 'vao', 'query', 'renderbuffer', 'framebuffer']
         if base == 'buffer_binding_point':
             self.set_code = '({dest})->offset = ({src})->offset;\n({dest})->size = ({src})->size;\ntrc_set_obj_ref(&({dest})->buf, ({src})->buf.obj);'
             self.get_code = '(*({src}))';
