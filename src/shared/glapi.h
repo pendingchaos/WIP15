@@ -24,7 +24,8 @@ typedef enum {
     gl4_2 = 1 << 15,
     gl4_3 = 1 << 16,
     gl4_4 = 1 << 17,
-    gl4_5 = 1 << 18
+    gl4_5 = 1 << 18,
+    gl4_6 = 1 << 19
 } glapi_version_mask_t;
 
 typedef struct {
