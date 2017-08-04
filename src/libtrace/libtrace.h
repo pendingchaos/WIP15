@@ -354,6 +354,13 @@ typedef struct trc_gl_program_rev_t {
 typedef struct trc_gl_program_pipeline_rev_t {
     TRC_GL_OBJ_HEAD
     bool has_object;
+    trc_obj_ref_t active_program;
+    trc_obj_ref_t vertex_program;
+    trc_obj_ref_t fragment_program;
+    trc_obj_ref_t geometry_program;
+    trc_obj_ref_t tess_control_program;
+    trc_obj_ref_t tess_eval_program;
+    trc_obj_ref_t compute_program;
 } trc_gl_program_pipeline_rev_t;
 
 typedef struct trc_gl_shader_rev_t {

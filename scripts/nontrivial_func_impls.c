@@ -364,6 +364,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_bound_buffer_init(trace, GL_TRANSFORM_FEEDBACK_BUFFER, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_buffer_init(trace, GL_UNIFORM_BUFFER, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_program_init(trace, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_pipeline_init(trace, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_vao_init(trace, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_renderbuffer_init(trace, (trc_obj_ref_t){NULL});
     trc_gl_state_read_framebuffer_init(trace, (trc_obj_ref_t){NULL});
@@ -1044,6 +1045,11 @@ static trc_obj_t* get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
 }
 
 static trc_obj_t* get_active_program_for_stage(trc_replay_context_t* ctx, GLenum stage) {
+    //TODO
+    return trc_gl_state_get_bound_program(ctx->trace);
+}
+
+static trc_obj_t* get_active_program(trc_replay_context_t* ctx, GLenum stage) {
     //TODO
     return trc_gl_state_get_bound_program(ctx->trace);
 }
@@ -3381,6 +3387,13 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = pipelines[i];
         rev.has_object = false;
+        rev.active_program = (trc_obj_ref_t){NULL};
+        rev.vertex_program = (trc_obj_ref_t){NULL};
+        rev.fragment_program = (trc_obj_ref_t){NULL};
+        rev.geometry_program = (trc_obj_ref_t){NULL};
+        rev.tess_control_program = (trc_obj_ref_t){NULL};
+        rev.tess_eval_program = (trc_obj_ref_t){NULL};
+        rev.compute_program = (trc_obj_ref_t){NULL};
         trc_create_named_obj(ctx->trace, TrcProgramPipeline, p_pipelines[i], &rev);
     }
 
@@ -3389,7 +3402,17 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     for (size_t i = 0; i < p_n; ++i) {
         if (!(pipelines[i] = trc_get_real_program_pipeline(ctx->trace, p_pipelines[i])))
             trc_add_error(cmd, "Invalid program pipeline name");
-        else drop_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
+        else {
+            trc_gl_program_pipeline_rev_t rev = *get_program_pipeline(ctx->trace, p_pipelines[i]);
+            trc_del_obj_ref(rev.active_program);
+            trc_del_obj_ref(rev.vertex_program);
+            trc_del_obj_ref(rev.fragment_program);
+            trc_del_obj_ref(rev.geometry_program);
+            trc_del_obj_ref(rev.tess_control_program);
+            trc_del_obj_ref(rev.tess_eval_program);
+            trc_del_obj_ref(rev.compue_program);
+            drop_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
+        }
     }
     real(p_n, pipelines);
 
@@ -3399,10 +3422,25 @@ glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (!p_program_rev) ERROR("Invalid program name");
-    //if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_pipeline==) //TODO: Finish
-    //    ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
+    if (trc_gl_state_get_tf_active_not_paused(ctx->trace) &&
+        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace).obj) {
+        ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
+    }
     real(p_pipeline_rev->real, p_stages, p_program_rev->real);
-    //TODO: Create new pipeline revision
+    trc_gl_program_pipeline_rev_t newrev = *p_program_rev;
+    if (p_stages & GL_VERTEX_SHADER_BIT)
+        trc_set_obj_ref(&newrev.vertex_program, p_program_rev->head.obj);
+    if (p_stages & GL_FRAGMENT_SHADER_BIT)
+        trc_set_obj_ref(&newrev.fragment_program, p_program_rev->head.obj);
+    if (p_stages & GL_GEOMETRY_SHADER_BIT)
+        trc_set_obj_ref(&newrev.geometry_program, p_program_rev->head.obj);
+    if (p_stages & GL_TESS_CONTROL_SHADER_BIT)
+        trc_set_obj_ref(&newrev.tess_control_program, p_program_rev->head.obj);
+    if (p_stages & GL_TESS_EVALUATION_SHADER_BIT)
+        trc_set_obj_ref(&newrev.tess_eval_program, p_program_rev->head.obj);
+    if (p_stages & GL_COMPUTE_SHADER_BIT)
+        trc_set_obj_ref(&newrev.compute_program, p_program_rev->head.obj);
+    set_program_pipeline(ctx->trace, &newrev);
 
 glFlush: //
     real();

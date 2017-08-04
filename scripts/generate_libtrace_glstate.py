@@ -30,6 +30,7 @@ map array buffer_binding_point bound_buffer_indexed
     GL_ATOMIC_COUNTER_BUFFER
 
 program bound_program
+program_pipeline bound_pipeline
 
 vao bound_vao
 
@@ -400,6 +401,7 @@ class Property(object):
                        'sampler': 'trc_obj_ref_t',
                        'buffer': 'trc_obj_ref_t',
                        'program': 'trc_obj_ref_t',
+                       'program_pipeline': 'trc_obj_ref_t',
                        'vao': 'trc_obj_ref_t',
                        'query': 'trc_obj_ref_t',
                        'renderbuffer': 'trc_obj_ref_t',
@@ -417,12 +419,13 @@ class Property(object):
                                   'sampler': 'NULL',
                                   'buffer': 'NULL',
                                   'program': 'NULL',
+                                  'program_pipeline': 'NULL',
                                   'vao': 'NULL',
                                   'query': 'NULL',
                                   'renderbuffer': 'NULL',
                                   'framebuffer': 'NULL',
                                   'buffer_binding_point': '(trc_gl_buffer_binding_point_t){(trc_obj_ref_t){NULL}, 0, 0}'}[base]
-        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'vao', 'query', 'renderbuffer', 'framebuffer']
+        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'pipeline', 'vao', 'query', 'renderbuffer', 'framebuffer']
         if base == 'buffer_binding_point':
             self.set_code = '({dest})->offset = ({src})->offset;\n({dest})->size = ({src})->size;\ntrc_set_obj_ref(&({dest})->buf, ({src})->buf.obj);'
             self.get_code = '(*({src}))';
