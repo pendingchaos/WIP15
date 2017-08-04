@@ -21,7 +21,7 @@ if current_name != "":
     implemented.add(current_name)
 
 versions = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (2, 1), (3, 0), (3, 1),
-            (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), None]
+            (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), None]
 num_implemented = {v:0 for v in versions}
 num_not_implemented = {v:0 for v in versions}
 done = 0

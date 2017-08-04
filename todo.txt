@@ -41,6 +41,8 @@ Bugs:
         both in replay and tracing
     vertex attribute indices are not being remapped with glVertexAttrib*n*?
 
+update various functions for OpenGL 4.6 support
+
 transform feedback support:
     be aware of errors mentioned on page 428 of opengl 4.5 core spec of October 24 2016
 
