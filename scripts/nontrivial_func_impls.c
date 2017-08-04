@@ -432,6 +432,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, NULL);
     
+    trc_gl_state_bound_samplers_init(trace, max_tex_units, NULL);
+    
     trc_gl_state_enabled_init(trace, GL_BLEND, max_draw_buffers, NULL);
     trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, max_clip_distances, NULL);
     trc_gl_state_enabled_init1(trace, GL_COLOR_LOGIC_OP, false);
@@ -4884,6 +4886,7 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     const trc_gl_sampler_rev_t* rev = get_sampler(ctx->trace, p_sampler);
     if (!rev && p_sampler) ERROR("Invalid sampler name");
     real(p_unit, p_sampler?rev->real:0);
+    trc_gl_state_set_bound_samplers(ctx->trace, p_unit, rev?rev->head.obj:NULL);
 
 glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
     if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
@@ -4893,6 +4896,7 @@ glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
         const trc_gl_sampler_rev_t* rev = get_sampler(ctx->trace, p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
         real_samplers[i] = rev->real;
+        trc_gl_state_set_bound_samplers(ctx->trace, p_first+i, rev?rev->head.obj:NULL);
     }
     real(p_first, p_count, real_samplers);
 

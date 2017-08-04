@@ -65,6 +65,8 @@ map array texture bound_textures
     GL_TEXTURE_2D_MULTISAMPLE
     GL_TEXTURE_2D_MULTISAMPLE_ARRAY
 
+array sampler bound_samplers
+
 array uint8 front_color_buffer
 array uint8 back_color_buffer
 array uint8 back_depth_buffer
@@ -395,6 +397,7 @@ class Property(object):
                        'float': 'float',
                        'double': 'double',
                        'texture': 'trc_obj_ref_t',
+                       'sampler': 'trc_obj_ref_t',
                        'buffer': 'trc_obj_ref_t',
                        'program': 'trc_obj_ref_t',
                        'vao': 'trc_obj_ref_t',
@@ -411,6 +414,7 @@ class Property(object):
                                   'float': '0.0f',
                                   'double': '0.0',
                                   'texture': 'NULL',
+                                  'sampler': 'NULL',
                                   'buffer': 'NULL',
                                   'program': 'NULL',
                                   'vao': 'NULL',
@@ -418,7 +422,7 @@ class Property(object):
                                   'renderbuffer': 'NULL',
                                   'framebuffer': 'NULL',
                                   'buffer_binding_point': '(trc_gl_buffer_binding_point_t){(trc_obj_ref_t){NULL}, 0, 0}'}[base]
-        is_obj = base in ['texture', 'buffer', 'program', 'vao', 'query', 'renderbuffer', 'framebuffer']
+        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'vao', 'query', 'renderbuffer', 'framebuffer']
         if base == 'buffer_binding_point':
             self.set_code = '({dest})->offset = ({src})->offset;\n({dest})->size = ({src})->size;\ntrc_set_obj_ref(&({dest})->buf, ({src})->buf.obj);'
             self.get_code = '(*({src}))';

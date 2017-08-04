@@ -194,17 +194,19 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     #define STATE_FLOAT(prefix, name) STATE(prefix, name, get_statef, float, "%f", val[i])
     #define STATE_UINT(prefix, name) STATE(prefix, name, get_stateu, uint, "%u", val[i])
     #define STATE_TEX(prefix, name) STATE(prefix, name, get_stateobj, trc_obj_ref_t, "%u", GET_FAKE(trc_gl_texture_rev_t, val[i]))
+    #define STATE_SAMPLER(prefix, name) STATE(prefix, name, get_stateobj, trc_obj_ref_t, "%u", GET_FAKE(trc_gl_sampler_rev_t, val[i]))
+    #define STATE_QUERY(prefix, name) STATE(prefix, name, get_stateobj, trc_obj_ref_t, "%u", GET_FAKE(trc_gl_query_rev_t, val[i]))
     #define STATE_INT(prefix, name) STATE(prefix, name, get_statei, int, "%d", val[i])
     #define STATE_ENUM(prefix, group, name) STATE(prefix, name, get_stateu, uint, "%s", get_enum_str(group, val[i]))
     #define STATE_BOOL(prefix, name) STATE(prefix, name, get_stateb, bool, "%s", val[i]?"true":"false")
     
     begin_category(store, "Query Bindings");
-    STATE_UINT(bound_queries, GL_SAMPLES_PASSED);
-    STATE_UINT(bound_queries, GL_ANY_SAMPLES_PASSED);
-    STATE_UINT(bound_queries, GL_ANY_SAMPLES_PASSED_CONSERVATIVE);
-    STATE_UINT(bound_queries, GL_PRIMITIVES_GENERATED);
-    STATE_UINT(bound_queries, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
-    STATE_UINT(bound_queries, GL_TIME_ELAPSED);
+    STATE_QUERY(bound_queries, GL_SAMPLES_PASSED);
+    STATE_QUERY(bound_queries, GL_ANY_SAMPLES_PASSED);
+    STATE_QUERY(bound_queries, GL_ANY_SAMPLES_PASSED_CONSERVATIVE);
+    STATE_QUERY(bound_queries, GL_PRIMITIVES_GENERATED);
+    STATE_QUERY(bound_queries, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    STATE_QUERY(bound_queries, GL_TIME_ELAPSED);
     end_category();
     
     begin_category(store, "Texture Bindings");
@@ -219,6 +221,16 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     STATE_TEX(bound_textures, GL_TEXTURE_BUFFER);
     STATE_TEX(bound_textures, GL_TEXTURE_2D_MULTISAMPLE);
     STATE_TEX(bound_textures, GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+    end_category();
+    
+    begin_category(store, "Sampler Bindings");
+    {
+        trc_obj_ref_t* samplers = trc_map_data(ctx->bound_samplers, TRC_MAP_READ);
+        size_t count = ctx->bound_samplers->size / sizeof(trc_obj_ref_t);
+        for (uint i = 0; i < count; i++)
+            value(store, static_format("%u", i), "%u", GET_FAKE(trc_gl_sampler_rev_t, samplers[i]));
+        trc_unmap_data(ctx->bound_samplers);
+    }
     end_category();
     
     value(store, "GL_CURRENT_PROGRAM", static_format("%u", GET_FAKE(trc_gl_program_rev_t, ctx->bound_program)));
@@ -381,6 +393,8 @@ static void init_state_tree(GtkTreeView* tree, const trc_gl_context_rev_t* ctx) 
     #undef STATE_BOOL
     #undef STATE_ENUM
     #undef STATE_INT
+    #undef STATE_QUERY
+    #undef STATE_SAMPLER
     #undef STATE_TEX
     #undef STATE_UINT
     #undef STATE_FLOAT
