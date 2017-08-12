@@ -2383,6 +2383,7 @@ glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
     SDL_GL_DeleteContext(glctx);
     //TODO
     //replay_rel_object(ctx, ReplayObjType_GLXContext, p_ctx);
+    drop_obj(ctx->trace, p_ctx, TrcContext);
 
 glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
     if (!trc_get_current_fake_gl_context(ctx->trace)) ERROR("No current OpenGL context");
