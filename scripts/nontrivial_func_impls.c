@@ -2722,12 +2722,12 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
         rev = on_change_tf_binding(ctx, get_bound_buffer(ctx, p_target), rev?rev->head.obj:NULL);
-    trc_gl_state_set_bound_buffer(ctx->trace, p_target, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
         set_buffer(ctx->trace, &newrev);
     }
+    trc_gl_state_set_bound_buffer(ctx->trace, p_target, rev?rev->head.obj:NULL);
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
@@ -2740,12 +2740,12 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
         rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf.obj, rev?rev->head.obj:NULL);
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
         set_buffer(ctx->trace, &newrev);
     }
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
     if (trc_gl_state_get_tf_active_not_paused(ctx->trace) && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
@@ -2761,12 +2761,12 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     
     if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
         rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf.obj, rev?rev->head.obj:NULL);
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
         set_buffer(ctx->trace, &newrev);
     }
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
     if (buffer_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_size, p_data, p_usage))
@@ -4882,12 +4882,12 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
 glBindVertexArray: //GLuint p_array
     const trc_gl_vao_rev_t* rev = get_vao(ctx->trace, p_array);
     if (!rev && p_array) ERROR("Invalid vertex array name");
-    trc_gl_state_set_bound_vao(ctx->trace, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_vao_rev_t newrev = *rev;
         newrev.has_object = true;
         set_vao(ctx->trace, &newrev);
     }
+    trc_gl_state_set_bound_vao(ctx->trace, rev?rev->head.obj:NULL);
 
 glGetFragDataIndex: //GLuint p_program, const GLchar* p_name
     GLuint real_program = trc_get_real_program(ctx->trace, p_program);
@@ -5127,12 +5127,12 @@ glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
     const trc_gl_renderbuffer_rev_t* rev = get_renderbuffer(ctx->trace, p_renderbuffer);
     if (!rev && p_renderbuffer) ERROR("Invalid renderbuffer name");
     real(p_target, p_renderbuffer?rev->real:0);
-    trc_gl_state_set_bound_renderbuffer(ctx->trace, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_renderbuffer_rev_t newrev = *rev;
         newrev.has_object = true;
         set_renderbuffer(ctx->trace, &newrev);
     }
+    trc_gl_state_set_bound_renderbuffer(ctx->trace, rev?rev->head.obj:NULL);
 
 glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
     GLuint program = trc_get_real_program(ctx->trace, p_program);

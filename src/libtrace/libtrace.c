@@ -694,6 +694,8 @@ static void free_obj(trc_obj_t* obj) {
 }
 
 void free_trace(trace_t* trace) {
+    if (!trace) return;
+    
     atomic_store(&trace->threads_running, false);
     for (size_t i = 0; i < trace->thread_count; i++)
         pthread_join(trace->threads[i], NULL);

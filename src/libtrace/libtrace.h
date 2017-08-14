@@ -434,7 +434,7 @@ typedef struct trace_command_t {
     uint32_t extra_count;
     trace_extra_t* extras;
     
-    uint revision; //Revision after the command
+    uint64_t revision; //Revision after the command
     trc_attachment_t* attachments;
 } trace_command_t;
 
