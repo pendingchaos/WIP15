@@ -336,7 +336,7 @@ typedef struct trc_gl_program_rev_t {
     TRC_GL_OBJ_HEAD
     size_t root_uniform_count;
     //may be larger than root_uniform_count*sizeof(trc_gl_uniform_t)
-    trc_data_t* uniforms; //array of trc_gl_uniform_spec_t
+    trc_data_t* uniforms; //array of trc_gl_uniform_t
     trc_data_t* uniform_data;
     trc_data_t* vertex_attribs; //int[]{real0, fake0, real1, fake1, ...}
     trc_data_t* uniform_blocks; //array of trc_gl_program_uniform_block_t
