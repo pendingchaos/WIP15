@@ -5359,7 +5359,7 @@ glQueryCounter: //GLuint p_id, GLenum p_target
     if (!rev->has_object) {
         trc_gl_query_rev_t newrev = *rev;
         newrev.has_object = true;
-        newrev.type = GL_TIMESTAMP;
+        newrev.type = p_target;
         set_query(ctx->trace, &newrev);
     }
     //TODO: This clears any errors
