@@ -76,7 +76,7 @@ static void run(int cmdc, char** cmd) {
         exit(EXIT_FAILURE);
     }
     
-    int exitcode = (int)0xffffffff;
+    int exitcode;
     bool success = trace_program(&exitcode, 5,
         TrcProgramArguments, cmd,
         TrcOutputFilename, output_path,

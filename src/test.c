@@ -26,8 +26,7 @@ void callback(GLenum _1, GLenum _2, GLuint id, GLenum _4, GLsizei _5, const GLch
     printf("%s\n", message);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
     
     SDL_Window *window = SDL_CreateWindow("",
