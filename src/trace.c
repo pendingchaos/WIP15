@@ -1,4 +1,4 @@
-#include <sys/wait.h>
+#include "libtrace/libtrace.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,6 +53,13 @@ static void handle_options(int argc, char** argv) {
         compress = malloc(strlen("60")+1);
         strcpy(compress, "60");
     }
+    
+    char* end;
+    strtol(compress, &end, 10);
+    if (end==compress) {
+        fprintf(stderr, "Invalid compression level.\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void run(int cmdc, char** cmd) {
@@ -69,18 +76,23 @@ static void run(int cmdc, char** cmd) {
         exit(EXIT_FAILURE);
     }
     
-    pid_t pid;
-    if (!(pid=fork())) {
-        setenv("WIP15_LIMITS", limits, 1);
-        setenv("WIP15_OUTPUT", output_path, 1);
-        setenv("WIP15_COMPRESSION_LEVEL", compress, 1);
-        setenv("SDL_OPEN_LIBRARY", lib_path, 1);
-        setenv("LD_PRELOAD", lib_path, 1);
-        
-        execv(cmd[0], cmd);
-    } else {
-        int wstatus;
-        waitpid(pid, &wstatus, 0);
+    int exitcode = (int)0xffffffff;
+    bool success = trace_program(&exitcode, 5,
+        TrcProgramArguments, cmd,
+        TrcOutputFilename, output_path,
+        TrcLimitsFilename, limits,
+        TrcCompression, atoi(compress),
+        TrcLibGL, lib_path);
+    if (success && exitcode!=EXIT_SUCCESS) {
+        fprintf(stderr, "Unable to execute command: Process returned %d\n", exitcode);
+        free(output_path);
+        free(lib_path);
+        exit(EXIT_FAILURE);
+    } else if (!success) {
+        fprintf(stderr, "Failed to start process\n");
+        free(output_path);
+        free(lib_path);
+        exit(EXIT_FAILURE);
     }
     
     free(output_path);

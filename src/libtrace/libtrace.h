@@ -486,7 +486,16 @@ typedef struct trc_replay_context_t {
     trc_replay_test_t* current_test;
 } trc_replay_context_t;
 
+typedef enum trc_trace_program_arg_t {
+    TrcProgramArguments, //const char**
+    TrcOutputFilename, //const char*
+    TrcLimitsFilename, //const char*
+    TrcCompression, //int, 0-100, default 60
+    TrcLibGL //const char*
+} trc_trace_program_arg_t;
+
 //Traces
+bool trace_program(int* exitcode, size_t count, ...);
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);
 void trc_free_value(trace_value_t value);

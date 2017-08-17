@@ -8,6 +8,7 @@
 #include <endian.h>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <SDL2/SDL.h>
 #if ZLIB_ENABLED
 #include <zlib.h>
@@ -65,6 +66,61 @@ static pthread_mutex_t mapping_mutex = PTHREAD_MUTEX_INITIALIZER;
 static data_mapping_t mappings[MAX_MAPPINGS];
 
 static void* compress_thread(void* userdata);
+
+bool trace_program(int* exitcode, size_t count, ...) {
+    const char** arguments = NULL;
+    const char* output_filename = NULL;
+    const char* limits = NULL;
+    int compression = 60;
+    const char* lib_path = NULL;
+    
+    va_list list;
+    va_start(list, count);
+    for (size_t i = 0; i < count; i++) {
+        switch (va_arg(list, trc_trace_program_arg_t)) {
+        case TrcProgramArguments:
+            arguments = va_arg(list, const char**);
+            break;
+        case TrcOutputFilename:
+            output_filename = va_arg(list, const char*);
+            break;
+        case TrcLimitsFilename:
+            limits = va_arg(list, const char*);
+            break;
+        case TrcCompression:
+            compression = va_arg(list, int);
+            break;
+        case TrcLibGL:
+            lib_path = va_arg(list, const char*);
+            break;
+        }
+    }
+    va_end(list);
+    
+    bool failure = compression<0 || compression>100;
+    failure = failure || !arguments || !output_filename || !limits || !lib_path;
+    if (failure) return false;
+    
+    //TODO: More error checking?
+    pid_t pid;
+    if (!(pid=fork())) {
+        setenv("WIP15_LIMITS", limits, 1);
+        setenv("WIP15_OUTPUT", output_filename, 1);
+        char buf[16];
+        sprintf(buf, "%d", compression);
+        setenv("WIP15_COMPRESSION_LEVEL", buf, 1);
+        setenv("SDL_OPEN_LIBRARY", lib_path, 1);
+        setenv("LD_PRELOAD", lib_path, 1);
+        
+        execv(arguments[0], (char*const*)arguments);
+    } else {
+        int wstatus;
+        waitpid(pid, &wstatus, 0);
+        *exitcode = WEXITSTATUS(wstatus);
+    }
+    
+    return true;
+}
 
 static size_t readf(void* ptr, size_t size, size_t count, FILE* stream) {
     size_t res = fread(ptr, size, count, stream);

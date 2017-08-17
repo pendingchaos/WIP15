@@ -73,8 +73,8 @@ bin/inspect-gui: $(gui_obj) src/shared/.glapi.o bin/libtrace.so
 bin/replaytrace: src/.replaytrace.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.replaytrace.o -o bin/replaytrace -g -rdynamic $(CFLAGS)
 
-bin/trace: src/.trace.o
-	$(CC) $^ -o bin/trace -g $(CFLAGS)
+bin/trace: src/.trace.o bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.trace.o -o bin/trace -g $(CFLAGS)
 
 bin/test: src/.test.o
 	$(CC) $^ -o bin/test -g $(CFLAGS) -lSDL2 -lGL
