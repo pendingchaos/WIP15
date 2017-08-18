@@ -1316,7 +1316,7 @@ bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
     trc_unmap_data(table->objects);
     trc_unmap_data(table->names);
     
-    if (prevobj) set_obj_name(obj, false, 0);
+    if (prevobj) set_obj_name(prevobj, false, 0);
     if (obj) set_obj_name(obj, true, name);
     
     return true;
