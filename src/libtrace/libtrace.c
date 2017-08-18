@@ -1159,6 +1159,8 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     rev->ref_count = 1;
     rev->has_name = false;
     rev->name = 0;
+    rev->has_had_name = false;
+    rev->old_name = 0;
     if (name_table) {
         trc_name_table_rev_t* table = (trc_name_table_rev_t*)rev;
         table->entry_count = 0;
@@ -1244,6 +1246,11 @@ static void set_obj_name(trc_obj_t* obj, bool has_name, uint64_t name) {
         size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
         trc_obj_rev_head_t* newrev = malloc(rev_size);
         memcpy(newrev, head, rev_size);
+        
+        if (!has_name && newrev->has_name) {
+            newrev->has_had_name = true;
+            newrev->old_name = newrev->name;
+        }
         
         newrev->has_name = has_name;
         newrev->name = name;

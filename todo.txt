@@ -44,6 +44,8 @@ Bugs:
 update various functions for OpenGL 4.6 support
     there is a change log near the end of the OpenGL 4.6 spec
 
+the trace program uses possibly locale-dependent functions strtol and atoi
+
 transform feedback support:
     be aware of errors mentioned on page 428 of opengl 4.5 core spec of October 24 2016
 

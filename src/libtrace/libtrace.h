@@ -132,6 +132,8 @@ typedef struct trc_obj_rev_head_t {
     uint ref_count;
     bool has_name;
     uint64_t name;
+    bool has_had_name;
+    uint64_t old_name;
 } trc_obj_rev_head_t;
 
 typedef struct trace_t trace_t;
