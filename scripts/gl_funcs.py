@@ -391,6 +391,61 @@ Group('ShaderType').add('GL_COMPUTE_SHADER', 0x91B9, (4, 2))\
                    .add('GL_GEOMETRY_SHADER', 0x8DD9, (3, 2))\
                    .add('GL_FRAGMENT_SHADER', 0x8B30, (2, 0))
 
+Group('TexCompareMode').add('GL_COMPARE_REF_TO_TEXTURE', 0x884E, (1, 4))\
+                       .add('GL_NONE', 0x0, (1, 4))
+
+Group('ProvokingVertex').add('GL_FIRST_VERTEX_CONVENTION', 0x8E4D, (3, 2))\
+                        .add('GL_LAST_VERTEX_CONVENTION', 0x8E4E, (3, 2))
+
+Group('PointSpriteCoordOrigin').add('GL_LOWER_LEFT', 0x8CA1, (2, 0))\
+                               .add('GL_UPPER_LEFT', 0x8CA2, (2, 0))
+
+Group('BlendEquation').add('GL_FUNC_ADD', 0x8006, (2, 0))\
+                      .add('GL_FUNC_SUBTRACT', 0x800A, (2, 0))\
+                      .add('GL_FUNC_REVERSE_SUBTRACT', 0x800B, (2, 0))\
+                      .add('GL_MIN', 0x8007, (2, 0))\
+                      .add('GL_MAX', 0x8008, (2, 0))
+
+Group('FenceType').add('GL_SYNC_FENCE', 0x9116, (3, 2))
+
+Group('FenceCondition').add('GL_SYNC_GPU_COMMANDS_COMPLETE', 0x9117, (3, 2))
+
+Group('QueryType').add('GL_TIMESTAMP', 0x8E28, (3, 3))\
+                  .add('GL_SAMPLES_PASSED', 0x8914, (2, 0))\
+                  .add('GL_ANY_SAMPLES_PASSED', 0x8C2F, (3, 3))\
+                  .add('GL_ANY_SAMPLES_PASSED_CONSERVATIVE', 0x8D6A, (4, 3))\
+                  .add('GL_PRIMITIVES_GENERATED', 0x8C87, (2, 0))\
+                  .add('GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN', 0x8C88, (2, 0))\
+                  .add('GL_TIME_ELAPSED', 0x88BF, (3, 3))
+
+Attachment = Group('Attachment').add('GL_DEPTH_ATTACHMENT', 0x8D00, (3, 0))\
+                                .add('GL_STENCIL_ATTACHMENT', 0x8D20, (3, 0))\
+                                .add('GL_DEPTH_STENCIL_ATTACHMENT', 0x821A, (3, 0))
+for i in range(1024): Attachment.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+
+Group('VertexAttribType').add('GL_BYTE', 0x1400, (2, 0))\
+                         .add('GL_UNSIGNED_BYTE', 0x1401, (2, 0))\
+                         .add('GL_SHORT', 0x1402, (2, 0))\
+                         .add('GL_UNSIGNED_SHORT', 0x1403, (2, 0))\
+                         .add('GL_INT', 0x1404, (2, 0))\
+                         .add('GL_UNSIGNED_INT', 0x1405, (2, 0))\
+                         .add('GL_FLOAT', 0x1406, (2, 0))\
+                         .add('GL_DOUBLE', 0x140A, (2, 0))\
+                         .add('GL_FIXED', 0x140C, (2, 0))\
+                         .add('GL_INT_2_10_10_10_REV', 0x8D9F, (3, 3))\
+                         .add('GL_UNSIGNED_INT_2_10_10_10_REV', 0x8368, (3, 3))\
+                         .add('GL_UNSIGNED_INT_10F_11F_11F_REV', 0x8C3B, (4, 4))
+
+Group('DepthStencilTextureMode').add('GL_DEPTH_COMPONENT', 0x1902, (4, 3))\
+                                .add('GL_STENCIL_INDEX', 0x1901, (4, 3))
+
+Group('TextureSwizzle').add('GL_RED', 0x1903, (3, 3))\
+                       .add('GL_GREEN', 0x1904, (3, 3))\
+                       .add('GL_BLUE', 0x1905, (3, 3))\
+                       .add('GL_ALPHA', 0x1906, (3, 3))\
+                       .add('GL_ZERO', 0, (3, 3))\
+                       .add('GL_ONE', 1, (3, 3))
+
 Func((1, 0), 'glTexParameterfv', [P(tGLenum, 'target', None, 'TextureTarget'),
                                   P(tGLenum, 'pname', None, 'TextureParameterName'),
                                   P(tGLfloat, 'params', 'tex_param_count(pname)')])
@@ -569,7 +624,7 @@ Func((2, 0), 'glVertexAttrib4sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 4)])
 Func((2, 0), 'glVertexAttrib4ubv', [P(tGLuint, 'index'), P(tGLubyte, 'v', 4)])
 Func((2, 0), 'glVertexAttrib4uiv', [P(tGLuint, 'index'), P(tGLuint, 'v', 4)])
 Func((2, 0), 'glVertexAttrib4usv', [P(tGLuint, 'index'), P(tGLushort, 'v', 4)])
-#Func((2, 0), 'glVertexAttribPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLboolean, 'normalized'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+Func((2, 0), 'glVertexAttribPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLboolean, 'normalized'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 
 Func((2, 1), 'glUniformMatrix2x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'),
                               P(tGLboolean, 'transpose', None, 'Boolean'),
@@ -599,7 +654,7 @@ Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLProgram, 'program'), P(tGLsizei, 'count'), P(tString, 'varyings', 'count'), P(tGLenum, 'bufferMode')])
 #Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 #Func((3, 0), 'glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 0), 'glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((3, 0), 'glVertexAttribI1iv', [P(tGLuint, 'index'), P(tGLint, 'v', 1)])
@@ -665,6 +720,8 @@ Func((3, 2), 'glMultiDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'Primiti
                                                P(tGLsizei, 'count', 'drawcount'), P(tGLenum, 'type', None, 'ElementType'),
                                                P(tPointer, 'indices', 'drawcount'), P(tGLsizei, 'drawcount'),
                                                P(tGLint, 'basevertex', 'drawcount')])
+
+Func((3, 2), 'glProvokingVertex', [P(tGLenum, 'mode', None, 'ProvokingVertex')])
 
 #Func((3, 2), 'glGetInteger64v', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
 #Func((3, 2), 'glGetSynciv', [P(tGLsync, 'sync'), P(tGLenum, 'pname'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'values')])
@@ -860,7 +917,7 @@ Func((4, 1), 'glVertexAttribL1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
 Func((4, 1), 'glVertexAttribL2dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
 Func((4, 1), 'glVertexAttribL3dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
 Func((4, 1), 'glVertexAttribL4dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
-#Func((4, 1), 'glVertexAttribLPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
+Func((4, 1), 'glVertexAttribLPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 #Func((4, 1), 'glGetVertexAttribLdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 1), 'glViewportArrayv', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLfloat, 'v', 'count*4')])
 Func((4, 1), 'glViewportIndexedfv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 4)])
@@ -1135,13 +1192,13 @@ f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
 
 Func((3, 0), 'glBindFramebuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLuint, 'framebuffer')])
 Func((3, 0), 'glCheckFramebufferStatus', [P(tGLenum, 'target', None, FramebufferTarget)], tGLenum)
-Func((3, 0), 'glFramebufferTexture1D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
-Func((3, 0), 'glFramebufferTexture2D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
-Func((3, 0), 'glFramebufferTexture3D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'zoffset')])
-Func((3, 0), 'glFramebufferRenderbuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLRenderbuffer, 'renderbuffer')])
-Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-Func((3, 0), 'glFramebufferTextureLayer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'layer')])
-Func((3, 2), 'glFramebufferTexture', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment'), P(tGLTex, 'texture'), P(tGLint, 'level')])
+Func((3, 0), 'glFramebufferTexture1D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
+Func((3, 0), 'glFramebufferTexture2D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level')])
+Func((3, 0), 'glFramebufferTexture3D', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLenum, 'textarget'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'zoffset')])
+Func((3, 0), 'glFramebufferRenderbuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLenum, 'renderbuffertarget'), P(tGLRenderbuffer, 'renderbuffer')])
+Func((3, 0), 'glGetFramebufferAttachmentParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 0), 'glFramebufferTextureLayer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'layer')])
+Func((3, 2), 'glFramebufferTexture', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'attachment', None, 'Attachment'), P(tGLTex, 'texture'), P(tGLint, 'level')])
 Func((4, 3), 'glFramebufferParameteri', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'param')])
 Func((4, 3), 'glGetFramebufferParameteriv', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 
