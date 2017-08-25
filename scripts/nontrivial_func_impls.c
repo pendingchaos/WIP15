@@ -649,6 +649,7 @@ static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t*
 
 static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_texture_rev_t* tex,
                                     uint level, uint face) {
+    //TODO: Packing
     GLenum prevget;
     switch (tex->type) {
     case GL_TEXTURE_1D: prevget = GL_TEXTURE_BINDING_1D; break;
@@ -2445,9 +2446,28 @@ glCreateTextures: //GLenum p_target, GLsizei p_n, GLuint* p_textures
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i)
-        if (!(textures[i] = trc_get_real_texture(ctx->trace, p_textures[i])))
+        if (!(textures[i] = trc_get_real_texture(ctx->trace, p_textures[i]))) {
             trc_add_error(cmd, "Invalid texture name");
-        else delete_obj(ctx->trace, p_textures[i], TrcTexture);
+        } else {
+            trc_obj_t* obj = get_texture(ctx->trace, p_textures[i])->head.obj;
+            
+            //Reset targets
+            GLenum targets[11] = {
+                GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D, GL_TEXTURE_1D_ARRAY,
+                GL_TEXTURE_2D_ARRAY, GL_TEXTURE_RECTANGLE, GL_TEXTURE_CUBE_MAP,
+                GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_BUFFER, GL_TEXTURE_2D_MULTISAMPLE,
+                GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
+            for (size_t j = 0; j < 11; j++) {
+                for (size_t k = 0; k < trc_gl_state_get_bound_textures_size(ctx->trace, targets[j]); k++) {
+                    if (trc_gl_state_get_bound_textures(ctx->trace, targets[j], k) == obj)
+                        trc_gl_state_set_bound_textures(ctx->trace, targets[j], k, NULL);
+                }
+            }
+            
+            //TODO: Remove from framebuffers?
+            
+            delete_obj(ctx->trace, p_textures[i], TrcTexture);
+        }
     real(p_n, textures);
 
 glActiveTexture: //GLenum p_texture
@@ -2469,7 +2489,6 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     } else if (rev && rev->type!=p_target) {
         ERROR("Invalid target for texture object");
     }
-    //TODO: Reference counting
     uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
     trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, rev?rev->head.obj:NULL);
 
@@ -3464,6 +3483,11 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
             trc_del_obj_ref(rev.tess_control_program);
             trc_del_obj_ref(rev.tess_eval_program);
             trc_del_obj_ref(rev.compute_program);*/
+            
+            trc_obj_t* obj = get_program_pipeline(ctx->trace, p_pipelines[i])->head.obj;
+            if (trc_gl_state_get_bound_pipeline(ctx->trace) == obj)
+                trc_gl_state_set_bound_pipeline(ctx->trace, NULL);
+            
             delete_obj(ctx->trace, p_pipelines[i], TrcProgramPipeline);
         }
     }
@@ -4995,9 +5019,17 @@ glCreateSamplers: //GLsizei p_n, GLuint* p_samplers
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; ++i) {
-        if (!(samplers[i] = trc_get_real_sampler(ctx->trace, p_samplers[i])))
+        if (!(samplers[i] = trc_get_real_sampler(ctx->trace, p_samplers[i]))) {
             trc_add_error(cmd, "Invalid sampler name");
-        else delete_obj(ctx->trace, p_samplers[i], TrcSampler);
+        } else {
+            trc_obj_t* obj = get_sampler(ctx->trace, p_samplers[i])->head.obj;
+            for (size_t i = 0; i < trc_gl_state_get_bound_samplers_size(ctx->trace); i++) {
+                if (trc_gl_state_get_bound_samplers(ctx->trace, i) == obj)
+                    trc_gl_state_set_bound_samplers(ctx->trace, i, NULL);
+            }
+            
+            delete_obj(ctx->trace, p_samplers[i], TrcSampler);
+        }
     }
     
     real(p_count, samplers);
