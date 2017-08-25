@@ -612,7 +612,8 @@ static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, 
 }
 
 static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t* rev, uint level, uint face,
-                                     uint internal_format, uint width, uint height, uint depth, trc_data_t* data) {
+                                     uint internal_format, uint width, uint height, uint depth,
+                                     trc_image_format_t format, trc_data_t* data) {
     trc_gl_texture_image_t img;
     memset(&img, 0, sizeof(img)); //Fill in padding to fix use of uninitialized memory errors because of compression
     img.face = face;
@@ -621,6 +622,7 @@ static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t*
     img.width = width;
     img.height = height;
     img.depth = depth;
+    img.data_format = format;
     img.data = data;
     
     size_t img_count = rev->images->size / sizeof(trc_gl_texture_image_t);
@@ -645,6 +647,104 @@ static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t*
     newrev.images = trc_create_data_no_copy(trace, size, newimages, TRC_DATA_IMMUTABLE);
     
     set_texture(trace, &newrev);
+}
+
+static trc_image_format_t get_image_format(GLenum internal_format) {
+    switch (internal_format) {
+    case GL_DEPTH_COMPONENT: return TrcImageFormat_Red_F32;
+    case GL_DEPTH_COMPONENT16: return TrcImageFormat_Red_F32;
+    case GL_DEPTH_COMPONENT24: return TrcImageFormat_Red_F32;
+    case GL_DEPTH_COMPONENT32: return TrcImageFormat_Red_F32;
+    case GL_DEPTH_COMPONENT32F: return TrcImageFormat_Red_F32;
+    case GL_DEPTH_STENCIL: return TrcImageFormat_F32_U24_U8;
+    case GL_DEPTH24_STENCIL8: return TrcImageFormat_F32_U24_U8;
+    case GL_DEPTH32F_STENCIL8: return TrcImageFormat_F32_U24_U8;
+    case GL_STENCIL_INDEX: return TrcImageFormat_Red_U32;
+    case GL_STENCIL_INDEX1: return TrcImageFormat_Red_U32;
+    case GL_STENCIL_INDEX4: return TrcImageFormat_Red_U32;
+    case GL_STENCIL_INDEX8: return TrcImageFormat_Red_U32;
+    case GL_STENCIL_INDEX16: return TrcImageFormat_Red_U32;
+    case GL_RED: return TrcImageFormat_Red_F32;
+    case GL_RG: return TrcImageFormat_RedGreen_F32;
+    case GL_RGB: return TrcImageFormat_RGB_F32;
+    case GL_RGBA: return TrcImageFormat_RGBA_F32;
+    case GL_R8: return TrcImageFormat_Red_F32;
+    case GL_R8_SNORM: return TrcImageFormat_Red_F32;
+    case GL_R16: return TrcImageFormat_Red_F32;
+    case GL_R16_SNORM: return TrcImageFormat_Red_F32;
+    case GL_RG8: return TrcImageFormat_RedGreen_F32;
+    case GL_RG8_SNORM: return TrcImageFormat_RedGreen_F32;
+    case GL_RG16: return TrcImageFormat_RedGreen_F32;
+    case GL_RG16_SNORM: return TrcImageFormat_RedGreen_F32;
+    case GL_R3_G3_B2: return TrcImageFormat_RGB_F32;
+    case GL_RGB4: return TrcImageFormat_RGB_F32;
+    case GL_RGB5: return TrcImageFormat_RGB_F32;
+    case GL_RGB8: return TrcImageFormat_RGB_F32;
+    case GL_RGB8_SNORM: return TrcImageFormat_RGB_F32;
+    case GL_RGB10: return TrcImageFormat_RGB_F32;
+    case GL_RGB12: return TrcImageFormat_RGB_F32;
+    case GL_RGB16_SNORM: return TrcImageFormat_RGB_F32;
+    case GL_RGBA2: return TrcImageFormat_RGBA_F32;
+    case GL_RGBA4: return TrcImageFormat_RGBA_F32;
+    case GL_RGB5_A1: return TrcImageFormat_RGBA_F32;
+    case GL_RGBA8: return TrcImageFormat_RGBA_F32;
+    case GL_RGBA8_SNORM: return TrcImageFormat_RGBA_F32;
+    case GL_RGB10_A2: return TrcImageFormat_RGBA_F32;
+    case GL_RGB10_A2UI: return TrcImageFormat_RGBA_U32;
+    case GL_RGBA12: return TrcImageFormat_RGBA_F32;
+    case GL_RGBA16: return TrcImageFormat_RGBA_F32;
+    case GL_SRGB8: return TrcImageFormat_SRGB_U8;
+    case GL_SRGB8_ALPHA8: return TrcImageFormat_SRGBA_U8;
+    case GL_R16F: return TrcImageFormat_Red_F32;
+    case GL_RG16F: return TrcImageFormat_RedGreen_F32;
+    case GL_RGB16F: return TrcImageFormat_RGB_F32;
+    case GL_RGBA16F: return TrcImageFormat_RGBA_F32;
+    case GL_R32F: return TrcImageFormat_Red_F32;
+    case GL_RG32F: return TrcImageFormat_RedGreen_F32;
+    case GL_RGB32F: return TrcImageFormat_RGB_F32;
+    case GL_RGBA32F: return TrcImageFormat_RGBA_F32;
+    case GL_R11F_G11F_B10F: return TrcImageFormat_RGB_F32;
+    case GL_RGB9_E5: return TrcImageFormat_RGB_F32;
+    case GL_R8I: return TrcImageFormat_Red_I32;
+    case GL_R8UI: return TrcImageFormat_Red_U32;
+    case GL_R16I: return TrcImageFormat_Red_I32;
+    case GL_R16UI: return TrcImageFormat_Red_U32;
+    case GL_R32I: return TrcImageFormat_Red_I32;
+    case GL_R32UI: return TrcImageFormat_Red_U32;
+    case GL_RG8I: return TrcImageFormat_RedGreen_I32;
+    case GL_RG8UI: return TrcImageFormat_RedGreen_U32;
+    case GL_RG16I: return TrcImageFormat_RedGreen_I32;
+    case GL_RG16UI: return TrcImageFormat_RedGreen_U32;
+    case GL_RG32I: return TrcImageFormat_RedGreen_I32;
+    case GL_RG32UI: return TrcImageFormat_RedGreen_U32;
+    case GL_RGB8I: return TrcImageFormat_RGB_I32;
+    case GL_RGB8UI: return TrcImageFormat_RGB_U32;
+    case GL_RGB16I: return TrcImageFormat_RGB_I32;
+    case GL_RGB16UI: return TrcImageFormat_RGB_U32;
+    case GL_RGB32I: return TrcImageFormat_RGB_I32;
+    case GL_RGB32UI: return TrcImageFormat_RGB_U32;
+    case GL_RGBA8I: return TrcImageFormat_RGBA_I32;
+    case GL_RGBA8UI: return TrcImageFormat_RGBA_U32;
+    case GL_RGBA16I: return TrcImageFormat_RGBA_I32;
+    case GL_RGBA16UI: return TrcImageFormat_RGBA_U32;
+    case GL_RGBA32I: return TrcImageFormat_RGBA_I32;
+    case GL_RGBA32UI: return TrcImageFormat_RGBA_U32;
+    case GL_COMPRESSED_RED: return TrcImageFormat_Red_F32;
+    case GL_COMPRESSED_RG: return TrcImageFormat_RedGreen_F32;
+    case GL_COMPRESSED_RGB: return TrcImageFormat_RGB_F32;
+    case GL_COMPRESSED_RGBA: return TrcImageFormat_RGBA_F32;
+    case GL_COMPRESSED_SRGB: return TrcImageFormat_SRGB_U8;
+    case GL_COMPRESSED_SRGB_ALPHA: return TrcImageFormat_SRGBA_U8;
+    case GL_COMPRESSED_RED_RGTC1: return TrcImageFormat_Red_F32;
+    case GL_COMPRESSED_SIGNED_RED_RGTC1: return TrcImageFormat_Red_F32;
+    case GL_COMPRESSED_RG_RGTC2: return TrcImageFormat_RedGreen_F32;
+    case GL_COMPRESSED_SIGNED_RG_RGTC2: return TrcImageFormat_RedGreen_F32;
+    case GL_COMPRESSED_RGBA_BPTC_UNORM: return TrcImageFormat_RGBA_F32;
+    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM: return TrcImageFormat_SRGBA_U8;
+    case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT: return TrcImageFormat_RGB_F32;
+    case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: return TrcImageFormat_RGB_F32;
+    default: assert(false);
+    }
 }
 
 static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_texture_rev_t* tex,
@@ -677,139 +777,45 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     if (!height) height = 1;
     if (!depth) depth = 1;
     
-    uint dtype = 0; //0=uint32_t 1=int32_t 2=float 3=float+unused24+uint8
-    uint ftype = 0; //0=normal 1=depth 2=stencil 3=depthstencil
-    uint components = 0;
+    trc_image_format_t image_format = get_image_format(internal_format);
+    
+    GLenum format, type;
+    size_t pixel_size;
+    switch (image_format) {
+    case TrcImageFormat_Red_U32: pixel_size = 4; format = GL_RED; type = GL_UNSIGNED_INT; break;
+    case TrcImageFormat_RedGreen_U32: pixel_size = 8; format = GL_RG; type = GL_UNSIGNED_INT; break;
+    case TrcImageFormat_RGB_U32: pixel_size = 12; format = GL_RGB; type = GL_UNSIGNED_INT; break;
+    case TrcImageFormat_RGBA_U32: pixel_size = 16; format = GL_RGBA; type = GL_UNSIGNED_INT; break;
+    case TrcImageFormat_Red_I32: pixel_size = 4; format = GL_RED; type = GL_INT; break;
+    case TrcImageFormat_RedGreen_I32: pixel_size = 8; format = GL_RG; type = GL_INT; break;
+    case TrcImageFormat_RGB_I32: pixel_size = 12; format = GL_RGB; type = GL_INT; break;
+    case TrcImageFormat_RGBA_I32: pixel_size = 16; format = GL_RGBA; type = GL_INT; break;
+    case TrcImageFormat_Red_F32: pixel_size = 4; format = GL_RED; type = GL_FLOAT; break;
+    case TrcImageFormat_RedGreen_F32: pixel_size = 8; format = GL_RG; type = GL_FLOAT; break;
+    case TrcImageFormat_RGB_F32: pixel_size = 12; format = GL_RGB; type = GL_FLOAT; break;
+    case TrcImageFormat_RGBA_F32: pixel_size = 16; format = GL_RGBA; type = GL_FLOAT; break;
+    case TrcImageFormat_SRGB_U8: pixel_size = 3; format = GL_RGB; type = GL_UNSIGNED_BYTE; break;
+    case TrcImageFormat_SRGBA_U8: pixel_size = 4; format = GL_RGBA; type = GL_UNSIGNED_BYTE; break;
+    case TrcImageFormat_F32_U24_U8: pixel_size = 8; format = GL_DEPTH_STENCIL; type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV; break;
+    }
     switch (internal_format) {
-    case GL_DEPTH_COMPONENT: dtype = 2; ftype = 1; components = 1; break;
-    case GL_DEPTH_COMPONENT16: dtype = 2; ftype = 1; components = 1; break;
-    case GL_DEPTH_COMPONENT24: dtype = 2; ftype = 1; components = 1; break;
-    case GL_DEPTH_COMPONENT32: dtype = 2; ftype = 1; components = 1; break;
-    case GL_DEPTH_COMPONENT32F: dtype = 2; ftype = 1; components = 1; break;
-    case GL_DEPTH_STENCIL: dtype = 3; ftype = 3; components = 2; break;
-    case GL_DEPTH24_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
-    case GL_DEPTH32F_STENCIL8: dtype = 3; ftype = 3; components = 2; break;
-    case GL_STENCIL_INDEX: dtype = 0; ftype = 2; components = 1; break;
-    case GL_STENCIL_INDEX1: dtype = 0; ftype = 2; components = 1; break;
-    case GL_STENCIL_INDEX4: dtype = 0; ftype = 2; components = 1; break;
-    case GL_STENCIL_INDEX8: dtype = 0; ftype = 2; components = 1; break;
-    case GL_STENCIL_INDEX16: dtype = 0; ftype = 2; components = 1; break;
-    case GL_RED: dtype = 2; components = 1; break;
-    case GL_RG: dtype = 2; components = 2; break;
-    case GL_RGB: dtype = 2; components = 3; break;
-    case GL_RGBA: dtype = 2; components = 4; break;
-    case GL_R8: dtype = 2; components = 1; break;
-    case GL_R8_SNORM: dtype = 2; components = 1; break;
-    case GL_R16: dtype = 2; components = 1; break;
-    case GL_R16_SNORM: dtype = 2; components = 1; break;
-    case GL_RG8: dtype = 2; components = 2; break;
-    case GL_RG8_SNORM: dtype = 2; components = 2; break;
-    case GL_RG16: dtype = 2; components = 2; break;
-    case GL_RG16_SNORM: dtype = 2; components = 2; break;
-    case GL_R3_G3_B2: dtype = 2; components = 3; break;
-    case GL_RGB4: dtype = 2; components = 3; break;
-    case GL_RGB5: dtype = 2; components = 3; break;
-    case GL_RGB8: dtype = 2; components = 3; break;
-    case GL_RGB8_SNORM: dtype = 2; components = 3; break;
-    case GL_RGB10: dtype = 2; components = 3; break;
-    case GL_RGB12: dtype = 2; components = 3; break;
-    case GL_RGB16_SNORM: dtype = 2; components = 3; break;
-    case GL_RGBA2: dtype = 2; components = 4; break;
-    case GL_RGBA4: dtype = 2; components = 4; break;
-    case GL_RGB5_A1: dtype = 2; components = 4; break;
-    case GL_RGBA8: dtype = 2; components = 4; break;
-    case GL_RGBA8_SNORM: dtype = 2; components = 4; break;
-    case GL_RGB10_A2: dtype = 2; components = 4; break;
-    case GL_RGB10_A2UI: dtype = 0; components = 4; break;
-    case GL_RGBA12: dtype = 2; components = 4; break;
-    case GL_RGBA16: dtype = 2; components = 4; break;
-    case GL_SRGB8: dtype = 2; components = 3; break;
-    case GL_SRGB8_ALPHA8: dtype = 2; components = 4; break;
-    case GL_R16F: dtype = 2; components = 1; break;
-    case GL_RG16F: dtype = 2; components = 2; break;
-    case GL_RGB16F: dtype = 2; components = 3; break;
-    case GL_RGBA16F: dtype = 2; components = 4; break;
-    case GL_R32F: dtype = 2; components = 1; break;
-    case GL_RG32F: dtype = 2; components = 2; break;
-    case GL_RGB32F: dtype = 2; components = 3; break;
-    case GL_RGBA32F: dtype = 2; components = 4; break;
-    case GL_R11F_G11F_B10F: dtype = 2; components = 3; break;
-    case GL_RGB9_E5: dtype = 2; components = 3; break;
-    case GL_R8I: dtype = 1; components = 1; break;
-    case GL_R8UI: dtype = 0; components = 1; break;
-    case GL_R16I: dtype = 1; components = 1; break;
-    case GL_R16UI: dtype = 0; components = 1; break;
-    case GL_R32I: dtype = 1; components = 1; break;
-    case GL_R32UI: dtype = 0; components = 1; break;
-    case GL_RG8I: dtype = 1; components = 2; break;
-    case GL_RG8UI: dtype = 0; components = 2; break;
-    case GL_RG16I: dtype = 1; components = 2; break;
-    case GL_RG16UI: dtype = 0; components = 2; break;
-    case GL_RG32I: dtype = 1; components = 2; break;
-    case GL_RG32UI: dtype = 0; components = 2; break;
-    case GL_RGB8I: dtype = 1; components = 3; break;
-    case GL_RGB8UI: dtype = 0; components = 3; break;
-    case GL_RGB16I: dtype = 1; components = 3; break;
-    case GL_RGB16UI: dtype = 0; components = 3; break;
-    case GL_RGB32I: dtype = 1; components = 3; break;
-    case GL_RGB32UI: dtype = 0; components = 3; break;
-    case GL_RGBA8I: dtype = 1; components = 4; break;
-    case GL_RGBA8UI: dtype = 0; components = 4; break;
-    case GL_RGBA16I: dtype = 1; components = 4; break;
-    case GL_RGBA16UI: dtype = 0; components = 4; break;
-    case GL_RGBA32I: dtype = 1; components = 4; break;
-    case GL_RGBA32UI: dtype = 0; components = 4; break;
-    case GL_COMPRESSED_RED: dtype = 2; components = 1; break;
-    case GL_COMPRESSED_RG: dtype = 2; components = 2; break;
-    case GL_COMPRESSED_RGB: dtype = 2; components = 3; break;
-    case GL_COMPRESSED_RGBA: dtype = 2; components = 4; break;
-    case GL_COMPRESSED_SRGB: dtype = 2; components = 3; break;
-    case GL_COMPRESSED_SRGB_ALPHA: dtype = 2; components = 4; break;
-    case GL_COMPRESSED_RED_RGTC1: dtype = 2; components = 1; break;
-    case GL_COMPRESSED_SIGNED_RED_RGTC1: dtype = 2; components = 1; break;
-    case GL_COMPRESSED_RG_RGTC2: dtype = 2; components = 2; break;
-    case GL_COMPRESSED_SIGNED_RG_RGTC2: dtype = 2; components = 2; break;
-    case GL_COMPRESSED_RGBA_BPTC_UNORM: dtype = 2; components = 4; break;
-    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM: dtype = 2; components = 4; break;
-    case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT: dtype = 2; components = 3; break;
-    case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: dtype = 2; components = 3; break;
-    default: assert(false);
+    case GL_DEPTH_COMPONENT: format = GL_DEPTH_COMPONENT; break;
+    case GL_DEPTH_COMPONENT16: format = GL_DEPTH_COMPONENT; break;
+    case GL_DEPTH_COMPONENT24: format = GL_DEPTH_COMPONENT; break;
+    case GL_DEPTH_COMPONENT32: format = GL_DEPTH_COMPONENT; break;
+    case GL_DEPTH_COMPONENT32F: format = GL_DEPTH_COMPONENT; break;
+    case GL_STENCIL_INDEX: format = GL_STENCIL_INDEX; break;
+    case GL_STENCIL_INDEX1: format = GL_STENCIL_INDEX; break;
+    case GL_STENCIL_INDEX4: format = GL_STENCIL_INDEX; break;
+    case GL_STENCIL_INDEX8: format = GL_STENCIL_INDEX; break;
+    case GL_STENCIL_INDEX16: format = GL_STENCIL_INDEX; break;
+    default: break;
     }
     
-    size_t data_size = width * height * depth * components * (dtype==3?8:4);
+    size_t data_size = width * height * depth * pixel_size;
     trc_data_t* data = trc_create_data(ctx->trace, data_size, NULL, TRC_DATA_NO_ZERO);
     void* dest = trc_map_data(data, TRC_MAP_REPLACE);
     
-    GLenum format;
-    switch (ftype) {
-    case 0: //normal
-        format = (GLenum[]){GL_RED, GL_RG, GL_RGB, GL_RGBA}[components-1];
-        break;
-    case 1: //depth
-        format = GL_DEPTH_COMPONENT;
-        break;
-    case 2: //stencil
-        format = GL_STENCIL_INDEX;
-        break;
-    case 3: //depth stencil
-        format = GL_DEPTH_STENCIL;
-        break;
-    }
-    GLenum type;
-    switch (dtype) {
-    case 0: //uint32_t
-        type = GL_UNSIGNED_INT;
-        break;
-    case 1: //int32_t
-        type = GL_INT;
-        break;
-    case 2: //float
-        type = GL_FLOAT;
-        break;
-    case 3: //float+unused24+uint8
-        type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
-        break;
-    }
     uint target = tex->type;
     if (target==GL_TEXTURE_CUBE_MAP) target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
     F(glGetTexImage)(target, level, format, type, dest);
@@ -817,7 +823,8 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     
     trc_unmap_freeze_data(ctx->trace, data);
     
-    replay_set_texture_image(ctx->trace, tex, level, face, internal_format, width, height, depth, data);
+    replay_set_texture_image(ctx->trace, tex, level, face, internal_format,
+                             width, height, depth, image_format, data);
 }
 
 static const trc_gl_texture_rev_t* replay_get_bound_tex(trc_replay_context_t* ctx, uint target) {

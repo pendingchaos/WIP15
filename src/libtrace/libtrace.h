@@ -193,13 +193,31 @@ typedef struct trc_gl_sampler_rev_t {
     trc_gl_sample_params_t params;
 } trc_gl_sampler_rev_t;
 
+typedef enum trc_image_format_t {
+    TrcImageFormat_Red_U32,
+    TrcImageFormat_RedGreen_U32,
+    TrcImageFormat_RGB_U32,
+    TrcImageFormat_RGBA_U32,
+    TrcImageFormat_Red_I32,
+    TrcImageFormat_RedGreen_I32,
+    TrcImageFormat_RGB_I32,
+    TrcImageFormat_RGBA_I32,
+    TrcImageFormat_Red_F32,
+    TrcImageFormat_RedGreen_F32,
+    TrcImageFormat_RGB_F32,
+    TrcImageFormat_RGBA_F32,
+    TrcImageFormat_SRGB_U8,
+    TrcImageFormat_SRGBA_U8,
+    TrcImageFormat_F32_U24_U8
+} trc_image_format_t;
+
 typedef struct trc_gl_texture_image_t {
     uint face; //0 if the texture is not a non-array cubemap
     uint level;
     uint internal_format;
     
     //for buffer textures
-    uint buffer;
+    uint buffer; //TODO: trc_obj_ref_t?
     uint buffer_start;
     uint buffer_size;
     
@@ -207,6 +225,7 @@ typedef struct trc_gl_texture_image_t {
     uint width;
     uint height;
     uint depth;
+    trc_image_format_t data_format;
     trc_data_t* data; //array of uint32_t, int32_t, float or float+uint32_t depending on the internal format
 } trc_gl_texture_image_t;
 
