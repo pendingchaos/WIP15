@@ -2970,6 +2970,7 @@ glCreateProgram: //
     for (size_t i = 0; i < 6; i++) rev.subroutines[i] = empty_data;
     for (size_t i = 0; i < 6; i++) rev.subroutine_uniforms[i] = empty_data;
     rev.shaders = empty_data;
+    rev.linked = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
     rev.binary_retrievable_hint = -1;
     rev.separable = false;
@@ -3400,6 +3401,10 @@ glLinkProgram: //GLuint p_program
     
     real(rev.real);
     
+    GLint status;
+    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
+    if (!status) ERROR("Failed to link program");
+    
     GLint len;
     F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
@@ -3420,11 +3425,19 @@ glLinkProgram: //GLuint p_program
         get_program_subroutine_uniforms(cmd, ctx, rev.real, rev.subroutine_uniforms);
     }
     
-    set_program(ctx->trace, &rev);
+    size_t linked_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
+    trc_gl_program_linked_shader_t* linked = calloc(linked_count, sizeof(trc_gl_program_shader_t));
+    trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
+    for (size_t i = 0; i < linked_count; i++) {
+        linked[i].shader = shaders[i].shader.obj;
+        linked[i].shader_revision = shaders[i].shader_revision;
+    }
+    trc_unmap_data(rev.shaders);
+    rev.linked = trc_create_data(ctx->trace, linked_count*sizeof(trc_gl_program_linked_shader_t),
+                                 linked, TRC_DATA_IMMUTABLE);
+    free(linked);
     
-    GLint status;
-    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Failed to link program");
+    set_program(ctx->trace, &rev);
 
 glValidateProgram: //GLuint p_program
     GLuint real_program = trc_get_real_program(ctx->trace, p_program);
