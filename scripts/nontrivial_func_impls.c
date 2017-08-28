@@ -783,6 +783,7 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     case TrcImageFormat_SRGB_U8: pixel_size = 3; format = GL_RGB; type = GL_UNSIGNED_BYTE; break;
     case TrcImageFormat_SRGBA_U8: pixel_size = 4; format = GL_RGBA; type = GL_UNSIGNED_BYTE; break;
     case TrcImageFormat_F32_U24_U8: pixel_size = 8; format = GL_DEPTH_STENCIL; type = GL_FLOAT_32_UNSIGNED_INT_24_8_REV; break;
+    case TrcImageFormat_RGBA_U8: pixel_size = 4; format = GL_RGBA; type = GL_UNSIGNED_BYTE; break;
     }
     switch (internal_format) {
     case GL_DEPTH_COMPONENT: format = GL_DEPTH_COMPONENT; break;

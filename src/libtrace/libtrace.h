@@ -208,7 +208,8 @@ typedef enum trc_image_format_t {
     TrcImageFormat_RGBA_F32,
     TrcImageFormat_SRGB_U8,
     TrcImageFormat_SRGBA_U8,
-    TrcImageFormat_F32_U24_U8
+    TrcImageFormat_F32_U24_U8,
+    TrcImageFormat_RGBA_U8
 } trc_image_format_t;
 
 typedef struct trc_gl_texture_image_t {
