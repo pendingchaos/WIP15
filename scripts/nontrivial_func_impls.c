@@ -310,26 +310,10 @@ static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* pa
 
 static void replay_create_context_buffers(trace_t* trace, trc_gl_context_rev_t* rev) {
     size_t size = rev->drawable_width * rev->drawable_height * 4;
-    rev->front_color_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
-    rev->back_color_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
-    rev->back_depth_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
-    rev->back_stencil_buffer = trc_create_data(trace, size, NULL, TRC_DATA_NO_ZERO);
-    
-    void* data = trc_map_data(rev->front_color_buffer, TRC_MAP_REPLACE);
-    memset(data, 0, size);
-    trc_unmap_freeze_data(trace, rev->front_color_buffer);
-    
-    data = trc_map_data(rev->back_color_buffer, TRC_MAP_REPLACE);
-    memset(data, 0, size);
-    trc_unmap_freeze_data(trace, rev->back_color_buffer);
-    
-    data = trc_map_data(rev->back_depth_buffer, TRC_MAP_REPLACE);
-    memset(data, 0, size);
-    trc_unmap_freeze_data(trace, rev->back_depth_buffer);
-    
-    data = trc_map_data(rev->back_stencil_buffer, TRC_MAP_REPLACE);
-    memset(data, 0, size);
-    trc_unmap_freeze_data(trace, rev->back_stencil_buffer);
+    rev->front_color_buffer = trc_create_data(trace, size, NULL, TRC_DATA_IMMUTABLE);
+    rev->back_color_buffer = rev->front_color_buffer;
+    rev->back_depth_buffer = rev->back_color_buffer;
+    rev->back_stencil_buffer = rev->back_depth_buffer;
 }
 
 static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor, bool frontcolor, bool depth, bool stencil);
@@ -576,7 +560,9 @@ static void init_context(trc_replay_context_t* ctx) {
     F(glBindVertexArray)(draw_vao);
     trc_gl_state_set_draw_vao(trace, draw_vao);
     
-    //replay_create_context_buffers(ctx->trace, &rev);
+    trc_gl_context_rev_t rev = *trc_get_context(ctx->trace);
+    replay_create_context_buffers(ctx->trace, &rev);
+    trc_set_context(ctx->trace, &rev);
     replay_update_fb0_buffers(ctx, true, true, true, true);
 }
 
@@ -1452,18 +1438,14 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
     GLint prev[11];
     begin_get_fb0_data(ctx, prev);
     trc_gl_context_rev_t state = *trc_get_context(ctx->trace);
-    if (backcolor) {
+    if (backcolor)
         state.back_color_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_RGBA, GL_UNSIGNED_BYTE);
-    }
-    if (frontcolor) {
+    if (frontcolor)
         state.front_color_buffer = replay_get_fb0_buffer(ctx, &state, GL_FRONT, GL_RGBA, GL_UNSIGNED_BYTE);
-    }
-    if (depth) {
+    if (depth)
         state.back_depth_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
-    }
-    if (stencil) {
+    if (stencil)
         state.back_stencil_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_STENCIL_INDEX, GL_UNSIGNED_INT);
-    }
     trc_set_context(ctx->trace, &state);
     end_get_fb0_data(ctx, prev);
 }
@@ -2431,8 +2413,8 @@ wip15DrawableSize: //GLsizei p_width, GLsizei p_height
     if (state.drawable_width==p_width && state.drawable_height==p_height) return;
     state.drawable_width = p_width;
     state.drawable_height = p_height;
-    replay_create_context_buffers(ctx->trace, &state);
     trc_set_context(ctx->trace, &state);
+    replay_update_fb0_buffers(ctx, true, true, true, true);
 
 glClear: //GLbitfield p_mask
     real(p_mask);
