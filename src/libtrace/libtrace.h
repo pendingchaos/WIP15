@@ -132,10 +132,10 @@ typedef struct trc_obj_rev_head_t {
     uint64_t revision;
     uint ref_count;
     bool has_name;
-    uint64_t name;
-    trc_namespace_t* namespace_;
     bool has_had_name;
+    uint64_t name;
     uint64_t old_name;
+    trc_namespace_t* namespace_;
 } trc_obj_rev_head_t;
 
 typedef struct trace_t trace_t;

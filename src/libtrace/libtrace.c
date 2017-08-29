@@ -1047,6 +1047,7 @@ void trc_run_inspection(trace_t* trace) {
     }
     
     trc_replay_context_t ctx;
+    memset(&ctx, 0, sizeof(ctx));
     ctx.trace = trace;
     
     bool sdl_was_init = SDL_WasInit(SDL_INIT_VIDEO);
@@ -1159,7 +1160,7 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     obj->name_table = name_table;
     obj->type = type;
     obj->revision_count = 1;
-    trc_obj_rev_head_t* rev = malloc(name_table?sizeof(trc_name_table_rev_t):obj_sizes[type]);
+    trc_obj_rev_head_t* rev = calloc(1, name_table?sizeof(trc_name_table_rev_t):obj_sizes[type]);
     obj->revisions = malloc(sizeof(void*));
     obj->revisions[0] = rev;
     
@@ -1232,6 +1233,34 @@ void trc_grab_obj(trc_obj_t* obj) {
     free(newrev);
 }
 
+static void framebuffer_destructor(const trc_gl_framebuffer_rev_t* rev) {
+    size_t count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
+    trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev->attachments, TRC_MAP_READ);
+    for (size_t i = 0; i < count; i++) {
+        trc_del_obj_ref(attachments[i].renderbuffer);
+        trc_del_obj_ref(attachments[i].texture);
+    }
+    trc_unmap_data(rev->attachments);
+}
+
+static void vertex_array_destructor(const trc_gl_vao_rev_t* rev) {
+    size_t count = rev->attribs->size / sizeof(trc_gl_vao_attrib_t);
+    trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
+    for (size_t i = 0; i < count; i++)
+        trc_del_obj_ref(attribs[i].buffer);
+    trc_unmap_data(rev->attribs);
+}
+
+static void program_pipeline_destructor(const trc_gl_program_pipeline_rev_t* rev) {
+    trc_del_obj_ref(rev->active_program);
+    trc_del_obj_ref(rev->vertex_program);
+    trc_del_obj_ref(rev->fragment_program);
+    trc_del_obj_ref(rev->geometry_program);
+    trc_del_obj_ref(rev->tess_control_program);
+    trc_del_obj_ref(rev->tess_eval_program);
+    trc_del_obj_ref(rev->compute_program);
+}
+
 void trc_drop_obj(trc_obj_t* obj) {
     if (!obj) return;
     
@@ -1245,6 +1274,22 @@ void trc_drop_obj(trc_obj_t* obj) {
     
     newrev->ref_count--;
     trc_obj_set_rev(obj, newrev);
+    
+    if (newrev->ref_count==0) {
+        switch (obj->type) {
+        case TrcFramebuffer:
+            framebuffer_destructor((trc_gl_framebuffer_rev_t*)newrev);
+            break;
+        case TrcVAO:
+            vertex_array_destructor((trc_gl_vao_rev_t*)newrev);
+            break;
+        case TrcProgramPipeline:
+            program_pipeline_destructor((trc_gl_program_pipeline_rev_t*)newrev);
+            break;
+        default:
+            break;
+        }
+    }
     
     free(newrev);
 }
