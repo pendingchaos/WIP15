@@ -215,8 +215,8 @@ typedef enum trc_image_format_t {
 typedef struct trc_gl_texture_buffer_t {
     uint internal_format;
     uint buffer; //TODO: trc_obj_ref_t?
-    uint offset;
-    uint size;
+    size_t offset;
+    size_t size;
 } trc_gl_texture_buffer_t;
 
 typedef struct trc_gl_texture_image_t {
