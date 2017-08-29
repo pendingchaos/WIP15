@@ -33,7 +33,7 @@ static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data
     uint width = state->drawable_width;
     uint height = state->drawable_height;
     
-    uint32_t* img = trc_map_data(data, TRC_MAP_READ);
+    void* img = trc_map_data(data, TRC_MAP_READ);
     
     GdkPixbuf* buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, width, height);
     if (depth) {
@@ -41,8 +41,7 @@ static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data
         for (size_t y = 0; y < height; y++) {
             for (size_t x = 0; x < width; x++) {
                 size_t index = (height-1-y)*width + x;
-                uint32_t val = img[y*width+x];
-                val = val / 4294967296.0 * 16777216.0;
+                uint32_t val = ((float*)img)[y*width+x] * 16777216.0;
                 data[index*4] = val % 256;
                 data[index*4+1] = val % 65536 / 256;
                 data[index*4+2] = val / 65536;
@@ -54,7 +53,7 @@ static GdkPixbuf* get_pixbuf(const trc_gl_context_rev_t* state, trc_data_t* data
         for (size_t y = 0; y < height; y++) {
             for (size_t x = 0; x < width; x++) {
                 size_t index = (height-1-y)*width + x;
-                data[index] = img[y*width+x] | *(const uint32_t*)"\x00\x00\x00\xff";
+                data[index] = ((uint32_t*)img)[y*width+x] | *(const uint32_t*)"\x00\x00\x00\xff";
             }
         }
     }

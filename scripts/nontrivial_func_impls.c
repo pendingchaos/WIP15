@@ -1438,7 +1438,7 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
     if (frontcolor)
         state.front_color_buffer = replay_get_fb0_buffer(ctx, &state, GL_FRONT, GL_RGBA, GL_UNSIGNED_BYTE);
     if (depth)
-        state.back_depth_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+        state.back_depth_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_DEPTH_COMPONENT, GL_FLOAT);
     if (stencil)
         state.back_stencil_buffer = replay_get_fb0_buffer(ctx, &state, GL_BACK, GL_STENCIL_INDEX, GL_UNSIGNED_INT);
     trc_set_context(ctx->trace, &state);
