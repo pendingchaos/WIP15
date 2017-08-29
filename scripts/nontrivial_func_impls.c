@@ -731,9 +731,41 @@ static trc_image_format_t get_image_format(GLenum internal_format) {
     }
 }
 
+static void save_init_packing_config(trc_replay_context_t* ctx, GLint temp[9]) {
+    F(glGetIntegerv)(GL_PACK_SWAP_BYTES, &temp[0]);
+    F(glGetIntegerv)(GL_PACK_LSB_FIRST, &temp[1]);
+    F(glGetIntegerv)(GL_PACK_ROW_LENGTH, &temp[2]);
+    F(glGetIntegerv)(GL_PACK_IMAGE_HEIGHT, &temp[3]);
+    F(glGetIntegerv)(GL_PACK_SKIP_ROWS, &temp[4]);
+    F(glGetIntegerv)(GL_PACK_SKIP_PIXELS, &temp[5]);
+    F(glGetIntegerv)(GL_PACK_SKIP_IMAGES, &temp[6]);
+    F(glGetIntegerv)(GL_PACK_ALIGNMENT, &temp[7]);
+    F(glGetIntegerv)(GL_PIXEL_PACK_BUFFER_BINDING, &temp[8]);
+    F(glPixelStorei)(GL_PACK_SWAP_BYTES, 0);
+    F(glPixelStorei)(GL_PACK_LSB_FIRST, 0);
+    F(glPixelStorei)(GL_PACK_ROW_LENGTH, 0);
+    F(glPixelStorei)(GL_PACK_IMAGE_HEIGHT, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_ROWS, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_PIXELS, 0);
+    F(glPixelStorei)(GL_PACK_SKIP_IMAGES, 0);
+    F(glPixelStorei)(GL_PACK_ALIGNMENT, 1);
+    F(glBindBuffer)(GL_PIXEL_PACK_BUFFER, 0);
+}
+
+static void restore_packing_config(trc_replay_context_t* ctx, GLint temp[9]) {
+    F(glPixelStorei)(GL_PACK_SWAP_BYTES, temp[0]);
+    F(glPixelStorei)(GL_PACK_LSB_FIRST, temp[1]);
+    F(glPixelStorei)(GL_PACK_ROW_LENGTH, temp[2]);
+    F(glPixelStorei)(GL_PACK_IMAGE_HEIGHT, temp[3]);
+    F(glPixelStorei)(GL_PACK_SKIP_ROWS, temp[4]);
+    F(glPixelStorei)(GL_PACK_SKIP_PIXELS, temp[5]);
+    F(glPixelStorei)(GL_PACK_SKIP_IMAGES, temp[6]);
+    F(glPixelStorei)(GL_PACK_ALIGNMENT, temp[7]);
+    F(glBindBuffer)(GL_PIXEL_PACK_BUFFER, temp[8]);
+}
+
 static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_texture_rev_t* tex,
                                     uint level, uint face) {
-    //TODO: Packing
     GLenum prevget;
     switch (tex->type) {
     case GL_TEXTURE_1D: prevget = GL_TEXTURE_BINDING_1D; break;
@@ -803,7 +835,12 @@ static void replay_update_tex_image(trc_replay_context_t* ctx, const trc_gl_text
     
     uint target = tex->type;
     if (target==GL_TEXTURE_CUBE_MAP) target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+    
+    GLint temp[9];
+    save_init_packing_config(ctx, temp);
     F(glGetTexImage)(target, level, format, type, dest);
+    restore_packing_config(ctx, temp);
+    
     F(glBindTexture)(tex->type, prev);
     
     trc_unmap_freeze_data(ctx->trace, data);
@@ -1505,7 +1542,7 @@ static bool tf_draw_validation(trc_replay_context_t* ctx, trace_command_t* cmd, 
         F(glGetError)(); //TODO: Do this in a less hackish way
         F(glGetProgramiv)(((trc_gl_program_rev_t*)trc_obj_get_rev(geom_program, -1))->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
         if (F(glGetError)() == GL_INVALID_OPERATION) test_primitive = primitive; //No geometry shader
-    } //TODO: Handle program pipelines
+    }
     
     switch (trc_gl_state_get_tf_primitive(ctx->trace)) {
     case GL_POINTS:
@@ -1529,9 +1566,9 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(state->bound_vao.obj, -1);
     if (!vao) ERROR2(false, "No VAO bound");
-    const trc_gl_program_rev_t* program = trc_obj_get_rev(state->bound_program.obj, -1);
-    if (!program) ERROR2(false, "No program bound");
-    //TODO: Support program pipelines
+    trc_obj_t* vertex_program_obj = get_active_program_for_stage(ctx, GL_VERTEX_SHADER);
+    const trc_gl_program_rev_t* vertex_program = trc_obj_get_rev(vertex_program_obj, -1);
+    if (!vertex_program) ERROR2(false, "No vertex program active");
     
     if (!tf_draw_validation(ctx, cmd, primitive)) return false;
     
@@ -1550,8 +1587,8 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         }
     }
     
-    size_t prog_vertex_attrib_count = program->vertex_attribs->size / (sizeof(uint)*2);
-    uint* prog_vertex_attribs = trc_map_data(program->vertex_attribs, TRC_MAP_READ);
+    size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size / (sizeof(uint)*2);
+    uint* prog_vertex_attribs = trc_map_data(vertex_program->vertex_attribs, TRC_MAP_READ);
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
@@ -1580,7 +1617,7 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
             F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
     trc_unmap_data(vao->attribs);
-    trc_unmap_data(program->vertex_attribs);
+    trc_unmap_data(vertex_program->vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     
