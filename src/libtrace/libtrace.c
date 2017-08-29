@@ -1323,7 +1323,7 @@ trc_namespace_t* trc_create_namespace(trace_t* trace) {
         ns->name_tables[i] = trc_create_obj(trace, true, i, NULL);
     
     trace->inspection.namespaces = realloc(
-        trace->inspection.namespaces, trace->inspection.namespace_count*sizeof(trc_namespace_t*));
+        trace->inspection.namespaces, (trace->inspection.namespace_count+1)*sizeof(trc_namespace_t*));
     trace->inspection.namespaces[trace->inspection.namespace_count++] = ns;
     
     return ns;

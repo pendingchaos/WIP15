@@ -6,11 +6,20 @@
 
 static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum objType, GLuint64 objName,
                                    const trc_obj_rev_head_t** rev, uint64_t* real, const testing_property_t** properties) {
+    uint64_t cur_ctx = trc_get_current_fake_gl_context(ctx->trace);
+    if (!cur_ctx) {
+        fprintf(stderr, "No context bound at wip15Expect...");
+        return NULL;
+    }
+    const trc_gl_context_rev_t* ctx_rev =
+        trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, cur_ctx);
+    trc_namespace_t* namespace = ctx_rev->namespace;
+    
     *properties = get_object_type_properties(objType);
     switch (objType) {
     #define O(val, name)\
     case val: {\
-        const trc_gl_##name##_rev_t* obj_rev = get_##name(ctx->ns, objName);\
+        const trc_gl_##name##_rev_t* obj_rev = get_##name(namespace, objName);\
         *rev = &obj_rev->head;\
         *real = obj_rev ? obj_rev->real : 0;\
         break;\
@@ -320,6 +329,8 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
 
 static void init_context(trc_replay_context_t* ctx) {
     trace_t* trace = ctx->trace;
+    
+    trc_gl_state_set_made_current_before(trace, false);
     
     GLint major, minor;
     F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
