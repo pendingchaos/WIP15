@@ -69,7 +69,8 @@ static void init_framebuffer_tree(GtkTreeView* tree) {
     gtk_tree_store_clear(store);
     
     uint64_t fake = trc_lookup_current_fake_gl_context(trace, revision);
-    const trc_gl_context_rev_t* state = trc_obj_get_rev(trc_lookup_name(trace, TrcContext, fake, revision), revision);
+    trc_namespace_t* global_ns = &trace->inspection.global_namespace;
+    const trc_gl_context_rev_t* state = trc_obj_get_rev(trc_lookup_name(global_ns, TrcContext, fake, revision), revision);
     
     GdkPixbuf* buf = get_pixbuf(state, state->front_color_buffer, false);
     GtkTreeIter row;

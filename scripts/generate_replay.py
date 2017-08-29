@@ -481,16 +481,16 @@ objs = [('buffer', 'TrcBuffer'),
 output.write('#pragma GCC diagnostic ignored "-Wunused-function"')
 for n, t in objs:
     output.write('''
-static const trc_gl_%s_rev_t* get_%s(trace_t* trace, uint64_t fake) {
-    return trc_get_obj(trace, %s, fake);
+static const trc_gl_%s_rev_t* get_%s(trc_namespace_t* ns, uint64_t fake) {
+    return trc_get_obj(ns, %s, fake);
 }
 
-static void set_%s(trace_t* trace, const trc_gl_%s_rev_t* rev) {
+static void set_%s(const trc_gl_%s_rev_t* rev) {
     trc_obj_set_rev(rev->head.obj, rev);
 }
 
-static uint64_t trc_get_real_%s(trace_t* trace, uint64_t fake) {
-    const trc_gl_%s_rev_t* rev = get_%s(trace, fake);
+static uint64_t get_real_%s(trc_namespace_t* ns, uint64_t fake) {
+    const trc_gl_%s_rev_t* rev = get_%s(ns, fake);
     return rev ? rev->real : 0;
 }
 ''' % (n, n, t, n, n, n, n, n))
@@ -535,7 +535,15 @@ for name, func in func_dict.iteritems():
         output.write("""    if (!trc_get_current_fake_gl_context(ctx->trace)) {
         trc_add_error(cmd, "No current OpenGL context.");
         return;
+    } else {
+        uint64_t cur_ctx = trc_get_current_fake_gl_context(ctx->trace);
+        const trc_gl_context_rev_t* rev =
+            trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, cur_ctx);
+        ctx->ns = rev->namespace;
     }
+    """)
+    else:
+        output.write("""    ctx->ns = NULL;
     """)
     
     output.write("replay_begin_cmd(ctx, \"%s\", cmd);\n" % (name))

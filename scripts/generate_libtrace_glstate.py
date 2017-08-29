@@ -514,6 +514,7 @@ typedef struct trc_gl_buffer_binding_point_t {
 print 'typedef struct trc_gl_context_rev_t {'
 print '    trc_obj_rev_head_t head;'
 print '    void* real;'
+print '    trc_namespace_t* namespace;'
 print '    '
 for prop in properties:
     c_type = prop.c_type

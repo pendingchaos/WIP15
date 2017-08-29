@@ -125,6 +125,7 @@ typedef struct trc_data_t {
 } trc_data_t;
 
 typedef struct trc_obj_t trc_obj_t;
+typedef struct trc_namespace_t trc_namespace_t;
 
 typedef struct trc_obj_rev_head_t {
     trc_obj_t* obj;
@@ -132,6 +133,7 @@ typedef struct trc_obj_rev_head_t {
     uint ref_count;
     bool has_name;
     uint64_t name;
+    trc_namespace_t* namespace_;
     bool has_had_name;
     uint64_t old_name;
 } trc_obj_rev_head_t;
@@ -422,6 +424,11 @@ typedef struct trc_gl_transform_feedback_rev_t {
     bool has_object;
 } trc_gl_transform_feedback_rev_t;
 
+struct trc_namespace_t {
+    trace_t* trace;
+    trc_obj_t* name_tables[Trc_ObjMax];
+};
+
 #define WIP15_STATE_GEN_DECL
 #include "libtrace_glstate.h"
 #undef WIP15_STATE_GEN_DECL
@@ -442,7 +449,9 @@ typedef struct trc_gl_inspection_t {
     
     size_t object_count[Trc_ObjMax];
     trc_obj_t** objects[Trc_ObjMax];
-    trc_obj_t* name_tables[Trc_ObjMax];
+    trc_namespace_t global_namespace; //Should only have names to contexts
+    size_t namespace_count;
+    trc_namespace_t** namespaces; //Should only have names for objects other than contexts
     
     size_t cur_ctx_revision_count;
     trc_cur_context_rev_t* cur_ctx_revisions;
@@ -513,6 +522,7 @@ typedef struct trc_replay_context_t {
     struct SDL_Window* window;
     trc_replay_test_t* tests;
     trc_replay_test_t* current_test;
+    trc_namespace_t* ns; //current context's namespace
 } trc_replay_context_t;
 
 typedef enum trc_trace_program_arg_t {
@@ -559,13 +569,14 @@ void trc_obj_set_rev(trc_obj_t* obj, const void* rev);
 void trc_grab_obj(trc_obj_t* obj);
 void trc_drop_obj(trc_obj_t* obj);
 
-bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj);
-void trc_free_name(trace_t* trace, trc_obj_type_t type, uint64_t name);
-trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev);
+trc_namespace_t* trc_create_namespace(trace_t* trace);
+bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_obj_t* obj);
+void trc_free_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name);
+trc_obj_t* trc_lookup_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, uint64_t rev);
 
-trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
-void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev);
-const void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name);
+trc_obj_t* trc_create_named_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, const void* rev);
+void trc_set_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, const void* rev);
+const void* trc_get_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name);
 
 const trc_gl_context_rev_t* trc_get_context(trace_t* trace);
 void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev);

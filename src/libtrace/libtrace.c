@@ -721,11 +721,14 @@ trace_t *load_trace(const char* filename) {
     trace->inspection.cur_revision = 0;
     trace->inspection.data_count = 0;
     trace->inspection.data = NULL;
+    trace->inspection.global_namespace.trace = trace;
     for (size_t i = 0; i < Trc_ObjMax; i++) {
         trace->inspection.object_count[i] = 0;
         trace->inspection.objects[i] = NULL;
-        trace->inspection.name_tables[i] = trc_create_obj(trace, true, i, NULL);
+        trace->inspection.global_namespace.name_tables[i] = trc_create_obj(trace, true, i, NULL);
     }
+    trace->inspection.namespace_count = 0;
+    trace->inspection.namespaces = NULL;
     trace->inspection.cur_ctx_revision_count = 1;
     trace->inspection.cur_ctx_revisions = malloc(sizeof(trc_cur_context_rev_t));
     trace->inspection.cur_ctx_revisions[0].context = 0;
@@ -774,8 +777,14 @@ void free_trace(trace_t* trace) {
             free_obj(obj);
         }
         free(ti->objects[i]);
-        if (ti->name_tables[i]) free_obj(ti->name_tables[i]);
+        if (ti->global_namespace.name_tables[i])
+            free_obj(ti->global_namespace.name_tables[i]);
+        for (size_t j = 0; j < ti->namespace_count; j++) {
+            if (ti->namespaces[j]->name_tables[i])
+                free_obj(ti->namespaces[j]->name_tables[i]);
+        }
     }
+    free(ti->namespaces);
     free(ti->cur_ctx_revisions);
     
     pthread_mutex_lock(&trace->data_queue_mutex);
@@ -1159,6 +1168,7 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     rev->ref_count = 1;
     rev->has_name = false;
     rev->name = 0;
+    rev->namespace_ = NULL;
     rev->has_had_name = false;
     rev->old_name = 0;
     if (name_table) {
@@ -1239,7 +1249,7 @@ void trc_drop_obj(trc_obj_t* obj) {
     free(newrev);
 }
 
-static void set_obj_name(trc_obj_t* obj, bool has_name, uint64_t name) {
+static void set_obj_name(trc_obj_t* obj, trc_namespace_t* ns, bool has_name, uint64_t name) {
     const trc_obj_rev_head_t* head = trc_obj_get_rev(obj, -1);
     if (head) {
         //TODO: unnecessary memory allocation
@@ -1254,18 +1264,31 @@ static void set_obj_name(trc_obj_t* obj, bool has_name, uint64_t name) {
         
         newrev->has_name = has_name;
         newrev->name = name;
+        newrev->namespace_ = ns;
         trc_obj_set_rev(obj, newrev);
         
         free(newrev);
     }
 }
 
-bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
+trc_namespace_t* trc_create_namespace(trace_t* trace) {
+    trc_namespace_t* ns = malloc(sizeof(trc_namespace_t));
+    ns->trace = trace;
+    for (size_t i = 0; i < Trc_ObjMax; i++)
+        ns->name_tables[i] = trc_create_obj(trace, true, i, NULL);
+    
+    trace->inspection.namespaces = realloc(
+        trace->inspection.namespaces, trace->inspection.namespace_count*sizeof(trc_namespace_t*));
+    trace->inspection.namespaces[trace->inspection.namespace_count++] = ns;
+    
+    return ns;
+}
+
+bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_obj_t* obj) {
     const trc_obj_rev_head_t* obj_head = trc_obj_get_rev(obj, -1);
     if (obj_head && obj_head->has_name) return false; //Already named
     
-    trc_gl_inspection_t* in = &trace->inspection;
-    trc_obj_t* table_obj = in->name_tables[type];
+    trc_obj_t* table_obj = ns->name_tables[type];
     const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
     
     uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
@@ -1285,7 +1308,7 @@ bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
             newobjects[index] = obj;
             
             trc_name_table_rev_t newtable = *table;
-            newtable.objects = trc_create_data_no_copy(trace, objects_size,
+            newtable.objects = trc_create_data_no_copy(ns->trace, objects_size,
                                                        newobjects, TRC_DATA_IMMUTABLE);
             
             trc_obj_set_rev(table_obj, &newtable);
@@ -1305,9 +1328,9 @@ bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
         
         trc_name_table_rev_t newtable = *table;
         newtable.entry_count++;
-        newtable.names = trc_create_data_no_copy(trace, newtable.entry_count*sizeof(uint64_t),
+        newtable.names = trc_create_data_no_copy(ns->trace, newtable.entry_count*sizeof(uint64_t),
                                                  newnames, TRC_DATA_IMMUTABLE);
-        newtable.objects = trc_create_data_no_copy(trace, newtable.entry_count*sizeof(trc_obj_t*),
+        newtable.objects = trc_create_data_no_copy(ns->trace, newtable.entry_count*sizeof(trc_obj_t*),
                                                    newobjects, TRC_DATA_IMMUTABLE);
         
         trc_obj_set_rev(table_obj, &newtable);
@@ -1316,19 +1339,18 @@ bool trc_set_name(trace_t* trace, trc_obj_type_t type, uint64_t name, trc_obj_t*
     trc_unmap_data(table->objects);
     trc_unmap_data(table->names);
     
-    if (prevobj) set_obj_name(prevobj, false, 0);
-    if (obj) set_obj_name(obj, true, name);
+    if (prevobj) set_obj_name(prevobj, ns, false, 0);
+    if (obj) set_obj_name(obj, ns, true, name);
     
     return true;
 }
 
-void trc_free_name(trace_t* trace, trc_obj_type_t type, uint64_t name) {
-    trc_set_name(trace, type, name, NULL);
+void trc_free_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name) {
+    trc_set_name(ns, type, name, NULL);
 }
 
-trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, uint64_t rev) {
-    trc_gl_inspection_t* in = &trace->inspection;
-    trc_obj_t* table_obj = in->name_tables[type];
+trc_obj_t* trc_lookup_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, uint64_t rev) {
+    trc_obj_t* table_obj = ns->name_tables[type];
     const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, rev);
     if (!table) return NULL;
     
@@ -1348,29 +1370,29 @@ trc_obj_t* trc_lookup_name(trace_t* trace, trc_obj_type_t type, uint64_t name, u
     return res;
 }
 
-trc_obj_t* trc_create_named_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev) {
-    trc_obj_t* obj = trc_create_obj(trace, false, type, rev);
-    trc_set_name(trace, type, name, obj);
+trc_obj_t* trc_create_named_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, const void* rev) {
+    trc_obj_t* obj = trc_create_obj(ns->trace, false, type, rev);
+    trc_set_name(ns, type, name, obj);
     return obj;
 }
 
-void trc_set_obj(trace_t* trace, trc_obj_type_t type, uint64_t name, const void* rev) {
-    trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
+void trc_set_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, const void* rev) {
+    trc_obj_t* obj = trc_lookup_name(ns, type, name, -1);
     if (!obj) return;
     trc_obj_set_rev(obj, rev);
 }
 
-const void* trc_get_obj(trace_t* trace, trc_obj_type_t type, uint64_t name) {
-    trc_obj_t* obj = trc_lookup_name(trace, type, name, -1);
+const void* trc_get_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name) {
+    trc_obj_t* obj = trc_lookup_name(ns, type, name, -1);
     return obj ? trc_obj_get_rev(obj, -1) : NULL;
 }
 
 const trc_gl_context_rev_t* trc_get_context(trace_t* trace) {
-    return trc_get_obj(trace, TrcContext, trc_get_current_fake_gl_context(trace));
+    return trc_get_obj(&trace->inspection.global_namespace, TrcContext, trc_get_current_fake_gl_context(trace));
 }
 
 void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev) {
-    trc_set_obj(trace, TrcContext, trc_get_current_fake_gl_context(trace), rev);
+    trc_set_obj(&trace->inspection.global_namespace, TrcContext, trc_get_current_fake_gl_context(trace), rev);
 }
 
 bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64_t revision, const void** rev) {
