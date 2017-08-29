@@ -321,8 +321,6 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
 static void init_context(trc_replay_context_t* ctx) {
     trace_t* trace = ctx->trace;
     
-    trc_gl_state_set_made_current_before(trace, false);
-    
     GLint major, minor;
     F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
     F(glGetIntegerv)(GL_MINOR_VERSION, &minor);
@@ -843,15 +841,11 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
     if (offset<0 || size<=0 || offset+size>buffer_rev->data->size) ERROR2(false, "Invalid range");
     //TODO: Check alignment
     
-    trc_gl_texture_image_t img;
-    memset(&img, 0, sizeof(img));
-    img.internal_format = internalformat;
-    img.buffer = buffer;
-    img.buffer_start = offset;
-    img.buffer_size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
-    
     trc_gl_texture_rev_t newrev = *rev;
-    newrev.images = trc_create_data(ctx->trace, sizeof(img), &img, TRC_DATA_IMMUTABLE);
+    newrev.buffer.internal_format = internalformat;
+    newrev.buffer.buffer = buffer;
+    newrev.buffer.offset = offset;
+    newrev.buffer.size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
     set_texture(ctx->trace, &newrev);
     
     return true;

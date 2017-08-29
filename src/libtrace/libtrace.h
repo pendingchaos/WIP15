@@ -212,17 +212,17 @@ typedef enum trc_image_format_t {
     TrcImageFormat_RGBA_U8
 } trc_image_format_t;
 
+typedef struct trc_gl_texture_buffer_t {
+    uint internal_format;
+    uint buffer; //TODO: trc_obj_ref_t?
+    uint offset;
+    uint size;
+} trc_gl_texture_buffer_t;
+
 typedef struct trc_gl_texture_image_t {
     uint face; //0 if the texture is not a non-array cubemap
     uint level;
     uint internal_format;
-    
-    //for buffer textures
-    uint buffer; //TODO: trc_obj_ref_t?
-    uint buffer_start;
-    uint buffer_size;
-    
-    //for image textures
     uint width;
     uint height;
     uint depth;
@@ -242,6 +242,7 @@ typedef struct trc_gl_texture_rev_t {
     uint swizzle[4];
     //array of trc_gl_texture_image_t
     trc_data_t* images;
+    trc_gl_texture_buffer_t buffer;
 } trc_gl_texture_rev_t;
 
 typedef struct trc_gl_query_rev_t {
