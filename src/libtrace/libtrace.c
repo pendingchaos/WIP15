@@ -1591,6 +1591,13 @@ trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uin
     return create_data(trace, size, data, flags, false);
 }
 
+trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags) {
+    void* src_data = trc_map_data(src, TRC_MAP_READ);
+    trc_data_t* data = trc_create_data(trace, src->size, src_data, flags);
+    trc_unmap_data(src);
+    return data;
+}
+
 void* trc_map_data(trc_data_t* data, uint32_t flags) {
     if (flags & TRC_MAP_WRITE) pthread_rwlock_wrlock(&data->lock);
     else pthread_rwlock_rdlock(&data->lock);

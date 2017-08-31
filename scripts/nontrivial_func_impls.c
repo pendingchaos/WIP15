@@ -1,7 +1,3 @@
-#ifndef GL_POLYGON_OFFSET_CLAMP //XXX: Workaround
-#define GL_POLYGON_OFFSET_CLAMP 0x8E1B
-#endif
-
 #define REPLAY 1
 #define SWITCH_REPLAY(a, b) a
 #include "testing/objects/objects.h"
@@ -1779,7 +1775,31 @@ static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield 
     }
 }
 
+static void update_buffer_from_gl(trc_replay_context_t* ctx, trc_obj_t* obj, size_t offset, ptrdiff_t size_) {
+    trc_gl_buffer_rev_t rev = *(trc_gl_buffer_rev_t*)trc_obj_get_rev(obj, -1);
+    size_t size = size_ < 0 ? rev.data->size : size_;
+    
+    GLint prev_array_buffer;
+    F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev_array_buffer);
+    F(glBindBuffer)(GL_ARRAY_BUFFER, rev.real);
+    
+    void* newdata = malloc(size);
+    F(glGetBufferSubData)(GL_ARRAY_BUFFER, offset, size, newdata);
+    
+    rev.data = trc_copy_data(ctx->trace, rev.data, 0);
+    uint8_t* data = trc_map_data(rev.data, TRC_MAP_MODIFY);
+    memcpy(data+offset, newdata, size);
+    trc_unmap_freeze_data(ctx->trace, rev.data);
+    
+    free(newdata);
+    
+    set_buffer(&rev);
+    
+    F(glBindBuffer)(GL_ARRAY_BUFFER, prev_array_buffer);
+}
+
 static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
+    //Update framebuffer
     bool depth = trc_gl_state_get_state_bool(ctx->trace, GL_DEPTH_WRITEMASK, 0);
     bool stencil = trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_WRITEMASK, 0) != 0;
     stencil = stencil || trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_BACK_WRITEMASK, 0)!=0;
@@ -1789,6 +1809,17 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
     //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
     update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
+    
+    //Update transform feedback buffers
+    size_t xfb_buffer_count = trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
+    for (size_t i = 0; i < xfb_buffer_count; i++) {
+        trc_gl_buffer_binding_point_t binding =
+            trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i);
+        if (!binding.buf.obj) continue;
+        update_buffer_from_gl(ctx, binding.buf.obj, binding.offset, binding.size);
+    }
+    trc_obj_t* xfb_buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
+    if (xfb_buffer) update_buffer_from_gl(ctx, xfb_buffer, 0, -1);
 }
 
 static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
@@ -2948,7 +2979,7 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         newrev.has_object = true;
         set_buffer(&newrev);
     }
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, p_offset, p_size});
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
     if (buffer_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_size, p_data, p_usage))

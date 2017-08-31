@@ -598,6 +598,7 @@ void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
 //Data
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
+trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags);
 void* trc_map_data(trc_data_t* data, uint32_t flags);
 void trc_unmap_data(trc_data_t* data);
 void trc_freeze_data(trace_t* trace, trc_data_t* data);
