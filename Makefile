@@ -33,14 +33,15 @@ obj = $(join $(dir $(base_obj)), $(addprefix ., $(notdir $(base_obj))))
 
 dep = $(obj:.o=.d)
 
+.PHONY: all
 all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/replaytrace bin/test bin/tests
 
 -include $(dep)
 
-.%.d: %.c src/libtrace/libtrace_glstate.h
+.%.d: %.c src/libtrace/libtrace_glstate.h src/shared/glcorearb.h
 	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
-.%.o: %.c src/libtrace/libtrace_glstate.h
+.%.o: %.c src/libtrace/libtrace_glstate.h src/shared/glcorearb.h
 	$(CC) -c $< $(CFLAGS) -o $@
 
 src/libtrace/.replay_gl.o: src/libtrace/replay_gl.c
@@ -60,6 +61,9 @@ src/libtrace/replay_gl.c: scripts/nontrivial_func_impls.c scripts/generate_repla
 
 src/libtrace/libtrace_glstate.h: scripts/generate_libtrace_glstate.py
 	cd scripts; python generate_libtrace_glstate.py
+
+src/shared/glcorearb.h:
+	cd src/shared; wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/api/GL/glcorearb.h
 
 bin/libgl.so: src/.libgl.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
@@ -86,6 +90,7 @@ bin/tests: $(tests_obj)
 clean:
 	rm -f scripts/generated_gl_funcs.py
 	rm -f src/libgl.c
+	rm -f src/shared/glcorearb.h
 	rm -f src/libtrace/libtrace_glstate.h
 	rm -f src/libtrace/replay_gl.c
 	rm -f src/shared/glapi.c
@@ -95,6 +100,6 @@ clean:
 	rm -f bin/test
 	rm -f bin/gl.so
 	rm -f bin/tests
-	rm -f bin/testtrace
+	rm -f bin/replaytrace
 	rm -f $(obj)
 	rm -f $(dep)

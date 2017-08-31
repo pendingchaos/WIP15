@@ -1,5 +1,5 @@
 #define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include "shared/glcorearb.h"
 
 typedef struct test_t {
     const char* name;

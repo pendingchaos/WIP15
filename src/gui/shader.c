@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "shared/uint.h"
 
-#include <GL/gl.h>
+#include "shared/glcorearb.h"
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>

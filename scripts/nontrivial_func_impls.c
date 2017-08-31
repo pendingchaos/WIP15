@@ -1,3 +1,7 @@
+#ifndef GL_POLYGON_OFFSET_CLAMP //XXX: Workaround
+#define GL_POLYGON_OFFSET_CLAMP 0x8E1B
+#endif
+
 #define REPLAY 1
 #define SWITCH_REPLAY(a, b) a
 #include "testing/objects/objects.h"
@@ -514,6 +518,7 @@ static void init_context(trc_replay_context_t* ctx) {
     
     trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_UNITS, 0.0f);
     trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_FACTOR, 0.0f);
+    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_CLAMP, 0.0f);
     
     trc_gl_state_state_float_init1(trace, GL_SAMPLE_COVERAGE_VALUE, 1.0f);
     trc_gl_state_state_bool_init1(trace, GL_SAMPLE_COVERAGE_INVERT, false);
@@ -3861,7 +3866,7 @@ glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_buf
 glCheckFramebufferStatus: //GLenum p_target
     ;
 
-glGetPointerv: //GLenum p_pname, void ** p_params
+glGetPointerv: //GLenum p_pname, void** p_params
     ;
 
 glGetPolygonStipple: //GLubyte* p_mask
@@ -5202,10 +5207,11 @@ glSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, const GLfloat* p_param
 
 glSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    
     double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
-    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
-    
+    if (p_pname == GL_TEXTURE_BORDER_COLOR)
+        conv_from_signed_norm_array_i32(ctx->trace, cmd->args[2].count, double_params, p_param, 32);
+    else
+        for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
     trc_gl_sampler_rev_t newrev = *p_sampler_rev;
     if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
         real(p_sampler_rev->real, p_pname, p_param);
@@ -5214,13 +5220,23 @@ glSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
 
 glSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    //TODO
-    real(p_sampler_rev->real, p_pname, p_param);
+    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
+    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(&newrev);
+    }
 
 glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    //TODO
-    real(p_sampler_rev->real, p_pname, p_param);
+    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
+    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+    trc_gl_sampler_rev_t newrev = *p_sampler_rev;
+    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+        real(p_sampler_rev->real, p_pname, p_param);
+        set_sampler(&newrev);
+    }
 
 glGenFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
     if (p_n < 0) ERROR("Invalid framebuffer name count");
@@ -5737,6 +5753,12 @@ glPolygonOffset: //GLfloat p_factor, GLfloat p_units
     trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_UNITS, 0, p_units);
     trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_FACTOR, 0, p_factor);
     real(p_factor, p_units);
+
+glPolygonOffsetClamp: //GLfloat p_factor, GLfloat p_units, GLfloat p_clamp
+    trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_UNITS, 0, p_units);
+    trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_FACTOR, 0, p_factor);
+    trc_gl_state_set_state_float(ctx->trace, GL_POLYGON_OFFSET_CLAMP, 0, p_clamp);
+    real(p_factor, p_units, p_clamp);
 
 glSampleCoverage: //GLfloat p_value, GLboolean p_invert
     trc_gl_state_set_state_float(ctx->trace, GL_SAMPLE_COVERAGE_VALUE, 0, p_value);

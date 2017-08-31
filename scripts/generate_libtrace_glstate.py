@@ -348,6 +348,7 @@ map array float state_float
 //    GL_LINE_WIDTH_GRANULARITY
     GL_POLYGON_OFFSET_UNITS
     GL_POLYGON_OFFSET_FACTOR
+    GL_POLYGON_OFFSET_CLAMP
     GL_SAMPLE_COVERAGE_VALUE
     GL_BLEND_COLOR
 //    GL_MAX_VIEWPORT_DIMS
@@ -541,7 +542,7 @@ print '#endif'
 print
 
 print '''#ifdef WIP15_STATE_GEN_IMPL
-#include <GL/gl.h>
+#include "shared/glcorearb.h"
 #include <assert.h>
 '''
 print

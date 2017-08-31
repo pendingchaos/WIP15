@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <GL/gl.h>
+#include "shared/glcorearb.h"
 
 extern GtkBuilder* builder;
 extern trace_t* trace;
