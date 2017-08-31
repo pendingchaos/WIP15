@@ -261,6 +261,8 @@ static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* pa
     case GL_TEXTURE_WRAP_R:
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COMPARE_FUNC:
+    case GL_TEXTURE_LOD_BIAS:
+    case GL_TEXTURE_MAX_ANISOTROPY:
         if (count != 1)
             ERROR2(true, "Expected 1 value. Got %u.", count);
         break;
@@ -275,27 +277,30 @@ static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* pa
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST && val[0]!=GL_NEAREST_MIPMAP_NEAREST &&
             val[0]!=GL_LINEAR_MIPMAP_NEAREST && val[0]!=GL_NEAREST_MIPMAP_LINEAR &&
             val[0]!=GL_LINEAR_MIPMAP_LINEAR)
-            ERROR2(true, "Invalid minification filter.");
+            ERROR2(true, "Invalid minification filter");
         break;
     case GL_TEXTURE_MAG_FILTER:
         if (val[0]!=GL_LINEAR && val[0]!=GL_NEAREST)
-            ERROR2(true, "Invalid magnification filter.");
+            ERROR2(true, "Invalid magnification filter");
         break;
     case GL_TEXTURE_WRAP_S:
     case GL_TEXTURE_WRAP_T:
     case GL_TEXTURE_WRAP_R:
         if (val[0]!=GL_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_BORDER && val[0]!=GL_MIRRORED_REPEAT &&
             val[0]!=GL_REPEAT && val[0]!=GL_MIRROR_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_EDGE)
-            ERROR2(true, "Invalid wrap mode.");
+            ERROR2(true, "Invalid wrap mode");
         break;
     case GL_TEXTURE_COMPARE_MODE:
         if (val[0]!=GL_COMPARE_REF_TO_TEXTURE && val[0]!=GL_NONE)
-            ERROR2(true, "Invalid compare mode.");
+            ERROR2(true, "Invalid compare mode");
         break;
     case GL_TEXTURE_COMPARE_FUNC:
         if (val[0]!=GL_LEQUAL && val[0]!=GL_GEQUAL && val[0]!=GL_LESS && val[0]!=GL_GREATER &&
             val[0]!=GL_EQUAL && val[0]!=GL_NOTEQUAL && val[0]!=GL_ALWAYS && val[0]!=GL_NEVER)
-            ERROR2(true, "Invalid compare function.");
+            ERROR2(true, "Invalid compare function");
+        break;
+    case GL_TEXTURE_MAX_ANISOTROPY:
+        if (val[0] < 1.0) ERROR2(true, "Invalid max anisotropy");
         break;
     }
     
@@ -312,6 +317,8 @@ static bool sample_param_double(trace_command_t* cmd, trc_gl_sample_params_t* pa
         break;
     case GL_TEXTURE_COMPARE_MODE: params->compare_mode = val[0]; break;
     case GL_TEXTURE_COMPARE_FUNC: params->compare_func = val[0]; break;
+    case GL_TEXTURE_LOD_BIAS: params->lod_bias = val[0]; break;
+    case GL_TEXTURE_MAX_ANISOTROPY: params->max_anisotropy = val[0]; break;
     }
     
     return false;
@@ -563,6 +570,13 @@ static void init_context(trc_replay_context_t* ctx) {
     
     GLenum draw_buffers[1] = {GL_BACK};
     trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, 1, draw_buffers);
+    
+    GLint max_sample_mask_words;
+    F(glGetIntegerv)(GL_MAX_SAMPLE_MASK_WORDS, &max_sample_mask_words);
+    int sample_mask_value[max_sample_mask_words];
+    memset(sample_mask_value, 0xff, max_sample_mask_words*sizeof(int));
+    trc_gl_state_state_int_init1(ctx->trace, GL_MAX_SAMPLE_MASK_WORDS, max_sample_mask_words);
+    trc_gl_state_state_int_init(ctx->trace, GL_SAMPLE_MASK_VALUE, max_sample_mask_words, sample_mask_value);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
@@ -932,10 +946,22 @@ static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command
 
 static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, trc_obj_t* fb, uint attachment, bool dsa,
                               uint fake_tex, const trc_gl_texture_rev_t* tex, uint target, uint level, uint layer) {
+    bool cubemap = target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+    
     if (!tex && fake_tex) ERROR2(false, "Invalid texture name");
     if (fake_tex && !tex->has_object) ERROR2(false, "Texture name has no object");
-    //TODO: Test if target is compatible with the texture
-    //TODO: Test if level is a mipmap of the texture
+    if (tex && (cubemap?GL_TEXTURE_CUBE_MAP:target) != tex->type)
+        ERROR2(false, "Incompatible target for texture\n");
+    
+    if (tex) {
+        size_t image_count = tex->images->size / sizeof(trc_gl_texture_image_t);
+        trc_gl_texture_image_t* images = trc_map_data(tex->images, TRC_MAP_READ);
+        bool found = false;
+        for (size_t i = 0; i < image_count; i++) if (images[i].level == level) found = true;;
+        trc_unmap_data(tex->images);
+        if (!found) ERROR2(false, "No such level for texture");
+    }
+    
     trc_gl_framebuffer_attachment_t attach;
     memset(&attach, 0, sizeof(attach));
     attach.has_renderbuffer = false;
@@ -945,7 +971,7 @@ static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, t
     attach.level = level;
     attach.layer = layer;
     attach.face = 0;
-    if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) {
+    if (cubemap) {
         attach.face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
     } else if (target==GL_TEXTURE_CUBE_MAP_ARRAY || target==GL_TEXTURE_CUBE_MAP) {
         attach.face = layer % 6;
@@ -995,7 +1021,6 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
 }
 
 //TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
-//TODO: More validation
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                  GLuint tex_or_target, GLenum param, uint32_t count, const double* val) {
     const trc_gl_texture_rev_t* rev = NULL;
@@ -1004,6 +1029,19 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
     if (!rev) ERROR2(true, dsa?"Invalid texture name":"No texture bound to target");
     if (!rev->has_object) ERROR2(true, "Texture name has no object");
     trc_gl_texture_rev_t newrev = *rev;
+    
+    bool rectangle = rev->type==GL_TEXTURE_RECTANGLE;
+    bool multisampled = rev->type==GL_TEXTURE_2D_MULTISAMPLE || rev->type==GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+    
+    if (rectangle && param==GL_TEXTURE_MIN_FILTER && count==1) {
+        if (val[0]!=GL_NEAREST && val[0]!=GL_LINEAR)
+            ERROR2(true, "Mipmapping is not supported for rectangle textures");
+    }
+    
+    if (rectangle && (param==GL_TEXTURE_WRAP_S || param==GL_TEXTURE_WRAP_T) && count==1) {
+        if (val[0]==GL_MIRROR_CLAMP_TO_EDGE || val[0]==GL_MIRRORED_REPEAT || val[0]==GL_REPEAT)
+            ERROR2(true, "Provided wrap mode is not supported for rectangle textures");
+    }
     
     switch (param) {
     case GL_TEXTURE_MIN_FILTER:
@@ -1015,42 +1053,53 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
     case GL_TEXTURE_WRAP_R:
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COMPARE_FUNC:
-    case GL_TEXTURE_BORDER_COLOR: {
+    case GL_TEXTURE_BORDER_COLOR:
+    case GL_TEXTURE_LOD_BIAS:
+    case GL_TEXTURE_MAX_ANISOTROPY: {
+        if (multisampled)
+            ERROR2(true, "Sampler parameters cannot be set for multisampled textures");
         bool res = sample_param_double(cmd, &newrev.sample_params, param, count, val);
         set_texture(&newrev);
         return res;
-    } case GL_DEPTH_STENCIL_TEXTURE_MODE:
+    }
+    case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
     case GL_TEXTURE_MAX_LEVEL:
-    case GL_TEXTURE_LOD_BIAS:
     case GL_TEXTURE_SWIZZLE_R:
     case GL_TEXTURE_SWIZZLE_G:
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A: {
-        if (count != 1) ERROR2(true, "Expected 1 value. Got %u.", count);
+        if (count != 1) ERROR2(true, "Expected 1 value. Got %u", count);
         break;
-    } case GL_TEXTURE_SWIZZLE_RGBA: {
-        if (count != 4) ERROR2(true, "Expected 4 values. Got %u.", count);
+    }
+    case GL_TEXTURE_SWIZZLE_RGBA: {
+        if (count != 4) ERROR2(true, "Expected 4 values. Got %u", count);
         break;
     }
     }
     
     switch (param) {
+    case GL_TEXTURE_BASE_LEVEL:
+        if ((multisampled||rev->type==GL_TEXTURE_RECTANGLE) && val[0]!=0.0)
+            ERROR2(true, "Parameter value must be zero due to the texture's type");
+    case GL_TEXTURE_MAX_LEVEL:
+        if (val[0] < 0.0) ERROR2(true, "Parameter value must be nonnegative");
+        break;
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
         if (val[0]!=GL_DEPTH_COMPONENT && val[0]!=GL_STENCIL_INDEX)
-            ERROR2(true, "Invalid depth stencil texture mode.");
+            ERROR2(true, "Invalid depth stencil texture mode");
         break;
     case GL_TEXTURE_SWIZZLE_R:
     case GL_TEXTURE_SWIZZLE_G:
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A:
         if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA)
-            ERROR2(true, "Invalid swizzle.");
+            ERROR2(true, "Invalid swizzle");
         break;
     case GL_TEXTURE_SWIZZLE_RGBA:
         for (uint i = 0; i < 4; i++) {
             if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA)
-                ERROR2(true, "Invalid swizzle.");
+                ERROR2(true, "Invalid swizzle");
         }
         break;
     }
@@ -1061,7 +1110,6 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
         break;
     case GL_TEXTURE_BASE_LEVEL: newrev.base_level = val[0]; break;
     case GL_TEXTURE_MAX_LEVEL: newrev.max_level = val[0]; break;
-    case GL_TEXTURE_LOD_BIAS: newrev.lod_bias = val[0]; break;
     case GL_TEXTURE_SWIZZLE_R: newrev.swizzle[0] = val[0]; break;
     case GL_TEXTURE_SWIZZLE_G: newrev.swizzle[1] = val[0]; break;
     case GL_TEXTURE_SWIZZLE_B: newrev.swizzle[2] = val[0]; break;
@@ -1736,7 +1784,7 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.sample_params.border_color[3] = 0;
     rev.sample_params.compare_func = GL_LEQUAL;
     rev.sample_params.compare_mode = GL_NONE;
-    rev.lod_bias = 0;
+    rev.sample_params.lod_bias = 0;
     rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
     rev.sample_params.mag_filter = GL_LINEAR;
     rev.sample_params.min_lod = -1000;
@@ -1749,6 +1797,7 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.sample_params.wrap_s = GL_REPEAT;
     rev.sample_params.wrap_t = GL_REPEAT;
     rev.sample_params.wrap_r = GL_REPEAT;
+    rev.sample_params.max_anisotropy = 1.0;
     rev.images = NULL;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
@@ -1815,6 +1864,8 @@ static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.params.wrap_s = GL_REPEAT;
     rev.params.wrap_t = GL_REPEAT;
     rev.params.wrap_r = GL_REPEAT;
+    rev.params.lod_bias = 0.0;
+    rev.params.max_anisotropy = 1.0;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->ns, TrcSampler, fake[i], &rev);
@@ -2421,7 +2472,7 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     
     uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
     size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
-    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //A hack
+    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //TODO: A hack
     init_context(ctx);
     ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
     
@@ -2442,8 +2493,7 @@ glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
     if (!glctx) ERROR("Invalid context name");
     
     SDL_GL_DeleteContext(glctx);
-    //TODO
-    //replay_rel_object(ctx, ReplayObjType_GLXContext, p_ctx);
+    
     delete_obj(global_ns, p_ctx, TrcContext);
 
 glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
@@ -5408,6 +5458,18 @@ glEndQueryIndexed: //GLenum p_target, GLuint p_index
 glQueryCounter: //GLuint p_id, GLenum p_target
     const trc_gl_query_rev_t* rev = get_query(ctx->ns, p_id);
     if (!rev) ERROR("Invalid query name");
+    
+    bool bound = false;
+    GLenum targets[6] = {
+        GL_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED_CONSERVATIVE,
+        GL_PRIMITIVES_GENERATED, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, GL_TIME_ELAPSED};
+    for (size_t i = 0; i < 6; i++) {
+        for (size_t j = 0; j < trc_gl_state_get_bound_queries_size(ctx->trace, targets[j]); j++) {
+            if (trc_gl_state_get_bound_queries(ctx->trace, targets[j], i) == rev->head.obj)
+                ERROR("Query is used by a glBeginQuery/glEndQuery block");
+        }
+    }
+    
     real(rev->real, p_target);
     if (!rev->has_object) {
         trc_gl_query_rev_t newrev = *rev;
@@ -5415,12 +5477,16 @@ glQueryCounter: //GLuint p_id, GLenum p_target
         newrev.type = p_target;
         set_query(&newrev);
     }
-    //TODO: This clears any errors
-    if (F(glGetError)() == GL_NO_ERROR) update_query(ctx, cmd, p_target, p_id, rev->real);
+    
+    update_query(ctx, cmd, p_target, p_id, rev->real);
 
 glSampleMaski: //GLuint p_maskNumber, GLbitfield p_mask
+    if (p_maskNumber >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_SAMPLE_MASK_WORDS, 0))
+        ERROR("Invalid mask number");
     real(p_maskNumber, p_mask);
-    //TODO: Set state
+    union {int32_t maski; uint32_t masku;} u;
+    u.masku = p_mask;
+    trc_gl_state_set_state_int(ctx->trace, GL_SAMPLE_MASK_VALUE, p_maskNumber, u.maski);
 
 glDrawBuffer: //GLenum p_buf
     real(p_buf);
@@ -5429,7 +5495,7 @@ glDrawBuffer: //GLenum p_buf
 glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
     if (p_n < 0) ERROR("buffer count is less than zero");
     if (p_n > trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0))
-        ERROR("buffer count is greater than GL_MAX_DRAW_BUFFERS");
+        ERROR("The buffer count is greater than GL_MAX_DRAW_BUFFERS");
     
     trc_obj_t* fb = trc_gl_state_get_draw_framebuffer(ctx->trace);
     

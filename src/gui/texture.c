@@ -55,7 +55,7 @@ void texture_select_callback(GObject* obj, gpointer user_data) {
     VAL("Mag Filter", static_format("%s", get_enum_str("TextureMagFilter", tex->sample_params.mag_filter)));
     VAL("Min LOD", static_format("%s", format_float(tex->sample_params.min_lod)));
     VAL("Max LOD", static_format("%s", format_float(tex->sample_params.max_lod)));
-    VAL("LOD bias", static_format("%s", format_float(tex->lod_bias)));
+    VAL("LOD bias", static_format("%s", format_float(tex->sample_params.lod_bias)));
     VAL("Base Level", static_format("%d", tex->base_level));
     VAL("Max Level", static_format("%d", tex->max_level));
     VAL("Swizzle", static_format("[%s, %s, %s, %s]",

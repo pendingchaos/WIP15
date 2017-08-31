@@ -185,6 +185,8 @@ typedef struct trc_gl_sample_params_t {
     double border_color[4];
     uint compare_mode;
     uint compare_func;
+    float lod_bias;
+    float max_anisotropy;
 } trc_gl_sample_params_t;
 
 typedef struct trc_gl_sampler_rev_t {
@@ -240,7 +242,6 @@ typedef struct trc_gl_texture_rev_t {
     uint depth_stencil_mode;
     uint base_level;
     uint max_level;
-    float lod_bias;
     uint swizzle[4];
     //array of trc_gl_texture_image_t
     trc_data_t* images;
