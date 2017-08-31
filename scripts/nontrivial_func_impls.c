@@ -241,6 +241,22 @@ wip15PrintTestResults: //
     }
     fprintf(stderr, "%zu/%zu tests passed\n", tests_passed, tests);
 
+double conv_from_signed_norm(trace_t* trace, int64_t val, size_t bits) {
+    uint ver = trc_gl_state_get_ver(trace);
+    if (ver >= 420) return fmax(val/pow(2.0, bits-1), -1.0);
+    else return (val*2+1) / pow(2.0, bits-1);
+}
+
+void conv_from_signed_norm_array_i64(trace_t* trace, size_t count, double* dest, const int64_t* src, size_t bits) {
+    for (size_t i = 0; i < count; i++)
+        dest[i] = conv_from_signed_norm(trace, src[i], bits);
+}
+
+void conv_from_signed_norm_array_i32(trace_t* trace, size_t count, double* dest, const int32_t* src, size_t bits) {
+    for (size_t i = 0; i < count; i++)
+        dest[i] = conv_from_signed_norm(trace, src[i], bits);
+}
+
 static void delete_obj(trc_namespace_t* ns, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
     trc_obj_t* obj = trc_lookup_name(ns, type, fake, -1);
@@ -1020,7 +1036,6 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
     set_renderbuffer(&newrev);
 }
 
-//TODO or NOTE: Ensure that the border color is handled with integer glTexParameter(s)
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                  GLuint tex_or_target, GLenum param, uint32_t count, const double* val) {
     const trc_gl_texture_rev_t* rev = NULL;
@@ -1785,7 +1800,7 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.sample_params.compare_func = GL_LEQUAL;
     rev.sample_params.compare_mode = GL_NONE;
     rev.sample_params.lod_bias = 0;
-    rev.sample_params.min_filter = GL_NEAREST_MIPMAP_LINEAR;
+    rev.sample_params.min_filter = rev.type==GL_TEXTURE_RECTANGLE ? GL_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
     rev.sample_params.mag_filter = GL_LINEAR;
     rev.sample_params.min_lod = -1000;
     rev.sample_params.max_lod = 1000;
@@ -1794,9 +1809,10 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
     rev.swizzle[1] = GL_GREEN;
     rev.swizzle[2] = GL_BLUE;
     rev.swizzle[3] = GL_ALPHA;
-    rev.sample_params.wrap_s = GL_REPEAT;
-    rev.sample_params.wrap_t = GL_REPEAT;
-    rev.sample_params.wrap_r = GL_REPEAT;
+    GLenum wrap_mode = rev.type==GL_TEXTURE_RECTANGLE ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+    rev.sample_params.wrap_s = wrap_mode;
+    rev.sample_params.wrap_t = wrap_mode;
+    rev.sample_params.wrap_r = wrap_mode;
     rev.sample_params.max_anisotropy = 1.0;
     rev.images = NULL;
     for (size_t i = 0; i < count; ++i) {
@@ -2572,6 +2588,11 @@ glBindTexture: //GLenum p_target, GLuint p_texture
         newrev.has_object = true;
         newrev.type = p_target;
         newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+        newrev.sample_params.min_filter = p_target==GL_TEXTURE_RECTANGLE ? GL_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
+        GLenum wrap_mode = p_target==GL_TEXTURE_RECTANGLE ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+        newrev.sample_params.wrap_s = wrap_mode;
+        newrev.sample_params.wrap_t = wrap_mode;
+        newrev.sample_params.wrap_r = wrap_mode;
         set_texture(&newrev);
     } else if (rev && rev->type!=p_target) {
         ERROR("Invalid target for texture object");
@@ -2774,17 +2795,28 @@ glTexParameteriv: //GLenum p_target, GLenum p_pname, const GLint* p_params
     trace_value_t* paramsv = &cmd->args[2];
     const int64_t* params64 = trc_get_int(paramsv);
     double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
+    if (p_pname == GL_TEXTURE_BORDER_COLOR)
+        conv_from_signed_norm_array_i64(ctx->trace, paramsv->count, double_params, params64, 32);
+    else
+        for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
     if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
         real(p_target, p_pname, p_params);
 
 glTexParameterIiv: //GLenum p_target, GLenum p_pname, const GLint* p_params
-    //TODO
-    real(p_target, p_pname, p_params);
+    trace_value_t* paramsv = &cmd->args[2];
+    const int64_t* params64 = trc_get_int(paramsv);
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+        real(p_target, p_pname, p_params);
 
 glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
-    //TODO
-    real(p_target, p_pname, p_params);
+    trace_value_t* paramsv = &cmd->args[2];
+    const uint64_t* params64 = trc_get_uint(paramsv);
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+        real(p_target, p_pname, p_params);
 
 glTextureParameterf: //GLuint p_texture, GLenum p_pname, GLfloat p_param
     GLdouble double_param = p_param;
@@ -2805,21 +2837,26 @@ glTextureParameterfv: //GLuint p_texture, GLenum p_pname, const GLfloat* p_param
 glTextureParameteriv: //GLuint p_texture, GLenum p_pname, const GLint* p_param
     trace_value_t* paramsv = &cmd->args[2];
     double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_param[i];
+    if (p_pname == GL_TEXTURE_BORDER_COLOR)
+        conv_from_signed_norm_array_i32(ctx->trace, paramsv->count, double_params, p_param, 32);
+    else
+        for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_param[i];
     if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameterIiv: //GLuint p_texture, GLenum p_pname, const GLint* p_params
-    if (!p_texture_rev) ERROR("Invalid texture name");
-    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
-    //TODO
-    real(p_texture_rev->real, p_pname, p_params);
+    trace_value_t* paramsv = &cmd->args[2];
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_params[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+        real(p_texture_rev->real, p_pname, p_params);
 
 glTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, const GLuint* p_params
-    if (!p_texture_rev) ERROR("Invalid texture name");
-    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
-    //TODO
-    real(p_texture_rev->real, p_pname, p_params);
+    trace_value_t* paramsv = &cmd->args[2];
+    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_params[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+        real(p_texture_rev->real, p_pname, p_params);
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     if (p_n < 0) ERROR("Invalid buffer name count");
@@ -5658,7 +5695,7 @@ glClearColor: //GLfloat p_red, GLfloat p_green, GLfloat p_blue, GLfloat p_alpha
     real(p_red, p_green, p_blue, p_alpha);
 
 glClearDepth: //GLdouble p_depth
-    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_CLEAR_VALUE, 0, fminf(fmaxf(p_depth, 0.0f), 1.0f));
+    trc_gl_state_set_state_float(ctx->trace, GL_DEPTH_CLEAR_VALUE, 0, fmin(fmax(p_depth, 0.0f), 1.0f));
     real(p_depth);
 
 glClearDepthf: //GLfloat p_d
