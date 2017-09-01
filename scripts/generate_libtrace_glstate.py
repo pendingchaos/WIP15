@@ -657,4 +657,32 @@ for prop in properties:
 
 print '#endif'
 
+print '#ifdef WIP15_STATE_GEN_DESTRUCTOR'
+print 'static void gl_context_destructor(const trc_gl_context_rev_t* rev) {'
+
+def print_prop_destructor(prop, name):
+    if prop.c_type not in ['trc_obj_ref_t', 'trc_gl_buffer_binding_point_t']:
+        return
+    
+    if prop.array:
+        print '    size_t %s_count = rev->%s->size / sizeof(%s);' % (name, name, prop.c_type)
+        print '    const %s* %s_values = trc_map_data(rev->%s, TRC_MAP_READ);' % (prop.c_type, name, name)
+        print '    for (size_t i = 0; i < %s_count; i++)' % name
+        if prop.c_type == 'trc_obj_ref_t': print '    trc_del_obj_ref(%s_values[i]);' % name
+        else: print '        trc_del_obj_ref(%s_values[i].buf);' % name
+        print '    trc_unmap_data(rev->%s);' % name
+    else:
+        if prop.c_type == 'trc_obj_ref_t': print '    trc_del_obj_ref(rev->%s);' % name
+        else: print '    trc_del_obj_ref(rev->%s.buf);' % name
+
+for prop in properties:
+    if prop.map:
+        for key in prop.map_keys:
+            print_prop_destructor(prop, '%s_%s' % (prop.name, key))
+    else:
+        print_prop_destructor(prop, prop.name)
+
+print '}'
+print '#endif'
+
 output.close()

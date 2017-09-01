@@ -1233,6 +1233,10 @@ void trc_grab_obj(trc_obj_t* obj) {
     free(newrev);
 }
 
+#define WIP15_STATE_GEN_DESTRUCTOR
+#include "libtrace_glstate.h"
+#undef WIP15_STATE_GEN_DESTRUCTOR
+
 static void framebuffer_destructor(const trc_gl_framebuffer_rev_t* rev) {
     size_t count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
     trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev->attachments, TRC_MAP_READ);
@@ -1285,6 +1289,9 @@ void trc_drop_obj(trc_obj_t* obj) {
             break;
         case TrcProgramPipeline:
             program_pipeline_destructor((trc_gl_program_pipeline_rev_t*)newrev);
+            break;
+        case TrcContext:
+            gl_context_destructor((trc_gl_context_rev_t*)newrev);
             break;
         default:
             break;
