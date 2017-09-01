@@ -430,7 +430,7 @@ static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_co
     }
     
     GLenum error = GL_NO_ERROR;
-    if (trc_get_current_fake_gl_context(ctx->trace) && F(glGetError)) error = F(glGetError)();
+    if (trc_get_current_gl_context(ctx->trace, -1) && F(glGetError)) error = F(glGetError)();
     //TODO: Are all of these needed?
     switch (error) {
     case GL_NO_ERROR:
@@ -532,14 +532,12 @@ for name, func in func_dict.iteritems():
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
     
     if not name.startswith("glX") and not name.startswith("wip15"):
-        output.write("""    if (!trc_get_current_fake_gl_context(ctx->trace)) {
+        output.write("""    if (!trc_get_current_gl_context(ctx->trace, -1)) {
         trc_add_error(cmd, "No current OpenGL context.");
         return;
     } else {
-        uint64_t cur_ctx = trc_get_current_fake_gl_context(ctx->trace);
-        const trc_gl_context_rev_t* rev =
-            trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, cur_ctx);
-        ctx->ns = rev->namespace;
+        trc_obj_t* cur_ctx = trc_get_current_gl_context(ctx->trace, -1);
+        ctx->ns = ((const trc_gl_context_rev_t*)trc_obj_get_rev(cur_ctx, -1))->namespace;
     }
     """)
     else:

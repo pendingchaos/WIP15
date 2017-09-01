@@ -6,14 +6,13 @@
 
 static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum objType, GLuint64 objName,
                                    const trc_obj_rev_head_t** rev, uint64_t* real, const testing_property_t** properties) {
-    uint64_t cur_ctx = trc_get_current_fake_gl_context(ctx->trace);
+    //This code would usually be done before the call, but that is not the case for wip15* functions
+    trc_obj_t* cur_ctx = trc_get_current_gl_context(ctx->trace, -1);
     if (!cur_ctx) {
         fprintf(stderr, "No context bound at wip15Expect...");
         return NULL;
     }
-    const trc_gl_context_rev_t* ctx_rev =
-        trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, cur_ctx);
-    trc_namespace_t* namespace = ctx_rev->namespace;
+    trc_namespace_t* namespace = ((const trc_gl_context_rev_t*)trc_obj_get_rev(cur_ctx, -1))->namespace;
     
     *properties = get_object_type_properties(objType);
     switch (objType) {
@@ -1824,7 +1823,6 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
 
 static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
     trc_gl_texture_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     rev.type = create ? target : 0;
     rev.depth_stencil_mode = GL_DEPTH_COMPONENT;
@@ -1859,7 +1857,6 @@ static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* 
 
 static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_buffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     rev.tf_binding_count = 0;
     rev.data_usage = GL_STATIC_DRAW;
@@ -1876,7 +1873,6 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
 
 static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_framebuffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = false;
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.attachments = empty_data;
@@ -1889,7 +1885,6 @@ static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLui
 
 static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
     trc_gl_query_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     rev.type = create ? target : 0;
     rev.result = 0;
@@ -1902,7 +1897,6 @@ static void gen_queries(trc_replay_context_t* ctx, size_t count, const GLuint* r
 
 static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake) {
     trc_gl_sampler_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.params.border_color[0] = 0;
     rev.params.border_color[1] = 0;
     rev.params.border_color[2] = 0;
@@ -1926,7 +1920,6 @@ static void gen_samplers(trc_replay_context_t* ctx, size_t count, const GLuint* 
 
 static void gen_renderbuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_renderbuffer_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     rev.has_storage = false;
     for (size_t i = 0; i < count; ++i) {
@@ -1937,7 +1930,6 @@ static void gen_renderbuffers(trc_replay_context_t* ctx, size_t count, const GLu
 
 static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_vao_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.has_object = create;
     int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
     rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
@@ -2316,8 +2308,9 @@ static void bind_buffer_indexed(trc_replay_context_t* ctx, GLenum target, GLuint
 
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
+    trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
     if (p_ctx) {
-        if (!(glctx=((trc_gl_context_rev_t*)trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, p_ctx))->real))
+        if (!(glctx=((trc_gl_context_rev_t*)trc_get_obj(global_ns, TrcContext, p_ctx))->real))
             ERROR("Invalid GLX context");
     }
     
@@ -2326,7 +2319,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     
     if (glctx) {
         reload_gl_funcs(ctx);
-        trc_set_current_fake_gl_context(ctx->trace, p_ctx);
+        trc_set_current_gl_context(ctx->trace, trc_lookup_name(global_ns, TrcContext, p_ctx, -1));
         if (!trc_gl_state_get_made_current_before(ctx->trace)) {
             trace_extra_t* extra = trc_get_extra(cmd, "replay/glXMakeCurrent/drawable_size");
             if (!extra) ERROR("replay/glXMakeCurrent/drawable_size extra not found");
@@ -2355,7 +2348,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
         trc_gl_state_set_made_current_before(ctx->trace, true);
     } else {
         reset_gl_funcs(ctx);
-        trc_set_current_fake_gl_context(ctx->trace, 0);
+        trc_set_current_gl_context(ctx->trace, NULL);
     }
     
     //Seems to be messing up the front buffer.
@@ -2411,9 +2404,11 @@ glXGetClientString: //Display* p_dpy, int p_name
     ;
 
 glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct
+    trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
+    
     const trc_gl_context_rev_t* shareList = NULL;
     if (p_shareList) {
-        shareList = trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, (uint64_t)p_shareList);
+        shareList = trc_get_obj(global_ns, TrcContext, (uint64_t)p_shareList);
         if (!shareList) ERROR("Invalid share context name");
     }
     
@@ -2438,13 +2433,13 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     if (shareList) rev.namespace = shareList->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
-    trc_create_named_obj(&ctx->trace->inspection.global_namespace, TrcContext, fake, &rev);
+    trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
-    uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
+    trc_obj_t* prev_ctx = trc_get_current_gl_context(ctx->trace, -1);
     size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
-    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //TODO: A hack
+    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = cur_ctx; //TODO: A hack
     init_context(ctx);
-    ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
+    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = prev_ctx;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -2493,9 +2488,11 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, flags);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
     
+    trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
+    
     const trc_gl_context_rev_t* share_ctx = NULL;
     if (p_share_context) {
-        share_ctx = trc_get_obj(&ctx->trace->inspection.global_namespace, TrcContext, (uint64_t)p_share_context);
+        share_ctx = trc_get_obj(global_ns, TrcContext, (uint64_t)p_share_context);
         if (!share_ctx) ERROR("Invalid share context name");
     }
     
@@ -2520,13 +2517,13 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     if (share_ctx) rev.namespace = share_ctx->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
-    trc_create_named_obj(&ctx->trace->inspection.global_namespace, TrcContext, fake, &rev);
+    trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
-    uint64_t prev_fake = trc_get_current_fake_gl_context(ctx->trace);
+    trc_obj_t* prev_ctx = trc_get_current_gl_context(ctx->trace, -1);
     size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
-    ctx->trace->inspection.cur_ctx_revisions[end].context = fake; //TODO: A hack
+    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = cur_ctx; //TODO: A hack
     init_context(ctx);
-    ctx->trace->inspection.cur_ctx_revisions[end].context = prev_fake;
+    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = prev_ctx;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs(ctx);
@@ -2549,7 +2546,7 @@ glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
     delete_obj(global_ns, p_ctx, TrcContext);
 
 glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
-    if (!trc_get_current_fake_gl_context(ctx->trace)) ERROR("No current OpenGL context");
+    if (!trc_get_current_gl_context(ctx->trace, -1)) ERROR("No current OpenGL context");
     SDL_GL_SwapWindow(ctx->window);
     replay_update_fb0_buffers(ctx, false, true, false, false);
 
@@ -3041,7 +3038,6 @@ glCreateShader: //GLenum p_type
     GLuint real_shdr = F(glCreateShader)(p_type);
     GLuint fake = trc_get_uint(&cmd->ret)[0];
     trc_gl_shader_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = real_shdr;
     rev.sources = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
@@ -3112,7 +3108,6 @@ glCreateProgram: //
     GLuint real_program = F(glCreateProgram)();
     GLuint fake = trc_get_uint(&cmd->ret)[0];
     trc_gl_program_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = real_program;
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     rev.root_uniform_count = 0;
@@ -3626,7 +3621,6 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     real(p_n, pipelines);
     
     trc_gl_program_pipeline_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     for (size_t i = 0; i < p_n; ++i) {
         rev.real = pipelines[i];
         rev.has_object = false;
@@ -5482,7 +5476,6 @@ glFenceSync: //GLenum p_condition, GLbitfield p_flags
     uint64_t fake = *trc_get_ptr(&cmd->ret);
     
     trc_gl_sync_rev_t rev;
-    rev.fake_context = trc_get_current_fake_gl_context(ctx->trace);
     rev.real = (uint64_t)real_sync;
     rev.type = GL_SYNC_FENCE;
     rev.condition = p_condition;

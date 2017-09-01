@@ -9,7 +9,6 @@
 #include "shared/uint.h"
 
 #define TRC_GL_OBJ_HEAD trc_obj_rev_head_t head;\
-uint64_t fake_context;\
 uint64_t real;
 
 #define TRC_DATA_IMMUTABLE (1<<0)
@@ -436,7 +435,7 @@ struct trc_namespace_t {
 
 typedef struct trc_cur_context_rev_t {
     uint64_t revision;
-    uint64_t context;
+    trc_obj_ref_t context;
 } trc_cur_context_rev_t;
 
 typedef struct trc_gl_inspection_t {
@@ -587,9 +586,8 @@ bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64
 void trc_del_obj_ref(trc_obj_ref_t ref);
 void trc_set_obj_ref(trc_obj_ref_t* ref, trc_obj_t* obj);
 
-uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision);
-uint64_t trc_get_current_fake_gl_context(trace_t* trace);
-void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake);
+trc_obj_t* trc_get_current_gl_context(trace_t* trace, uint64_t revision);
+void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj);
 
 #define WIP15_STATE_GEN_FUNC_DECL
 #include "libtrace_glstate.h"

@@ -1,5 +1,6 @@
 #include "libtrace/libtrace.h"
 
+#include <assert.h>
 #include <malloc.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -731,7 +732,7 @@ trace_t *load_trace(const char* filename) {
     trace->inspection.namespaces = NULL;
     trace->inspection.cur_ctx_revision_count = 1;
     trace->inspection.cur_ctx_revisions = malloc(sizeof(trc_cur_context_rev_t));
-    trace->inspection.cur_ctx_revisions[0].context = 0;
+    trace->inspection.cur_ctx_revisions[0].context.obj = NULL;
     trace->inspection.cur_ctx_revisions[0].revision = trace->inspection.cur_revision;
     
     return trace;
@@ -1112,24 +1113,23 @@ void trc_run_inspection(trace_t* trace) {
     free(funcs);
 }
 
-uint64_t trc_lookup_current_fake_gl_context(trace_t* trace, uint64_t revision) {
+trc_obj_t* trc_get_current_gl_context(trace_t* trace, uint64_t revision) {
     for (ptrdiff_t i = trace->inspection.cur_ctx_revision_count-1; i >= 0; i--) {
         if (trace->inspection.cur_ctx_revisions[i].revision <= revision)
-            return trace->inspection.cur_ctx_revisions[i].context;
+            return trace->inspection.cur_ctx_revisions[i].context.obj;
     }
-    return 0;
+    return NULL;
 }
 
-uint64_t trc_get_current_fake_gl_context(trace_t* trace) {
-    return trace->inspection.cur_ctx_revisions[trace->inspection.cur_ctx_revision_count-1].context;
-}
-
-void trc_set_current_fake_gl_context(trace_t* trace, uint64_t fake) {
+void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj) {
     trc_gl_inspection_t* i = &trace->inspection;
     size_t size = (i->cur_ctx_revision_count+1)*sizeof(trc_cur_context_rev_t);
     i->cur_ctx_revisions = realloc(i->cur_ctx_revisions, size);
-    i->cur_ctx_revisions[i->cur_ctx_revision_count].revision = ++i->cur_revision;
-    i->cur_ctx_revisions[i->cur_ctx_revision_count++].context = fake;
+    
+    trc_cur_context_rev_t* rev = &i->cur_ctx_revisions[i->cur_ctx_revision_count++];
+    *rev = i->cur_ctx_revisions[i->cur_ctx_revision_count-2];
+    rev->revision = i->cur_revision;
+    trc_set_obj_ref(&rev->context, obj);
 }
 
 #define WIP15_STATE_GEN_IMPL
@@ -1429,15 +1429,17 @@ void trc_set_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, const 
 
 const void* trc_get_obj(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name) {
     trc_obj_t* obj = trc_lookup_name(ns, type, name, -1);
-    return obj ? trc_obj_get_rev(obj, -1) : NULL;
+    return trc_obj_get_rev(obj, -1);
 }
 
 const trc_gl_context_rev_t* trc_get_context(trace_t* trace) {
-    return trc_get_obj(&trace->inspection.global_namespace, TrcContext, trc_get_current_fake_gl_context(trace));
+    return trc_obj_get_rev(trc_get_current_gl_context(trace, -1), -1);
 }
 
 void trc_set_context(trace_t* trace, trc_gl_context_rev_t* rev) {
-    trc_set_obj(&trace->inspection.global_namespace, TrcContext, trc_get_current_fake_gl_context(trace), rev);
+    trc_obj_t* obj = trc_get_current_gl_context(trace, -1);
+    assert(obj);
+    trc_obj_set_rev(obj, rev);
 }
 
 bool trc_iter_objects(trace_t* trace, trc_obj_type_t type, size_t* index, uint64_t revision, const void** rev) {
