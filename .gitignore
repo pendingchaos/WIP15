@@ -1,15 +1,15 @@
 /bin/libgl.so
 /bin/gtk3.supp
-/bin/inspect
-/bin/inspect-gui
+/bin/gui
 /bin/libtrace.so
 /bin/output/*
 /bin/output.trace
 /bin/test
 /bin/trace
-/bin/leakcheck
+/bin/replaytrace
 /bin/ui.glade~
 /src/shared/glapi.c
+/src/shared/glcorearb.h
 /src/libtrace/replay_gl.c
 /src/libgl.c
 /src/libtrace/libtrace_glstate.h
@@ -18,6 +18,5 @@
 *.d
 /bin/gtk3.supp
 /bin/tests
-/bin/testtrace
 /WIP15.geany
 /scripts/generated_gl_funcs.py

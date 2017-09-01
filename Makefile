@@ -1,7 +1,7 @@
 USE_LZ4 = 1
 USE_ZLIB = 1
 
-CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
+CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 gtksourceview-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
 COMP_LIBS =
 ifeq ($(USE_LZ4), 1)
@@ -14,7 +14,7 @@ COMP_LIBS += `pkg-config zlib --libs`
 CFLAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
 endif
 
-gui_src = $(wildcard src/gui/*.c)
+gui_src = $(wildcard src/gui/*.c) $(wildcard src/gui/objects/*.c) $(wildcard src/gui/widgets/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)
 tests_src = $(wildcard src/testing/tests/*.c)
 src = $(wildcard src/*.c) $(gui_src) $(libtrace_src) $(tests_src) $(wildcard src/shared/*.c) src/libgl.c
@@ -34,7 +34,7 @@ obj = $(join $(dir $(base_obj)), $(addprefix ., $(notdir $(base_obj))))
 dep = $(obj:.o=.d)
 
 .PHONY: all
-all: bin/libtrace.so bin/libgl.so bin/trace bin/inspect-gui bin/replaytrace bin/test bin/tests
+all: bin/libtrace.so bin/libgl.so bin/trace bin/gui bin/replaytrace bin/test bin/tests
 
 -include $(dep)
 
@@ -71,8 +71,8 @@ bin/libgl.so: src/.libgl.o
 bin/libtrace.so: $(libtrace_obj) src/libtrace/.replay_gl.o
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
-bin/inspect-gui: $(gui_obj) src/shared/.glapi.o bin/libtrace.so
-	$(CC) -Lbin -Wl,-rpath=. -ltrace $(gui_obj) src/shared/.vec.o src/shared/.glapi.o -o bin/inspect-gui -g `pkg-config gtk+-3.0 --libs` -rdynamic $(CFLAGS)
+bin/gui: $(gui_obj) src/shared/.glapi.o bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -ltrace -lm -lepoxy $(gui_obj) src/shared/.glapi.o -o bin/gui -g `pkg-config gtk+-3.0 gtksourceview-3.0 --libs` -rdynamic $(CFLAGS)
 
 bin/replaytrace: src/.replaytrace.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.replaytrace.o -o bin/replaytrace -g -rdynamic $(CFLAGS)
@@ -95,7 +95,7 @@ clean:
 	rm -f src/libtrace/replay_gl.c
 	rm -f src/shared/glapi.c
 	rm -f bin/libtrace.so
-	rm -f bin/inspect-gui
+	rm -f bin/gui
 	rm -f bin/trace
 	rm -f bin/test
 	rm -f bin/gl.so

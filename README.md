@@ -25,10 +25,10 @@ Traces can also be created with the GUI.
 
 ## Inspection
 ```shell
-./inspect-gui <trace-file>
+./gui <trace-file>
 ```
 or
 ```shell
-./inspect-gui
+./gui
 ```
 and open it in the GUI.
