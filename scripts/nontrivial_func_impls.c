@@ -1836,8 +1836,6 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
         if (!binding.buf.obj) continue;
         update_buffer_from_gl(ctx, binding.buf.obj, binding.offset, binding.size);
     }
-    trc_obj_t* xfb_buffer = trc_gl_state_get_bound_buffer(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
-    if (xfb_buffer) update_buffer_from_gl(ctx, xfb_buffer, 0, -1);
 }
 
 static void gen_textures(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
@@ -1969,6 +1967,21 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->ns, TrcVAO, fake[i], &rev);
+    }
+}
+
+static void gen_transform_feedbacks(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_transform_feedback_rev_t rev;
+    rev.has_object = create;
+    size_t size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0);
+    size *= sizeof(trc_gl_buffer_binding_point_t);
+    rev.bindings = trc_create_data(ctx->trace, size, NULL, TRC_DATA_IMMUTABLE);
+    rev.active = false;
+    rev.paused = false;
+    rev.active_not_paused = false;
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_create_named_obj(ctx->ns, TrcTransformFeedback, fake[i], &rev);
     }
 }
 
@@ -2607,8 +2620,8 @@ glCreateTextures: //GLenum p_target, GLsizei p_n, GLuint* p_textures
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i)
-        if (!(textures[i] = get_real_texture(ctx->ns, p_textures[i]))) {
-            trc_add_error(cmd, "Invalid texture name");
+        if (!(textures[i] = get_real_texture(ctx->ns, p_textures[i])) && p_textures[i]) {
+            trc_add_warning(cmd, "Invalid texture name");
         } else {
             trc_obj_t* obj = get_texture(ctx->ns, p_textures[i])->head.obj;
             
@@ -2931,8 +2944,8 @@ glCreateBuffers: //GLsizei p_n, GLuint* p_buffers
 glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(buffers[i] = get_real_buffer(ctx->ns, p_buffers[i])))
-            trc_add_error(cmd, "Invalid buffer name");
+        if (!(buffers[i] = get_real_buffer(ctx->ns, p_buffers[i])) && p_buffers[i])
+            trc_add_warning(cmd, "Invalid buffer name");
         else {
             trc_obj_t* obj = get_buffer(ctx->ns, p_buffers[i])->head.obj;
             
@@ -3069,7 +3082,7 @@ glDeleteShader: //GLuint p_shader
     GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
     
-    F(glDeleteShader)(real_shdr);
+    real(real_shdr);
     
     delete_obj(ctx->ns, p_shader, TrcShader);
 
@@ -3657,8 +3670,8 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(pipelines[i] = get_real_program_pipeline(ctx->ns, p_pipelines[i]))) {
-            trc_add_error(cmd, "Invalid program pipeline name");
+        if (!(pipelines[i] = get_real_program_pipeline(ctx->ns, p_pipelines[i])) && p_pipelines[i]) {
+            trc_add_warning(cmd, "Invalid program pipeline name");
         } else {
             trc_obj_t* obj = get_program_pipeline(ctx->ns, p_pipelines[i])->head.obj;
             if (trc_gl_state_get_bound_pipeline(ctx->trace) == obj)
@@ -5098,8 +5111,8 @@ glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
         trc_obj_t* vao = trc_lookup_name(ctx->ns, TrcVAO, p_arrays[i], -1);
         if (vao && vao==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
-        if (!(arrays[i]=get_real_vao(ctx->ns, p_arrays[i])))
-            trc_add_error(cmd, "Invalid vertex array name");
+        if (!(arrays[i]=get_real_vao(ctx->ns, p_arrays[i])) && p_arrays[i])
+            trc_add_warning(cmd, "Invalid vertex array name");
         else
             delete_obj(ctx->ns, p_arrays[i], TrcVAO);
     }
@@ -5187,8 +5200,8 @@ glCreateSamplers: //GLsizei p_n, GLuint* p_samplers
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; ++i) {
-        if (!(samplers[i] = get_real_sampler(ctx->ns, p_samplers[i]))) {
-            trc_add_error(cmd, "Invalid sampler name");
+        if (!(samplers[i] = get_real_sampler(ctx->ns, p_samplers[i])) && p_samplers[i]) {
+            trc_add_warning(cmd, "Invalid sampler name");
         } else {
             trc_obj_t* obj = get_sampler(ctx->ns, p_samplers[i])->head.obj;
             for (size_t i = 0; i < trc_gl_state_get_bound_samplers_size(ctx->trace); i++) {
@@ -5303,8 +5316,8 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
             trc_gl_state_set_read_framebuffer(ctx->trace, NULL);
         if (fb && fb==trc_gl_state_get_draw_framebuffer(ctx->trace))
             trc_gl_state_set_draw_framebuffer(ctx->trace, NULL);
-        if (!(fbs[i] = get_real_framebuffer(ctx->ns, p_framebuffers[i]))) {
-            trc_add_error(cmd, "Invalid framebuffer name");
+        if (!(fbs[i] = get_real_framebuffer(ctx->ns, p_framebuffers[i])) && p_framebuffers[i]) {
+            trc_add_warning(cmd, "Invalid framebuffer name");
         } else {
             delete_obj(ctx->ns, p_framebuffers[i], TrcFramebuffer);
         }
@@ -5352,8 +5365,8 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
             trc_gl_state_set_bound_renderbuffer(ctx->trace, NULL);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
-        if (!(rbs[i] = get_real_renderbuffer(ctx->ns, p_renderbuffers[i])))
-            trc_add_error(cmd, "Invalid renderbuffer name");
+        if (!(rbs[i] = get_real_renderbuffer(ctx->ns, p_renderbuffers[i])) && p_renderbuffers[i])
+            trc_add_warning(cmd, "Invalid renderbuffer name");
         else delete_obj(ctx->ns, p_renderbuffers[i], TrcRenderbuffer);
     }
     
@@ -5532,8 +5545,8 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     GLuint* queries = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         //TODO: Handle when queries are in use
-        if (!(queries[i] = get_real_query(ctx->ns, p_ids[i])))
-            trc_add_error(cmd, "Invalid query name");
+        if (!(queries[i] = get_real_query(ctx->ns, p_ids[i])) && p_ids[i])
+            trc_add_warning(cmd, "Invalid query name");
         else delete_obj(ctx->ns, p_ids[i], TrcQuery);
     }
     real(p_n, queries);
@@ -6096,6 +6109,93 @@ glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GL
     VALIDATE_BLIT_FRAMEBUFFER
     real(p_readFramebuffer_rev->real, p_drawFramebuffer_rev->real, p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
     update_buffers(ctx, p_drawFramebuffer_rev->head.obj, p_mask);
+
+glGenTransformFeedbacks: //GLsizei p_n, GLuint* p_ids
+    if (p_n < 0) ERROR("Invalid transform feedback name count");
+    GLuint* tf = replay_alloc(p_n*sizeof(GLuint));
+    real(p_n, tf);
+    gen_transform_feedbacks(ctx, p_n, tf, p_ids, false);
+
+glCreateTransformFeedbacks: //GLsizei p_n, GLuint* p_ids
+    if (p_n < 0) ERROR("Invalid transform feedback name count");
+    GLuint* tf = replay_alloc(p_n*sizeof(GLuint));
+    real(p_n, tf);
+    gen_transform_feedbacks(ctx, p_n, tf, p_ids, true);
+
+glBindTransformFeedback: //GLenum p_target, GLuint p_id
+    if (get_current_tf(ctx)->active_not_paused)
+        ERROR("The current transform feedback object is active and not paused");
+    
+    const trc_gl_transform_feedback_rev_t* rev = get_transform_feedback(ctx->ns, p_id);
+    if (!rev) ERROR("Invalid transform feedback name");
+    
+    if (!rev->has_object) {
+        trc_gl_transform_feedback_rev_t newrev = *rev;
+        newrev.has_object = true;
+        set_transform_feedback(&newrev);
+        rev = trc_obj_get_rev(newrev.head.obj, -1);
+    }
+    
+    trc_gl_context_rev_t ctx_rev = *trc_get_context(ctx->trace);
+    ctx_rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = rev->bindings;
+    trc_set_context(ctx->trace, &ctx_rev);
+    
+    trc_gl_state_set_current_tf(ctx->trace, rev->head.obj);
+
+glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
+    GLuint* tf = replay_alloc(p_n*sizeof(GLuint));
+    memset(tf, 0, p_n*sizeof(GLuint));
+    for (size_t i = 0; i < p_n; ++i) {
+        if (!p_ids[i]) continue;
+        
+        if (!(tf[i] = get_real_transform_feedback(ctx->ns, p_ids[i]))) {
+            trc_add_error(cmd, "Invalid transform feedback object name");
+        } else {
+            const trc_gl_transform_feedback_rev_t* tf = get_transform_feedback(ctx->ns, p_ids[i]);
+            if (tf->active) {
+                trc_add_error(cmd, "Transform feedback object at index %zu is active", i);
+                continue;
+            }
+            if (trc_gl_state_get_current_tf(ctx->trace) == tf->head.obj)
+                trc_gl_state_set_current_tf(ctx->trace, NULL);
+            delete_obj(ctx->ns, p_ids[i], TrcTransformFeedback);
+        }
+    }
+    real(p_n, tf);
+
+static void bind_tf_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
+                           GLuint tf, GLuint index, GLuint buffer,
+                           bool ranged, GLintptr offset, GLsizeiptr size) {
+    const trc_gl_transform_feedback_rev_t* tf_rev = get_transform_feedback(ctx->ns, tf);
+    if (!tf_rev) ERROR2(, "Invalid transform feedback name");
+    if (tf_rev->active) ERROR2(, "The specified transform feedback object is active");
+    size_t count = tf_rev->bindings->size / sizeof(trc_gl_buffer_binding_point_t);
+    if (index >= count) ERROR2(, "Invalid index");
+    
+    const trc_gl_buffer_rev_t* buf_rev = get_buffer(ctx->ns, buffer);
+    if (!buf_rev && buffer) ERROR2(, "Invalid buffer name");
+    if (ranged && buf_rev && (size<=0 || offset+size>buf_rev->data->size))
+        ERROR2(, "Invalid range");
+    //TODO: Check alignment of offset?
+    
+    if (!ranged) F(glTransformFeedbackBufferBase)(tf_rev->real, index, buf_rev?buf_rev->real:0);
+    else F(glTransformFeedbackBufferRange)(tf_rev->real, index, buf_rev?buf_rev->real:0, offset, size);
+    
+    trc_gl_transform_feedback_rev_t newrev = *tf_rev;
+    newrev.bindings = trc_copy_data(ctx->trace, newrev.bindings, 0);
+    trc_gl_buffer_binding_point_t* bindings = trc_map_data(newrev.bindings, TRC_MAP_MODIFY);
+    trc_set_obj_ref(&bindings[index].buf, buf_rev?buf_rev->head.obj:NULL);
+    bindings[index].offset = ranged ? offset : 0;
+    bindings[index].size = ranged ? size : 0;
+    trc_unmap_data(newrev.bindings);
+    set_transform_feedback(&newrev);
+}
+
+glTransformFeedbackBufferBase: //GLuint p_xfb, GLuint p_index, GLuint p_buffer
+    bind_tf_buffer(ctx, cmd, p_xfb, p_index, p_buffer, false, 0, 0);
+
+glTransformFeedbackBufferRange: //GLuint p_xfb, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
+    bind_tf_buffer(ctx, cmd, p_xfb, p_index, p_buffer, true, p_offset, p_size);
 
 glBeginTransformFeedback: //GLenum p_primitiveMode
     trc_gl_transform_feedback_rev_t rev = *get_current_tf(ctx);
