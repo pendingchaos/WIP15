@@ -218,6 +218,26 @@ static void value_ints(value_tree_state_t* state, const char* name, trc_data_t* 
     trc_unmap_data(list);
 }
 
+static void value_indexed_bufs(value_tree_state_t* state, const char* name,
+                               trc_data_t* data, uint64_t revision) {
+    begin_category(state, "%s", name);
+    size_t count = data->size / sizeof(trc_gl_buffer_binding_point_t);
+    const trc_gl_buffer_binding_point_t* bindings = trc_map_data(data, TRC_MAP_READ);
+    for (size_t i = 0; i < count; i++) {
+        trc_gl_buffer_binding_point_t binding = bindings[i];
+        if (!binding.buf.obj) continue;
+        if (!binding.size) {
+            const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(binding.buf.obj, revision);
+            binding.size = buf->data->size;
+        }
+        value(state, static_format("%zu", i), "%s (%zu-%zu)",
+              static_format_obj(binding.buf.obj, revision),
+              binding.offset, binding.offset+binding.size);
+    }
+    trc_unmap_data(data);
+    end_category(state);
+}
+
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
     const trc_gl_context_rev_t* rev = (const trc_gl_context_rev_t*)rev_head;
     context_data_t* data = tab->data;
@@ -247,6 +267,15 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     value_obj(&state, "GL_QUERY_BUFFER", rev->bound_buffer_GL_QUERY_BUFFER, revision);
     value_obj(&state, "GL_TEXTURE_BUFFER", rev->bound_buffer_GL_TEXTURE_BUFFER, revision);
     value_obj(&state, "GL_TRANSFORM_FEEDBACK_BUFFER", rev->bound_buffer_GL_TRANSFORM_FEEDBACK_BUFFER, revision);
+    end_category(&state);
+    
+    begin_category(&state, "Indexed Buffer Bindings");
+    value_indexed_bufs(&state, "GL_UNIFORM_BUFFER",
+                       rev->bound_buffer_indexed_GL_UNIFORM_BUFFER, revision);
+    value_indexed_bufs(&state, "GL_SHADER_STORAGE_BUFFER",
+                       rev->bound_buffer_indexed_GL_SHADER_STORAGE_BUFFER, revision);
+    value_indexed_bufs(&state, "GL_ATOMIC_COUNTER_BUFFER",
+                       rev->bound_buffer_indexed_GL_ATOMIC_COUNTER_BUFFER, revision);
     end_category(&state);
     
     begin_category(&state, "Query Bindings");
