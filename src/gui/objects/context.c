@@ -225,11 +225,10 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     info_box_t* box = tab->info_box;
     if (!set_obj_common_at_info_box(box, rev_head, revision)) return;
     
-    GtkTreeStore* store = data->store;
-    
-    gtk_tree_store_clear(store);
+    gtk_tree_store_clear(data->store);
     
     value_tree_state_t state;
+    state.store = data->store;
     
     value(&state, "Drawable Size", "%ux%u", rev->drawable_width, rev->drawable_height);
     begin_category(&state, "Buffer Bindings");
@@ -247,7 +246,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     value_obj(&state, "GL_PIXEL_UNPACK_BUFFER", rev->bound_buffer_GL_PIXEL_UNPACK_BUFFER, revision);
     value_obj(&state, "GL_QUERY_BUFFER", rev->bound_buffer_GL_QUERY_BUFFER, revision);
     value_obj(&state, "GL_TEXTURE_BUFFER", rev->bound_buffer_GL_TEXTURE_BUFFER, revision);
-    value_obj(&state, "GL_TRANSFORM_FEEDBAC_BUFFER", rev->bound_buffer_GL_TRANSFORM_FEEDBACK_BUFFER, revision);
+    value_obj(&state, "GL_TRANSFORM_FEEDBACK_BUFFER", rev->bound_buffer_GL_TRANSFORM_FEEDBACK_BUFFER, revision);
     end_category(&state);
     
     begin_category(&state, "Query Bindings");
@@ -265,6 +264,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
                 rev->bound_queries_GL_TIME_ELAPSED, TrcQuery, revision);
     end_category(&state);
     
+    value(&state, "Active Texture Unit", "%u", rev->active_texture_unit);
     begin_category(&state, "Texture Bindings");
     object_list(&state, "GL_TEXTURE_1D", rev->bound_textures_GL_TEXTURE_1D, TrcTexture, revision);
     object_list(&state, "GL_TEXTURE_2D", rev->bound_textures_GL_TEXTURE_2D, TrcTexture, revision);
@@ -290,11 +290,17 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     object_list(&state, "Sampler Bindings", rev->bound_samplers, TrcSampler, revision);
     
     value_obj(&state, "GL_CURRENT_PROGRAM", rev->bound_program, revision);
+    value_obj(&state, "GL_PROGRAM_PIPELINE_BINDING", rev->bound_pipeline, revision);
     value_obj(&state, "GL_VERTEX_ARRAY_BINDING", rev->bound_vao, revision);
     value_obj(&state, "GL_RENDERBUFFER_BINDING", rev->bound_renderbuffer, revision);
     value_obj(&state, "GL_READ_FRAMEBUFFER_BINDING", rev->read_framebuffer, revision);
     value_obj(&state, "GL_DRAW_FRAMEBUFFER_BINDING", rev->draw_framebuffer, revision);
     value_enums(&state, "DrawBufferBuffer", "GL_DRAW_BUFFER", rev->state_enum_GL_DRAW_BUFFER);
+    
+    value_obj(&state, "Transform Feedback Binding", rev->current_tf, revision);
+    //TODO: Use a better group
+    value(&state, "Transform Feedback Primitive", "%s",
+          get_enum_str("PrimitiveType", rev->tf_primitive));
     
     begin_category(&state, "Enabled");
     value_bools(&state, "GL_BLEND", rev->enabled_GL_BLEND);
@@ -327,6 +333,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     value_bools(&state, "GL_SAMPLE_ALPHA_TO_COVERAGE",
                 rev->enabled_GL_SAMPLE_ALPHA_TO_COVERAGE);
     value_bools(&state, "GL_SAMPLE_ALPHA_TO_ONE", rev->enabled_GL_SAMPLE_ALPHA_TO_ONE);
+    value_bools(&state, "GL_SAMPLE_COVERAGE", rev->enabled_GL_SAMPLE_COVERAGE);
+    value_bools(&state, "GL_SAMPLE_SHADING", rev->enabled_GL_SAMPLE_SHADING);
     value_bools(&state, "GL_SAMPLE_MASK", rev->enabled_GL_SAMPLE_MASK);
     value_bools(&state, "GL_SCISSOR_TEST", rev->enabled_GL_SCISSOR_TEST);
     value_bools(&state, "GL_STENCIL_TEST", rev->enabled_GL_STENCIL_TEST);
@@ -355,6 +363,13 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     end_category(&state);
     
     begin_category(&state, "Stencil");
+    value_ints(&state, "GL_STENCIL_CLEAR_VALUE", rev->state_int_GL_STENCIL_CLEAR_VALUE);
+    value_ints(&state, "GL_STENCIL_VALUE_MASK", rev->state_int_GL_STENCIL_VALUE_MASK);
+    value_ints(&state, "GL_STENCIL_REF", rev->state_int_GL_STENCIL_REF);
+    value_ints(&state, "GL_STENCIL_WRITEMASK", rev->state_int_GL_STENCIL_WRITEMASK);
+    value_ints(&state, "GL_STENCIL_BACK_VALUE_MASK", rev->state_int_GL_STENCIL_BACK_VALUE_MASK);
+    value_ints(&state, "GL_STENCIL_BACK_REF", rev->state_int_GL_STENCIL_BACK_REF);
+    value_ints(&state, "GL_STENCIL_BACK_WRITEMASK", rev->state_int_GL_STENCIL_BACK_WRITEMASK);
     value_enums(&state, "StencilFunction", "GL_STENCIL_FUNC", rev->state_enum_GL_STENCIL_FUNC);
     value_enums(&state, "StencilOp", "GL_STENCIL_FAIL", rev->state_enum_GL_STENCIL_FAIL);
     value_enums(&state, "StencilOp", "GL_STENCIL_PASS_DEPTH_FAIL",
@@ -454,6 +469,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     value_floats(&state, "GL_LINE_WIDTH", rev->state_float_GL_LINE_WIDTH);
     value_floats(&state, "GL_POLYGON_OFFSET_UNITS", rev->state_float_GL_POLYGON_OFFSET_UNITS);
     value_floats(&state, "GL_POLYGON_OFFSET_FACTOR", rev->state_float_GL_POLYGON_OFFSET_FACTOR);
+    value_floats(&state, "GL_POLYGON_OFFSET_CLAMP", rev->state_float_GL_POLYGON_OFFSET_CLAMP);
     value_floats(&state, "GL_SAMPLE_COVERAGE_VALUE", rev->state_float_GL_SAMPLE_COVERAGE_VALUE);
     value_floats(&state, "GL_POINT_FADE_THRESHOLD_SIZE",
                  rev->state_float_GL_POINT_FADE_THRESHOLD_SIZE);
@@ -486,8 +502,18 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     
     begin_category(&state, "Capabilities");
     value_ints(&state, "GL_MAX_CLIP_DISTANCES", rev->state_int_GL_MAX_CLIP_DISTANCES);
-    value_ints(&state, "GL_MAX_DRAW_BUFFERS", rev->state_int_GL_MAX_DRAW_BUFFERS);
+    value_ints(&state, "GL_MAX_TEXTURE_SIZE", rev->state_int_GL_MAX_TEXTURE_SIZE);
+    value_ints(&state, "GL_MAJOR_VERSION", rev->state_int_GL_MAJOR_VERSION);
+    value_ints(&state, "GL_MINOR_VERSION", rev->state_int_GL_MINOR_VERSION);
     value_ints(&state, "GL_MAX_VIEWPORTS", rev->state_int_GL_MAX_VIEWPORTS);
+    value_ints(&state, "GL_MAX_RENDERBUFFER_SIZE", rev->state_int_GL_MAX_RENDERBUFFER_SIZE);
+    value_ints(&state, "GL_MAX_DRAW_BUFFERS", rev->state_int_GL_MAX_DRAW_BUFFERS);
+    value_ints(&state, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS",
+               rev->state_int_GL_MAX_TRANSFORM_FEEDBACK_BUFFERS);
+    value_ints(&state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS",
+               rev->state_int_GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
+    value_ints(&state, "GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS",
+               rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
     value_ints(&state, "GL_MAX_VERTEX_ATTRIBS",
                rev->state_int_GL_MAX_VERTEX_ATTRIBS);
     value_ints(&state, "GL_MAX_COLOR_ATTACHMENTS",

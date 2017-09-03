@@ -422,6 +422,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
     trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
     trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, max_texture_size);
+    trc_gl_state_state_int_init1(trace, GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, max_atomic_counter_buffer_bindings);
+    trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, max_shader_storage_buffer_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, major);
     trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, minor);
     trc_gl_state_set_ver(trace, ver);
@@ -444,6 +446,8 @@ static void init_context(trc_replay_context_t* ctx) {
     
     rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = default_tf.bindings;
     trc_set_context(ctx->trace, &rev);
+    
+    trc_gl_state_set_tf_primitive(ctx->trace, 0);
     
     trc_gl_state_default_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
     trc_gl_state_current_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
