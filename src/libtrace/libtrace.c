@@ -1239,7 +1239,7 @@ void trc_grab_obj(trc_obj_t* obj) {
 
 static void framebuffer_destructor(const trc_gl_framebuffer_rev_t* rev) {
     size_t count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
-    trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev->attachments, TRC_MAP_READ);
+    const trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev->attachments, TRC_MAP_READ);
     for (size_t i = 0; i < count; i++) {
         trc_del_obj_ref(attachments[i].renderbuffer);
         trc_del_obj_ref(attachments[i].texture);
@@ -1263,6 +1263,14 @@ static void program_pipeline_destructor(const trc_gl_program_pipeline_rev_t* rev
     trc_del_obj_ref(rev->tess_control_program);
     trc_del_obj_ref(rev->tess_eval_program);
     trc_del_obj_ref(rev->compute_program);
+}
+
+static void transform_feedback_destructor(const trc_gl_transform_feedback_rev_t* rev) {
+    size_t count = rev->bindings->size / sizeof(trc_gl_buffer_binding_point_t);
+    const trc_gl_buffer_binding_point_t* bindings = trc_map_data(rev->bindings, TRC_MAP_READ);
+    for (size_t i = 0; i < count; i++)
+        trc_del_obj_ref(bindings[i].buf);
+    trc_unmap_data(rev->bindings);
 }
 
 void trc_drop_obj(trc_obj_t* obj) {
@@ -1289,6 +1297,9 @@ void trc_drop_obj(trc_obj_t* obj) {
             break;
         case TrcProgramPipeline:
             program_pipeline_destructor((trc_gl_program_pipeline_rev_t*)newrev);
+            break;
+        case TrcTransformFeedback:
+            transform_feedback_destructor((trc_gl_transform_feedback_rev_t*)newrev);
             break;
         case TrcContext:
             gl_context_destructor((trc_gl_context_rev_t*)newrev);
@@ -1341,17 +1352,17 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
     if (obj_head && obj_head->has_name) return false; //Already named
     
     trc_obj_t* table_obj = ns->name_tables[type];
-    const trc_name_table_rev_t* table = trc_obj_get_rev(table_obj, -1);
+    trc_name_table_rev_t table = *(const trc_name_table_rev_t*)trc_obj_get_rev(table_obj, -1);
     
-    uint64_t* names = trc_map_data(table->names, TRC_MAP_READ);
-    trc_obj_t** objects = trc_map_data(table->objects, TRC_MAP_READ);
+    uint64_t* names = trc_map_data(table.names, TRC_MAP_READ);
+    trc_obj_t** objects = trc_map_data(table.objects, TRC_MAP_READ);
     size_t index = 0;
     
     trc_obj_t* prevobj = NULL;
     
-    for (; index < table->entry_count; index++) {
+    for (; index < table.entry_count; index++) {
         if (names[index] == name) {
-            size_t objects_size = table->entry_count*sizeof(trc_obj_t*);
+            size_t objects_size = table.entry_count*sizeof(trc_obj_t*);
             trc_obj_t** newobjects = malloc(objects_size);
             
             prevobj = objects[index];
@@ -1359,7 +1370,7 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
             memcpy(newobjects, objects, objects_size);
             newobjects[index] = obj;
             
-            trc_name_table_rev_t newtable = *table;
+            trc_name_table_rev_t newtable = table;
             newtable.objects = trc_create_data_no_copy(ns->trace, objects_size,
                                                        newobjects, TRC_DATA_IMMUTABLE);
             
@@ -1368,17 +1379,17 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
         }
     }
     
-    if (index == table->entry_count) { //Create a new entry
-        uint64_t* newnames = malloc((table->entry_count+1)*sizeof(uint64_t));
-        trc_obj_t** newobjects = malloc((table->entry_count+1)*sizeof(trc_obj_t*));
+    if (index == table.entry_count) { //Create a new entry
+        uint64_t* newnames = malloc((table.entry_count+1)*sizeof(uint64_t));
+        trc_obj_t** newobjects = malloc((table.entry_count+1)*sizeof(trc_obj_t*));
         
-        memcpy(newnames, names, table->entry_count*sizeof(uint64_t));
-        memcpy(newobjects, objects, table->entry_count*sizeof(trc_obj_t*));
+        memcpy(newnames, names, table.entry_count*sizeof(uint64_t));
+        memcpy(newobjects, objects, table.entry_count*sizeof(trc_obj_t*));
         
-        newnames[table->entry_count] = name;
-        newobjects[table->entry_count] = obj;
+        newnames[table.entry_count] = name;
+        newobjects[table.entry_count] = obj;
         
-        trc_name_table_rev_t newtable = *table;
+        trc_name_table_rev_t newtable = table;
         newtable.entry_count++;
         newtable.names = trc_create_data_no_copy(ns->trace, newtable.entry_count*sizeof(uint64_t),
                                                  newnames, TRC_DATA_IMMUTABLE);
@@ -1388,8 +1399,8 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
         trc_obj_set_rev(table_obj, &newtable);
     }
     
-    trc_unmap_data(table->objects);
-    trc_unmap_data(table->names);
+    trc_unmap_data(table.objects);
+    trc_unmap_data(table.names);
     
     if (prevobj) set_obj_name(prevobj, ns, false, 0);
     if (obj) set_obj_name(obj, ns, true, name);

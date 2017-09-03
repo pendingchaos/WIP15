@@ -422,6 +422,10 @@ typedef struct trc_gl_vao_rev_t {
 typedef struct trc_gl_transform_feedback_rev_t {
     TRC_GL_OBJ_HEAD
     bool has_object;
+    trc_data_t* bindings; //array of trc_gl_buffer_binding_point_t
+    bool active;
+    bool paused;
+    bool active_not_paused;
 } trc_gl_transform_feedback_rev_t;
 
 struct trc_namespace_t {

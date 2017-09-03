@@ -39,9 +39,13 @@ renderbuffer bound_renderbuffer
 framebuffer read_framebuffer
 framebuffer draw_framebuffer
 
-bool tf_active
-bool tf_paused
-bool tf_active_not_paused
+transform_feedback default_tf
+transform_feedback current_tf
+
+//use current_tf instead
+//bool tf_active
+//bool tf_paused
+//bool tf_active_not_paused
 uint tf_primitive
 
 map array query bound_queries
@@ -407,6 +411,7 @@ class Property(object):
                        'query': 'trc_obj_ref_t',
                        'renderbuffer': 'trc_obj_ref_t',
                        'framebuffer': 'trc_obj_ref_t',
+                       'transform_feedback': 'trc_obj_ref_t',
                        'buffer_binding_point': 'trc_gl_buffer_binding_point_t'}[base]
         self.some_public_value = {'uint': '0',
                                   'char': '0',
@@ -425,8 +430,9 @@ class Property(object):
                                   'query': 'NULL',
                                   'renderbuffer': 'NULL',
                                   'framebuffer': 'NULL',
+                                  'transform_feedback': 'NULL',
                                   'buffer_binding_point': '(trc_gl_buffer_binding_point_t){(trc_obj_ref_t){NULL}, 0, 0}'}[base]
-        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'program_pipeline', 'vao', 'query', 'renderbuffer', 'framebuffer']
+        is_obj = base in ['texture', 'sampler', 'buffer', 'program', 'program_pipeline', 'vao', 'query', 'renderbuffer', 'framebuffer', 'transform_feedback']
         if base == 'buffer_binding_point':
             self.set_code = '({dest})->offset = ({src})->offset;\n({dest})->size = ({src})->size;\ntrc_set_obj_ref(&({dest})->buf, ({src})->buf.obj);'
             self.get_code = '(*({src}))';
@@ -663,6 +669,9 @@ print 'static void gl_context_destructor(const trc_gl_context_rev_t* rev) {'
 def print_prop_destructor(prop, name):
     if prop.c_type not in ['trc_obj_ref_t', 'trc_gl_buffer_binding_point_t']:
         return
+    
+    if name in ['bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER']:
+        return #the GL_TRANSFORM_FEEDBACK_BUFFER bindings are from the current transform feedback object
     
     if prop.array:
         print '    size_t %s_count = rev->%s->size / sizeof(%s);' % (name, name, prop.c_type)
