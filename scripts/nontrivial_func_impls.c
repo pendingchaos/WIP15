@@ -2294,7 +2294,7 @@ static void bind_buffer(trc_replay_context_t* ctx, GLenum target, GLuint buffer)
     trc_gl_state_set_bound_buffer(ctx->trace, target, rev?rev->head.obj:NULL);
 }
 
-static void bind_buffer_indexed(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer) {
+static void bind_buffer_indexed_ranged(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer, uint64_t offset, uint64_t size) {
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, buffer);
     if (target == GL_TRANSFORM_FEEDBACK_BUFFER)
         rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, target, index).buf.obj, rev?rev->head.obj:NULL);
@@ -2303,7 +2303,15 @@ static void bind_buffer_indexed(trc_replay_context_t* ctx, GLenum target, GLuint
         newrev.has_object = true;
         set_buffer(&newrev);
     }
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, target, index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, 0, 0});
+    trc_gl_buffer_binding_point_t point;
+    point.obj = rev ? rev->head.obj : NULL;
+    point.offset = offset;
+    point.size = size;
+    trc_gl_state_set_bound_buffer_indexed(ctx->trace, target, index, point);
+}
+
+static void bind_buffer_indexed(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer) {
+    bind_buffer_indexed_ranged(ctx, target, index, buffer, 0, 0);
 }
 
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
@@ -2955,6 +2963,7 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, p_index, p_buffer?rev->real:0);
+    bind_buffer(ctx, p_target, p_buffer);
     bind_buffer_indexed(ctx, p_target, p_index, p_buffer);
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
@@ -2969,14 +2978,8 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
     
-    if (p_target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, p_target, p_index).buf.obj, rev?rev->head.obj:NULL);
-    if (rev && !rev->has_object) {
-        trc_gl_buffer_rev_t newrev = *rev;
-        newrev.has_object = true;
-        set_buffer(&newrev);
-    }
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, p_target, p_index, (trc_gl_buffer_binding_point_t){(trc_obj_ref_t){rev?rev->head.obj:NULL}, p_offset, p_size});
+    bind_buffer(ctx, p_target, p_buffer);
+    bind_buffer_indexed_ranged(ctx, p_target, p_index, p_buffer, p_offset, p_size);
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
     if (buffer_data(ctx, cmd, false, get_bound_buffer(ctx, p_target), p_size, p_data, p_usage))
