@@ -54,56 +54,11 @@ typedef struct trc_attachment_t {
     struct trc_attachment_t* next;
 } trc_attachment_t;
 
-typedef struct {
-    trace_type_t type;
-    uint32_t count;
-    union {
-        uint64_t u64;
-        int64_t i64;
-        double dbl;
-        bool bl;
-        char* str;
-        uint64_t ptr;
-        struct {
-            size_t size;
-            void* ptr;
-        } data;
-        uint64_t* u64_array;
-        int64_t* i64_array;
-        double* dbl_array;
-        bool* bl_array;
-        char** str_array;
-        uint64_t* ptr_array;
-        struct {
-            size_t* sizes;
-            void** ptrs;
-        } data_array;
-    };
-    int32_t group_index; //Negative if there is no group
-} trace_value_t;
-
 typedef enum trc_compression_t {
     TrcCompression_None,
     TrcCompression_Zlib,
     TrcCompression_LZ4
 } trc_compression_t;
-
-typedef enum trc_obj_type_t {
-    TrcBuffer,
-    TrcSampler,
-    TrcTexture,
-    TrcQuery,
-    TrcFramebuffer,
-    TrcRenderbuffer,
-    TrcSync,
-    TrcProgram,
-    TrcProgramPipeline,
-    TrcShader,
-    TrcVAO,
-    TrcTransformFeedback,
-    TrcContext,
-    Trc_ObjMax
-} trc_obj_type_t;
 
 typedef struct trc_data_external_storage_t {
     trc_compression_t compression:32;
@@ -122,6 +77,45 @@ typedef struct trc_data_t {
     };
     struct trc_data_t* queue_next; //this is not guarded by trc_data_t::mutex
 } trc_data_t;
+
+typedef struct {
+    trace_type_t type;
+    uint32_t count;
+    union {
+        uint64_t u64;
+        int64_t i64;
+        double dbl;
+        bool bl;
+        char* str;
+        uint64_t ptr;
+        trc_data_t* data;
+        uint64_t* u64_array;
+        int64_t* i64_array;
+        double* dbl_array;
+        bool* bl_array;
+        char** str_array;
+        uint64_t* ptr_array;
+        trc_data_t** data_array;
+    };
+    int32_t group_index; //Negative if there is no group
+} trace_value_t;
+
+typedef enum trc_obj_type_t {
+    TrcBuffer,
+    TrcSampler,
+    TrcTexture,
+    TrcQuery,
+    TrcFramebuffer,
+    TrcRenderbuffer,
+    TrcSync,
+    TrcProgram,
+    TrcProgramPipeline,
+    TrcShader,
+    TrcVAO,
+    TrcTransformFeedback,
+    TrcContext,
+    Trc_ObjMax
+} trc_obj_type_t;
 
 typedef struct trc_obj_t trc_obj_t;
 typedef struct trc_namespace_t trc_namespace_t;
@@ -556,8 +550,7 @@ const double* trc_get_double(const trace_value_t* val);
 const bool* trc_get_bool(const trace_value_t* val);
 const uint64_t* trc_get_ptr(const trace_value_t* val);
 const char*const* trc_get_str(const trace_value_t* val);
-const size_t* trc_get_data_sizes(const trace_value_t* val);
-const void*const* trc_get_data(const trace_value_t* val);
+const trc_data_t*const* trc_get_data(const trace_value_t* val);
 trace_extra_t* trc_get_extra(trace_command_t* cmd, const char* name);
 trace_extra_t* trc_get_extrai(trace_command_t* cmd, const char* name, size_t index);
 void trc_add_info(trace_command_t* command, const char* format, ...);
@@ -598,8 +591,16 @@ void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj);
 #undef WIP15_STATE_GEN_FUNC_DECL
 
 //Data
+typedef struct trc_compressed_data_t {
+    trc_compression_t compression;
+    size_t size;
+    size_t compressed_size;
+    void* compressed_data;
+} trc_compressed_data_t;
+
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
+trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data);
 trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags);
 void* trc_map_data(trc_data_t* data, uint32_t flags);
 void trc_unmap_data(trc_data_t* data);

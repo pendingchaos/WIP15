@@ -67,6 +67,9 @@ class Type(object):
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         raise NotImplementedError
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        raise NotImplementedError
 
 class Param(object):
     def __init__(self, dtype, name, array_count=None, group=None):
@@ -210,6 +213,9 @@ class _BaseType(Type):
             return res
         else:
             return '%s %s = %s(ctx, %s, 0);' % (c_type, dest, self.__class__.read_func, src)
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        return ''
 
 class _UInt(_BaseType):
     write_func = 'gl_write_uleb128'
@@ -259,6 +265,9 @@ class _FuncPtr(Type):
         return 'gl_write_type(BASE_FUNC_PTR, %s, %s)' % (group, array)
     
     def gen_replay_read_code(self, dest, src, array_count=None):
+        return ''
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
         return ''
 
 def _create_uint(name):
@@ -368,9 +377,19 @@ class tData(Type):
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         if array_count != None:
-            return 'void*const* %s = trc_get_data(%s);' % (dest, src)
+            res = 'const void*const* %s = replay_alloc(%s->count*sizeof(trc_data_t*));\n' % (dest, src)
+            res += 'for (size_t i = 0; i < %s->count; i++) {\n' % src
+            res += '    %s[i] = trc_map_data(%s->data_array[i], TRC_MAP_READ);\n' % (dest, src)
+            res += '}\n'
         else:
-            return 'const void* %s = trc_get_data(%s)[0];' % (dest, src)
+            return 'const void* %s = trc_map_data(%s->data, TRC_MAP_READ);' % (dest, src)
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        if array_count != None:
+            res += 'for (size_t i = 0; i < %s->count; i++)\n' % src
+            res += '    trc_unmap_data(%s->data_array[i]);\n' % src
+        else:
+            return 'trc_unmap_data(%s->data);' % src
 
 class tString(Type):
     def gen_type_code(self, var_name='', array_count=None):
@@ -397,6 +416,9 @@ class tString(Type):
             return 'const char*const* %s = trc_get_str(%s);' % (dest, src)
         else:
             return 'const char* %s = trc_get_str(%s)[0];' % (dest, src)
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        return ''
 
 class tMutableString(tString):
     def gen_type_code(self, var_name='', array_count=None):

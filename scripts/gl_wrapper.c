@@ -816,15 +816,6 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         break;
     }
     
-    GLint alignment;
-    F(glGetIntegerv)(GL_UNPACK_ALIGNMENT, &alignment);
-    
-    if (final_size) {
-        size_t base = final_size / alignment * alignment;
-        size_t extra = final_size - base;
-        final_size = base + (extra?alignment:0);
-    }
-    
     return final_size;
 }
 

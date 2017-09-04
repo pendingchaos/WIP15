@@ -116,9 +116,15 @@ class tTexImageData(tData):
     def __init__(self, dim):
         Type.__init__(self)
         self.texel_count_expr = ['width', 'width*height', 'width*height*depth'][dim-1]
+        self.row_count_expr = ['1', 'height', 'height'][dim-1]
     
     def gen_write_code(self, var_name, array_count=None, group=None):
-        res = 'size_t sz_%d = get_texel_size(format, type) * %s;\n' % (id(self), self.texel_count_expr)
+        res = 'size_t sz_%d = get_texel_size(format, type) * %s / %s;\n' % (id(self), self.texel_count_expr, self.row_count_expr)
+        #TODO: Is this incorrect for single-rowed images?
+        res += 'GLint alignment_%d;\n' % id(self)
+        res += 'F(glGetIntegerv)(GL_UNPACK_ALIGNMENT, &alignment_%d);\n' % id(self)
+        res += 'sz_%d = (sz_%d+(alignment_%d-1)) & ~(alignment_%d-1);\n' % (id(self), id(self), id(self), id(self))
+        res += 'sz_%d = sz_%d * %s;\n' % (id(self), id(self), self.row_count_expr)
         if array_count != None:
             res += 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
             res += 'gl_write_uint32(count_%d);\n' % id(self)
@@ -186,6 +192,9 @@ class tShdrSrc(Type):
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         return 'const char*const* %s = trc_get_str(%s);' % (dest, src)
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        return ''
 
 BufferTarget = g(('GL_ARRAY_BUFFER', 1, 5), ('GL_ATOMIC_COUNTER_BUFFER', 4, 2), ('GL_COPY_READ_BUFFER', 3, 1),
                  ('GL_COPY_WRITE_BUFFER', 3, 1), ('GL_DISPATCH_INDIRECT_BUFFER', 4, 3), ('GL_DRAW_INDIRECT_BUFFER', 4, 0),
@@ -560,7 +569,7 @@ Func((3, 3), 'glGetQueryObjectui64v', [P(tGLuint, 'id'), P(tGLenum, 'pname'), P(
 Func((1, 5), 'glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 Func((1, 5), 'glGenBuffers', [P(tGLsizei, 'n'), P(tGLuint, 'buffers', 'n')])
 
-Func((1, 5), 'glBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data'), P(tGLenum, 'usage')])
+Func((1, 5), 'glBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data'), P(tGLenum, 'usage', None, 'BufferUsageARB')])
 Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tBufData('size>=0?size:0'), 'data')])
 
 Func((1, 5), 'glGetBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size>=0?size:0'), 'data')])

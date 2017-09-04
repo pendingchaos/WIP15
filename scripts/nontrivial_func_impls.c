@@ -2857,36 +2857,32 @@ glTexParameteri: //GLenum p_target, GLenum p_pname, GLint p_param
         real(p_target, p_pname, p_param);
 
 glTexParameterfv: //GLenum p_target, GLenum p_pname, const GLfloat* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    const double* paramsd = trc_get_double(paramsv);
-    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, paramsd))
+    const double* paramsd = trc_get_double(arg_params);
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, arg_params->count, paramsd))
         real(p_target, p_pname, p_params);
 
 glTexParameteriv: //GLenum p_target, GLenum p_pname, const GLint* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    const int64_t* params64 = trc_get_int(paramsv);
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    const int64_t* params64 = trc_get_int(arg_params);
+    double* double_params = replay_alloc(arg_params->count*sizeof(double));
     if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        conv_from_signed_norm_array_i64(ctx->trace, paramsv->count, double_params, params64, 32);
+        conv_from_signed_norm_array_i64(ctx->trace, arg_params->count, double_params, params64, 32);
     else
-        for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
-    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+        for (size_t i = 0; i < arg_params->count; i++) double_params[i] = params64[i];
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, arg_params->count, double_params))
         real(p_target, p_pname, p_params);
 
 glTexParameterIiv: //GLenum p_target, GLenum p_pname, const GLint* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    const int64_t* params64 = trc_get_int(paramsv);
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
-    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+    const int64_t* params64 = trc_get_int(arg_params);
+    double* double_params = replay_alloc(arg_params->count*sizeof(double));
+    for (size_t i = 0; i < arg_params->count; i++) double_params[i] = params64[i];
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, arg_params->count, double_params))
         real(p_target, p_pname, p_params);
 
 glTexParameterIuiv: //GLenum p_target, GLenum p_pname, const GLuint* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    const uint64_t* params64 = trc_get_uint(paramsv);
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = params64[i];
-    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, paramsv->count, double_params))
+    const uint64_t* params64 = trc_get_uint(arg_params);
+    double* double_params = replay_alloc(arg_params->count*sizeof(double));
+    for (size_t i = 0; i < arg_params->count; i++) double_params[i] = params64[i];
+    if (!texture_param_double(ctx, cmd, false, p_target, p_pname, arg_params->count, double_params))
         real(p_target, p_pname, p_params);
 
 glTextureParameterf: //GLuint p_texture, GLenum p_pname, GLfloat p_param
@@ -2900,33 +2896,29 @@ glTextureParameteri: //GLuint p_texture, GLenum p_pname, GLint p_param
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameterfv: //GLuint p_texture, GLenum p_pname, const GLfloat* p_param
-    trace_value_t* paramsv = &cmd->args[2];
-    const double* paramsd = trc_get_double(paramsv);
-    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, paramsd))
+    const double* paramsd = trc_get_double(arg_param);
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, arg_param->count, paramsd))
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameteriv: //GLuint p_texture, GLenum p_pname, const GLint* p_param
-    trace_value_t* paramsv = &cmd->args[2];
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
+    double* double_params = replay_alloc(arg_param->count*sizeof(double));
     if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        conv_from_signed_norm_array_i32(ctx->trace, paramsv->count, double_params, p_param, 32);
+        conv_from_signed_norm_array_i32(ctx->trace, arg_param->count, double_params, p_param, 32);
     else
-        for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_param[i];
-    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+        for (size_t i = 0; i < arg_param->count; i++) double_params[i] = p_param[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, arg_param->count, double_params))
         real(p_texture_rev->real, p_pname, p_param);
 
 glTextureParameterIiv: //GLuint p_texture, GLenum p_pname, const GLint* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_params[i];
-    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+    double* double_params = replay_alloc(arg_params->count*sizeof(double));
+    for (size_t i = 0; i < arg_params->count; i++) double_params[i] = p_params[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, arg_params->count, double_params))
         real(p_texture_rev->real, p_pname, p_params);
 
 glTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, const GLuint* p_params
-    trace_value_t* paramsv = &cmd->args[2];
-    double* double_params = replay_alloc(paramsv->count*sizeof(double));
-    for (size_t i = 0; i < paramsv->count; i++) double_params[i] = p_params[i];
-    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, paramsv->count, double_params))
+    double* double_params = replay_alloc(arg_params->count*sizeof(double));
+    for (size_t i = 0; i < arg_params->count; i++) double_params[i] = p_params[i];
+    if (!texture_param_double(ctx, cmd, true, p_texture, p_pname, arg_params->count, double_params))
         real(p_texture_rev->real, p_pname, p_params);
 
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
@@ -3092,7 +3084,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     size_t res_sources_size = 0;
     char* res_sources = NULL;
-    if (cmd->args[3].count == 0) {
+    if (arg_string->count == 0) {
         real(shader, p_count, p_string, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+strlen(p_string[i])+1);
@@ -5258,40 +5250,40 @@ glSamplerParameteri: //GLuint p_sampler, GLenum p_pname, GLint p_param
 glSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, const GLfloat* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
     trc_gl_sampler_rev_t newrev = *p_sampler_rev;
-    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, trc_get_double(&cmd->args[2]))) {
+    if (!sample_param_double(cmd, &newrev.params, p_pname, arg_param->count, trc_get_double(arg_param))) {
         real(p_sampler_rev->real, p_pname, p_param);
         set_sampler(&newrev);
     }
 
 glSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
+    double* double_params = replay_alloc(arg_param->count*sizeof(double));
     if (p_pname == GL_TEXTURE_BORDER_COLOR)
-        conv_from_signed_norm_array_i32(ctx->trace, cmd->args[2].count, double_params, p_param, 32);
+        conv_from_signed_norm_array_i32(ctx->trace, arg_param->count, double_params, p_param, 32);
     else
-        for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+        for (size_t i = 0; i < arg_param->count; i++) double_params[i] = p_param[i];
     trc_gl_sampler_rev_t newrev = *p_sampler_rev;
-    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+    if (!sample_param_double(cmd, &newrev.params, p_pname, arg_param->count, double_params)) {
         real(p_sampler_rev->real, p_pname, p_param);
         set_sampler(&newrev);
     }
 
 glSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, const GLint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
-    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+    double* double_params = replay_alloc(arg_param->count*sizeof(double));
+    for (size_t i = 0; i < arg_param->count; i++) double_params[i] = p_param[i];
     trc_gl_sampler_rev_t newrev = *p_sampler_rev;
-    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+    if (!sample_param_double(cmd, &newrev.params, p_pname, arg_param->count, double_params)) {
         real(p_sampler_rev->real, p_pname, p_param);
         set_sampler(&newrev);
     }
 
 glSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, const GLuint* p_param
     if (!p_sampler_rev) ERROR("Invalid sampler name");
-    double* double_params = replay_alloc(cmd->args[2].count*sizeof(double));
-    for (size_t i = 0; i < cmd->args[2].count; i++) double_params[i] = p_param[i];
+    double* double_params = replay_alloc(arg_param->count*sizeof(double));
+    for (size_t i = 0; i < arg_param->count; i++) double_params[i] = p_param[i];
     trc_gl_sampler_rev_t newrev = *p_sampler_rev;
-    if (!sample_param_double(cmd, &newrev.params, p_pname, cmd->args[2].count, double_params)) {
+    if (!sample_param_double(cmd, &newrev.params, p_pname, arg_param->count, double_params)) {
         real(p_sampler_rev->real, p_pname, p_param);
         set_sampler(&newrev);
     }

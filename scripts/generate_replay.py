@@ -47,14 +47,6 @@ static const char*const* gl_param_string_array(trace_command_t* cmd, size_t inde
     return trc_get_str(&cmd->args[index]);
 }
 
-static const void* gl_param_data(trace_command_t* cmd, size_t index) {
-    return *trc_get_data(&cmd->args[index]);
-}
-
-static size_t gl_param_data_size(trace_command_t* cmd, size_t index) {
-    return *trc_get_data_sizes(&cmd->args[index]);
-}
-
 static uint64_t gl_param_pointer(trace_command_t* cmd, size_t index) {
     return *trc_get_ptr(&cmd->args[index]);
 }
@@ -606,6 +598,9 @@ for name, func in func_dict.iteritems():
         output.write(nontrivial[name])
     else:
         pass #output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in func.params])))
+    
+    for i, param in zip(range(len(func.params)), func.params):
+        output.write(param.dtype.gen_replay_finalize_code('p_'+param.name, 'arg_'+param.name, param.array_count)+'\n')
     
     output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
     

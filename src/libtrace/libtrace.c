@@ -131,8 +131,6 @@ static size_t readf(void* ptr, size_t size, size_t count, FILE* stream) {
 void trc_free_value(trace_value_t value) {
     if ((value.count == 1) && (value.type == Type_Str))
         free(value.str);
-    else if ((value.count == 1) && (value.type == Type_Data))
-        free(value.data.ptr);
     else if (value.count != 1)
         switch (value.type) {
         case Type_UInt:
@@ -148,10 +146,7 @@ void trc_free_value(trace_value_t value) {
             free(value.str_array);
             break;
         case Type_Data:
-            for (size_t i = 0; i < value.count; ++i)
-                free(value.data_array.ptrs[i]);
-            free(value.data_array.sizes);
-            free(value.data_array.ptrs);
+            free(value.data_array);
             break;
         case Type_Void:
         case Type_FunctionPtr:
@@ -258,7 +253,51 @@ static void* read_data(FILE* file, size_t* res_size) {
         return data;
     }
     #endif
+    free(compressed_data);
     return NULL;
+}
+
+static trc_data_t* read_data_compressed(trace_t* trace, FILE* file) {
+    uint8_t compression_method;
+    if (!readf(&compression_method, 1, 1, file)) return NULL;
+    
+    uint32_t size;
+    if (!readf(&size, 4, 1, file)) return NULL;
+    size = le32toh(size);
+    
+    uint32_t compressed_size;
+    if (!readf(&compressed_size, 4, 1, file)) return NULL;
+    compressed_size = le32toh(compressed_size);
+    
+    trc_compressed_data_t data;
+    data.compressed_data = malloc(compressed_size);
+    if (!readf(data.compressed_data, compressed_size, 1, file)) {
+        free(data.compressed_data);
+        return NULL;
+    }
+    
+    data.size = size;
+    data.compressed_size = compressed_size;
+    switch (compression_method) {
+    case 0:
+        data.compression = TrcCompression_None;
+        break;
+    #if ZLIB_ENABLED
+    case 1:
+        data.compression = TrcCompression_Zlib;
+        break;
+    #endif
+    #if LZ4_ENABLED
+    case 2:
+        data.compression = TrcCompression_LZ4;
+        break;
+    #endif
+    default:
+        free(data.compressed_data);
+        return NULL;
+    }
+    
+    return trc_create_compressed_data_no_copy(trace, data);
 }
 
 static uint64_t read_uleb128(FILE* file, bool* error) {
@@ -434,20 +473,15 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         case BaseType_Data: {
             val->type = Type_Data;
             if (val->count == 1) {
-                val->data.ptr = read_data(file, &val->data.size);
-                if (!val->data.ptr)
-                    return false;
+                val->data = read_data_compressed(trace, file);
+                if (!val->data) return false;
             } else {
-                val->data_array.sizes = malloc(sizeof(size_t)*val->count);
-                val->data_array.ptrs = malloc(sizeof(void*)*val->count);
+                val->data_array = malloc(sizeof(trc_data_t*)*val->count);
                 
                 for (size_t i = 0; i < val->count; i++) {
-                    val->data_array.ptrs[i] = read_data(file, &val->data_array.sizes[i]);
-                    if (!val->data_array.ptrs[i]) {
-                        for (size_t j = 0; j < i; j++)
-                            free(val->data_array.ptrs[i]);
-                        free(val->data_array.sizes);
-                        free(val->data_array.ptrs);
+                    val->data_array[i] = read_data_compressed(trace, file);
+                    if (!val->data_array) {
+                        free(val->data_array);
                         return false;
                     }
                 }
@@ -937,12 +971,9 @@ const char*const* trc_get_str(const trace_value_t* val) {
     return val->count==1 ? (const char*const*)&val->str : (const char*const*)val->str_array;
 }
 
-const size_t* trc_get_data_sizes(const trace_value_t* val) {
-    return val->count==1 ? &val->data.size : val->data_array.sizes;
-}
-
-const void*const* trc_get_data(const trace_value_t* val) {
-    return val->count==1 ? (const void*const*)&val->data.ptr : (const void*const*)val->data_array.ptrs;
+const trc_data_t*const* trc_get_data(const trace_value_t* val) {
+    if (val->count==1) return (const trc_data_t*const*)&val->data;
+    else return (const trc_data_t*const*)val->data_array;
 }
 
 trace_extra_t* trc_get_extra(trace_command_t* cmd, const char* name) {
@@ -1609,6 +1640,26 @@ trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint3
 
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags) {
     return create_data(trace, size, data, flags, false);
+}
+
+trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data) {
+    trc_data_t* res = malloc(sizeof(trc_data_t));
+    res->lock = (pthread_rwlock_t)PTHREAD_RWLOCK_INITIALIZER;
+    res->flags = 0;
+    res->storage_type = TrcStorage_External;
+    res->size = data.size;
+    res->external = malloc(sizeof(trc_data_external_storage_t));
+    res->external->compression = data.compression;
+    res->external->size = data.compressed_size;
+    res->external->data = data.compressed_data;
+    
+    res->queue_next = NULL;
+    
+    trc_gl_inspection_t* ti = &trace->inspection;
+    ti->data = realloc(ti->data, ++ti->data_count*sizeof(trc_data_t*));
+    ti->data[ti->data_count-1] = res;
+    
+    return res;
 }
 
 trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags) {
