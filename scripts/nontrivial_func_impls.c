@@ -3649,7 +3649,7 @@ glUseProgram: //GLuint p_program
     
     trc_gl_state_set_bound_program(ctx->trace, program_rev?program_rev->head.obj:NULL);
     
-    real(program_rev->real);
+    real(program_rev?program_rev->real:0);
 
 glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
