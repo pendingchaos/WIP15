@@ -284,10 +284,10 @@ static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer
     bool flip_y = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->flip_y));
     
     glUniform4i(glGetUniformLocation(program, "uParams"),
-                vp[2]/2-viewer->image_width*zoom+viewer->view_offset[0],
-                vp[3]/2-viewer->image_height*zoom+viewer->view_offset[1],
-                vp[2]/2+viewer->image_width*zoom+viewer->view_offset[0],
-                vp[3]/2+viewer->image_height*zoom+viewer->view_offset[1]);
+                vp[2]/2-viewer->image_width/2*zoom+viewer->view_offset[0],
+                vp[3]/2-viewer->image_height/2*zoom+viewer->view_offset[1],
+                vp[2]/2+viewer->image_width/2*zoom+viewer->view_offset[0],
+                vp[3]/2+viewer->image_height/2*zoom+viewer->view_offset[1]);
     glUniform1i(glGetUniformLocation(program, "uParams2"),
                 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->srgb))?1:0);
     glUniform1i(glGetUniformLocation(program, "uFlipY"), flip_y?1:0);
