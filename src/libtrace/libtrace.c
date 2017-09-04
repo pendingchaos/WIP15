@@ -1111,6 +1111,7 @@ void trc_run_inspection(trace_t* trace) {
             funcs[cmd->func_index](&ctx, cmd);
             cmd->revision = trace->inspection.cur_revision++;
         }
+        printf("%zu/%zu (%.0f%c)\n", i, trace->frame_count-1, i/(double)(trace->frame_count-1)*100.0, '%');
     }
     
     deinit_replay_gl(&ctx);

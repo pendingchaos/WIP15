@@ -23,25 +23,25 @@ typedef struct context_data_t {
 static void on_close_back_buffer(context_data_t* data) {
     data->back_viewer = NULL;
     gtk_widget_set_sensitive(data->open_back_buffer, true);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void on_close_front_buffer(context_data_t* data) {
     data->front_viewer = NULL;
     gtk_widget_set_sensitive(data->open_front_buffer, true);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void on_close_depth_buffer(context_data_t* data) {
     data->depth_viewer = NULL;
     gtk_widget_set_sensitive(data->open_depth_buffer, true);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void on_close_stencil_buffer(context_data_t* data) {
     data->stencil_viewer = NULL;
     gtk_widget_set_sensitive(data->open_stencil_buffer, true);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void open_back_buffer(GtkButton* _, context_data_t* data) {
@@ -50,7 +50,7 @@ static void open_back_buffer(GtkButton* _, context_data_t* data) {
     add_object_notebook_tab(data->tab->obj_notebook, "Back Buffer", true, data->back_viewer->widget,
                             (void(*)(void*))on_close_back_buffer, data);
     gtk_widget_set_sensitive(data->open_back_buffer, false);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void open_front_buffer(GtkButton* _, context_data_t* data) {
@@ -59,7 +59,7 @@ static void open_front_buffer(GtkButton* _, context_data_t* data) {
     add_object_notebook_tab(data->tab->obj_notebook, "Front Buffer", true, data->front_viewer->widget,
                             (void(*)(void*))on_close_front_buffer, data);
     gtk_widget_set_sensitive(data->open_front_buffer, false);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void open_depth_buffer(GtkButton* _, context_data_t* data) {
@@ -68,7 +68,7 @@ static void open_depth_buffer(GtkButton* _, context_data_t* data) {
     add_object_notebook_tab(data->tab->obj_notebook, "Depth Buffer", true, data->depth_viewer->widget,
                             (void(*)(void*))on_close_depth_buffer, data);
     gtk_widget_set_sensitive(data->open_depth_buffer, false);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void open_stencil_buffer(GtkButton* _, context_data_t* data) {
@@ -77,7 +77,7 @@ static void open_stencil_buffer(GtkButton* _, context_data_t* data) {
     add_object_notebook_tab(data->tab->obj_notebook, "Stencil Buffer", true, data->stencil_viewer->widget,
                             (void(*)(void*))on_close_stencil_buffer, data);
     gtk_widget_set_sensitive(data->open_stencil_buffer, false);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void init(object_tab_t* tab) {

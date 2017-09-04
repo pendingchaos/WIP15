@@ -28,7 +28,7 @@ typedef struct buffer_data_t {
 } buffer_data_t;
 
 static void changed_callback(void* widget, object_tab_t* tab) {
-    update_object_tab(tab);
+    update_tab(tab->tab);
 }
 
 static void init(object_tab_t* tab) {

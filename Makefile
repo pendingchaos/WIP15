@@ -14,7 +14,7 @@ COMP_LIBS += `pkg-config zlib --libs`
 CFLAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
 endif
 
-gui_src = $(wildcard src/gui/*.c) $(wildcard src/gui/objects/*.c) $(wildcard src/gui/widgets/*.c)
+gui_src = $(wildcard src/gui/*.c) $(wildcard src/gui/objects/*.c) $(wildcard src/gui/widgets/*.c) $(wildcard src/gui/tabs/*.c)
 libtrace_src = $(wildcard src/libtrace/*.c)
 tests_src = $(wildcard src/testing/tests/*.c)
 src = $(wildcard src/*.c) $(gui_src) $(libtrace_src) $(tests_src) $(wildcard src/shared/*.c) src/libgl.c

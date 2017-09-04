@@ -20,13 +20,13 @@ typedef struct texture_data_t {
 } texture_data_t;
 
 static void do_update(void* _, texture_data_t* data) {
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void on_close_images_tab(texture_data_t* data) {
     data->viewer = NULL;    
     gtk_widget_set_sensitive(data->open_images_button, true);
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void open_images_tab(void* _, texture_data_t* data) {
@@ -61,7 +61,7 @@ static void open_images_tab(void* _, texture_data_t* data) {
     add_object_notebook_tab(data->tab->obj_notebook, "Images", true, tab_content,
                             (void(*)(void*))on_close_images_tab, data);
     
-    update_object_tab(data->tab);
+    update_tab(data->tab->tab);
 }
 
 static void init(object_tab_t* tab) {
