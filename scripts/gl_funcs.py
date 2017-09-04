@@ -1176,7 +1176,6 @@ F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_LENGTH, &length);
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
     uint64_t offset_le = htole64(offset);
-    printf(\"%ld %ld\\n\", offset, length);
     uint8_t* data = malloc(length+8);
     memcpy(data, &offset_le, 8);
     F(glGetBufferSubData)(target, offset, length, data+8);
@@ -1195,9 +1194,7 @@ F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_OFFSET, &offset);
 F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_LENGTH, &length);
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
-    
     uint64_t offset_le = htole64(offset);
-    
     uint8_t* data = malloc(length+8);
     memcpy(data, &offset_le, 8);
     F(glGetNamedBufferSubData)(buffer, offset, length, data+8);
