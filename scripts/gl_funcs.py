@@ -1170,14 +1170,17 @@ f.trace_prologue_code = '''
 GLint mapped, access;
 F(glGetBufferParameteriv)(target, GL_BUFFER_MAPPED, &mapped);
 if (mapped) F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+GLint64 offset, length;
+F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_OFFSET, &offset);
+F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_LENGTH, &length);
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
-    GLint size;
-    F(glGetBufferParameteriv)(target, GL_BUFFER_SIZE, &size);
-    
-    void* data = malloc(size);
-    F(glGetBufferSubData)(target, 0, size, data);
-    gl_add_extra("replay/glUnmapBuffer/data", size, data);
+    uint64_t offset_le = htole64(offset);
+    printf(\"%ld %ld\\n\", offset, length);
+    uint8_t* data = malloc(length+8);
+    memcpy(data, &offset_le, 8);
+    F(glGetBufferSubData)(target, offset, length, data+8);
+    gl_add_extra("replay/glUnmapBuffer/data_ranged", length+8, data);
     free(data);
 }
 '''
@@ -1187,14 +1190,18 @@ f.trace_prologue_code = '''
 GLint mapped, access;
 F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_MAPPED, &mapped);
 if (mapped) F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
+GLint64 offset, length;
+F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_OFFSET, &offset);
+F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_LENGTH, &length);
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
-    GLint size;
-    F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_SIZE, &size);
     
-    void* data = malloc(size);
-    F(glGetNamedBufferSubData)(buffer, 0, size, data);
-    gl_add_extra("replay/glUnmapBuffer/data", size, data);
+    uint64_t offset_le = htole64(offset);
+    
+    uint8_t* data = malloc(length+8);
+    memcpy(data, &offset_le, 8);
+    F(glGetNamedBufferSubData)(buffer, offset, length, data+8);
+    gl_add_extra("replay/glUnmapBuffer/data_ranged", length+8, data);
     free(data);
 }
 '''

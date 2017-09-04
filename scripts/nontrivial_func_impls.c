@@ -2124,28 +2124,38 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
     trc_gl_buffer_rev_t newrev = *rev;
     
     if (rev->map_access & GL_MAP_WRITE_BIT) {
-        trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data");
-        if (!extra) trc_add_error(cmd, "replay/glUnmapBuffer/data extra not found");
-        
-        if (extra) {
-            if (extra->size != rev->data->size) ERROR2(, "Invalid trace");
-            if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
-                F(glNamedBufferSubData)(rev->real, 0, extra->size, extra->data);
-            else
-                F(glBufferSubData)(target_or_buf, 0, extra->size, extra->data);
+        trace_extra_t* extra = trc_get_extra(cmd, "replay/glUnmapBuffer/data_ranged");
+        if (!extra) {
+            trc_add_error(cmd, "replay/glUnmapBuffer/data_ranged not found");
+            goto end;
         }
         
-        newrev.data = trc_create_data(ctx->trace, rev->data->size, NULL, TRC_DATA_NO_ZERO);
-        void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
+        if (extra->size < 8) {
+            trc_add_error(cmd, "Invalid trace");
+            goto end;
+        }
         
-        void* olddata = trc_map_data(rev->data, TRC_MAP_READ);
-        memcpy(newdata, olddata, rev->data->size);
-        trc_unmap_data(rev->data);
+        uint64_t offset = le64toh(*(const uint64_t*)extra->data);
+        uint64_t length = extra->size - 8;
+        const void* data = (const uint8_t*)extra->data + 8;
         
-        if (extra) memcpy(newdata, extra->data, extra->size);
+        if (extra->size != length+8) {
+            trc_add_error(cmd, "Invalid trace");
+            goto end;
+        }
+        
+        if (dsa) //Assume glNamedBufferSubData is supported if glUnmapNamedBuffer is being called
+            F(glNamedBufferSubData)(rev->real, offset, length, data);
+        else
+            F(glBufferSubData)(target_or_buf, offset, length, data);
+        
+        newrev.data = trc_copy_data(ctx->trace, rev->data, 0);
+        uint8_t* mapped = trc_map_data(newrev.data, TRC_MAP_MODIFY);
+        memcpy(mapped+offset, data, length);
         trc_unmap_freeze_data(ctx->trace, newrev.data);
     }
     
+    end:
     newrev.mapped = false;
     newrev.map_offset = 0;
     newrev.map_length = 0;
@@ -3084,7 +3094,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     size_t res_sources_size = 0;
     char* res_sources = NULL;
-    if (arg_string->count == 0) {
+    if (arg_length->count == 0) {
         real(shader, p_count, p_string, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+strlen(p_string[i])+1);
