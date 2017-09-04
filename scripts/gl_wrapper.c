@@ -1267,26 +1267,6 @@ static void link_program_extras(GLuint program) {
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORMS, &count);
     GLint maxNameLen;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLen);
-    for (size_t i = 0; i < count; i++) {
-        GLchar name[maxNameLen+1];
-        memset(name, 0, maxNameLen+1);
-        GLint size;
-        GLenum type;
-        F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
-        GLint loc = F(glGetUniformLocation)(program, name);
-        if (loc < 0) continue; //Probably part of a uniform buffer block or a builtin variable
-        
-        if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
-            name[strlen(name)-3] = 0;
-        
-        add_program_extra("replay/program/uniform", name, 0, F(glGetUniformLocation)(program, name));
-        for (size_t j = 1; j < size; j++) {
-            GLchar new_name[maxNameLen+16];
-            memset(new_name, 0, maxNameLen+16);
-            snprintf(new_name, maxNameLen+16, "%s[%zu]", name, j);
-            add_program_extra("replay/program/uniform", new_name, 0, F(glGetUniformLocation)(program, new_name));
-        }
-    }
     
     uniform_t* uniforms = NULL;
     for (size_t i = 0; i < count; i++) {
