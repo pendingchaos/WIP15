@@ -12,6 +12,7 @@ typedef struct image_viewer_t {
     GtkWidget* widget;
     GtkCheckButton* flip_y;
     GtkCheckButton* srgb;
+    GtkCheckButton* show_border;
     GtkSpinButton* zoom;
     //GtkEntry* current_pixel;
     GtkGLArea* gl_area;

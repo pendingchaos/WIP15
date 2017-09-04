@@ -50,7 +50,7 @@ static void create_image_viewer_program(image_viewer_t* viewer) {
     
     const char* fragment_shader_src = "vec4 shader_main(in vec2 uv);\n"
 "uniform ivec4 uParams;\n"
-"uniform bool uParams2;\n"
+"uniform bvec2 uParams2;\n"
 "uniform bool uFlipY;\n"
 "out vec4 oColor;\n"
 "vec3 to_linear(in vec3 v) {\n"
@@ -64,7 +64,7 @@ static void create_image_viewer_program(image_viewer_t* viewer) {
 "vec4 stripes_pattern() {\n"
 "    float v = dot(normalize(vec2(0.707106781)), gl_FragCoord.xy);\n"
 "    vec4 col = int(vec3(v/20.0))%2==0 ? vec4(1.0, 0.35, 0.35, 1.0) : vec4(1.0);\n"
-"    if (!uParams2) col.rgb = to_linear(col.rgb);\n"
+"    if (!uParams2.x) col.rgb = to_linear(col.rgb);\n"
 "    return col;\n"
 "}\n"
 "void main() {\n"
@@ -74,12 +74,29 @@ static void create_image_viewer_program(image_viewer_t* viewer) {
 "    oColor.a = 1.0;\n"
 "    ivec2 image_bl = uParams.xy;\n"
 "    ivec2 image_tr = uParams.zw;\n"
-"    ivec2 coord = ivec2(gl_FragCoord.xy);\n"
-"    if (all(greaterThanEqual(coord, image_bl)) && all(lessThan(coord, image_tr))) {\n"
-"        vec2 uv = vec2(coord-image_bl)/vec2(image_tr-image_bl);\n"
+"    ivec2 coord = ivec2(gl_FragCoord.xy) - image_bl;\n"
+"    ivec2 image_size = image_tr - image_bl;\n"
+"    bool within_x = clamp(coord.x, 0, image_size.x-1) == coord.x;\n"
+"    bool within_y = clamp(coord.y, 0, image_size.y-1) == coord.y;\n"
+"    if (within_x && within_y) {\n"
+"        vec2 uv = vec2(coord)/vec2(image_size);\n"
 "        vec4 color = shader_main(uFlipY?vec2(uv.x, 1.0-uv.y):uv);\n"
-"        if (uParams2) color.rgb = to_linear(color.rgb);\n"
+"        if (uParams2.x) color.rgb = to_linear(color.rgb);\n"
 "        oColor.rgb = mix(oColor.rgb, color.rgb, clamp(color.a, 0.0, 1.0));\n"
+"    }\n"
+"    within_x = clamp(coord.x, -1, image_size.x) == coord.x;\n"
+"    within_y = clamp(coord.y, -1, image_size.y) == coord.y;\n"
+"    bool left = within_y && coord.x==-1;\n"
+"    bool right = within_y && coord.x==image_size.x;\n"
+"    bool bottom = within_x && coord.y==-1;\n"
+"    bool top = within_x && coord.y==image_size.y;"
+"    if ((left||right||bottom||top) && uParams2.y) {\n"
+"        int dist;\n"
+"        if (left) dist = coord.y;\n"
+"        else if (right) dist = image_size.y + image_size.x + (image_size.y-coord.y-1) + 2;\n"
+"        else if (top) dist = image_size.y + coord.x + 1;\n"
+"        else if (bottom) dist = image_size.y*2 + image_size.x + (image_size.x-coord.x-1) + 3;\n"
+"        oColor.rgb = dist%8<4 ? vec3(1.0, 1.0, 0.0) : vec3(0.0);\n"
 "    }\n"
 "    oColor.rgb = to_srgb(oColor.rgb);\n"
 "}\n"
@@ -164,6 +181,10 @@ static void srgb_toggled(GtkToggleButton* toggle_button, image_viewer_t* viewer)
     gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
 }
 
+static void border_toggled(GtkToggleButton* toggle_button, image_viewer_t* viewer) {
+    gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
+}
+
 static void shader_changed(GtkTextBuffer* buf, image_viewer_t* viewer) {
     viewer->program_dirty = true;
     gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
@@ -178,6 +199,7 @@ static void image_viewer_realize(GtkGLArea* area, gpointer user_data) {
     
     g_signal_connect(viewer->flip_y, "toggled", G_CALLBACK(flip_y_toggled), viewer);
     g_signal_connect(viewer->srgb, "toggled", G_CALLBACK(srgb_toggled), viewer);
+    g_signal_connect(viewer->show_border, "toggled", G_CALLBACK(border_toggled), viewer);
     g_signal_connect(viewer->zoom, "value-changed", G_CALLBACK(zoom_value_changed), viewer);
     GtkTextBuffer* shader_buffer = gtk_text_view_get_buffer(viewer->shader_editor);
     g_signal_connect(shader_buffer, "changed", G_CALLBACK(shader_changed), viewer);
@@ -288,8 +310,9 @@ static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer
                 vp[3]/2-viewer->image_height/2*zoom+viewer->view_offset[1],
                 vp[2]/2+viewer->image_width/2*zoom+viewer->view_offset[0],
                 vp[3]/2+viewer->image_height/2*zoom+viewer->view_offset[1]);
-    glUniform1i(glGetUniformLocation(program, "uParams2"),
-                gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->srgb))?1:0);
+    glUniform2i(glGetUniformLocation(program, "uParams2"),
+                gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->srgb))?1:0,
+                gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->show_border))?1:0);
     glUniform1i(glGetUniformLocation(program, "uFlipY"), flip_y?1:0);
     if (viewer->format == TrcImageFormat_F32_U24_U8) {
         glActiveTexture(GL_TEXTURE0);
@@ -434,6 +457,8 @@ image_viewer_t* create_image_viewer() {
     viewer->flip_y = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Flip Y"));
     viewer->srgb = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("sRGB"));
     gtk_widget_set_tooltip_text(GTK_WIDGET(viewer->srgb), "whether shader_main()'s output is sRGB");
+    viewer->show_border = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Border"));
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(viewer->show_border), true);
     viewer->zoom = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0.0, G_MAXDOUBLE, 10));
     gtk_spin_button_set_value(viewer->zoom, 100.0);
     //viewer->current_pixel = GTK_ENTRY(gtk_entry_new());
@@ -442,9 +467,10 @@ image_viewer_t* create_image_viewer() {
     GtkWidget* read_button = create_button("Read Shader", &read_shader, viewer);
     GtkWidget* write_button = create_button("Write Shader", &write_shader, viewer);
     
-    GtkWidget* box = create_box(false, 5,
+    GtkWidget* box = create_box(false, 6,
         write_button, read_button, GTK_WIDGET(viewer->flip_y),
-        GTK_WIDGET(viewer->srgb), GTK_WIDGET(viewer->zoom));
+        GTK_WIDGET(viewer->srgb), GTK_WIDGET(viewer->show_border),
+        GTK_WIDGET(viewer->zoom));
     //gtk_box_pack_start(box, GTK_WIDGET(viewer->current_pixel), true, true, 0);
     
     viewer->gl_area = GTK_GL_AREA(gtk_gl_area_new());
