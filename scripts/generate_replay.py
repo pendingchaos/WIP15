@@ -597,6 +597,7 @@ for name, func in func_dict.iteritems():
     if name in nontrivial:
         output.write(nontrivial[name])
     else:
+        output.write('ERROR("Function not implemented D:\\n");\n')
         pass #output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in func.params])))
     
     for i, param in zip(range(len(func.params)), func.params):

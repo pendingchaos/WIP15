@@ -1231,6 +1231,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
         }
     }
     trc_unmap_data(rev->uniforms);
+    ERROR2(-1, "Failed to find uniform based on location");
     return -1;
     success1: ;
     
