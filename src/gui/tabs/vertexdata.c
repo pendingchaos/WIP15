@@ -92,8 +92,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
         int index_type = gtk_combo_box_get_active(tab->index_type);
         GLenum type = (GLenum[]){
             GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT}[index_type];
-        uint64_t index_offset = gtk_spin_button_get_value(tab->index_offset);
-        uint64_t offset = start * get_attrib_size(type, 1) + index_offset;
+        uint64_t offset = gtk_spin_button_get_value(tab->index_offset);
         begin_index_list(&il_state, type, offset, vao, ctx);
     }
     
@@ -264,6 +263,12 @@ static bool autofill(vertex_data_tab_t* tab) {
 static void update_vertex_data_tab(gui_tab_t* gtab) {
     vertex_data_tab_t* tab = gtab->data;
     
+    if (tab->data_view) {
+        gtk_container_remove(GTK_CONTAINER(tab->data_view_box), GTK_WIDGET(tab->data_view_window));
+        tab->data_view_window = NULL;
+        tab->data_view = NULL;
+    }
+    
     trace_t* trace = state.trace;
     int64_t revision = state.revision;
     if (!trace || revision<0 || tab->disable_fill) goto fail;
@@ -296,14 +301,11 @@ static void update_vertex_data_tab(gui_tab_t* gtab) {
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(vao_obj, revision);
     
     //Update data view
-    if (tab->data_view) {
-        gtk_container_remove(GTK_CONTAINER(tab->data_view_box), GTK_WIDGET(tab->data_view));
-    }
-    
     create_treeview(tab, vao);
     fill_in_data_view(tab, vao, ctx);
     
-    gtk_box_pack_start(tab->data_view_box, GTK_WIDGET(tab->data_view), true, true, 0);
+    tab->data_view_window = create_scrolled_window(GTK_WIDGET(tab->data_view));
+    gtk_box_pack_start(tab->data_view_box, tab->data_view_window, true, true, 0);
     gtk_widget_show_all(GTK_WIDGET(tab->data_view_box));
     
     fail:
@@ -311,6 +313,7 @@ static void update_vertex_data_tab(gui_tab_t* gtab) {
     
     //Update visiblities
     int mode = gtk_combo_box_get_active(tab->mode);
+    set_visible_at_info_box(tab->info_box, "Start", mode==MODE_VERTICES);
     set_visible_at_info_box(tab->info_box, "Index Offset", mode==MODE_PRIMITIVES);
     set_visible_at_info_box(tab->info_box, "Index Type", mode==MODE_PRIMITIVES);
     set_visible_at_info_box(tab->info_box, "Base Vertex", mode==MODE_PRIMITIVES);
@@ -362,8 +365,9 @@ gui_tab_t* open_vertex_data_tab() {
     
     add_separator_to_info_box(tab->info_box);
     
-    tab->data_view_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0));
+    tab->data_view_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 0));
     tab->data_view = NULL;
+    tab->data_view_window = NULL;
     add_custom_to_info_box(tab->info_box, NULL, GTK_WIDGET(tab->data_view_box));
     
     gui_tab_t* gtab = open_gui_tab(true, create_scrolled_window(tab->info_box->widget));

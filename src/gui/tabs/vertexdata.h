@@ -17,6 +17,7 @@ typedef struct vertex_data_tab_t {
     GtkComboBox* index_type;
     
     GtkBox* data_view_box;
+    GtkWidget* data_view_window;
     GtkTreeView* data_view;
     size_t column_count;
     size_t attrib_column_start;

@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-type_info_t get_type_info(GLenum type) {
+static type_info_t get_type_info(GLenum type) {
     switch (type) {
     case GL_BYTE: return (type_info_t){1, 0, false, true, true, 8};
     case GL_UNSIGNED_BYTE: return (type_info_t){2, 0, false, true, false, 8};
@@ -25,7 +25,7 @@ type_info_t get_type_info(GLenum type) {
     return (type_info_t){0, 0, false, false, false, 0};
 }
 
-size_t get_attrib_size(GLenum type, int size) {
+static size_t get_attrib_size(GLenum type, int size) {
     type_info_t info = get_type_info(type);
     return info.size_mult*size + info.size_add;
 }

@@ -29,9 +29,6 @@ typedef struct index_list_state_t {
     size_t data_size;
 } index_list_state_t;
 
-type_info_t get_type_info(GLenum type);
-size_t get_attrib_size(GLenum type, int size);
-
 void begin_attrib_list(attrib_list_state_t* s, size_t attrib_index,
                        const trc_gl_context_rev_t* ctx_rev,
                        trc_gl_vao_attrib_t attrib);
