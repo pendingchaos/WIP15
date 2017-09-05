@@ -324,7 +324,7 @@ static void vertex_array_state(value_tree_state_t* state, const trc_gl_context_r
     size_t count = rev->state_double_GL_CURRENT_VERTEX_ATTRIB->size / sizeof(double);
     for (uint i = 0; i < count; i+=4) {
         double* v = &cur_vertex_attrib[i];
-        value(state, static_format("%u", i/4+1), "[%g, %g, %g, %g]", v[0], v[1], v[2], v[3]);
+        value(state, static_format("%u", i/4), "[%g, %g, %g, %g]", v[0], v[1], v[2], v[3]);
     }
     trc_unmap_data(rev->state_double_GL_CURRENT_VERTEX_ATTRIB);
     end_category(state);

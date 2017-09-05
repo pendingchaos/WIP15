@@ -592,9 +592,9 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_OUTER_LEVEL, 4, one4);
     trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_INNER_LEVEL, 2, one4);
     
-    double* va = malloc((max_vertex_attribs-1)*4*sizeof(double));
-    for (size_t i = 0; i < (max_vertex_attribs-1)*4; i++) va[i] = i%4==3 ? 1 : 0;
-    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, (max_vertex_attribs-1)*4, va);
+    double* va = malloc(max_vertex_attribs*4*sizeof(double));
+    for (size_t i = 0; i < max_vertex_attribs*4; i++) va[i] = i%4==3 ? 1 : 0;
+    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, max_vertex_attribs*4, va);
     free(va);
     
     GLenum draw_buffers[1] = {GL_BACK};
@@ -1334,9 +1334,8 @@ static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd
 static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint comp,
                           GLenum type, bool array, bool normalized, GLenum internal) {
     uint index = gl_param_GLuint(cmd, 0);
-    if (index==0 || index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+    if (index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR2(, "Invalid vertex attribute index");
-    index--;
     uint i = 0;
     for (; i < comp; i++) {
         double val = 0;
@@ -1387,8 +1386,8 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
         vals[i] = trc_gl_state_get_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i);
     
     switch (internal) {
-    case GL_FLOAT: F(glVertexAttrib4dv(index+1, vals)); break;
-    case GL_DOUBLE: F(glVertexAttribL4dv(index+1, vals)); break;
+    case GL_FLOAT: F(glVertexAttrib4dv(index, vals)); break;
+    case GL_DOUBLE: F(glVertexAttribL4dv(index, vals)); break;
     case GL_UNSIGNED_INT: F(glVertexAttribI4ui(index, vals[0], vals[1], vals[2], vals[3])); break;
     case GL_INT: F(glVertexAttribI4i(index, vals[0], vals[1], vals[2], vals[3])); break;
     }
@@ -1396,7 +1395,7 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
 
 static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint index,
                                  GLenum type, uint comp, GLboolean normalized, GLuint val) {
-    if (index==0 || index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+    if (index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR2(, "Invalid vertex attribute index");
     double res[4];
     switch (type) {
@@ -1412,7 +1411,7 @@ static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd
     }
     for (uint i = comp; i < 4; i++) res[i] = i==3 ? 1.0 : 0.0;
     for (uint i = 0; i < 4; i++)
-        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, (index-1)*4+i, res[i]);
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, res[i]);
     
     F(glVertexAttrib4dv(index, res));
 }
