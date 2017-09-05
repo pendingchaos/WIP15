@@ -39,7 +39,7 @@ const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index);
 void end_attrib_list(attrib_list_state_t* s);
 
 void begin_index_list(index_list_state_t* s, GLenum type, uint64_t offset,
-                      const trc_gl_context_rev_t* ctx);
+                      const trc_gl_vao_rev_t* vao, const trc_gl_context_rev_t* ctx);
 int64_t get_index(index_list_state_t* s, size_t index);
 void end_index_list(index_list_state_t* s);
 #endif

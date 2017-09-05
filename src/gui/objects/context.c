@@ -444,7 +444,6 @@ static void stencil_state(value_tree_state_t* state, const trc_gl_context_rev_t*
 static void buffer_state(value_tree_state_t* state, const trc_gl_context_rev_t* rev, uint64_t revision) {
     begin_category(state, "General Buffer Bindings");
     value_obj(state, "GL_ARRAY_BUFFER", rev->bound_buffer_GL_ARRAY_BUFFER, revision);
-    value_obj(state, "GL_ELEMENT_ARRAY_BUFFER", rev->bound_buffer_GL_ELEMENT_ARRAY_BUFFER, revision);
     value_obj(state, "GL_UNIFORM_BUFFER", rev->bound_buffer_GL_UNIFORM_BUFFER, revision);
     value_obj(state, "GL_SHADER_STORAGE_BUFFER", rev->bound_buffer_GL_SHADER_STORAGE_BUFFER, revision);
     value_obj(state, "GL_ATOMIC_COUNTER_BUFFER", rev->bound_buffer_GL_ATOMIC_COUNTER_BUFFER, revision);

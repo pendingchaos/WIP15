@@ -12,6 +12,8 @@ static void init(object_tab_t* tab) {
     tab->data = data;
     add_obj_common_to_info_box(tab->info_box);
     
+    add_to_info_box(tab->info_box, "Element Buffer");
+    
     add_custom_to_info_box(tab->info_box, "Attributes", NULL);
     
     GtkTreeView* view = create_tree_view(
@@ -30,6 +32,9 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     vao_data_t* data = tab->data;
     
     if (!set_obj_common_at_info_box(tab->info_box, rev_head, revision)) return;
+    
+    const char* buffer_str = static_format_obj(rev->element_buffer.obj, revision);
+    set_at_info_box(tab->info_box, "Element Buffer", buffer_str);
     
     const trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
     for (size_t i = 0; i < rev->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {

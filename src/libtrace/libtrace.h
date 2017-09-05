@@ -417,6 +417,7 @@ typedef struct trc_gl_vao_rev_t {
     TRC_GL_OBJ_HEAD
     bool has_object;
     trc_data_t* attribs; //array of trc_gl_vao_attrib_t
+    trc_obj_ref_t element_buffer;
 } trc_gl_vao_rev_t;
 
 typedef struct trc_gl_transform_feedback_rev_t {

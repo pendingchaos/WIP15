@@ -94,7 +94,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
             GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT}[index_type];
         uint64_t index_offset = gtk_spin_button_get_value(tab->index_offset);
         uint64_t offset = start * get_attrib_size(type, 1) + index_offset;
-        begin_index_list(&il_state, type, offset, ctx);
+        begin_index_list(&il_state, type, offset, vao, ctx);
     }
     
     //Fill in each column

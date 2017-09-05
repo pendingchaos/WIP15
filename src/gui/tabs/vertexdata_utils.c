@@ -138,10 +138,10 @@ void end_attrib_list(attrib_list_state_t* s) {
 }
 
 void begin_index_list(index_list_state_t* s, GLenum type, uint64_t offset,
-                      const trc_gl_context_rev_t* ctx) {
+                      const trc_gl_vao_rev_t* vao, const trc_gl_context_rev_t* ctx) {
     s->type = type;
     s->ctx_rev = ctx;
-    trc_obj_t* buf = ctx->bound_buffer_GL_ELEMENT_ARRAY_BUFFER.obj;
+    trc_obj_t* buf = vao->element_buffer.obj;
     if (buf) {
         s->buf_rev = trc_obj_get_rev(buf, state.revision);
         s->data = trc_map_data(s->buf_rev->data, TRC_MAP_READ) + offset;
