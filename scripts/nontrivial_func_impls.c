@@ -3303,7 +3303,7 @@ static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_c
         
         GLint real_loc = F(glGetAttribLocation)(real_program, extra.name);
         if (real_loc < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute %s", extra.name);
+            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute '%s'", extra.name);
             goto continue_loop;
         }
         
@@ -3320,13 +3320,13 @@ static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_c
             GLint size;
             GLenum type;
             F(glGetActiveAttrib)(real_program, i, strlen(extra.name)+1, &len, &size, &type, name_buf);
-            if (len!=strlen(extra.name) || strcmp(name_buf, extra.name)) {
+            if (len==strlen(extra.name) && strcmp(name_buf, extra.name)==0) {
                 attrib.type = type;
                 break;
             }
         }
         if (attrib.type == 0xffffffff) {
-            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute %s", extra.name);
+            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute '%s'", extra.name);
             goto continue_loop;
         }
         
