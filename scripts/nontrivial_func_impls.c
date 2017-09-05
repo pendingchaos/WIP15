@@ -2964,7 +2964,7 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    real(p_target, rev->real);
+    real(p_target, rev?rev->real:0);
     bind_buffer(ctx, p_target, p_buffer);
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
