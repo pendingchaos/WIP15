@@ -37,6 +37,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     set_at_info_box(tab->info_box, "Element Buffer", buffer_str);
     
     const trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
+    gtk_tree_store_clear(data->attributes);
     for (size_t i = 0; i < rev->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
         const trc_gl_vao_attrib_t* attr = &attribs[i];
         

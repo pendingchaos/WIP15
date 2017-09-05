@@ -4717,7 +4717,7 @@ glDisableVertexAttribArray: //GLuint p_index
         trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
         trc_unmap_data(rev.attribs);
         trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
-        a->enabled = true;
+        a->enabled = false;
         trc_unmap_freeze_data(ctx->trace, newattribs);
         rev.attribs = newattribs;
         set_vao(&rev);
