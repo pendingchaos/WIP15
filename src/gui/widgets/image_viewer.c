@@ -5,6 +5,7 @@
 
 #include <gtksourceview/gtksource.h>
 #include <stdlib.h>
+#include <math.h>
 
 static uint compile_shader(GLenum type, size_t source_count, const char*const* sources,
                            GtkTextBuffer* info_log) {
@@ -306,10 +307,10 @@ static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer
     bool flip_y = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->flip_y));
     
     glUniform4i(glGetUniformLocation(program, "uParams"),
-                vp[2]/2-viewer->image_width/2*zoom+viewer->view_offset[0],
-                vp[3]/2-viewer->image_height/2*zoom+viewer->view_offset[1],
-                vp[2]/2+viewer->image_width/2*zoom+viewer->view_offset[0],
-                vp[3]/2+viewer->image_height/2*zoom+viewer->view_offset[1]);
+                vp[2]/2.0-viewer->image_width/2.0*zoom+viewer->view_offset[0],
+                vp[3]/2.0-viewer->image_height/2.0*zoom+viewer->view_offset[1],
+                vp[2]/2.0+viewer->image_width/2.0*zoom+viewer->view_offset[0],
+                vp[3]/2.0+viewer->image_height/2.0*zoom+viewer->view_offset[1]);
     glUniform2i(glGetUniformLocation(program, "uParams2"),
                 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->srgb))?1:0,
                 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->show_border))?1:0);
@@ -380,7 +381,8 @@ static gboolean image_viewer_scroll(GtkWidget* widget, GdkEvent* event, image_vi
     gdouble dx, dy;
     if (!gdk_event_get_scroll_deltas(event, &dx, &dy)) return false;
     double zoom = gtk_spin_button_get_value(viewer->zoom);
-    gtk_spin_button_set_value(viewer->zoom, zoom+dy*-10);
+    zoom = pow(2.0, log2(zoom/100.0)-dy*0.5) * 100.0;
+    gtk_spin_button_set_value(viewer->zoom, zoom);
     return false;
 }
 

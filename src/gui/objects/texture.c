@@ -9,7 +9,6 @@
 
 typedef struct texture_data_t {
     object_tab_t* tab;
-    GtkWidget* open_images_button;
     image_viewer_t* viewer;
     GtkWidget* layer_box;
     GtkWidget* face_box;
@@ -23,16 +22,7 @@ static void do_update(void* _, texture_data_t* data) {
     update_tab(data->tab->tab);
 }
 
-static void on_close_images_tab(texture_data_t* data) {
-    data->viewer = NULL;    
-    gtk_widget_set_sensitive(data->open_images_button, true);
-    update_tab(data->tab->tab);
-}
-
-static void open_images_tab(void* _, texture_data_t* data) {
-    if (data->viewer) return;
-    gtk_widget_set_sensitive(data->open_images_button, false);
-    
+static void open_images_tab(texture_data_t* data) {
     data->level = create_integral_spin_button(0, INT64_MAX, &do_update, data);
     data->layer = create_integral_spin_button(0, INT64_MAX, &do_update, data);
     
@@ -58,10 +48,8 @@ static void open_images_tab(void* _, texture_data_t* data) {
     gtk_box_pack_start(GTK_BOX(tab_content), header_box, false, false, 0);
     gtk_box_pack_start(GTK_BOX(tab_content), data->viewer->widget, true, true, 0);
     
-    add_object_notebook_tab(data->tab->obj_notebook, "Images", true, tab_content,
-                            (void(*)(void*))on_close_images_tab, data);
-    
-    update_tab(data->tab->tab);
+    add_object_notebook_tab(
+        data->tab->obj_notebook, "Images", false, tab_content, NULL, data);
 }
 
 static void init(object_tab_t* tab) {
@@ -81,10 +69,8 @@ static void init(object_tab_t* tab) {
         "Width", "Height", "Depth", "Layers", "Mipmap Count", "Buffer", NULL);
     add_multiple_to_info_box(tab->info_box, //For buffer textures
         "Buffer", "Internal Format", "Offset", "Size", NULL);
-    add_separator_to_info_box(tab->info_box);
     
-    data->open_images_button = create_button("Open", &open_images_tab, data);
-    add_custom_to_info_box(tab->info_box, "Images", data->open_images_button);
+    open_images_tab(data);
 }
 
 static void deinit(object_tab_t* tab) {
