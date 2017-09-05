@@ -38,6 +38,7 @@ struct gui_state_t {
     
     trace_t* trace;
     int64_t revision;
+    trace_command_t* selected_cmd;
     gui_tab_t* tabs;
 };
 

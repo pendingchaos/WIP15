@@ -1,6 +1,6 @@
 #include "libtrace/libtrace.h"
 #include "../gui.h"
-#include "tabs.h"
+#include "objectlist.h"
 
 #include <gtk/gtk.h>
 #include <stdlib.h>
@@ -119,7 +119,7 @@ static void context_changed(GtkComboBox* widget, object_list_tab_t* tab) {
     update_object_list(tab, false, true);
 }
 
-static void deinit_objct_list_tab(gui_tab_t* gtab) {
+static void deinit_object_list_tab(gui_tab_t* gtab) {
     object_list_tab_t* tab = gtab->data;
     free_info_box(tab->info_box);
 }
@@ -192,7 +192,7 @@ gui_tab_t* open_object_list_tab() {
     
     tab->tab = gtab;
     gtab->data = tab;
-    gtab->deinit = &deinit_objct_list_tab;
+    gtab->deinit = &deinit_object_list_tab;
     gtab->update = &update_object_list_tab;
     
     update_tab(gtab);

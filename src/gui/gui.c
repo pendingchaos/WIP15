@@ -153,6 +153,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         trace_frame_t* frame = state.trace->frames + indices[0];
         trace_command_t* cmd = frame->commands + indices[1];
         state.revision = cmd->revision;
+        state.selected_cmd = cmd;
         
         update_gui_for_revision();
         
@@ -171,6 +172,7 @@ void command_select_callback(GObject* obj, gpointer user_data) {
         }
     } else {
         state.revision = -1;
+        state.selected_cmd = NULL;
         update_gui_for_revision();
     }
 }
@@ -179,6 +181,7 @@ static void free_open_trace() {
     trace_t* trace = state.trace;
     state.trace = NULL;
     state.revision = -1;
+    state.selected_cmd = NULL;
     
     if (state.gtk_was_init) {
         fill_trace_view();
@@ -331,6 +334,10 @@ void open_callback(GObject* obj, gpointer user_data) {
     if (!filename) return;
     open_trace(filename);
     g_free(filename);
+}
+
+void vertex_data_callback(GObject* obj, gpointer user_data) {
+    open_vertex_data_tab();
 }
 
 int run_gui(const char* trace, int argc, char** argv) {

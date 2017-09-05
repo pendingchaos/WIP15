@@ -70,22 +70,6 @@ static void deinit(object_tab_t* tab) {
     free(tab->data);
 }
 
-static double parse_f16(uint16_t val) {
-    uint16_t e = (val&0x7fff) >> 10;
-    uint16_t m = val & 0x3ff;
-    double s = val&0x8000 ? -1.0 : 1.0;
-    if (e == 0)
-        return s * 6.103515625e-05 * (m/1024.0);
-    else if (e>0 && e<31)
-        return s * pow(2.0, e-15) * (1.0+m/1024.0);
-    else if (e==31 && m==0)
-        return s * INFINITY;
-    else if (e==31 && m!=0)
-        return NAN;
-    else
-        return NAN; //Should never happen
-}
-
 static const char* format_component(int type, const void* data) {
     switch (type) {
     case TYPE_UINT8:

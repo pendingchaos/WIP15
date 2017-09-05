@@ -20,10 +20,10 @@ tests_src = $(wildcard src/testing/tests/*.c)
 src = $(shell find src/ -type f -name '*.c') src/libgl.c
 
 base_gui_obj = $(gui_src:.c=.o)
-gui_obj = $(join $(dir $(base_gui_obj)), $(addprefix ., $(notdir $(base_gui_obj))))
+gui_obj = $(join $(dir $(base_gui_obj)), $(addprefix ., $(notdir $(base_gui_obj)))) src/shared/.glapi.o src/shared/.types.o
 
 base_libtrace_obj = $(libtrace_src:.c=.o)
-libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj))))
+libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj)))) src/shared/.types.o src/libtrace/.replay_gl.o
 
 base_tests_obj = $(tests_src:.c=.o)
 tests_obj = $(join $(dir $(base_tests_obj)), $(addprefix ., $(notdir $(base_tests_obj))))
@@ -65,14 +65,14 @@ src/libtrace/libtrace_glstate.h: scripts/generate_libtrace_glstate.py
 src/shared/glcorearb.h:
 	cd src/shared; wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/api/GL/glcorearb.h
 
-bin/libgl.so: src/.libgl.o
+bin/libgl.so: src/.libgl.o src/shared/.types.o
 	$(CC) $^ -o bin/libgl.so -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
 
-bin/libtrace.so: $(libtrace_obj) src/libtrace/.replay_gl.o
+bin/libtrace.so: $(libtrace_obj)
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
-bin/gui: $(gui_obj) src/shared/.glapi.o bin/libtrace.so
-	$(CC) -Lbin -Wl,-rpath=. -ltrace -lm -lepoxy $(gui_obj) src/shared/.glapi.o -o bin/gui -g `pkg-config gtk+-3.0 gtksourceview-3.0 --libs` -rdynamic $(CFLAGS)
+bin/gui: $(gui_obj) bin/libtrace.so
+	$(CC) -Lbin -Wl,-rpath=. -ltrace -lm -lepoxy $(gui_obj) -o bin/gui -g `pkg-config gtk+-3.0 gtksourceview-3.0 --libs` -rdynamic $(CFLAGS)
 
 bin/replaytrace: src/.replaytrace.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.replaytrace.o -o bin/replaytrace -g -rdynamic $(CFLAGS)

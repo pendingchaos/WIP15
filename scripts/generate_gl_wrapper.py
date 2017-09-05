@@ -17,7 +17,7 @@ gl_c.write('''#include <X11/Xlib.h>
 #include <stdbool.h>
 #include <inttypes.h>
 
-#include "shared/uint.h"
+#include "shared/types.h"
 
 typedef void (*func_t)();
 

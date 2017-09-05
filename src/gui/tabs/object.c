@@ -1,6 +1,6 @@
 #include "libtrace/libtrace.h"
 #include "../gui.h"
-#include "tabs.h"
+#include "object.h"
 
 #include <gtk/gtk.h>
 #include <stdlib.h>

@@ -1,12 +1,10 @@
 #ifndef TRACE_FILE_H
 #define TRACE_FILE_H
 
-#include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
 #include <pthread.h>
 
-#include "shared/uint.h"
+#include "shared/types.h"
 
 #define TRC_GL_OBJ_HEAD trc_obj_rev_head_t head;\
 uint64_t real;

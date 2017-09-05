@@ -240,20 +240,16 @@ wip15PrintTestResults: //
     }
     fprintf(stderr, "%zu/%zu tests passed\n", tests_passed, tests);
 
-double conv_from_signed_norm(trace_t* trace, int64_t val, size_t bits) {
-    uint ver = trc_gl_state_get_ver(trace);
-    if (ver >= 420) return fmax(val/pow(2.0, bits-1), -1.0);
-    else return (val*2+1) / pow(2.0, bits-1);
-}
-
 void conv_from_signed_norm_array_i64(trace_t* trace, size_t count, double* dest, const int64_t* src, size_t bits) {
+    uint ver = trc_gl_state_get_ver(trace);
     for (size_t i = 0; i < count; i++)
-        dest[i] = conv_from_signed_norm(trace, src[i], bits);
+        dest[i] = conv_from_signed_norm(ver, src[i], bits);
 }
 
 void conv_from_signed_norm_array_i32(trace_t* trace, size_t count, double* dest, const int32_t* src, size_t bits) {
+    uint ver = trc_gl_state_get_ver(trace);
     for (size_t i = 0; i < count; i++)
-        dest[i] = conv_from_signed_norm(trace, src[i], bits);
+        dest[i] = conv_from_signed_norm(ver, src[i], bits);
 }
 
 static void delete_obj(trc_namespace_t* ns, uint64_t fake, trc_obj_type_t type) {
@@ -1369,13 +1365,14 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
         }
         if (internal==GL_FLOAT) val = (float)val;
         if (normalized) {
+            uint ver = trc_gl_state_get_ver(ctx->trace);
             switch (type) {
             case GL_UNSIGNED_BYTE: val /= UINT8_MAX; break;
             case GL_UNSIGNED_SHORT: val /= UINT16_MAX; break;
             case GL_UNSIGNED_INT: val /= UINT32_MAX; break;
-            case GL_BYTE: val = val<0 ? val/-(double)INT8_MIN : val/INT8_MAX; break;
-            case GL_SHORT: val = val<0 ? val/-(double)INT16_MIN : val/INT16_MAX; break;
-            case GL_INT: val = val<0 ? val/-(double)INT32_MIN : val/INT32_MAX; break;
+            case GL_BYTE: val = conv_from_signed_norm(ver, val, 8); break;
+            case GL_SHORT: val = conv_from_signed_norm(ver, val, 16); break;
+            case GL_INT: val = conv_from_signed_norm(ver, val, 32); break;
             }
         }
         trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
@@ -1397,26 +1394,6 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
     }
 }
 
-static double float11_to_double(uint v) {
-    uint e = v >> 6;
-    uint m = v & 63;
-    if (!e && m) return 6.103515625e-05 * (m/64.0);
-    else if (e>0 && e<31) return pow(2, e-15) * (1.0+m/64.0);
-    else if (e==31 && !m) return INFINITY;
-    else if (e==31 && m) return NAN;
-    else assert(false);
-}
-
-static double float10_to_double(uint v) {
-    uint e = v >> 5;
-    uint m = v & 31;
-    if (!e && m) return 6.103515625e-05 * (m/32.0);
-    else if (e>0 && e<31) return pow(2, e-15) * (1.0+m/32.0);
-    else if (e==31 && !m) return INFINITY;
-    else if (e==31 && m) return NAN;
-    else assert(false);
-}
-
 static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint index,
                                  GLenum type, uint comp, GLboolean normalized, GLuint val) {
     if (index==0 || index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
@@ -1424,33 +1401,14 @@ static void vertex_attrib_packed(trc_replay_context_t* ctx, trace_command_t* cmd
     double res[4];
     switch (type) {
     case GL_INT_2_10_10_10_REV:
-    case GL_UNSIGNED_INT_2_10_10_10_REV: {
-        int64_t vals[4] = {val&1023, (val>>10)&1023, (val>>20)&1023, (val>>30)&3};
-        bool signed_ = type == GL_INT_2_10_10_10_REV;
-        if (signed_) {
-            for (uint i = 0; i < 3; i++) {
-                if (vals[i] & (1<<9)) //check sign bit
-                    vals[i] = (vals[i]&511) | ~(int64_t)511;
-            }
-            if (vals[3] & 2)
-                vals[3] = (vals[3]&1) | ~(int64_t)1;
-        }
-        if (normalized) {
-            for (uint i = 0; i < 3; i++)
-                res[i] = signed_ ? (vals[i]<0?vals[i]/512.0:vals[i]/511.0) : vals[i]/1023.0;
-            res[3] = signed_ ? (vals[3]<0?vals[3]/2.0:vals[3]/1.0) : vals[3]/2.0;
-        } else {
-            for (uint i = 0; i < 4; i++)
-                res[i] = vals[i];
-        }
+        parse_int_2_10_10_10_rev(trc_gl_state_get_ver(ctx->trace), res, val, normalized);
         break;
-    }
-    case GL_UNSIGNED_INT_10F_11F_11F_REV: {
-        res[0] = float11_to_double(val&2047);
-        res[1] = float11_to_double((val>>11)&2047);
-        res[2] = float10_to_double((val>>22)&1023);
+    case GL_UNSIGNED_INT_2_10_10_10_REV:
+        parse_uint_2_10_10_10_rev(res, val, normalized);
         break;
-    }
+    case GL_UNSIGNED_INT_10F_11F_11F_REV:
+        parse_int_10f_11f_11f_rev(res, val);
+        break;
     }
     for (uint i = comp; i < 4; i++) res[i] = i==3 ? 1.0 : 0.0;
     for (uint i = 0; i < 4; i++)
