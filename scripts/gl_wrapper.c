@@ -1302,17 +1302,21 @@ static void link_program_extras(GLuint program) {
         GLenum type;
         F(glGetActiveAttrib)(program, i, maxNameLen, NULL, &size, &type, name);
         
-        if (strncmp(name, "gl_", 3) == 0) continue; //TODO: Remove this?
-        
-        if (size == 1) {
-            add_program_extra("replay/program/vertex_attrib", name, 0, F(glGetAttribLocation)(program, name));
-        } else {
-            for (size_t j = 0; j < size; j++) {
-                GLchar new_name[maxNameLen+1];
-                memset(new_name, 0, maxNameLen+1);
-                snprintf(new_name, maxNameLen+1, "%s[%zu]", name, j);
-                add_program_extra("replay/program/vertex_attrib", new_name, 0, F(glGetAttribLocation)(program, name));
+        size_t name_len = strlen(name);
+        bool array = name_len>=3 && strcmp(name+name_len-3, "[0]")==0;
+        if (array) {
+            memset(name+name_len-3, 0, 3);
+            for (GLint i = 0; i < size; i++) {
+                GLchar newname[maxNameLen+16];
+                sprintf(newname, "%s[%u]", name, i);
+                GLint loc = F(glGetAttribLocation)(program, newname);
+                if (loc == -1) continue; //This seems to happen with gl_VertexID
+                add_program_extra("replay/program/vertex_attrib", newname, 0, loc);
             }
+        } else {
+            GLint loc = F(glGetAttribLocation)(program, name);
+            if (loc == -1) continue; //This seems to happen with gl_VertexID
+            add_program_extra("replay/program/vertex_attrib", name, 0, loc);
         }
     }
     

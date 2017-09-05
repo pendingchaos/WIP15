@@ -1639,13 +1639,16 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         }
     }
     
-    size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size / (sizeof(uint)*2);
-    uint* prog_vertex_attribs = trc_map_data(vertex_program->vertex_attribs, TRC_MAP_READ);
+    size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size;
+    prog_vertex_attrib_count /= sizeof(trc_gl_program_vertex_attrib_t);
+    const trc_gl_program_vertex_attrib_t* prog_vertex_attribs =
+        trc_map_data(vertex_program->vertex_attribs, TRC_MAP_READ);
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
         GLint real_loc = -1;
         for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
-            if (prog_vertex_attribs[j*2+1] == i) {
-                real_loc = prog_vertex_attribs[j*2];
+            int rel_loc = i - prog_vertex_attribs[j].fake;
+            if (rel_loc>=0 && rel_loc<prog_vertex_attribs[j].locations_used) {
+                real_loc = prog_vertex_attribs[j].real + rel_loc;
                 break;
             }
         }
@@ -3246,27 +3249,81 @@ static uint link_program_extra(trace_command_t* cmd, const char* name, size_t* i
     return 0; //0=Use
 }
 
+static int get_type_columns(GLenum type) {
+    switch (type) {
+    case GL_FLOAT_MAT2:
+    case GL_FLOAT_MAT2x3:
+    case GL_FLOAT_MAT2x4:
+    case GL_DOUBLE_MAT2:
+    case GL_DOUBLE_MAT2x3:
+    case GL_DOUBLE_MAT2x4: return 2;
+    case GL_FLOAT_MAT3:
+    case GL_FLOAT_MAT3x2:
+    case GL_FLOAT_MAT3x4:
+    case GL_DOUBLE_MAT3:
+    case GL_DOUBLE_MAT3x2:
+    case GL_DOUBLE_MAT3x4: return 3;
+    case GL_FLOAT_MAT4:
+    case GL_FLOAT_MAT4x2:
+    case GL_FLOAT_MAT4x3:
+    case GL_DOUBLE_MAT4:
+    case GL_DOUBLE_MAT4x2:
+    case GL_DOUBLE_MAT4x3: return 4;
+    default: return 1;
+    }
+}
+
 //TODO: The get_program_* functions are all very similar
 static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
     size_t vertex_attrib_count = 0;
-    uint* vertex_attribs = NULL;
+    trc_gl_program_vertex_attrib_t* vertex_attribs = NULL;
     size_t i = 0;
     int res;
     link_program_extra_t extra;
     while ((res=link_program_extra(cmd, "replay/program/vertex_attrib", &i, &extra))!=-1) {
         if (res != 0) continue;
-        GLint real_idx = F(glGetAttribLocation)(real_program, extra.name);
-        if (real_idx < 0) {
+        
+        GLint real_loc = F(glGetAttribLocation)(real_program, extra.name);
+        if (real_loc < 0) {
             trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute %s", extra.name);
-        } else {
-            vertex_attribs = realloc(vertex_attribs, (vertex_attrib_count+1)*sizeof(uint)*2);
-            vertex_attribs[vertex_attrib_count*2] = real_idx;
-            vertex_attribs[vertex_attrib_count++*2+1] = extra.val;
+            goto continue_loop;
         }
+        
+        trc_gl_program_vertex_attrib_t attrib;
+        attrib.fake = extra.val;
+        attrib.real = real_loc;
+        attrib.type = 0xffffffff;
+        
+        GLint count;
+        F(glGetProgramiv)(real_program, GL_ACTIVE_ATTRIBUTES, &count);
+        for (GLint i = 0; i < count; i++) {
+            char name_buf[strlen(extra.name)+1];
+            GLsizei len;
+            GLint size;
+            GLenum type;
+            F(glGetActiveAttrib)(real_program, i, strlen(extra.name)+1, &len, &size, &type, name_buf);
+            if (len!=strlen(extra.name) || strcmp(name_buf, extra.name)) {
+                attrib.type = type;
+                break;
+            }
+        }
+        if (attrib.type == 0xffffffff) {
+            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute %s", extra.name);
+            goto continue_loop;
+        }
+        
+        attrib.locations_used = get_type_columns(attrib.type);
+        
+        size_t attrib_size = sizeof(trc_gl_program_vertex_attrib_t);
+        vertex_attribs = realloc(vertex_attribs, (vertex_attrib_count+1)*attrib_size);
+        vertex_attribs[vertex_attrib_count++] = attrib;
+        
+        continue_loop:
         free(extra.name);
     }
     
-    return trc_create_data_no_copy(ctx->trace, vertex_attrib_count*2*sizeof(uint), vertex_attribs, TRC_DATA_IMMUTABLE);
+    size_t size = vertex_attrib_count * sizeof(trc_gl_program_vertex_attrib_t);
+    return trc_create_data_no_copy(ctx->trace, size, vertex_attribs, TRC_DATA_IMMUTABLE);
 }
 
 static trc_data_t* get_program_uniform_blocks(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
