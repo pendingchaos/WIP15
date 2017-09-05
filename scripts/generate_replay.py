@@ -337,81 +337,45 @@ static void debug_callback(GLenum source,
     const char* source_str = "unknown";
     
     switch (source) {
-    case GL_DEBUG_SOURCE_API: {
-        source_str = "API";
-        break;
-    }
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: {
-        source_str = "system";
-        break;
-    }
-    case GL_DEBUG_SOURCE_SHADER_COMPILER: {
-        source_str = "shader compiler";
-        break;
-    }
-    case GL_DEBUG_SOURCE_THIRD_PARTY: {
-        source_str = "third party";
-        break;
-    }
-    case GL_DEBUG_SOURCE_APPLICATION: {
-        source_str = "application";
-        break;
-    }
-    case GL_DEBUG_SOURCE_OTHER: {
-        source_str = "other";
-        break;
-    }
+    case GL_DEBUG_SOURCE_API: source_str = "API"; break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: source_str = "system"; break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: source_str = "shader compiler"; break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY: source_str = "third party"; break;
+    case GL_DEBUG_SOURCE_APPLICATION: source_str = "application"; break;
+    case GL_DEBUG_SOURCE_OTHER: source_str = "other"; break;
     }
     
+    trace_command_t* cmd = ((trc_replay_context_t*)user_param)->current_command;
+    if (!cmd) return;
+    
     switch (type) {
-    case GL_DEBUG_TYPE_ERROR: {
-        trc_add_error((trace_command_t*)user_param, "Error: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_ERROR:
+        trc_add_error(cmd, "Error: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: {
-        trc_add_warning((trace_command_t*)user_param, "Deprecated behavior warning: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        trc_add_warning(cmd, "Deprecated behavior warning: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: {
-        trc_add_warning((trace_command_t*)user_param, "Undefined behavior warning: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        trc_add_warning(cmd, "Undefined behavior warning: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_PORTABILITY: {
-        trc_add_warning((trace_command_t*)user_param, "Portibility warning: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_PORTABILITY:
+        trc_add_warning(cmd, "Portibility warning: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_PERFORMANCE: {
-        trc_add_warning((trace_command_t*)user_param, "Performance warning: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        trc_add_warning(cmd, "Performance warning: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_OTHER: {
-        trc_add_warning((trace_command_t*)user_param, "Other: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_OTHER:
+        trc_add_warning(cmd, "Other: '%s' from %s", message, source_str);
         break;
-    }
-    case GL_DEBUG_TYPE_MARKER: {
-        trc_add_info((trace_command_t*)user_param, "Marker: '%s' from %s", message, source_str);
+    case GL_DEBUG_TYPE_MARKER:
+        trc_add_info(cmd, "Marker: '%s' from %s", message, source_str);
         break;
-    }
     }
 }
 
 static void replay_begin_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {
     replay_alloc_data_size = 0;
     replay_alloc_big_data = NULL;
-    
-    //TODO: This could be done less often
-    if (F(glDebugMessageCallback)) {
-        F(glEnable)(GL_DEBUG_OUTPUT);
-        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        F(glDebugMessageCallback)(debug_callback, cmd);
-        F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-    }/* else if (F(glDebugMessageCallbackARB)) {
-        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        F(glDebugMessageCallbackARB)(debug_callback, cmd);
-        //TODO: glDebugMessageControlARB
-    }*/
-    
-    if (F(glGetError)) F(glGetError)();
 }
 
 static void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t* cmd) {

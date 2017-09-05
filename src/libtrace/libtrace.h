@@ -524,6 +524,7 @@ typedef struct trc_replay_test_t {
 typedef struct trc_replay_context_t {
     void* _replay_gl;
     trace_t* trace;
+    trace_command_t* current_command;
     struct SDL_Window* window;
     trc_replay_test_t* tests;
     trc_replay_test_t* current_test;

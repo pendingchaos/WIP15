@@ -1107,6 +1107,7 @@ void trc_run_inspection(trace_t* trace) {
         trace->inspection.frame_index = i;
         for (size_t j = 0; j < frame->command_count; j++) {
             trace_command_t* cmd = &frame->commands[j];
+            ctx.current_command = cmd;
             trace->inspection.cmd_index = j;
             funcs[cmd->func_index](&ctx, cmd);
             cmd->revision = trace->inspection.cur_revision++;

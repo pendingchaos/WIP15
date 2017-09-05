@@ -616,6 +616,13 @@ static void init_context(trc_replay_context_t* ctx) {
     replay_create_context_buffers(ctx->trace, &rev);
     trc_set_context(ctx->trace, &rev);
     replay_update_fb0_buffers(ctx, true, true, true, true);
+    
+    if (ver >= 430) {
+        F(glEnable)(GL_DEBUG_OUTPUT);
+        F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        F(glDebugMessageCallback)(debug_callback, ctx);
+        F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+    }
 }
 
 static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum pname, GLint param) {
@@ -5663,7 +5670,8 @@ glDisable: //GLenum p_cap
         trc_gl_state_set_enabled(ctx->trace, GL_CLIP_DISTANCE0, p_cap-0x3000, false);
     else
         trc_gl_state_set_enabled(ctx->trace, p_cap, 0, true);
-    real(p_cap);
+    if (p_cap!=GL_DEBUG_OUTPUT && p_cap!=GL_DEBUG_OUTPUT_SYNCHRONOUS) //These are set by the replayer
+        real(p_cap);
 
 glEnablei: //GLenum p_target, GLuint p_index
     if ((p_target&0x3000) == 0x3000) {
