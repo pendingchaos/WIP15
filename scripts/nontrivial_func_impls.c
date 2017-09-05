@@ -1344,6 +1344,8 @@ static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd
 
 //type in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_INT]
 //internal in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_INT, GL_INT]
+//glVertexAttrib3f: //GLuint p_index, GLfloat p_v0, GLfloat p_v1, GLfloat p_v2
+//    vertex_attrib(ctx, cmd, 3, GL_FLOAT, false, false, GL_FLOAT);
 static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint comp,
                           GLenum type, bool array, bool normalized, GLenum internal) {
     uint index = gl_param_GLuint(cmd, 0);
@@ -1387,7 +1389,7 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
             case GL_INT: val = conv_from_signed_norm(ver, val, 32); break;
             }
         }
-        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
+        trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, val);
     }
     for (; i < 3; i++)
         trc_gl_state_set_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
@@ -1399,10 +1401,10 @@ static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint 
         vals[i] = trc_gl_state_get_state_double(ctx->trace, GL_CURRENT_VERTEX_ATTRIB, index*4+i);
     
     switch (internal) {
-    case GL_FLOAT: F(glVertexAttrib4dv(index, vals)); break;
-    case GL_DOUBLE: F(glVertexAttribL4dv(index, vals)); break;
-    case GL_UNSIGNED_INT: F(glVertexAttribI4ui(index, vals[0], vals[1], vals[2], vals[3])); break;
-    case GL_INT: F(glVertexAttribI4i(index, vals[0], vals[1], vals[2], vals[3])); break;
+    case GL_FLOAT: F(glVertexAttrib4dv)(index, vals); break;
+    case GL_DOUBLE: F(glVertexAttribL4dv)(index, vals); break;
+    case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(index, vals[0], vals[1], vals[2], vals[3]); break;
+    case GL_INT: F(glVertexAttribI4i)(index, vals[0], vals[1], vals[2], vals[3]); break;
     }
 }
 
