@@ -3308,6 +3308,7 @@ static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_c
         }
         
         trc_gl_program_vertex_attrib_t attrib;
+        attrib.name = trc_create_data(ctx->trace, strlen(extra.name)+1, extra.name, TRC_DATA_IMMUTABLE);
         attrib.fake = extra.val;
         attrib.real = real_loc;
         attrib.type = 0xffffffff;

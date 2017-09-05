@@ -183,6 +183,7 @@ int main(int argc, char **argv) {
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, tex_coord_buffer);
     glEnableVertexAttribArray(glGetAttribLocation(program, "texCoord"));
     glVertexAttribPointer(glGetAttribLocation(program, "texCoord"),
@@ -241,7 +242,6 @@ int main(int argc, char **argv) {
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(glGetUniformLocation(program, "tex"), 0);
         
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (const GLvoid*)0);
         

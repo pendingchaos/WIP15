@@ -19,7 +19,7 @@ static void deinit_vertex_data_tab(gui_tab_t* gtab) {
     free_info_box(tab->info_box);
 }
 
-static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao) {
+static void create_column_info(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao) {
     bool index = gtk_combo_box_get_active(tab->mode) == MODE_PRIMITIVES;
     tab->attrib_column_start = index ? 1 : 0;
     
@@ -41,6 +41,43 @@ static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao)
     }
     
     trc_unmap_data(vao->attribs);
+}
+
+static trc_obj_t* get_vertex_program(const trc_gl_context_rev_t* ctx) {
+    if (ctx->bound_program.obj) return ctx->bound_program.obj;
+    trc_obj_t* pipeline = ctx->bound_pipeline.obj;
+    if (!pipeline) return NULL;
+    const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
+    return rev->vertex_program.obj;
+}
+
+const char* format_column_title(int attrib, size_t attrib_count,
+                                const trc_gl_program_vertex_attrib_t* attribs) {
+    size_t index = 0;
+    int rel_loc;
+    for (; index < attrib_count; index++) {
+        rel_loc = attribs[index].fake - attrib;
+        if (rel_loc>=0 && rel_loc<attribs[index].locations_used)
+            goto found;
+    }
+    
+    return static_format("%d", attrib);
+    found: ;
+    const char* res;
+    const char* name = trc_map_data(attribs[index].name, TRC_MAP_READ);
+    if (rel_loc != 0)
+        res = static_format("%s+%d(%d)", name, rel_loc, attrib);
+    else
+        res = static_format("%s(%d)", name, attrib);
+    trc_unmap_data(attribs[index].name);
+    return res;
+}
+
+static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao,
+                            const trc_gl_context_rev_t* ctx) {
+    create_column_info(tab, vao);
+    
+    bool index = gtk_combo_box_get_active(tab->mode) == MODE_PRIMITIVES;
     
     tab->data_view = GTK_TREE_VIEW(gtk_tree_view_new());
     gtk_widget_set_vexpand(GTK_WIDGET(tab->data_view), true);
@@ -51,18 +88,33 @@ static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao)
     
     gtk_tree_view_set_model(tab->data_view, GTK_TREE_MODEL(store));
     
+    trc_obj_t* program_obj = get_vertex_program(ctx);
+    const trc_gl_program_rev_t* program_rev = NULL;
+    size_t attrib_count = 0;
+    const trc_gl_program_vertex_attrib_t* attribs = NULL;
+    if (program_obj) {
+        program_rev = trc_obj_get_rev(program_obj, state.revision);
+        attrib_count = program_rev->vertex_attribs->size;
+        attrib_count /= sizeof(trc_gl_program_vertex_attrib_t);
+        attribs = trc_map_data(program_rev->vertex_attribs, TRC_MAP_READ);
+    }
+    
     GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
     for (size_t i = 0; i < tab->column_count; i++) {
         GtkTreeViewColumn* column = gtk_tree_view_column_new();
         const char* title = "Index";
-        if (!index || i!=0)
-            title = static_format("%d", tab->column_attribs[i]);
+        if (!index || i!=0) {
+            int attrib = tab->column_attribs[i];
+            title = format_column_title(attrib, attrib_count, attribs);
+        }
         gtk_tree_view_column_set_title(column, title);
         gtk_tree_view_column_set_resizable(column, true);
         gtk_tree_view_append_column(tab->data_view, column);
         gtk_tree_view_column_pack_start(column, renderer, FALSE);
         gtk_tree_view_column_set_attributes(column, renderer, "text", i, NULL);
     }
+    
+    if (program_rev) trc_unmap_data(program_rev->vertex_attribs);
 }
 
 static void fill_in_data_view(vertex_data_tab_t* tab,
@@ -281,14 +333,15 @@ static void update_vertex_data_tab(gui_tab_t* gtab) {
     gtk_widget_set_sensitive(GTK_WIDGET(tab->index_offset), true);
     gtk_widget_set_sensitive(GTK_WIDGET(tab->index_type), true);
     if (gtk_toggle_button_get_active(tab->autofill)) {
-        if (!autofill(tab)) goto fail;
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->mode), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->start), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->count), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->base_instance), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->base_vertex), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->index_offset), false);
-        gtk_widget_set_sensitive(GTK_WIDGET(tab->index_type), false);
+        if (autofill(tab)) {
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->mode), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->start), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->count), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->base_instance), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->base_vertex), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->index_offset), false);
+            gtk_widget_set_sensitive(GTK_WIDGET(tab->index_type), false);
+        }
     }
     
     //Get context and VAO
@@ -301,7 +354,7 @@ static void update_vertex_data_tab(gui_tab_t* gtab) {
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(vao_obj, revision);
     
     //Update data view
-    create_treeview(tab, vao);
+    create_treeview(tab, vao, ctx);
     fill_in_data_view(tab, vao, ctx);
     
     tab->data_view_window = create_scrolled_window(GTK_WIDGET(tab->data_view));
