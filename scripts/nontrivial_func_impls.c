@@ -360,6 +360,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_set_drawable_width(trace, w);
     trc_gl_state_set_drawable_height(trace, h);
     trc_gl_state_bound_buffer_init(trace, GL_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
+    trc_gl_state_bound_buffer_init(trace, GL_ELEMENT_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_buffer_init(trace, GL_ATOMIC_COUNTER_BUFFER, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_buffer_init(trace, GL_COPY_READ_BUFFER, (trc_obj_ref_t){NULL});
     trc_gl_state_bound_buffer_init(trace, GL_COPY_WRITE_BUFFER, (trc_obj_ref_t){NULL});
@@ -1152,6 +1153,13 @@ static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd
 }
 
 static trc_obj_t* get_bound_buffer(trc_replay_context_t* ctx, GLenum target) {
+    if (target == GL_ELEMENT_ARRAY_BUFFER) {
+        trc_obj_t* vao = trc_gl_state_get_bound_vao(ctx->trace);
+        if (vao) {
+            const trc_gl_vao_rev_t* rev = trc_obj_get_rev(vao, -1);
+            return rev->element_buffer.obj;
+        }
+    }
     return trc_gl_state_get_bound_buffer(ctx->trace, target);
 }
 
@@ -2285,7 +2293,7 @@ static void on_activate_tf(trc_replay_context_t* ctx, trace_command_t* cmd) {
     }
 }
 
-static bool bind_buffer(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum target, GLuint buffer) {
+static void bind_buffer(trc_replay_context_t* ctx, GLenum target, GLuint buffer) {
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, buffer);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
@@ -2294,14 +2302,16 @@ static bool bind_buffer(trace_command_t* cmd, trc_replay_context_t* ctx, GLenum 
     }
     if (target == GL_ELEMENT_ARRAY_BUFFER) {
         trc_obj_t* vao = trc_gl_state_get_bound_vao(ctx->trace);
-        if (!vao) ERROR2(false, "Cannot bind to GL_ELEMENT_ARRAY because no VAO is bound");
-        trc_gl_vao_rev_t vao_rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(vao, -1);
-        trc_set_obj_ref(&vao_rev.element_buffer, rev?rev->head.obj:NULL);
-        set_vao(&vao_rev);
+        if (vao) {
+            trc_gl_vao_rev_t vao_rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(vao, -1);
+            trc_set_obj_ref(&vao_rev.element_buffer, rev?rev->head.obj:NULL);
+            set_vao(&vao_rev);
+        } else {
+            trc_gl_state_set_bound_buffer(ctx->trace, target, rev?rev->head.obj:NULL);
+        }
     } else {
         trc_gl_state_set_bound_buffer(ctx->trace, target, rev?rev->head.obj:NULL);
     }
-    return true;
 }
 
 static void bind_buffer_indexed_ranged(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer, uint64_t offset, uint64_t size) {
@@ -2930,7 +2940,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
                 GL_UNIFORM_BUFFER};
             for (size_t j = 0; j < 13; j++) {
                 if (trc_gl_state_get_bound_buffer(ctx->trace, targets[j]) == obj)
-                    bind_buffer(cmd, ctx, targets[j], 0);
+                    bind_buffer(ctx, targets[j], 0);
             }
             
             GLenum indexed_targets[4] = {
@@ -2954,9 +2964,8 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    GLuint real_buf = p_buffer ? rev->real : 0;
-    if (bind_buffer(cmd, ctx, p_target, p_buffer))
-        real(p_target, real_buf);
+    real(p_target, rev->real);
+    bind_buffer(ctx, p_target, p_buffer);
 
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     if (get_current_tf(ctx)->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
@@ -2966,7 +2975,7 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, p_index, p_buffer?rev->real:0);
-    bind_buffer(cmd, ctx, p_target, p_buffer);
+    bind_buffer(ctx, p_target, p_buffer);
     bind_buffer_indexed(ctx, p_target, p_index, p_buffer);
 
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
@@ -2981,7 +2990,7 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
     
-    bind_buffer(cmd, ctx, p_target, p_buffer);
+    bind_buffer(ctx, p_target, p_buffer);
     bind_buffer_indexed_ranged(ctx, p_target, p_index, p_buffer, p_offset, p_size);
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
