@@ -1,8 +1,16 @@
 import xml.etree.cElementTree as ET
-import urllib2
+import sys
+if sys.version_info.major > 2:
+    import urllib.request as _urllib_request
+    import urllib.error as _urllib_error
+    urlopen = _urllib_request.urlopen
+    URLError = _urllib_error.URLError
+else:
+    import urllib2 as _urllib2
+    urlopen = _urllib2.urlopen
+    URLError = _urllib2.URLError
 import os.path
 import copy
-import sys
 
 class Group:
     def __init__(self, enumNames=[]):
@@ -38,27 +46,27 @@ class GL:
         
         if download:
             try:
-                print 'Retreiving gl.xml from the registry.'
+                print('Retreiving gl.xml from the registry.')
                 
                 url = 'https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/xml/gl.xml'
-                data = urllib2.urlopen(url).read()
+                data = urlopen(url).read()
                 
-                print 'Writing to gl.xml on this computer.'
+                print('Writing to gl.xml on this computer.')
                 
                 with open(os.path.join(base, 'gl.xml'), 'w') as glXML:
                     glXML.write(data)
                 
-                print 'Retreiving glx.xml from the registry.'
+                print('Retreiving glx.xml from the registry.')
                 
                 url = 'https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/xml/glx.xml'
-                data = urllib2.urlopen(url).read()
+                data = urlopen(url).read()
                 
-                print 'Writing to glx.xml on this computer.'
+                print('Writing to glx.xml on this computer.')
                 
                 with open(os.path.join(base, 'glx.xml'), 'w') as glXXML:
                     glXXML.write(data)
-            except urllib2.URLError:
-                print 'Failed to retrieve gl.xml or glx.xml from khronos.org. Using gl.xml and glx.xml file on this computer.'
+            except URLError:
+                print('Failed to retrieve gl.xml or glx.xml from khronos.org. Using gl.xml and glx.xml file on this computer.')
         
         self.groups = {}
         self.enumValues = {}
@@ -142,8 +150,8 @@ class GL:
                 groups[group.attrib['name']] = newGroup
         
         for enums_ in root.findall('enums'):
-            if 'group' in enums_.attrib.keys():
-                if not enums_.attrib['group'] in groups.keys():
+            if 'group' in list(enums_.attrib.keys()):
+                if not enums_.attrib['group'] in list(groups.keys()):
                     newGroup = Group()
                     
                     for enum in enums_.findall('enum'):
@@ -151,14 +159,14 @@ class GL:
                     
                     groups[enums_.attrib['group']] = newGroup
             
-            if 'type' in enums_.attrib.keys() and 'group' in enums_.attrib.keys():
+            if 'type' in list(enums_.attrib.keys()) and 'group' in list(enums_.attrib.keys()):
                 if enums_.attrib['type'] == 'bitmask':
                     groups[enums_.attrib['group']].bitmask = True
             
             for enum in enums_.findall('enum'):
                 enumValues[enum.attrib['name']] = eval(enum.attrib['value'])
         
-        for group in groups.itervalues():
+        for group in groups.values():
             toRemove = []
             
             for enumName in group.enumNames:
@@ -198,7 +206,7 @@ class GL:
                 newParam = FunctionParam(type_, name)
                 
                 if 'group' in param.attrib:
-                    if param.attrib['group'] in groups.keys():
+                    if param.attrib['group'] in list(groups.keys()):
                         newParam.group = param.attrib['group']
                 
                 func.params.append(newParam)
@@ -266,10 +274,10 @@ if __name__ == '__main__':
     for name in gl.groups:
         group = gl.groups[name]
         
-        print '%s (bitmask=%s):' % (name, 'True' if group.bitmask else 'False')
+        print('%s (bitmask=%s):' % (name, 'True' if group.bitmask else 'False'))
         
         for enum in group.enumNames:
-            print '    %s = %d' % (enum, gl.enumValues[enum])
+            print('    %s = %d' % (enum, gl.enumValues[enum]))
 
     for name in gl.functions:
         function = gl.functions[name]
@@ -282,32 +290,32 @@ if __name__ == '__main__':
             else:
                 params.append('%s %s' % (param.type_, param.name))
         
-        print '%s %s(%s)' % (function.returnType, name, ', '.join(params))
+        print('%s %s(%s)' % (function.returnType, name, ', '.join(params)))
 
     for ver in gl.versions:
-        print '%d.%d:' % ver
+        print('%d.%d:' % ver)
         
         version = gl.versions[ver]
         
         for func in version.new_functions:
-            print '    +%s' % func
+            print('    +%s' % func)
         
         for enum in version.new_enums:
-            print '    +%s' % (enum)
+            print('    +%s' % (enum))
         
         for func in version.removed_functions:
-            print '    -%s' % func
+            print('    -%s' % func)
         
         for enum in version.removed_enums:
-            print '    -%s' % (enum)
+            print('    -%s' % (enum))
 
     for ext in gl.extensions:
-        print '%s:' % ext
+        print('%s:' % ext)
         
         extension = gl.extensions[ext]
         
         for func in extension.functions:
-            print '    +%s' % (func)
+            print('    +%s' % (func))
         
         for enum in extension.enums:
-            print '    +%s' % (enum)
+            print('    +%s' % (enum))

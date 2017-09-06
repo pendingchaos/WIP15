@@ -1,4 +1,4 @@
-import glxml
+from . import glxml
 
 funcs = []
 func_dict = {}
@@ -97,12 +97,12 @@ class Func(object):
         
         if name in func_dict:
             if func_dict[name]._file == self._file:
-                print "Warning: Redefining %s in %s" % (name, self._file)
+                print("Warning: Redefining %s in %s" % (name, self._file))
             
             # TODO: Remove this
             for p1, p2 in zip(func_dict[name].params, params):
                 if p1.group!=None and p2.group==None:
-                    print "Warning: Group removed from", name
+                    print("Warning: Group removed from", name)
                     break
             
             self.func_id = func_dict[name].func_id
@@ -276,56 +276,56 @@ def _create_uint(name):
 def _create_int(name):
     return 'class t%s(_Int): ctype = \'%s\'' % (name.replace(' ', ''), name)
 
-exec _create_uint('uint8_t')
-exec _create_int('int8_t')
-exec _create_uint('uint16_t')
-exec _create_int('int16_t')
-exec _create_uint('uint32_t')
-exec _create_int('int32_t')
-exec _create_uint('uint64_t')
-exec _create_int('int64_t')
-exec _create_uint('GLchar')
-exec _create_int('GLsizei')
-exec _create_int('GLint64EXT')
-exec _create_int('GLshort')
-exec _create_uint('GLubyte')
-exec _create_uint('GLbitfield')
-exec _create_uint('GLuint')
-exec _create_int('GLint64')
-exec _create_int('int')
-exec _create_int('GLintptr')
-exec _create_uint('GLushort')
-exec _create_uint('GLenum')
-exec _create_uint('unsigned int')
-exec _create_uint('unsigned long')
-exec _create_uint('GLuint64')
-exec _create_uint('GLhandleARB')
-exec _create_int('GLintptrARB')
-exec _create_int('GLsizeiptr')
-exec _create_int('GLint')
-exec _create_int('GLclampx')
-exec _create_int('GLsizeiptrARB')
-exec _create_int('GLuint64EXT')
-exec _create_int('GLvdpauSurfaceNV')
-exec _create_int('GLbyte')
-exec _create_int('GLclampd')
-exec _create_uint('GLXPixmap')
-exec _create_uint('GLXWindow')
-exec _create_uint('GLXPbuffer')
-exec _create_uint('GLXDrawable')
-exec _create_uint('GLXVideoDeviceNV')
-exec _create_uint('Pixmap')
-exec _create_uint('Window')
-exec _create_uint('Font')
-exec _create_uint('Colormap')
-exec _create_uint('GLXContextID')
-exec _create_uint('GLXFBConfig')
-exec _create_uint('GLXVideoCaptureDeviceNV')
-exec _create_uint('GLXFBConfigSGIX')
-exec _create_uint('GLXPbufferSGIX')
-exec _create_uint('GLXVideoSourceSGIX')
-exec _create_uint('GLXContext')
-exec _create_int('Status')
+exec(_create_uint('uint8_t'))
+exec(_create_int('int8_t'))
+exec(_create_uint('uint16_t'))
+exec(_create_int('int16_t'))
+exec(_create_uint('uint32_t'))
+exec(_create_int('int32_t'))
+exec(_create_uint('uint64_t'))
+exec(_create_int('int64_t'))
+exec(_create_uint('GLchar'))
+exec(_create_int('GLsizei'))
+exec(_create_int('GLint64EXT'))
+exec(_create_int('GLshort'))
+exec(_create_uint('GLubyte'))
+exec(_create_uint('GLbitfield'))
+exec(_create_uint('GLuint'))
+exec(_create_int('GLint64'))
+exec(_create_int('int'))
+exec(_create_int('GLintptr'))
+exec(_create_uint('GLushort'))
+exec(_create_uint('GLenum'))
+exec(_create_uint('unsigned int'))
+exec(_create_uint('unsigned long'))
+exec(_create_uint('GLuint64'))
+exec(_create_uint('GLhandleARB'))
+exec(_create_int('GLintptrARB'))
+exec(_create_int('GLsizeiptr'))
+exec(_create_int('GLint'))
+exec(_create_int('GLclampx'))
+exec(_create_int('GLsizeiptrARB'))
+exec(_create_int('GLuint64EXT'))
+exec(_create_int('GLvdpauSurfaceNV'))
+exec(_create_int('GLbyte'))
+exec(_create_int('GLclampd'))
+exec(_create_uint('GLXPixmap'))
+exec(_create_uint('GLXWindow'))
+exec(_create_uint('GLXPbuffer'))
+exec(_create_uint('GLXDrawable'))
+exec(_create_uint('GLXVideoDeviceNV'))
+exec(_create_uint('Pixmap'))
+exec(_create_uint('Window'))
+exec(_create_uint('Font'))
+exec(_create_uint('Colormap'))
+exec(_create_uint('GLXContextID'))
+exec(_create_uint('GLXFBConfig'))
+exec(_create_uint('GLXVideoCaptureDeviceNV'))
+exec(_create_uint('GLXFBConfigSGIX'))
+exec(_create_uint('GLXPbufferSGIX'))
+exec(_create_uint('GLXVideoSourceSGIX'))
+exec(_create_uint('GLXContext'))
+exec(_create_int('Status'))
 
 class tfloat(_Float): ctype = 'float'
 class tGLclampf(_Float): ctype = 'GLclampf'
@@ -462,7 +462,7 @@ class tGLXContext(_Ptr): ctype = 'GLXContext'
 class tXID(tuint32_t): pass
 
 _cur_file = 'generated_gl_funcs.py'
-exec open('generated_gl_funcs.py').read()
+exec(open('generated_gl_funcs.py').read())
 
 _cur_file = 'gl_funcs.py'
-exec open('gl_funcs.py').read()
+exec(open('gl_funcs.py').read())

@@ -3,10 +3,10 @@
 import math
 from glapi.glapi import *
 
-for fname, func in func_dict.iteritems():
+for fname, func in func_dict.items():
     for param in func.params:
         if isinstance(param.dtype, tGLenum) and param.group==None:
-            print "Warning: Parameter %s of %s is probably missing a group" % (param.name, fname)
+            print("Warning: Parameter %s of %s is probably missing a group" % (param.name, fname))
 
 replay_func_impls_str = open("nontrivial_func_impls.c").read()
 implemented = set()
@@ -27,7 +27,7 @@ num_not_implemented = {v:0 for v in versions}
 done = 0
 not_done = 0
 todo = {v:[] for v in versions}
-for func_name, func in func_dict.iteritems():
+for func_name, func in func_dict.items():
     if func_name not in implemented:
         todo[func.minver].append(func_name)
         for ver in versions[versions.index(func.minver):]:
@@ -43,16 +43,16 @@ for func_name, func in func_dict.iteritems():
 for ver in versions:
     for f in sorted(todo[ver]):
         if ver == None:
-            print 'TODO other: %s' % f
+            print('TODO other: %s' % f)
         else:
-            print 'TODO %d.%d: %s' % (ver[0], ver[1], f)
+            print('TODO %d.%d: %s' % (ver[0], ver[1], f))
 
 for ver in versions:
     if ver == None:
-        print 'Other:'
+        print('Other:')
     else:
-        print '%d.%d:' % ver
-    print '    %.0f%c functions implemented' % (math.floor(num_implemented[ver]/float(num_implemented[ver]+num_not_implemented[ver])*100), '%')
+        print('%d.%d:' % ver)
+    print('    %.0f%c functions implemented' % (math.floor(num_implemented[ver]/float(num_implemented[ver]+num_not_implemented[ver])*100), '%'))
 
-print 'All:'
-print '    %.0f%c' % (math.floor(done/float(done+not_done)*100), '%')
+print('All:')
+print('    %.0f%c' % (math.floor(done/float(done+not_done)*100), '%'))

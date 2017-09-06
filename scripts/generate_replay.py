@@ -309,7 +309,7 @@ extern func_t glXGetProcAddress(const GLubyte* procName);
 
 output.write("\n")
 
-for name in func_dict.keys():
+for name in list(func_dict.keys()):
     function = gl.functions[name]
     params = []
     for param in function.params:
@@ -318,11 +318,11 @@ for name in func_dict.keys():
     output.write("typedef %s (*%s_t)(%s);\n" % (function.returnType, name, ", ".join(params)))
 
 output.write("typedef struct {\n")
-for name in func_dict.keys():
+for name in list(func_dict.keys()):
     output.write("    %s_t real_%s;\n" % (name, name))
 output.write("} replay_gl_funcs_t;\n\n")
 
-for k, v in gl.enumValues.iteritems():
+for k, v in gl.enumValues.items():
     output.write("#define %s %s\n" % (k, v))
 
 output.write("""
@@ -464,26 +464,26 @@ for line in nontrivial_str.split("\n"):
         current_name = line.split('//')[0].rstrip()[:-1]
         f = gl.functions[current_name]
         print_func =  '//' not in line
-        if print_func: print '\n%s: //%s' % (current_name, ', '.join(["%s p_%s"%(p.type_, p.name) for p in f.params]))
+        if print_func: print('\n%s: //%s' % (current_name, ', '.join(["%s p_%s"%(p.type_, p.name) for p in f.params])))
         current = ""
     elif line == '' and current_name!='':
         nontrivial[current_name] = current
         current_name = ''
         current= ''
-        if print_func: print line
+        if print_func: print(line)
     elif current_name=='':
         output.write(line + '\n')
-        if print_func: print line
+        if print_func: print(line)
     else:
         current += line + "\n"
-        if print_func: print line
+        if print_func: print(line)
 if current_name != "":
     nontrivial[current_name] = current
 
 output.write("""#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 """)
-for name, func in func_dict.iteritems():
+for name, func in func_dict.items():
     output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
     
     if not name.startswith("glX") and not name.startswith("wip15"):
@@ -553,7 +553,7 @@ for name, func in func_dict.iteritems():
             output.write("(%s)gl_param_%s(%s)" % (param.type_, param.type_.replace("const", "").lstrip().rstrip(), arg))
         output.write(";\n")
         output.write("    do {(void)sizeof((p_%s));} while (0);\n" % param.name)"""
-    for i, param in zip(range(len(func.params)), func.params):
+    for i, param in zip(list(range(len(func.params))), func.params):
         output.write('    trace_value_t* arg_%s = &cmd->args[%d];\n' % (param.name, i))
         output.write(param.dtype.gen_replay_read_code('p_'+param.name, 'arg_'+param.name, param.array_count)+'\n')
     
@@ -563,7 +563,7 @@ for name, func in func_dict.iteritems():
         output.write('ERROR("Function not implemented D:\\n");\n')
         pass #output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in func.params])))
     
-    for i, param in zip(range(len(func.params)), func.params):
+    for i, param in zip(list(range(len(func.params))), func.params):
         output.write(param.dtype.gen_replay_finalize_code('p_'+param.name, 'arg_'+param.name, param.array_count)+'\n')
     
     output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
@@ -582,7 +582,7 @@ void init_replay_gl(trc_replay_context_t* ctx) {
     reset_gl_funcs(ctx);
 """)
 
-for name in func_dict.keys():
+for name in list(func_dict.keys()):
     if not name == "glXGetProcAddress" and name.startswith("glX"):
         output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
 
@@ -593,7 +593,7 @@ static void reset_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
-for name in func_dict.keys():
+for name in list(func_dict.keys()):
     if not name.startswith("glX"):
         output.write("    funcs->real_%s = NULL;\n" % (name))
 
@@ -603,7 +603,7 @@ static void reload_gl_funcs(trc_replay_context_t* ctx) {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
-for name in func_dict.keys():
+for name in list(func_dict.keys()):
     if not name.startswith("glX"):
         output.write("    funcs->real_%s = (%s_t)glXGetProcAddress((const GLubyte*)\"%s\");\n" % (name, name, name))
 

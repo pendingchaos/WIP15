@@ -31,26 +31,26 @@ for v in vers:
         except ValueError: pass
 
 groups = {}
-for name in gl.groups.keys(): groups[name] = []
+for name in list(gl.groups.keys()): groups[name] = []
 
 func_minvers = {}
-for vn, v in gl.versions.iteritems():
-    for gn, g in gl.groups.iteritems():
+for vn, v in gl.versions.items():
+    for gn, g in gl.groups.items():
         if gn not in groups: continue
         for e in g.enumNames:
             if e in v.new_enums: groups[gn].append(e)
     for f in v.new_functions:
         func_minvers[f] = vn
 
-for f in gl.functions.keys():
+for f in list(gl.functions.keys()):
     if f.startswith('glX'):
         funcs.append(f)
 
-for name, group in groups.iteritems():
+for name, group in groups.items():
     output.write('Group(\'%s\', %s)' % (name, str(gl.groups[name].bitmask)))
     for en in group:
         ver = (3, 2)
-        for v in gl.versions.iteritems():
+        for v in gl.versions.items():
             if en in v[1].new_enums: 
                 ver = v[0]
                 break

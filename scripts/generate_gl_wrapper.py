@@ -29,7 +29,7 @@ gl = glapi.glxml.GL(False)
 
 gl_c.write(gl.typedecls)
 
-for k, v, in gl.enumValues.iteritems():
+for k, v, in gl.enumValues.items():
     gl_c.write("#define %s %s\n" % (k, v))
 
 for func in funcs:
@@ -167,7 +167,7 @@ void __attribute__((constructor)) wip15_gl_init() {
     
 ''')
 
-for name, group in group_dict.iteritems():
+for name, group in group_dict.items():
     gl_c.write('    gl_write_b(OP_DECL_GROUP);\n')
     gl_c.write('    gl_write_b(0);\n') # Currently only enum groups
     gl_c.write('    gl_write_uint32(%d);\n' % group.group_id)
