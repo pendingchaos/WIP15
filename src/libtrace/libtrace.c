@@ -17,6 +17,9 @@
 #if LZ4_ENABLED
 #include <lz4.h>
 #endif
+#if ZSTD_ENABLED
+#include <zstd.h>
+#endif
 
 typedef enum {
     BaseType_Void = 0,
@@ -223,14 +226,12 @@ static void* read_data(FILE* file, size_t* res_size) {
     #if ZLIB_ENABLED
     if (compression_method == 1) {
         void* data = malloc(size);
-        
         uLongf dest_len = size;
         if (uncompress(data, &dest_len, compressed_data, compressed_size) != Z_OK) {
             free(compressed_data);
             free(data);
             return NULL;
         }
-        
         free(compressed_data);
         
         if (res_size) *res_size = size;
@@ -240,13 +241,25 @@ static void* read_data(FILE* file, size_t* res_size) {
     #if LZ4_ENABLED
     if (compression_method == 2) {
         void* data = malloc(size);
-        
         if (LZ4_decompress_safe(compressed_data, data, compressed_size, size) < 0) {
             free(compressed_data);
             free(data);
             return NULL;
         }
+        free(compressed_data);
         
+        if (res_size) *res_size = size;
+        return data;
+    }
+    #endif
+    #if ZSTD_ENABLED
+    if (compression_method == 3) {
+        void* data = malloc(size);
+        if (ZSTD_isError(ZSTD_decompress(data, size, compressed_data, compressed_size))) {
+            free(compressed_data);
+            free(data);
+            return NULL;
+        }
         free(compressed_data);
         
         if (res_size) *res_size = size;
@@ -290,6 +303,11 @@ static trc_data_t* read_data_compressed(trace_t* trace, FILE* file) {
     #if LZ4_ENABLED
     case 2:
         data.compression = TrcCompression_LZ4;
+        break;
+    #endif
+    #if ZSTD_ENABLED
+    case 3:
+        data.compression = TrcCompression_Zstd;
         break;
     #endif
     default:
@@ -1542,27 +1560,41 @@ static trc_data_t* queue_pop_from_front(trace_t* trace) {
 }
 
 static void compress_data(trc_data_t* data) {
-    void* compressed = malloc(data->size);
-    trc_compression_t compression = TrcCompression_Zlib;
-    #if ZLIB_ENABLED
-    uLongf compressed_size = data->size;
-    if (compress2(compressed, &compressed_size, data->plain, data->size, 9) != Z_OK) {
-    #else
-    int compressed_size;
-    #endif
-    #if LZ4_ENABLED
-        compression = TrcCompression_LZ4;
-        if (!(compressed_size=LZ4_compress_default(data->plain, compressed, data->size, data->size))) {
-    #endif
-            free(compressed);
-            data->flags |= TRC_DATA_NO_COMPRESS;
-            return;
-    #if LZ4_ENABLED
-        }
-    #endif
-    #if ZLIB_ENABLED
+    void* compressed = malloc(data->size-1);
+    trc_compression_t compression = TrcCompression_Zstd;
+    size_t compressed_size;
+    
+    #ifdef ZSTD_ENABLED
+    //Try Zstandard
+    if (data->size > 2*1024*1024) { //Zstandard works best with large amounts of data
+        compressed_size = ZSTD_compress(compressed, data->size-1, data->plain, data->size, 15);
+        if (!ZSTD_isError(compressed_size)) goto compression_done;
     }
     #endif
+    
+    #ifdef ZLIB_ENABLED
+    //Try Zlib
+    compression = TrcCompression_Zlib;
+    uLongf zlib_compressed_size = data->size - 1;
+    if (compress2(compressed, &zlib_compressed_size, data->plain, data->size, 9) == Z_OK) {
+        compressed_size = zlib_compressed_size;
+        goto compression_done;
+    }
+    #endif
+    
+    #ifdef LZ4_ENABLED
+    //Try LZ4
+    compression = TrcCompression_LZ4;
+    if ((compressed_size=LZ4_compress_default(data->plain, compressed, data->size, data->size-1)))
+        goto compression_done;
+    #endif
+    
+    //Compression failed
+    free(compressed);
+    data->flags |= TRC_DATA_NO_COMPRESS;
+    return;
+    
+    compression_done: ;
     
     trc_data_external_storage_t* storage = malloc(sizeof(trc_data_external_storage_t));
     storage->compression = compression;
@@ -1663,6 +1695,7 @@ trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_da
     return res;
 }
 
+//TODO: Use trc_create_compressed_data_no_copy
 trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags) {
     void* src_data = trc_map_data(src, TRC_MAP_READ);
     trc_data_t* data = trc_create_data(trace, src->size, src_data, flags);
@@ -1708,6 +1741,18 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
             if (flags & TRC_MAP_READ) {
                 uLongf _ = data->size;
                 if (uncompress(mapping.ptr, &_, data->external->data, data->external->size) != Z_OK)
+                    assert(false);
+            }
+            break;
+        }
+        #endif
+        #if ZSTD_ENABLED
+        case TrcCompression_Zstd: {
+            mapping.ptr = malloc(data->size);
+            if (flags & TRC_MAP_READ) {
+                size_t written =
+                    ZSTD_decompress(mapping.ptr, data->size, data->external->data, data->external->size);
+                if (ZSTD_isError(written) || written!=data->size)
                     assert(false);
             }
             break;

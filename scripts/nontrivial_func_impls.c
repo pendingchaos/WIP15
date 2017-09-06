@@ -1807,7 +1807,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
     update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
     
-    //TODO: Update shared storage buffers, images and atomic counters
+    //TODO: Update shader storage buffers, images and atomic counters
     
     //Update transform feedback buffers
     size_t xfb_buffer_count = trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);

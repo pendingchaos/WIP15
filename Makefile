@@ -1,5 +1,6 @@
 USE_LZ4 = 1
 USE_ZLIB = 1
+USE_ZSTD = 0
 
 CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 gtksourceview-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
@@ -12,6 +13,11 @@ endif
 ifeq ($(USE_ZLIB), 1)
 COMP_LIBS += `pkg-config zlib --libs`
 CFLAGS += -DZLIB_ENABLED `pkg-config zlib --cflags`
+endif
+
+ifeq ($(USE_ZSTD), 1)
+COMP_LIBS += `pkg-config libzstd --libs`
+CFLAGS += -DZSTD_ENABLED `pkg-config libzstd --cflags`
 endif
 
 gui_src = $(shell find src/gui/ -type f -name '*.c')

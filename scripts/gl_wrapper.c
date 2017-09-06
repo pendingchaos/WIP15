@@ -1,6 +1,12 @@
 #ifdef ZLIB_ENABLED
 #include <zlib.h>
 #endif
+#ifdef LZ4_ENABLED
+#include <lz4.h>
+#endif
+#ifdef ZSTD_ENABLED
+#include <zstd.h>
+#endif
 
 #if __WORDSIZE == 64 //TODO: Why is this needed?
 #elif __WORDSIZE == 32
@@ -23,9 +29,11 @@
 #define BASE_DATA 8
 #define BASE_FUNC_PTR 9
 
+#define COMPRESSION_AUTO -1
 #define COMPRESSION_NONE 0
 #define COMPRESSION_ZLIB 1
 #define COMPRESSION_LZ4 2
+#define COMPRESSION_ZSTD 3
 
 typedef struct {
     bool exists;
@@ -138,7 +146,7 @@ static limits_t* current_limits = NULL;
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
-static unsigned int compression_method = COMPRESSION_ZLIB;
+static int compression_method = COMPRESSION_AUTO;
 
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
@@ -191,20 +199,49 @@ static void gl_write_type(uint8_t base, bool has_group, bool is_array) {
     gl_write_bool(is_array);
 }
 
-#ifdef LZ4_ENABLED
-int LZ4_compress_default(const char* source, char* dest, int sourceSize, int maxDestSize);
-#endif
-
 static void gl_write_data(ptrdiff_t size, const void* data) {
     if (size < 0) size = 0;
     
-    #ifdef ZLIB_ENABLED
-    if (compression_method == COMPRESSION_ZLIB) {
+    int method = compression_method;
+    if (method == COMPRESSION_AUTO) {
+    #if defined(ZSTD_ENABLED) && defined(ZLIB_ENABLED)
+        method = size > 2*1024*1024 ? COMPRESSION_ZSTD : COMPRESSION_ZLIB;
+    #elif defined(ZLIB_ENABLED)
+        method = COMPRESSION_ZLIB;
+    #elif defined(LZ4_ENABLED
+        method = COMPRESSION_LZ4;
+    #else
+        method = COMPRESSION_NONE;
+    #endif
+    }
+    
+    #ifdef ZSTD_ENABLED
+    if (method == COMPRESSION_ZSTD) {
+        unsigned int level = (float)compression_level / 100.0 * 19.0; //don't use ultra levels (20+)
+        if (level == 0) goto none;
         void* compressed = malloc(size);
-        
+        size_t written = ZSTD_compress(compressed, size, data, size, level);
+        if (ZSTD_isError(written) || written>size) {
+            free(compressed);
+            goto none;
+        } else {
+            gl_write_b(COMPRESSION_ZSTD);
+            gl_write_uint32(size);
+            gl_write_uint32(written);
+            fwrite(compressed, written, 1, trace_file);
+            free(compressed);
+            return;
+        }
+    }
+    #endif
+    #ifdef ZLIB_ENABLED
+    if (method == COMPRESSION_ZLIB) {
         unsigned int level = (float)compression_level / 100.0 * 9.0;
+        if (level == 0) goto none;
+        void* compressed = malloc(size);
         uLongf compressed_size = size;
-        if (level && compress2(compressed, &compressed_size, data, size, level) != Z_OK) {
+        if (compress2(compressed, &compressed_size, data, size, level) != Z_OK) {
+            free(compressed);
             goto none;
         } else {
             gl_write_b(COMPRESSION_ZLIB);
@@ -217,11 +254,11 @@ static void gl_write_data(ptrdiff_t size, const void* data) {
     }
     #endif
     #ifdef LZ4_ENABLED
-    if (compression_method == COMPRESSION_LZ4) {
+    if (method == COMPRESSION_LZ4) {
         void* compressed = malloc(size);
-        
         int compressed_size;
-        if (!(compressed_size = LZ4_compress_default(data, compressed, size, size))) {
+        if (!(compressed_size=LZ4_compress_default(data, compressed, size, size))) {
+            free(compressed);
             goto none;
         } else {
             gl_write_b(COMPRESSION_LZ4);
@@ -234,9 +271,7 @@ static void gl_write_data(ptrdiff_t size, const void* data) {
     }
     #endif
     
-    #if defined(ZLIB_ENABLED) || defined(LZ4_ENABLED)
     none:
-    #endif
         gl_write_b(COMPRESSION_NONE);
         gl_write_uint32(size);
         gl_write_uint32(size);

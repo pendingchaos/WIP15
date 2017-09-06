@@ -91,27 +91,50 @@ void __attribute__((constructor)) wip15_gl_init() {
         compression_method = COMPRESSION_ZLIB;
     else if (comp_meth && !strcmp(comp_meth, "lz4"))
         compression_method = COMPRESSION_LZ4;
+    else if (comp_meth && !strcmp(comp_meth, "zstd"))
+        compression_method = COMPRESSION_ZSTD;
+    
+    #ifndef ZSTD_ENABLED
+    if (compression_method == COMPRESSION_ZSTD) {
+        #ifdef LZ4_ENABLED
+        compression_method = COMPRESSION_LZ4;
+        printf("Warning: OpenGL wrapper not built with ZStandard support. Using LZ4 reference implementation.\\n");
+        #elif defined(ZLIB_ENABLED)
+        compression_method = COMPRESSION_ZLIB;
+        printf("Warning: OpenGL wrapper not built with ZStandard support. Using Zlib.\\n");
+        #else
+        compression_method = COMPRESSION_NONE;
+        printf("Warning: OpenGL wrapper not built with Zlib, LZ4 or ZStandard support. Disabling compression.\\n");
+        #endif
+    }
+    #endif
     
     #ifndef ZLIB_ENABLED
     if (compression_method == COMPRESSION_ZLIB) {
-        #ifdef LZ4_ENABLED
+        #ifdef ZSTD_ENABLED
+        compression_method = COMPRESSION_ZSTD;
+        printf("Warning: OpenGL wrapper not built with Zlib support. Using Zstandard.\\n");
+        #elif defined(LZ4_ENABLED)
         compression_method = COMPRESSION_LZ4;
         printf("Warning: OpenGL wrapper not built with Zlib support. Using LZ4 reference implementation.\\n");
         #else
         compression_method = COMPRESSION_NONE;
-        printf("Warning: OpenGL wrapper not built with Zlib or LZ4 support. Disabling compression.\\n");
+        printf("Warning: OpenGL wrapper not built with Zlib, LZ4 or ZStandard support. Disabling compression.\\n");
         #endif
     }
     #endif
     
     #ifndef LZ4_ENABLED
     if (compression_method == COMPRESSION_LZ4) {
-        #ifdef ZLIB_ENABLED
+        #ifdef ZSTD_ENABLED
+        compression_method = COMPRESSION_ZSTD;
+        printf("Warning: OpenGL wrapper not built with LZ4 support. Using Zstandard.\\n");
+        #elif defined(ZLIB_ENABLED)
         compression_method = COMPRESSION_ZLIB;
         printf("Warning: OpenGL wrapper not built with LZ4 support. Using Zlib.\\n");
         #else
         compression_method = COMPRESSION_NONE;
-        printf("Warning: OpenGL wrapper not built with Zlib or LZ4 support. Disabling compression.\\n");
+        printf("Warning: OpenGL wrapper not built with Zlib, LZ4 or Zstandard support. Disabling compression.\\n");
         #endif
     }
     #endif

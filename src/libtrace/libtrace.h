@@ -55,7 +55,8 @@ typedef struct trc_attachment_t {
 typedef enum trc_compression_t {
     TrcCompression_None,
     TrcCompression_Zlib,
-    TrcCompression_LZ4
+    TrcCompression_LZ4,
+    TrcCompression_Zstd
 } trc_compression_t;
 
 typedef struct trc_data_external_storage_t {
