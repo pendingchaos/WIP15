@@ -208,7 +208,7 @@ static void gl_write_data(ptrdiff_t size, const void* data) {
         method = size > 2*1024*1024 ? COMPRESSION_ZSTD : COMPRESSION_ZLIB;
     #elif defined(ZLIB_ENABLED)
         method = COMPRESSION_ZLIB;
-    #elif defined(LZ4_ENABLED
+    #elif defined(LZ4_ENABLED)
         method = COMPRESSION_LZ4;
     #else
         method = COMPRESSION_NONE;
@@ -271,7 +271,10 @@ static void gl_write_data(ptrdiff_t size, const void* data) {
     }
     #endif
     
+    //#if to remove warnings
+    #if defined(ZSTD_ENABLED) || defined(ZLIB_ENABLED) || defined(LZ4_ENABLED)
     none:
+    #endif
         gl_write_b(COMPRESSION_NONE);
         gl_write_uint32(size);
         gl_write_uint32(size);

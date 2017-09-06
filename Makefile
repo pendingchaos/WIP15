@@ -1,13 +1,13 @@
-USE_LZ4 = 1
-USE_ZLIB = 1
+USE_LZ4 = $(shell pkg-config liblz4 --exists && echo 1 || echo 0)
+USE_ZLIB = $(shell pkg-config zlib --exists && echo 1 || echo 0)
 USE_ZSTD = 0
 
 CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 gtksourceview-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
 COMP_LIBS =
 ifeq ($(USE_LZ4), 1)
-COMP_LIBS += -llz4
-CFLAGS += -DLZ4_ENABLED
+COMP_LIBS += `pkg-config liblz4 --libs`
+CFLAGS += -DLZ4_ENABLED `pkg-config liblz4 --cflags`
 endif
 
 ifeq ($(USE_ZLIB), 1)

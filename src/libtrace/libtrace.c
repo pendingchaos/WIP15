@@ -1594,7 +1594,10 @@ static void compress_data(trc_data_t* data) {
     data->flags |= TRC_DATA_NO_COMPRESS;
     return;
     
+    //#if to remove warnings
+    #if defined(ZSTD_ENABLED) || defined(ZLIB_ENABLED) || defined(LZ4_ENABLED)
     compression_done: ;
+    #endif
     
     trc_data_external_storage_t* storage = malloc(sizeof(trc_data_external_storage_t));
     storage->compression = compression;

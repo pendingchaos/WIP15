@@ -1,9 +1,12 @@
 # WIP15
 WIP15 is a core OpenGL debugger. It allows you to trace unmodified OpenGL programs and inspect the traces. It is not stable and ready for use.
 
-# Dependencies
-It requires [GCC](https://gcc.gnu.org), [SDL2](https://libsdl.org), libdl, [zlib](http://zlib.net), pkg-config, a C standard library implementation and an OpenGL implementation support core OpenGL.
-The GUI also requires [GTK+ 3](http://www.gtk.org).
+# Dependencies (excluding what is probably already installed)
+- [SDL2](https://libsdl.org) headers and libraries
+- [GTK+ 3](http://www.gtk.org) headers and libraries
+- [GTKSourceView for Gtk+ 3](https://wiki.gnome.org/Projects/GtkSourceView/) headers and libraries
+
+[Zlib](http://zlib.net) and [LZ4](http://www.lz4.org) development packages are optional but having at least one is recommended.
 
 # Compiling
 ```shell
