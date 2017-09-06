@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import glapi.glxml
-from gl_state import *
 from glapi.glapi import *
 
 gl = glapi.glxml.GL(False)
