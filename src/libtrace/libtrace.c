@@ -1817,7 +1817,7 @@ trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const vo
         size_t csize = size - i*chunk_size;
         if (csize > chunk_size) csize = chunk_size;
         chunks[i] = trc_create_data(
-            trace, csize, (uint8_t*)data+i*chunk_size, TRC_DATA_IMMUTABLE);
+            trace, csize, data?((uint8_t*)data+i*chunk_size):NULL, TRC_DATA_IMMUTABLE);
     }
     
     trc_chunked_data_t res;
@@ -1894,7 +1894,9 @@ void trc_read_chunked_data(trc_read_chunked_data_t info) {
         else write_off = i*chunk_size - info.start;
         
         //offset within src to read from
-        size_t read_off = info.start - i*chunk_size;
+        size_t read_off = 0;
+        if (i == start_chunks)
+            read_off = info.start - i*chunk_size;
         
         //amount of data to copy
         size_t amount = chunks[i]->size - read_off;

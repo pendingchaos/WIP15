@@ -230,8 +230,18 @@ static void update_textures(image_viewer_t* viewer) {
     
     glDeleteTextures(2, viewer->textures);
     glGenTextures(2, viewer->textures);
-    const uint8_t* data = viewer->data ? trc_map_data(viewer->data, TRC_MAP_READ) : NULL;
-    if (data) data += viewer->data_offset;
+    uint8_t* data_start = NULL;
+    const uint8_t* data = NULL;
+    if (viewer->data) {
+        data_start = malloc(viewer->data->size);
+        
+        trc_read_chunked_data_t rinfo =
+            {.data=*viewer->data, .start=0, .size=viewer->data->size, .dest=data_start};
+        trc_read_chunked_data(rinfo);
+        
+        data = data_start;
+        data += viewer->data_offset;
+    }
     for (size_t i = 0; i < 2; i++) {
         glBindTexture(GL_TEXTURE_2D, viewer->textures[0]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -277,7 +287,7 @@ static void update_textures(image_viewer_t* viewer) {
         break;
         cont: ;
     }
-    if (viewer->data) trc_unmap_data(viewer->data);
+    if (viewer->data) free(data_start);
 }
 
 static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer user_data) {
@@ -438,6 +448,7 @@ static void write_shader(GtkButton* button, image_viewer_t* viewer) {
 }
 
 static void image_viewer_destroyed(GtkWidget* _, image_viewer_t* viewer) {
+    if (viewer->data) free(viewer->data);
     free(viewer);
 }
 
@@ -455,6 +466,7 @@ image_viewer_t* create_image_viewer() {
     viewer->textures[1] = 0;
     viewer->program_dirty = true;
     viewer->texture_dirty = true;
+    viewer->dragging = false;
     
     viewer->flip_y = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Flip Y"));
     viewer->srgb = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("sRGB"));
@@ -534,10 +546,25 @@ image_viewer_t* create_image_viewer() {
     return viewer;
 }
 
-void update_image_viewer(image_viewer_t* viewer, size_t offset, trc_data_t* data,
+void clear_image_viewer(image_viewer_t* viewer) {
+    viewer->data_offset = 0;
+    if (viewer->data) free(viewer->data);
+    viewer->data = NULL;
+    viewer->format = TrcImageFormat_Red_U32;
+    viewer->image_width = 0;
+    viewer->image_height = 0;
+    viewer->texture_dirty = true;
+    
+    gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
+}
+
+void update_image_viewer(image_viewer_t* viewer, size_t offset,
+                         trc_chunked_data_t data,
                          int dim[2], trc_image_format_t format) {
     viewer->data_offset = offset;
-    viewer->data = data;
+    if (viewer->data) free(viewer->data);
+    viewer->data = malloc(sizeof(trc_chunked_data_t));
+    *viewer->data = data;
     viewer->format = format;
     viewer->image_width = dim[0];
     viewer->image_height = dim[1];

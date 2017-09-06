@@ -125,7 +125,7 @@ static void update_image(const trc_gl_texture_rev_t* rev, texture_data_t* data) 
     int face = gtk_combo_box_get_active(data->face);
     
     gtk_entry_set_text(data->internal_format, "");
-    update_image_viewer(data->viewer, 0, NULL, (int[]){0, 0}, TrcImageFormat_Red_U32);
+    clear_image_viewer(data->viewer);
     
     bool found;
     trc_gl_texture_image_t image = find_image(rev, face, level, &found);
@@ -133,7 +133,7 @@ static void update_image(const trc_gl_texture_rev_t* rev, texture_data_t* data) 
     
     size_t pixel_size = get_pixel_size(image.data_format);
     size_t offset = layer * image.width * image.height * pixel_size;
-    if (offset + image.width*image.height*pixel_size > image.data->size)
+    if (offset + image.width*image.height*pixel_size > image.data.size)
         return;
     
     int dim[2] = {image.width, image.height};

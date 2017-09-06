@@ -7,7 +7,7 @@
 
 typedef struct image_viewer_t {
     size_t data_offset;
-    trc_data_t* data;
+    trc_chunked_data_t* data;
     trc_image_format_t format;
     GtkWidget* widget;
     GtkCheckButton* flip_y;
@@ -32,6 +32,8 @@ typedef struct image_viewer_t {
 } image_viewer_t;
 
 image_viewer_t* create_image_viewer();
-void update_image_viewer(image_viewer_t* viewer, size_t offset, trc_data_t* data,
+void clear_image_viewer(image_viewer_t* viewer);
+void update_image_viewer(image_viewer_t* viewer, size_t offset,
+                         trc_chunked_data_t data,
                          int dim[2], trc_image_format_t format);
 #endif

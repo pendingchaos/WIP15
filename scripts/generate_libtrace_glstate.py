@@ -72,10 +72,10 @@ map array texture bound_textures
 
 array sampler bound_samplers
 
-array uint8 front_color_buffer
-array uint8 back_color_buffer
-array uint8 back_depth_buffer
-array uint8 back_stencil_buffer
+chunked array uint8 front_color_buffer
+chunked array uint8 back_color_buffer
+chunked array uint8 back_depth_buffer
+chunked array uint8 back_stencil_buffer
 
 map array bool enabled
     GL_BLEND
@@ -382,8 +382,9 @@ uint draw_vao
 '''
 
 class Property(object):
-    def __init__(self, map, array, base, name, map_keys=[]):
+    def __init__(self, map, chunked, array, base, name, map_keys=[]):
         self.map = map
+        self.chunked = chunked
         self.array = array
         self.base = base
         self.name = name
@@ -455,6 +456,8 @@ while len(lines):
     name = line.split(' ')[-1]
     map = 'map' in types
     if map: types.remove('map')
+    chunked = 'chunked' in types
+    if chunked: types.remove('chunked')
     array = 'array' in types
     if array: types.remove('array')
     base = types[0]
@@ -462,7 +465,7 @@ while len(lines):
     if map:
         while len(lines) and lines[0].startswith('    '):
             map_keys.append(lines.pop(0)[4:])
-    properties.append(Property(map, array, base, name, map_keys))
+    properties.append(Property(map, chunked, array, base, name, map_keys))
 
 for prop in properties:
     sig = prop.public_type + ' trc_gl_state_get_%s(trace_t* trace' % prop.name
@@ -526,7 +529,7 @@ print '    '
 for prop in properties:
     c_type = prop.c_type
     if prop.array:
-        c_type = 'trc_data_t*'
+        c_type = 'trc_chunked_data_t' if prop.chunked else 'trc_data_t*'
     if prop.map:
         for key in prop.map_keys:
             print '    %s %s_%s;' % (c_type, prop.name, key)
@@ -556,7 +559,7 @@ for prop in properties:
     print prop.get_func_sig + ' {'
     if prop.map:
         if prop.array:
-            print '    trc_data_t* arr = NULL;'
+            print '    %s arr = NULL;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*')
         print '    switch (key) {'
         for key in prop.map_keys:
             if prop.array:
@@ -566,10 +569,15 @@ for prop in properties:
         print '    default: assert(false); return %s;' % (prop.some_public_value)
         print '    }'
     elif prop.array:
-        print '    trc_data_t* arr = trc_get_context(trace)->%s;' % prop.name
+        print '    %s arr = trc_get_context(trace)->%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name)
     else:
         print '    return %s;' % prop.get_code.format(src='&trc_get_context(trace)->%s'%prop.name)
-    if prop.array:
+    if prop.array and prop.chunked:
+        print '    %s res;' % prop.c_type
+        print '    trc_read_chunked_data_t rinfo = {.data=arr, .start=sizeof(%s)*index, .size=sizeof(%s), .dest=&res};' % (prop.c_type, prop.c_type)
+        print '    trc_read_chunked_data(rinfo);'
+        print '    return %s;' % (prop.get_code.format(src='&res'))
+    elif prop.array:
         print '    %s* data = trc_map_data(arr, TRC_MAP_READ);' % prop.c_type
         print '    %s res = data[index];' % (prop.c_type)
         print '    trc_unmap_data(arr);'
@@ -582,7 +590,7 @@ for prop in properties:
     print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
         if prop.array:
-            print '    trc_data_t** arr = NULL;'
+            print '    %s* arr = NULL;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*')
         print '    switch (key) {'
         for key in prop.map_keys:
             if prop.array:
@@ -592,10 +600,18 @@ for prop in properties:
         print '    default: assert(false);'
         print '    }'
     elif prop.array:
-        print '    trc_data_t** arr = &state.%s;' % prop.name
+        print '    %s* arr = &state.%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name)
     else:
         print '    %s' % prop.set_code.format(dest='&state.'+prop.name, src='&val')
-    if prop.array:
+    if prop.array and prop.chunked:
+        print '    %s curval;' % prop.c_type
+        print '    trc_read_chunked_data_t rinfo = {.data=*arr, .start=sizeof(%s)*index, .size=sizeof(%s), .dest=&curval};' % (prop.c_type, prop.c_type)
+        print '    trc_read_chunked_data(rinfo);'
+        print '    %s' % (prop.set_code.format(dest='&curval', src='&val'))
+        print '    trc_chunked_data_mod_t mod = {.next=NULL, .start=index*sizeof(%s), .size=sizeof(%s), &curval};' % (prop.c_type, prop.c_type)
+        print '    trc_modify_chunked_data_t minfo = {.base=*arr, .mods=&mod};'
+        print '    *arr = trc_modify_chunked_data(trace, minfo);'
+    elif prop.array:
         print '    void* olddata = trc_map_data(*arr, TRC_MAP_READ);'
         print '    trc_data_t* newdata = trc_create_data(trace, (*arr)->size, olddata, 0);'
         print '    trc_unmap_data(*arr);'
@@ -614,25 +630,34 @@ for prop in properties:
     if prop.map:
         print '    switch (key) {'
         for key in prop.map_keys:
-            print '    case %s: return trc_get_context(trace)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
+            if prop.chunked:
+                print '    case %s: return trc_get_context(trace)->%s_%s.size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
+            else:
+                print '    case %s: return trc_get_context(trace)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type)
         print '    default: assert(false); return 0;'
         print '    }'
     else:
-        print '    return trc_get_context(trace)->%s->size / sizeof(%s);' % (prop.name, prop.c_type)
+        if prop.chunked:
+            print '    return trc_get_context(trace)->%s.size / sizeof(%s);' % (prop.name, prop.c_type)
+        else:
+            print '    return trc_get_context(trace)->%s->size / sizeof(%s);' % (prop.name, prop.c_type)
     print '}'
     print
     
     print prop.init_func_sig + ' {'
     print '    trc_gl_context_rev_t state = *trc_get_context(trace);'
     if prop.map:
-        print '    trc_data_t** arr = NULL;'
+        print '    %s* arr = NULL;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*')
         print '    switch (key) {'
         for key in prop.map_keys:
             print '    case %s: arr = &state.%s_%s; break;' % (key, prop.name, key)
         print '    }'
     else:
-        print '    trc_data_t** arr = &state.%s;' % prop.name;
-    print '    *arr = trc_create_data(trace, count*sizeof(%s), data, TRC_DATA_IMMUTABLE);' % prop.c_type
+        print '    %s* arr = &state.%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name)
+    if prop.chunked:
+        print '    *arr = trc_create_chunked_data(trace, count*sizeof(%s), data);' % prop.c_type
+    else:
+        print '    *arr = trc_create_data(trace, count*sizeof(%s), data, TRC_DATA_IMMUTABLE);' % prop.c_type
     print '    trc_set_context(trace, &state);'
     print '}'
     print
@@ -673,7 +698,16 @@ def print_prop_destructor(prop, name):
     if name in ['bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER']:
         return #the GL_TRANSFORM_FEEDBACK_BUFFER bindings are from the current transform feedback object
     
-    if prop.array:
+    if prop.chunked:
+        print '    size_t %s_count = rev->%s.size / sizeof(%s);' % (name, name, prop.c_type)
+        print '    const %s* %s_values = malloc(rev->%s.size);' % (prop.c_type, name, name)
+        print '    trc_read_chunked_data_t rinfo = {.data=rev->%s, .start=0, .size=rev->%s.size, .dest=%s_values};' % (name, name, name)
+        print '    trc_read_chunked_data(rinfo);'
+        print '    for (size_t i = 0; i < %s_count; i++)' % name
+        if prop.c_type == 'trc_obj_ref_t': print '    trc_del_obj_ref(%s_values[i]);' % name
+        else: print '        trc_del_obj_ref(%s_values[i].buf);' % name
+        print '    free(%s_values);' % name
+    elif prop.array:
         print '    size_t %s_count = rev->%s->size / sizeof(%s);' % (name, name, prop.c_type)
         print '    const %s* %s_values = trc_map_data(rev->%s, TRC_MAP_READ);' % (prop.c_type, name, name)
         print '    for (size_t i = 0; i < %s_count; i++)' % name
