@@ -13,10 +13,10 @@ static int64_t get_int_prop_buffer_gl(uint64_t index, void* ctx, GLuint real, GL
 #if REPLAY
 static void* get_data_prop_buffer_data(uint64_t index, const void* rev_, size_t* size) {
     const trc_gl_buffer_rev_t* rev = rev_;
-    *size = rev->data->size;
+    *size = rev->data.size;
     void* data = malloc(*size);
-    memcpy(data, trc_map_data(rev->data, TRC_MAP_READ), rev->data->size);
-    trc_unmap_data(rev->data);
+    trc_read_chunked_data((trc_read_chunked_data_t)
+        {.data=rev->data, .start=0, .size=rev->data.size, .dest=data});
     return data;
 }
 #endif
@@ -38,7 +38,7 @@ static void* get_data_prop_buffer_data_gl(uint64_t index, void* ctx, const void*
 }
 
 PROPERTY_INT(buffer, size, GL_BUFFER_SIZE,
-    rev->data->size)
+    rev->data.size)
 PROPERTY_INT(buffer, usage, GL_BUFFER_USAGE,
     rev->data_usage)
 PROPERTY_INT(buffer, mapped, SWITCH_REPLAY(0, GL_BUFFER_MAPPED),

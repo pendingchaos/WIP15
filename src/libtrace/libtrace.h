@@ -76,6 +76,13 @@ typedef struct trc_data_t {
     struct trc_data_t* queue_next; //this is not guarded by trc_data_t::mutex
 } trc_data_t;
 
+typedef struct trc_chunked_data_t {
+    //chunk_count = chunks->size/sizeof(trc_data_t*)
+    //chunk_size = ceil(size/chunk_count)
+    size_t size;
+    trc_data_t* chunks; //array of trc_data_t*
+} trc_chunked_data_t;
+
 typedef struct {
     trace_type_t type;
     uint32_t count;
@@ -157,7 +164,7 @@ typedef struct trc_gl_buffer_rev_t {
     uint tf_binding_count;
     
     uint data_usage;
-    trc_data_t* data;
+    trc_chunked_data_t data;
     
     bool mapped;
     uint64_t map_offset;
@@ -614,4 +621,28 @@ void* trc_map_data(trc_data_t* data, uint32_t flags);
 void trc_unmap_data(trc_data_t* data);
 void trc_freeze_data(trace_t* trace, trc_data_t* data);
 void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data);
+
+//Chunked data
+typedef struct trc_chunked_data_mod_t {
+    struct trc_chunked_data_mod_t* next;
+    size_t start;
+    size_t size;
+    const uint8_t* data;
+} trc_chunked_data_mod_t;
+
+typedef struct trc_modify_chunked_data_t {
+    trc_chunked_data_t base;
+    trc_chunked_data_mod_t* mods;
+} trc_modify_chunked_data_t;
+
+typedef struct trc_read_chunked_data_t {
+    trc_chunked_data_t data;
+    size_t start;
+    size_t size;
+    uint8_t* dest;
+} trc_read_chunked_data_t;
+
+trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data);
+trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info);
+void trc_read_chunked_data(trc_read_chunked_data_t info);
 #endif

@@ -89,7 +89,13 @@ void begin_attrib_list(attrib_list_state_t* s, size_t attrib_index,
     s->ctx_rev = ctx_rev;
     if (attrib.buffer.obj) {
         s->buf_rev = trc_obj_get_rev(attrib.buffer.obj, state.revision);
-        s->data = trc_map_data(s->buf_rev->data, TRC_MAP_READ);
+        s->data = malloc(s->buf_rev->data.size);
+        trc_read_chunked_data_t rinfo;
+        rinfo.data = s->buf_rev->data;
+        rinfo.start = 0;
+        rinfo.size = s->buf_rev->data.size;
+        rinfo.dest = s->data;
+        trc_read_chunked_data(rinfo); //TODO: Don't read all of the data
     } else {
         s->buf_rev = NULL;
         s->data = NULL;
@@ -104,7 +110,7 @@ const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index) {
         size_t size = get_attrib_size(s->attrib.type, s->attrib.size);
         size_t stride = s->attrib.stride ? s->attrib.stride : size;
         size_t offset = index*stride + s->attrib.offset;
-        if (offset+size > s->buf_rev->data->size) return NULL;
+        if (offset+size > s->buf_rev->data.size) return NULL;
         
         double vals[4];
         uint glver = s->ctx_rev->ver;
@@ -134,7 +140,7 @@ const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index) {
 }
 
 void end_attrib_list(attrib_list_state_t* s) {
-    if (s->buf_rev) trc_unmap_data(s->buf_rev->data);
+    free(s->data);
 }
 
 void begin_index_list(index_list_state_t* s, GLenum type, uint64_t offset,
@@ -144,14 +150,23 @@ void begin_index_list(index_list_state_t* s, GLenum type, uint64_t offset,
     trc_obj_t* buf = vao->element_buffer.obj;
     if (buf) {
         s->buf_rev = trc_obj_get_rev(buf, state.revision);
-        s->data = trc_map_data(s->buf_rev->data, TRC_MAP_READ) + offset;
-        if (offset <= s->buf_rev->data->size)
-            s->data_size = s->buf_rev->data->size - offset;
+        s->data_start = malloc(s->buf_rev->data.size);
+        trc_read_chunked_data_t rinfo;
+        rinfo.data = s->buf_rev->data;
+        rinfo.start = 0;
+        rinfo.size = s->buf_rev->data.size;
+        rinfo.dest = s->data_start;
+        trc_read_chunked_data(rinfo); //TODO: Don't read all of the data
+        
+        s->data = s->data_start + offset;
+        if (offset <= s->buf_rev->data.size)
+            s->data_size = s->buf_rev->data.size - offset;
         else
             s->data_size = 0;
     } else {
         s->buf_rev = NULL;
         s->data = NULL;
+        s->data_start = NULL;
     }
 }
 
@@ -164,8 +179,9 @@ int64_t get_index(index_list_state_t* s, size_t index) {
     case GL_UNSIGNED_INT: return ((const uint32_t*)s->data)[index];
     default: return -1;
     }
+    return -1;
 }
 
 void end_index_list(index_list_state_t* s) {
-    if (s->buf_rev) trc_unmap_data(s->buf_rev->data);
+    free(s->data_start);
 }

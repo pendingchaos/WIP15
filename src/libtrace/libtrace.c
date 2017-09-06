@@ -1774,3 +1774,136 @@ void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data) {
     trc_unmap_data(data);
     trc_freeze_data(trace, data);
 }
+
+static uint64_t div_ceil(uint64_t a, uint64_t b) {
+    if (!b) return 0;
+    else if (a%b) return a/b + 1;
+    else return a / b;
+}
+
+#if 0 //Emulation for testing purposes
+trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data) {
+    trc_chunked_data_t res;
+    res.size = size;
+    res.chunks = trc_create_data(trace, size, data, TRC_DATA_IMMUTABLE);
+    return res;
+}
+
+trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info) {
+    trc_chunked_data_t res;
+    res.size = info.base.size;
+    res.chunks = trc_copy_data(trace, info.base.chunks, 0);
+    
+    uint8_t* data = trc_map_data(res.chunks, TRC_MAP_MODIFY);
+    for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next)
+        memcpy(data+mod->start, mod->data, mod->size);
+    trc_unmap_freeze_data(trace, res.chunks);
+    
+    return res;
+}
+
+void trc_read_chunked_data(trc_read_chunked_data_t info) {
+    const uint8_t* data = trc_map_data(info.data.chunks, TRC_MAP_READ);
+    memcpy(info.dest, data+info.start, info.size);
+    trc_unmap_data(info.data.chunks);
+}
+#else
+trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data) {
+    size_t chunk_size = 65536;
+    size_t chunk_count = div_ceil(size, chunk_size);
+    
+    trc_data_t** chunks = malloc(chunk_count*sizeof(trc_data_t*));
+    for (size_t i = 0; i < chunk_count; i++) {
+        size_t csize = size - i*chunk_size;
+        if (csize > chunk_size) csize = chunk_size;
+        chunks[i] = trc_create_data(
+            trace, csize, (uint8_t*)data+i*chunk_size, TRC_DATA_IMMUTABLE);
+    }
+    
+    trc_chunked_data_t res;
+    res.size = size;
+    res.chunks = trc_create_data_no_copy(
+        trace, chunk_count*sizeof(trc_data_t*), chunks, TRC_DATA_IMMUTABLE);
+    
+    return res;
+}
+
+trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info) {
+    trc_chunked_data_t res;
+    res.size = info.base.size;
+    res.chunks = trc_copy_data(trace, info.base.chunks, 0);
+    
+    size_t chunk_size = info.base.chunks->size/sizeof(trc_data_t*);
+    chunk_size = div_ceil(info.base.size, chunk_size);
+    
+    //TODO: Handle overlapping modifications
+    trc_data_t** chunks = trc_map_data(res.chunks, TRC_MAP_MODIFY);
+    for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next) {
+        size_t start_chunks = mod->start / chunk_size;
+        size_t aligned_start = start_chunks * chunk_size;
+        size_t chunk_count = mod->start+mod->size - aligned_start;
+        chunk_count = div_ceil(chunk_count, chunk_size);
+        
+        for (size_t i = start_chunks; i < start_chunks+chunk_count; i++) {
+            //offset within chunks[i] to copy to
+            size_t write_off = 0;
+            if (i == start_chunks)
+                write_off = mod->start - i*chunk_size;
+            
+            size_t read_off = 0; //offset within mod->data to copy from
+            if (i*chunk_size > mod->start)
+                read_off = i*chunk_size - mod->start;
+            
+            size_t amount = chunks[i]->size - write_off; //amount of data to copy
+            if (mod->size-read_off < amount) amount = mod->size - read_off;
+            
+            //Test for differences
+            const uint8_t* testmap = trc_map_data(chunks[i], TRC_MAP_READ);
+            bool changed =
+                memcmp(testmap+write_off, mod->data+read_off, amount) != 0;
+            trc_unmap_data(chunks[i]);
+            if (!changed) continue;
+            
+            //Write data
+            chunks[i] = trc_copy_data(trace, chunks[i], 0);
+            uint8_t* dest = trc_map_data(chunks[i], TRC_MAP_MODIFY);
+            memcpy(dest+write_off, mod->data+read_off, amount);
+            trc_unmap_freeze_data(trace, chunks[i]);
+        }
+    }
+    trc_unmap_freeze_data(trace, res.chunks);
+    
+    return res;
+}
+
+void trc_read_chunked_data(trc_read_chunked_data_t info) {
+    size_t chunk_size = info.data.chunks->size/sizeof(trc_data_t*);
+    chunk_size = div_ceil(info.data.size, chunk_size);
+    if (!chunk_size) return; //zero-sized data
+    
+    size_t start_chunks = info.start / chunk_size;
+    size_t aligned_start = start_chunks * chunk_size;
+    size_t chunk_count = info.start+info.size - aligned_start;
+    chunk_count = div_ceil(chunk_count, chunk_size);
+    
+    trc_data_t** chunks = trc_map_data(info.data.chunks, TRC_MAP_READ);
+    for (size_t i = start_chunks; i < start_chunks+chunk_count; i++) {
+        //offset within info.dest to write to
+        size_t write_off = i*chunk_size;
+        if (i*chunk_size < info.start) write_off = 0;
+        else write_off = i*chunk_size - info.start;
+        
+        //offset within src to read from
+        size_t read_off = info.start - i*chunk_size;
+        
+        //amount of data to copy
+        size_t amount = chunks[i]->size - read_off;
+        if (amount+write_off > info.size) amount = info.size - write_off;
+        
+        const uint8_t* src = trc_map_data(chunks[i], TRC_MAP_READ);
+        memcpy(info.dest+write_off, src+read_off, amount);
+        trc_unmap_data(chunks[i]);
+    }
+    trc_unmap_data(info.data.chunks);
+}
+#endif

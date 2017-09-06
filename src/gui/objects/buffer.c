@@ -115,9 +115,12 @@ static void update_data_view(buffer_data_t* buf_data, const trc_gl_buffer_rev_t*
     if (!stride) stride = components * type_size;
     if (!stride) return; //For the unlikely scenario when components == 0
     
-    const uint8_t* data_start = trc_map_data(rev->data, TRC_MAP_READ);
+    uint8_t* data_start = malloc(rev->data.size);
+    trc_read_chunked_data_t rinfo =
+        {.data=rev->data, .start=0, .size=rev->data.size, .dest=data_start};
+    trc_read_chunked_data(rinfo);
     const uint8_t* data = data_start + offset;
-    size_t buf_size = rev->data->size;
+    size_t buf_size = rev->data.size;
     while ((data-data_start)+type_size <= buf_size) {
         char str[1024] = {0};
         
@@ -138,7 +141,7 @@ static void update_data_view(buffer_data_t* buf_data, const trc_gl_buffer_rev_t*
         gtk_tree_store_set(buf_data->data_store, &row, 0, str, -1);
     }
     
-    trc_unmap_data(rev->data);
+    free(data_start);
 }
 
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
@@ -172,7 +175,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     set_at_info_box(box, "Map Access", "%s", access_str);
     
     set_enum_at_info_box(box, "Data Usage", "BufferUsageARB", rev->data_usage);
-    set_at_info_box(box, "Data Size", "%zu", rev->data->size);
+    set_at_info_box(box, "Data Size", "%zu", rev->data.size);
     
     update_data_view(data, rev);
 }

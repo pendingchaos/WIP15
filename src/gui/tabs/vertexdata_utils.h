@@ -18,13 +18,14 @@ typedef struct attrib_list_state_t {
     size_t attrib_index;
     const trc_gl_context_rev_t* ctx_rev;
     const trc_gl_buffer_rev_t* buf_rev;
-    const uint8_t* data;
+    uint8_t* data;
 } attrib_list_state_t;
 
 typedef struct index_list_state_t {
     GLenum type;
     const trc_gl_context_rev_t* ctx_rev;
     const trc_gl_buffer_rev_t* buf_rev;
+    uint8_t* data_start;
     const uint8_t* data;
     size_t data_size;
 } index_list_state_t;

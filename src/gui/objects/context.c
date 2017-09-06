@@ -228,7 +228,7 @@ static void value_indexed_bufs(value_tree_state_t* state, const char* name,
         if (!binding.buf.obj) continue;
         if (!binding.size) {
             const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(binding.buf.obj, revision);
-            binding.size = buf->data->size;
+            binding.size = buf->data.size;
         }
         value(state, static_format("%zu", i), "%s (%zu-%zu)",
               static_format_obj(binding.buf.obj, revision),

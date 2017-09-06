@@ -936,14 +936,14 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
     const trc_gl_buffer_rev_t* buffer_rev = buffer ? get_buffer(ctx->ns, buffer) : NULL;
     if (!buffer_rev && buffer) ERROR2(false, "Invalid buffer name");
     if (buffer && !buffer_rev->has_object) ERROR2(false, "Buffer name has no object");
-    if (offset<0 || size<=0 || offset+size>buffer_rev->data->size) ERROR2(false, "Invalid range");
+    if (offset<0 || size<=0 || offset+size>buffer_rev->data.size) ERROR2(false, "Invalid range");
     //TODO: Check alignment
     
     trc_gl_texture_rev_t newrev = *rev;
     newrev.buffer.internal_format = internalformat;
     newrev.buffer.buffer = buffer;
     newrev.buffer.offset = offset;
-    newrev.buffer.size = buffer ? (size<0?buffer_rev->data->size:size) : 0;
+    newrev.buffer.size = buffer ? (size<0?buffer_rev->data.size:size) : 0;
     set_texture(&newrev);
     
     return true;
@@ -1344,8 +1344,6 @@ static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd
 
 //type in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_INT]
 //internal in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_INT, GL_INT]
-//glVertexAttrib3f: //GLuint p_index, GLfloat p_v0, GLfloat p_v1, GLfloat p_v2
-//    vertex_attrib(ctx, cmd, 3, GL_FLOAT, false, false, GL_FLOAT);
 static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint comp,
                           GLenum type, bool array, bool normalized, GLenum internal) {
     uint index = gl_param_GLuint(cmd, 0);
@@ -1771,7 +1769,7 @@ static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield 
 
 static void update_buffer_from_gl(trc_replay_context_t* ctx, trc_obj_t* obj, size_t offset, ptrdiff_t size_) {
     trc_gl_buffer_rev_t rev = *(trc_gl_buffer_rev_t*)trc_obj_get_rev(obj, -1);
-    size_t size = size_ < 0 ? rev.data->size : size_;
+    size_t size = size_ < 0 ? rev.data.size : size_;
     
     GLint prev_array_buffer;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev_array_buffer);
@@ -1780,10 +1778,9 @@ static void update_buffer_from_gl(trc_replay_context_t* ctx, trc_obj_t* obj, siz
     void* newdata = malloc(size);
     F(glGetBufferSubData)(GL_ARRAY_BUFFER, offset, size, newdata);
     
-    rev.data = trc_copy_data(ctx->trace, rev.data, 0);
-    uint8_t* data = trc_map_data(rev.data, TRC_MAP_MODIFY);
-    memcpy(data+offset, newdata, size);
-    trc_unmap_freeze_data(ctx->trace, rev.data);
+    trc_chunked_data_mod_t mod = {.next=NULL, .start=offset, .size=size, .data=newdata};
+    trc_modify_chunked_data_t info = {.base=rev.data, .mods=&mod};
+    rev.data = trc_modify_chunked_data(ctx->trace, info);
     
     free(newdata);
     
@@ -1855,7 +1852,7 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
     rev.has_object = create;
     rev.tf_binding_count = 0;
     rev.data_usage = GL_STATIC_DRAW;
-    rev.data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.data = trc_create_chunked_data(ctx->trace, 0, NULL);
     rev.mapped = false;
     rev.map_offset = 0;
     rev.map_length = 0;
@@ -1972,7 +1969,9 @@ static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool ds
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
-    newrev.data = trc_create_data(ctx->trace, size, data, TRC_DATA_IMMUTABLE);
+    
+    newrev.data = trc_create_chunked_data(ctx->trace, size, data);
+    
     set_buffer(&newrev);
     return true;
 }
@@ -1985,18 +1984,15 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     if (!rev->has_object) ERROR2(false, "Buffer name does not have an object");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
-    if (offset+size > rev->data->size) ERROR2(false, "Invalid range");
+    if (offset+size > rev->data.size) ERROR2(false, "Invalid range");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
         ERROR2(false, "Buffer is mapped without persistent access");
     
     trc_gl_buffer_rev_t newrev = *rev;
     
-    newrev.data = trc_create_data(ctx->trace, rev->data->size, trc_map_data(rev->data, TRC_MAP_READ), 0);
-    trc_unmap_data(rev->data);
-    
-    void* newdata = trc_map_data(newrev.data, TRC_MAP_REPLACE);
-    memcpy((uint8_t*)newdata+offset, data, size);
-    trc_unmap_freeze_data(ctx->trace, newrev.data);
+    trc_chunked_data_mod_t mod = {.next=NULL, .start=offset, .size=size, .data=data};
+    trc_modify_chunked_data_t info = {.base=newrev.data, .mods=&mod};
+    newrev.data = trc_modify_chunked_data(ctx->trace, info);
     
     set_buffer(&newrev);
     return true;
@@ -2011,25 +2007,25 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     if (!read_rev->has_object) ERROR2(false, "Read buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && read_rev->tf_binding_count)
         trc_add_warning(cmd, "Read buffer cannot be read as it is a transform feedback one while transform feedback is active and unpaused");
-    if (read_off+size > read_rev->data->size) ERROR2(false, "Invalid size and read offset");
+    if (read_off+size > read_rev->data.size) ERROR2(false, "Invalid size and read offset");
     
     const trc_gl_buffer_rev_t* write_rev = trc_obj_get_rev(write, -1);
     if (!write_rev) ERROR2(false, dsa?"Invalid write buffer name":"No buffer bound to write target");
     if (!write_rev->has_object) ERROR2(false, "Write buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && write_rev->tf_binding_count)
         trc_add_warning(cmd, "Write buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
-    if (write_off+size > write_rev->data->size) ERROR2(false, "Invalid size and write offset");
+    if (write_off+size > write_rev->data.size) ERROR2(false, "Invalid size and write offset");
     
     trc_gl_buffer_rev_t res = *write_rev;
     
-    res.data = trc_create_data(ctx->trace, write_rev->data->size, trc_map_data(write_rev->data, TRC_MAP_READ), 0);
-    trc_unmap_data(write_rev->data);
-    
-    void* newdata = trc_map_data(res.data, TRC_MAP_REPLACE);
-    uint8_t* readdata = trc_map_data(read_rev->data, TRC_MAP_READ);
-    memcpy(newdata+write_off, readdata+read_off, size);
-    trc_unmap_data(read_rev->data);
-    trc_unmap_freeze_data(ctx->trace, res.data);
+    //TODO: It should be possible to share chunks here
+    void* buf = malloc(size);
+    trc_read_chunked_data_t rinfo = {.data=read_rev->data, .start=read_off, .size=size, .dest=buf};
+    trc_read_chunked_data(rinfo);
+    trc_chunked_data_mod_t mod = {.next=NULL, .start=write_off, .size=size, .data=buf};
+    trc_modify_chunked_data_t minfo = {.base=res.data, .mods=&mod};
+    res.data = trc_modify_chunked_data(ctx->trace, minfo);
+    free(buf);
     
     set_buffer(&res);
     return true;
@@ -2046,7 +2042,7 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     trc_gl_buffer_rev_t newrev = *rev;
     newrev.mapped = true;
     newrev.map_offset = 0;
-    newrev.map_length = rev->data->size;
+    newrev.map_length = rev->data.size;
     switch (access) {
     case GL_READ_ONLY: newrev.map_access = GL_MAP_READ_BIT; break;
     case GL_WRITE_ONLY: newrev.map_access = GL_MAP_WRITE_BIT; break;
@@ -2081,7 +2077,7 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
         trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     
-    if (offset+length > newrev.data->size)
+    if (offset+length > newrev.data.size)
         ERROR2(, "Invalid range");
     if (newrev.mapped) ERROR2(, "Buffer is already mapped");
     
@@ -2128,10 +2124,9 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
         else
             F(glBufferSubData)(target_or_buf, offset, length, data);
         
-        newrev.data = trc_copy_data(ctx->trace, rev->data, 0);
-        uint8_t* mapped = trc_map_data(newrev.data, TRC_MAP_MODIFY);
-        memcpy(mapped+offset, data, length);
-        trc_unmap_freeze_data(ctx->trace, newrev.data);
+        trc_chunked_data_mod_t mod = {.next=NULL, .start=offset, .size=length, .data=data};
+        trc_modify_chunked_data_t info = {.base=newrev.data, .mods=&mod};
+        newrev.data = trc_modify_chunked_data(ctx->trace, info);
     }
     
     end:
@@ -2165,7 +2160,7 @@ static void get_buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd,
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT)) ERROR2(, "Buffer is mapped without GL_MAP_PERSISTENT_BIT");
-    if (offset<0 || size<0 || offset+size>rev->data->size) ERROR2(, "Invalid offset and/or size");
+    if (offset<0 || size<0 || offset+size>rev->data.size) ERROR2(, "Invalid offset and/or size");
 }
 
 static bool renderbuffer_storage(trc_replay_context_t* ctx, trace_command_t* cmd, const trc_gl_renderbuffer_rev_t* rb,
@@ -2995,7 +2990,7 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
-    if (rev && (p_size<=0 || p_offset+p_size>rev->data->size))
+    if (rev && (p_size<=0 || p_offset+p_size>rev->data.size))
         ERROR("Invalid range");
     //TODO: Check alignment of offset
     real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
@@ -6156,7 +6151,7 @@ static void bind_tf_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
     
     const trc_gl_buffer_rev_t* buf_rev = get_buffer(ctx->ns, buffer);
     if (!buf_rev && buffer) ERROR2(, "Invalid buffer name");
-    if (ranged && buf_rev && (size<=0 || offset+size>buf_rev->data->size))
+    if (ranged && buf_rev && (size<=0 || offset+size>buf_rev->data.size))
         ERROR2(, "Invalid range");
     //TODO: Check alignment of offset?
     

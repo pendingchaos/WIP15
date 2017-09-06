@@ -54,7 +54,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
             snprintf(off, sizeof(off)-1, "%lu", binding.size);
         } else {
             const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(binding.buf.obj, revision);
-            snprintf(off, sizeof(off)-1, "%u", rev->data->size);
+            snprintf(off, sizeof(off)-1, "%zu", rev->data.size);
         }
         
         GtkTreeIter row;
