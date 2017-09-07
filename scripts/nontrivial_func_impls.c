@@ -448,7 +448,7 @@ static void init_context(trc_replay_context_t* ctx) {
     default_tf.active = false;
     default_tf.paused = false;
     default_tf.active_not_paused = false;
-    trc_obj_t* default_tf_obj = trc_create_named_obj(rev.namespace, TrcTransformFeedback, 0, &default_tf);
+    trc_obj_t* default_tf_obj = trc_create_named_obj(rev.priv_ns, TrcTransformFeedback, 0, &default_tf);
     
     rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = default_tf.bindings;
     trc_set_context(ctx->trace, &rev);
