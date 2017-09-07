@@ -77,8 +77,15 @@ static void update_object_list(object_list_tab_t* tab,
             const trc_obj_rev_head_t* rev;
             for (size_t j = 0;
                  state.revision>=0 && trc_iter_objects(state.trace, (trc_obj_type_t)i, &j, state.revision, (const void**)&rev);) {
-                if (i!=TrcContext && (cur_context==NULL||rev->namespace_!=cur_context->namespace))
-                    continue;
+                if (i != TrcContext) {
+                    if (!cur_context) continue;
+                    if (rev->namespace_ == cur_context->namespace)
+                        ;
+                    else if (rev->namespace_ == cur_context->priv_ns)
+                        ;
+                    else
+                        continue;
+                }
                 
                 char str[64] = {0};
                 fmt_object_id(str, 64, rev);

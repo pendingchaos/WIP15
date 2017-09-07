@@ -8,32 +8,33 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
                                    const trc_obj_rev_head_t** rev, uint64_t* real, const testing_property_t** properties) {
     //This code would usually be done before the call, but that is not the case for wip15* functions
     trc_obj_t* cur_ctx = trc_get_current_gl_context(ctx->trace, -1);
-    if (!cur_ctx) {
+    if (!cur_ctx && objType!=0) {
         fprintf(stderr, "No context bound at wip15Expect...");
         return NULL;
     }
-    trc_namespace_t* namespace = ((const trc_gl_context_rev_t*)trc_obj_get_rev(cur_ctx, -1))->namespace;
+    const trc_gl_context_rev_t* ctx_rev = trc_obj_get_rev(cur_ctx, -1);
     
     *properties = get_object_type_properties(objType);
     switch (objType) {
-    #define O(val, name)\
+    #define O(val, name, type, namespace)\
     case val: {\
-        const trc_gl_##name##_rev_t* obj_rev = get_##name(namespace, objName);\
+        const trc_gl_##name##_rev_t* obj_rev;\
+        obj_rev = trc_obj_get_rev(trc_lookup_name(ctx_rev->namespace, type, objName, -1), -1);\
         *rev = &obj_rev->head;\
         *real = obj_rev ? obj_rev->real : 0;\
         break;\
     }
-    O(GL_BUFFER, buffer)
-    O(GL_SHADER, shader)
-    O(GL_PROGRAM, program)
-    O(GL_VERTEX_ARRAY, vao)
-    O(GL_QUERY, query)
-    O(GL_PROGRAM_PIPELINE, program_pipeline)
-    O(GL_TRANSFORM_FEEDBACK, transform_feedback)
-    O(GL_SAMPLER, sampler)
-    O(GL_TEXTURE, texture)
-    O(GL_RENDERBUFFER, renderbuffer)
-    O(GL_FRAMEBUFFER, framebuffer)
+    O(GL_BUFFER, buffer, TrcBuffer, namespace)
+    O(GL_SHADER, shader, TrcShader, namespace)
+    O(GL_PROGRAM, program, TrcProgram, namespace)
+    O(GL_VERTEX_ARRAY, vao, TrcVAO, priv_ns)
+    O(GL_QUERY, query, TrcQuery, namespace)
+    O(GL_PROGRAM_PIPELINE, program_pipeline, TrcProgramPipeline, priv_ns)
+    O(GL_TRANSFORM_FEEDBACK, transform_feedback, TrcTransformFeedback, priv_ns)
+    O(GL_SAMPLER, sampler, TrcSampler, namespace)
+    O(GL_TEXTURE, texture, TrcTexture, namespace)
+    O(GL_RENDERBUFFER, renderbuffer, TrcRenderbuffer, namespace)
+    O(GL_FRAMEBUFFER, framebuffer, TrcFramebuffer, priv_ns)
     case 0: {
         const trc_gl_context_rev_t* obj_rev = trc_get_context(ctx->trace);
         *rev = &obj_rev->head;
@@ -252,8 +253,17 @@ void conv_from_signed_norm_array_i32(trace_t* trace, size_t count, double* dest,
         dest[i] = conv_from_signed_norm(ver, src[i], bits);
 }
 
-static void delete_obj(trc_namespace_t* ns, uint64_t fake, trc_obj_type_t type) {
+static void delete_obj(trc_replay_context_t* ctx, uint64_t fake, trc_obj_type_t type) {
     if (!fake) return;
+    trc_namespace_t* ns;
+    switch (type) {
+    case TrcFramebuffer:
+    case TrcProgramPipeline:
+    case TrcVAO:
+    case TrcTransformFeedback: ns = ctx->priv_ns; break;
+    case TrcContext: ns = &ctx->trace->inspection.global_namespace; break;
+    default: ns = ctx->ns; break;
+    }
     trc_obj_t* obj = trc_lookup_name(ns, type, fake, -1);
     if (!obj) return;
     trc_drop_obj(obj);
@@ -929,11 +939,11 @@ static bool tex_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint t
                        GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size) {
     const trc_gl_texture_rev_t* rev = NULL;
     if (!dsa) rev = replay_get_bound_tex(ctx, tex_or_target);
-    else rev = get_texture(ctx->ns, tex_or_target);
+    else rev = get_texture(ctx, tex_or_target);
     if (!rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!rev->has_object) ERROR2(false, "Texture name has no object");
     
-    const trc_gl_buffer_rev_t* buffer_rev = buffer ? get_buffer(ctx->ns, buffer) : NULL;
+    const trc_gl_buffer_rev_t* buffer_rev = buffer ? get_buffer(ctx, buffer) : NULL;
     if (!buffer_rev && buffer) ERROR2(false, "Invalid buffer name");
     if (buffer && !buffer_rev->has_object) ERROR2(false, "Buffer name has no object");
     if (offset<0 || size<=0 || offset+size>buffer_rev->data.size) ERROR2(false, "Invalid range");
@@ -1059,7 +1069,7 @@ static void replay_update_renderbuffer(trc_replay_context_t* ctx, const trc_gl_r
 static bool texture_param_double(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                  GLuint tex_or_target, GLenum param, uint32_t count, const double* val) {
     const trc_gl_texture_rev_t* rev = NULL;
-    if (dsa) rev = get_texture(ctx->ns, tex_or_target);
+    if (dsa) rev = get_texture(ctx, tex_or_target);
     else rev = replay_get_bound_tex(ctx, tex_or_target);
     if (!rev) ERROR2(true, dsa?"Invalid texture name":"No texture bound to target");
     if (!rev->has_object) ERROR2(true, "Texture name has no object");
@@ -1221,7 +1231,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                    bool array, uint dimx, uint dimy, GLenum type, uint* realprogram) {
     uint arg_pos = 0;
     const trc_gl_program_rev_t* rev;
-    if (dsa) rev = get_program(ctx->ns, gl_param_GLuint(cmd, arg_pos++));
+    if (dsa) rev = get_program(ctx, gl_param_GLuint(cmd, arg_pos++));
     else rev = trc_obj_get_rev(get_active_program(ctx), -1);
     if (!rev) ERROR2(-1, dsa?"Invalid program":"No active program");
     if (realprogram) *realprogram = rev->real;
@@ -1335,7 +1345,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
 static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
     //TODO: Don't use glGetProgramiv to get the link status
     GLuint fake = gl_param_GLuint(cmd, 0);
-    GLuint real_program = get_real_program(ctx->ns, fake);
+    GLuint real_program = get_real_program(ctx, fake);
     if (!real_program) ERROR2(, "No such program.");
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
@@ -1452,7 +1462,7 @@ static void update_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum
         F(glGetQueryObjectui64v)(id, GL_QUERY_RESULT, &res);
     }
     
-    trc_gl_query_rev_t query = *get_query(ctx->ns, fake_id);
+    trc_gl_query_rev_t query = *get_query(ctx, fake_id);
     query.result = res;
     set_query(&query);
 }
@@ -1877,7 +1887,7 @@ static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLui
     rev.draw_buffers = empty_data;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        trc_create_named_obj(ctx->ns, TrcFramebuffer, fake[i], &rev);
+        trc_create_named_obj(ctx->priv_ns, TrcFramebuffer, fake[i], &rev);
     }
 }
 
@@ -1948,7 +1958,7 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
     trc_unmap_data(rev.attribs);
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        trc_create_named_obj(ctx->ns, TrcVAO, fake[i], &rev);
+        trc_create_named_obj(ctx->priv_ns, TrcVAO, fake[i], &rev);
     }
 }
 
@@ -1963,7 +1973,7 @@ static void gen_transform_feedbacks(trc_replay_context_t* ctx, size_t count, con
     rev.active_not_paused = false;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
-        trc_create_named_obj(ctx->ns, TrcTransformFeedback, fake[i], &rev);
+        trc_create_named_obj(ctx->priv_ns, TrcTransformFeedback, fake[i], &rev);
     }
 }
 
@@ -2038,7 +2048,7 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
 }
 
 static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint fake, GLenum access) {
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, fake);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
@@ -2077,7 +2087,7 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     //TODO:
     //Make sure the access is valid with the buffer's storage flags
     
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, fake);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
@@ -2097,7 +2107,7 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
 
 static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa, GLuint target_or_buf) {
     const trc_gl_buffer_rev_t* rev;
-    if (dsa) rev = get_buffer(ctx->ns, target_or_buf);
+    if (dsa) rev = get_buffer(ctx, target_or_buf);
     else rev = trc_obj_get_rev(get_bound_buffer(ctx, target_or_buf), -1);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->mapped) ERROR2(, "Buffer is not mapped");
@@ -2147,7 +2157,7 @@ static void unmap_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool d
 static bool flush_mapped_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                                       GLenum target_or_buf, GLintptr offset, GLsizeiptr length) {
     const trc_gl_buffer_rev_t* rev;
-    if (dsa) rev = get_buffer(ctx->ns, target_or_buf);
+    if (dsa) rev = get_buffer(ctx, target_or_buf);
     else rev = trc_obj_get_rev(get_bound_buffer(ctx, target_or_buf), -1);
     if (!rev) ERROR2(false, "No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
@@ -2187,7 +2197,7 @@ static bool begin_query(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum 
     if (trc_gl_state_get_bound_queries(ctx->trace, target, index))
         ERROR2(false, "Query is already active at target");
     
-    const trc_gl_query_rev_t* rev = get_query(ctx->ns, id);
+    const trc_gl_query_rev_t* rev = get_query(ctx, id);
     if (!rev) ERROR2(false, "Invalid query name");
     if (rev->active_index != -1) ERROR2(false, "Query is already active");
     if (rev->has_object && rev->type!=target)
@@ -2230,7 +2240,7 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     va_end(list);
     
     const trc_gl_texture_rev_t* tex_rev;
-    if (dsa) tex_rev = get_texture(ctx->ns, tex_or_target);
+    if (dsa) tex_rev = get_texture(ctx, tex_or_target);
     else tex_rev = replay_get_bound_tex(ctx, tex_or_target);
     if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
@@ -2305,7 +2315,7 @@ static void on_activate_tf(trc_replay_context_t* ctx, trace_command_t* cmd) {
 }
 
 static void bind_buffer(trc_replay_context_t* ctx, GLenum target, GLuint buffer) {
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, buffer);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, buffer);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -2326,7 +2336,7 @@ static void bind_buffer(trc_replay_context_t* ctx, GLenum target, GLuint buffer)
 }
 
 static void bind_buffer_indexed_ranged(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer, uint64_t offset, uint64_t size) {
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, buffer);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, buffer);
     if (target == GL_TRANSFORM_FEEDBACK_BUFFER)
         rev = on_change_tf_binding(ctx, trc_gl_state_get_bound_buffer_indexed(ctx->trace, target, index).buf.obj, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
@@ -2471,6 +2481,7 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     rev.real = res;
     if (shareList) rev.namespace = shareList->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
+    rev.priv_ns = trc_create_namespace(ctx->trace);
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
@@ -2555,6 +2566,7 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     rev.real = res;
     if (share_ctx) rev.namespace = share_ctx->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
+    rev.priv_ns = trc_create_namespace(ctx->trace);
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
@@ -2582,7 +2594,7 @@ glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
     
     SDL_GL_DeleteContext(glctx);
     
-    delete_obj(global_ns, p_ctx, TrcContext);
+    delete_obj(ctx, p_ctx, TrcContext);
 
 glXSwapBuffers: //Display* p_dpy, GLXDrawable p_drawable
     if (!trc_get_current_gl_context(ctx->trace, -1)) ERROR("No current OpenGL context");
@@ -2621,10 +2633,10 @@ glCreateTextures: //GLenum p_target, GLsizei p_n, GLuint* p_textures
 glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     GLuint* textures = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i)
-        if (!(textures[i] = get_real_texture(ctx->ns, p_textures[i])) && p_textures[i]) {
+        if (!(textures[i] = get_real_texture(ctx, p_textures[i])) && p_textures[i]) {
             trc_add_warning(cmd, "Invalid texture name");
         } else {
-            trc_obj_t* obj = get_texture(ctx->ns, p_textures[i])->head.obj;
+            trc_obj_t* obj = get_texture(ctx, p_textures[i])->head.obj;
             
             //Reset targets
             GLenum targets[11] = {
@@ -2641,7 +2653,7 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
             
             //TODO: Remove from framebuffers?
             
-            delete_obj(ctx->ns, p_textures[i], TrcTexture);
+            delete_obj(ctx, p_textures[i], TrcTexture);
         }
     real(p_n, textures);
 
@@ -2652,7 +2664,7 @@ glActiveTexture: //GLenum p_texture
     real(p_texture);
 
 glBindTexture: //GLenum p_target, GLuint p_texture
-    const trc_gl_texture_rev_t* rev = get_texture(ctx->ns, p_texture);
+    const trc_gl_texture_rev_t* rev = get_texture(ctx, p_texture);
     if (!rev && p_texture) ERROR("Invalid texture name");
     real(p_target, p_texture?rev->real:0);
     if (rev && !rev->has_object) {
@@ -2696,7 +2708,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
     GLuint* real_tex = replay_alloc(p_count*sizeof(GLuint));
     //TODO: This probably creates a new trc_data_t for each texture
     for (size_t i = p_first; i < p_first+p_count; i++) {
-        const trc_gl_texture_rev_t* rev = get_texture(ctx->ns, p_textures[i]);
+        const trc_gl_texture_rev_t* rev = get_texture(ctx, p_textures[i]);
         if (!rev) ERROR("Invalid texture name at index %zu", i);
         if (!rev->has_object) ERROR("Texture name at index %zu has no object", i);
         real_tex[i] = rev->real;
@@ -2937,10 +2949,10 @@ glCreateBuffers: //GLsizei p_n, GLuint* p_buffers
 glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(buffers[i] = get_real_buffer(ctx->ns, p_buffers[i])) && p_buffers[i])
+        if (!(buffers[i] = get_real_buffer(ctx, p_buffers[i])) && p_buffers[i])
             trc_add_warning(cmd, "Invalid buffer name");
         else {
-            trc_obj_t* obj = get_buffer(ctx->ns, p_buffers[i])->head.obj;
+            trc_obj_t* obj = get_buffer(ctx, p_buffers[i])->head.obj;
             
             //Reset targets
             GLenum targets[13] = {
@@ -2965,7 +2977,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
                 }
             }
             
-            delete_obj(ctx->ns, p_buffers[i], TrcBuffer);
+            delete_obj(ctx, p_buffers[i], TrcBuffer);
         }
     }
     real(p_n, buffers);
@@ -2973,7 +2985,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
 glBindBuffer: //GLenum p_target, GLuint p_buffer
     if (get_current_tf(ctx)->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, rev?rev->real:0);
     bind_buffer(ctx, p_target, p_buffer);
@@ -2983,7 +2995,7 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
         ERROR("Invalid index");
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, p_index, p_buffer?rev->real:0);
     bind_buffer(ctx, p_target, p_buffer);
@@ -2994,7 +3006,7 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
         ERROR("Invalid index");
-    const trc_gl_buffer_rev_t* rev = get_buffer(ctx->ns, p_buffer);
+    const trc_gl_buffer_rev_t* rev = get_buffer(ctx, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     if (rev && (p_size<=0 || p_offset+p_size>rev->data.size))
         ERROR("Invalid range");
@@ -3072,15 +3084,15 @@ glCreateShader: //GLenum p_type
 
 glDeleteShader: //GLuint p_shader
     if (p_shader == 0) RETURN;
-    GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
+    GLuint real_shdr = get_real_shader(ctx, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
     
     real(real_shdr);
     
-    delete_obj(ctx->ns, p_shader, TrcShader);
+    delete_obj(ctx, p_shader, TrcShader);
 
 glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string, const GLint* p_length
-    GLuint shader = get_real_shader(ctx->ns, p_shader);
+    GLuint shader = get_real_shader(ctx, p_shader);
     if (!shader) ERROR("Invalid shader name");
     
     size_t res_sources_size = 0;
@@ -3104,19 +3116,19 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
         }
     }
     
-    trc_gl_shader_rev_t shdr = *get_shader(ctx->ns, p_shader);
+    trc_gl_shader_rev_t shdr = *get_shader(ctx, p_shader);
     
     shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, TRC_DATA_IMMUTABLE);
     
     set_shader(&shdr);
 
 glCompileShader: //GLuint p_shader
-    GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
+    GLuint real_shdr = get_real_shader(ctx, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
     
     real(real_shdr);
     
-    trc_gl_shader_rev_t shdr = *get_shader(ctx->ns, p_shader);
+    trc_gl_shader_rev_t shdr = *get_shader(ctx, p_shader);
     
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
@@ -3152,7 +3164,7 @@ glCreateProgram: //
 
 glDeleteProgram: //GLuint p_program
     if (p_program == 0) RETURN;
-    trc_gl_program_rev_t rev = *get_program(ctx->ns, p_program);
+    trc_gl_program_rev_t rev = *get_program(ctx, p_program);
     if (!rev.real) ERROR("Invalid program name");
     real(rev.real);
     
@@ -3165,7 +3177,7 @@ glDeleteProgram: //GLuint p_program
     rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
     set_program(&rev);
     
-    delete_obj(ctx->ns, p_program, TrcProgram);
+    delete_obj(ctx, p_program, TrcProgram);
 
 glProgramParameteri: //GLuint p_program, GLenum p_pname, GLint p_value
     if (!p_program_rev) ERROR("Invalid program name");
@@ -3178,7 +3190,7 @@ glProgramParameteri: //GLuint p_program, GLenum p_pname, GLint p_value
     real(p_program, p_pname, p_value);
 
 glAttachShader: //GLuint p_program, GLuint p_shader
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     
     const trc_gl_shader_rev_t* shader_rev = trc_obj_get_rev(trc_lookup_name(ctx->ns, TrcShader, p_shader, -1), -1);
@@ -3186,9 +3198,9 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     
     real(real_program, shader_rev->real);
     
-    trc_gl_program_rev_t program = *get_program(ctx->ns, p_program);
+    trc_gl_program_rev_t program = *get_program(ctx, p_program);
     trc_gl_program_rev_t old = program;
-    const trc_gl_shader_rev_t* shader = get_shader(ctx->ns, p_shader);
+    const trc_gl_shader_rev_t* shader = get_shader(ctx, p_shader);
     
     size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
@@ -3211,15 +3223,15 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     set_program(&program);
 
 glDetachShader: //GLuint p_program, GLuint p_shader
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     
-    const trc_gl_shader_rev_t* shader_rev = get_shader(ctx->ns, p_shader);
+    const trc_gl_shader_rev_t* shader_rev = get_shader(ctx, p_shader);
     if (!shader_rev) ERROR("Invalid shader name");
     
     real(real_program, shader_rev->real);
     
-    trc_gl_program_rev_t program = *get_program(ctx->ns, p_program);
+    trc_gl_program_rev_t program = *get_program(ctx, p_program);
     trc_gl_program_rev_t old = program;
     
     size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
@@ -3668,12 +3680,12 @@ glLinkProgram: //GLuint p_program
     set_program(&rev);
 
 glValidateProgram: //GLuint p_program
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     
     real(real_program);
     
-    trc_gl_program_rev_t rev = *get_program(ctx->ns, p_program);
+    trc_gl_program_rev_t rev = *get_program(ctx, p_program);
     
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
@@ -3688,7 +3700,7 @@ glValidateProgram: //GLuint p_program
     if (!status) ERROR("Program validation failed");
 
 glUseProgram: //GLuint p_program
-    const trc_gl_program_rev_t* program_rev = get_program(ctx->ns, p_program);
+    const trc_gl_program_rev_t* program_rev = get_program(ctx, p_program);
     if (!program_rev && p_program) ERROR("Invalid program name");
     if (get_current_tf(ctx)->active_not_paused)
         ERROR("The program binding cannot be modified while transform feedback is active and unpaused");
@@ -3712,19 +3724,19 @@ glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
         rev.tess_control_program = (trc_obj_ref_t){NULL};
         rev.tess_eval_program = (trc_obj_ref_t){NULL};
         rev.compute_program = (trc_obj_ref_t){NULL};
-        trc_create_named_obj(ctx->ns, TrcProgramPipeline, p_pipelines[i], &rev);
+        trc_create_named_obj(ctx->priv_ns, TrcProgramPipeline, p_pipelines[i], &rev);
     }
 
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        if (!(pipelines[i] = get_real_program_pipeline(ctx->ns, p_pipelines[i])) && p_pipelines[i]) {
+        if (!(pipelines[i] = get_real_program_pipeline(ctx, p_pipelines[i])) && p_pipelines[i]) {
             trc_add_warning(cmd, "Invalid program pipeline name");
         } else {
-            trc_obj_t* obj = get_program_pipeline(ctx->ns, p_pipelines[i])->head.obj;
+            trc_obj_t* obj = get_program_pipeline(ctx, p_pipelines[i])->head.obj;
             if (trc_gl_state_get_bound_pipeline(ctx->trace) == obj)
                 trc_gl_state_set_bound_pipeline(ctx->trace, NULL);
-            delete_obj(ctx->ns, p_pipelines[i], TrcProgramPipeline);
+            delete_obj(ctx, p_pipelines[i], TrcProgramPipeline);
         }
     }
     real(p_n, pipelines);
@@ -3830,57 +3842,57 @@ glTransformFeedbackVaryings: //GLuint p_program, GLsizei p_count, const GLchar*c
     //TODO: Store this in the program object
 
 glBindAttribLocation: //GLuint p_program, GLuint p_index, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     real(real_program, p_index, p_name);
 
 glGetAttribLocation: //GLuint p_program, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     real(real_program, p_name);
 
 glGetUniformLocation: //GLuint p_program, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     real(real_program, p_name);
 
 glGetShaderiv: //GLuint p_shader, GLenum p_pname, GLint* p_params
-    GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
+    GLuint real_shdr = get_real_shader(ctx, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
 
 glGetShaderInfoLog: //GLuint p_shader, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_infoLog
-    GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
+    GLuint real_shdr = get_real_shader(ctx, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
 
 glGetShaderSource: //GLuint p_shader, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_source
-    GLuint real_shdr = get_real_shader(ctx->ns, p_shader);
+    GLuint real_shdr = get_real_shader(ctx, p_shader);
     if (!real_shdr) ERROR("Invalid shader name");
 
 glGetQueryiv: //GLenum p_target, GLenum p_pname, GLint* p_params
     ; //TODO: Validation
 
 glGetQueryObjectiv: //GLuint p_id, GLenum p_pname, GLint* p_params
-    GLuint real_query = get_real_query(ctx->ns, p_id);
+    GLuint real_query = get_real_query(ctx, p_id);
     if (!real_query) ERROR("Invalid query name");
 
 glGetQueryObjectuiv: //GLuint p_id, GLenum p_pname, GLuint* p_params
-    GLuint real_query = get_real_query(ctx->ns, p_id);
+    GLuint real_query = get_real_query(ctx, p_id);
     if (!real_query) ERROR("Invalid query name");
 
 glGetQueryObjecti64v: //GLuint p_id, GLenum p_pname, GLint64* p_params
-    GLuint real_query = get_real_query(ctx->ns, p_id);
+    GLuint real_query = get_real_query(ctx, p_id);
     if (!real_query) ERROR("Invalid query name");
 
 glGetQueryObjectui64v: //GLuint p_id, GLenum p_pname, GLuint64* p_params
-    GLuint real_query = get_real_query(ctx->ns, p_id);
+    GLuint real_query = get_real_query(ctx, p_id);
     if (!real_query) ERROR("Invalid query name");
 
 glGetProgramInfoLog: //GLuint p_program, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_infoLog
-    GLuint real_prog = get_real_program(ctx->ns, p_program);
+    GLuint real_prog = get_real_program(ctx, p_program);
     if (!real_prog) ERROR("Invalid program name");
 
 glGetProgramiv: //GLuint p_program, GLenum p_pname, GLint* p_params
-    GLuint real_prog = get_real_program(ctx->ns, p_program);
+    GLuint real_prog = get_real_program(ctx, p_program);
     if (!real_prog) ERROR("Invalid program name");
 
 glGetFramebufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
@@ -3899,29 +3911,29 @@ glGetNamedFramebufferParameteriv: //GLuint p_framebuffer, GLenum p_pname, GLint 
 
 glGetObjectLabel: //GLenum p_identifier, GLuint p_name, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_label
     if (p_bufSize < 0) ERROR("Invalid buffer size");
-    #define A(gf, t) {\
-        const t* rev = gf(ctx->ns, p_name);\
+    #define A(gf, t, namespace) {\
+        const t* rev = gf(ctx, p_name);\
         if (!rev) ERROR("Invalid object name");\
         if (!rev->has_object) ERROR("Name has no object");\
         break;\
     }
-    #define B(gf, t) {\
-        const t* rev = gf(ctx->ns, p_name);\
+    #define B(gf, t, namespace) {\
+        const t* rev = gf(ctx, p_name);\
         if (!rev) ERROR("Invalid object name");\
         break;\
     }
     switch (p_identifier) {
-    case GL_BUFFER: A(get_buffer, trc_gl_buffer_rev_t)
-    case GL_SHADER: B(get_shader, trc_gl_shader_rev_t)
-    case GL_PROGRAM: B(get_program, trc_gl_program_rev_t)
-    case GL_VERTEX_ARRAY: A(get_vao, trc_gl_vao_rev_t)
-    case GL_QUERY: A(get_query, trc_gl_query_rev_t)
-    case GL_PROGRAM_PIPELINE: A(get_program_pipeline, trc_gl_program_pipeline_rev_t)
-    case GL_TRANSFORM_FEEDBACK: A(get_transform_feedback, trc_gl_transform_feedback_rev_t)
-    case GL_SAMPLER: B(get_sampler, trc_gl_sampler_rev_t)
-    case GL_TEXTURE: A(get_texture, trc_gl_texture_rev_t)
-    case GL_RENDERBUFFER: A(get_renderbuffer, trc_gl_renderbuffer_rev_t)
-    case GL_FRAMEBUFFER: A(get_framebuffer, trc_gl_framebuffer_rev_t)
+    case GL_BUFFER: A(get_buffer, trc_gl_buffer_rev_t, ns)
+    case GL_SHADER: B(get_shader, trc_gl_shader_rev_t, ns)
+    case GL_PROGRAM: B(get_program, trc_gl_program_rev_t, ns)
+    case GL_VERTEX_ARRAY: A(get_vao, trc_gl_vao_rev_t, priv_ns)
+    case GL_QUERY: A(get_query, trc_gl_query_rev_t, ns)
+    case GL_PROGRAM_PIPELINE: A(get_program_pipeline, trc_gl_program_pipeline_rev_t, priv_ns)
+    case GL_TRANSFORM_FEEDBACK: A(get_transform_feedback, trc_gl_transform_feedback_rev_t, priv_ns)
+    case GL_SAMPLER: B(get_sampler, trc_gl_sampler_rev_t, ns)
+    case GL_TEXTURE: A(get_texture, trc_gl_texture_rev_t, ns)
+    case GL_RENDERBUFFER: A(get_renderbuffer, trc_gl_renderbuffer_rev_t, ns)
+    case GL_FRAMEBUFFER: A(get_framebuffer, trc_gl_framebuffer_rev_t, priv_ns)
     }
     #undef B
     #undef A
@@ -4081,10 +4093,10 @@ glGetAttachedShaders: //GLuint p_program, GLsizei p_maxCount, GLsizei* p_count, 
     ;
 
 glGetActiveUniform: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
-    if (!get_real_program(ctx->ns, p_program)) ERROR("Invalid program name");
+    if (!get_real_program(ctx, p_program)) ERROR("Invalid program name");
 
 glGetActiveAttrib: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
-    if (!get_real_program(ctx->ns, p_program)) ERROR("Invalid program name");
+    if (!get_real_program(ctx, p_program)) ERROR("Invalid program name");
 
 glGetBooleanv: //GLenum p_pname, GLboolean* p_data
     ;
@@ -4120,23 +4132,23 @@ glReadPixels: //GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height, GLenum 
     ;
 
 glGetSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, GLfloat* p_params
-    if (!get_real_sampler(ctx->ns, p_sampler))
+    if (!get_real_sampler(ctx, p_sampler))
         ERROR("Invalid sampler name");
 
 glGetSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, GLint* p_params
-    if (!get_real_sampler(ctx->ns, p_sampler))
+    if (!get_real_sampler(ctx, p_sampler))
         ERROR("Invalid sampler name");
 
 glGetSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, GLint* p_params
-    if (!get_real_sampler(ctx->ns, p_sampler))
+    if (!get_real_sampler(ctx, p_sampler))
         ERROR("Invalid sampler name");
 
 glGetSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, GLuint* p_params
-    if (!get_real_sampler(ctx->ns, p_sampler))
+    if (!get_real_sampler(ctx, p_sampler))
         ERROR("Invalid sampler name");
 
 glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_uniformBlockBinding
-    const trc_gl_program_rev_t* rev_ptr = get_program(ctx->ns, p_program);
+    const trc_gl_program_rev_t* rev_ptr = get_program(ctx, p_program);
     if (!rev_ptr) ERROR("Invalid program name");
     trc_gl_program_rev_t rev = *rev_ptr;
     if (p_uniformBlockBinding >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, 0))
@@ -4956,7 +4968,7 @@ glVertexAttribP4uiv: //GLuint p_index, GLenum p_type, GLboolean p_normalized, GL
     vertex_attrib_packed(ctx, cmd, p_index, p_type, 4, p_normalized, *p_value);
 
 glBeginConditionalRender: //GLuint p_id, GLenum p_mode
-    uint real_id = get_real_query(ctx->ns, p_id);
+    uint real_id = get_real_query(ctx, p_id);
     if (!real_id) ERROR("Invalid query name");
     real(real_id, p_mode);
 
@@ -5090,18 +5102,18 @@ glCreateVertexArrays: //GLsizei p_n, GLuint* p_arrays
 glDeleteVertexArrays: //GLsizei p_n, const GLuint* p_arrays
     GLuint* arrays = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        trc_obj_t* vao = trc_lookup_name(ctx->ns, TrcVAO, p_arrays[i], -1);
+        trc_obj_t* vao = trc_lookup_name(ctx->priv_ns, TrcVAO, p_arrays[i], -1);
         if (vao && vao==trc_gl_state_get_bound_vao(ctx->trace))
             trc_gl_state_set_bound_vao(ctx->trace, 0);
-        if (!(arrays[i]=get_real_vao(ctx->ns, p_arrays[i])) && p_arrays[i])
+        if (!(arrays[i]=get_real_vao(ctx, p_arrays[i])) && p_arrays[i])
             trc_add_warning(cmd, "Invalid vertex array name");
         else
-            delete_obj(ctx->ns, p_arrays[i], TrcVAO);
+            delete_obj(ctx, p_arrays[i], TrcVAO);
     }
     real(p_n, arrays);
 
 glBindVertexArray: //GLuint p_array
-    const trc_gl_vao_rev_t* rev = get_vao(ctx->ns, p_array);
+    const trc_gl_vao_rev_t* rev = get_vao(ctx, p_array);
     if (!rev && p_array) ERROR("Invalid vertex array name");
     if (rev && !rev->has_object) {
         trc_gl_vao_rev_t newrev = *rev;
@@ -5111,19 +5123,19 @@ glBindVertexArray: //GLuint p_array
     trc_gl_state_set_bound_vao(ctx->trace, rev?rev->head.obj:NULL);
 
 glGetFragDataIndex: //GLuint p_program, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
 
 glGetFragDataLocation: //GLuint p_program, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
 
 glGetUniformBlockIndex: //GLuint p_program, const GLchar* p_uniformBlockName
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
 
 glGetUniformIndices: //GLuint p_program, GLsizei p_uniformCount, const GLchar  *const* p_uniformNames, GLuint* p_uniformIndices
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
 
 glGetUniformfv: //GLuint p_program, GLint p_location, GLfloat* p_params
@@ -5182,23 +5194,23 @@ glCreateSamplers: //GLsizei p_n, GLuint* p_samplers
 glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; ++i) {
-        if (!(samplers[i] = get_real_sampler(ctx->ns, p_samplers[i])) && p_samplers[i]) {
+        if (!(samplers[i] = get_real_sampler(ctx, p_samplers[i])) && p_samplers[i]) {
             trc_add_warning(cmd, "Invalid sampler name");
         } else {
-            trc_obj_t* obj = get_sampler(ctx->ns, p_samplers[i])->head.obj;
+            trc_obj_t* obj = get_sampler(ctx, p_samplers[i])->head.obj;
             for (size_t i = 0; i < trc_gl_state_get_bound_samplers_size(ctx->trace); i++) {
                 if (trc_gl_state_get_bound_samplers(ctx->trace, i) == obj)
                     trc_gl_state_set_bound_samplers(ctx->trace, i, NULL);
             }
             
-            delete_obj(ctx->ns, p_samplers[i], TrcSampler);
+            delete_obj(ctx, p_samplers[i], TrcSampler);
         }
     }
     
     real(p_count, samplers);
 
 glBindSampler: //GLuint p_unit, GLuint p_sampler
-    const trc_gl_sampler_rev_t* rev = get_sampler(ctx->ns, p_sampler);
+    const trc_gl_sampler_rev_t* rev = get_sampler(ctx, p_sampler);
     if (!rev && p_sampler) ERROR("Invalid sampler name");
     real(p_unit, p_sampler?rev->real:0);
     trc_gl_state_set_bound_samplers(ctx->trace, p_unit, rev?rev->head.obj:NULL);
@@ -5208,7 +5220,7 @@ glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
         ERROR("Invalid range");
     GLuint* real_samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; i++) {
-        const trc_gl_sampler_rev_t* rev = get_sampler(ctx->ns, p_samplers[i]);
+        const trc_gl_sampler_rev_t* rev = get_sampler(ctx, p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
         real_samplers[i] = rev->real;
         trc_gl_state_set_bound_samplers(ctx->trace, p_first+i, rev?rev->head.obj:NULL);
@@ -5216,7 +5228,7 @@ glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
     real(p_first, p_count, real_samplers);
 
 glGetSynciv: //GLsync p_sync, GLenum p_pname, GLsizei p_bufSize, GLsizei* p_length, GLint* p_values
-    if (!get_real_sync(ctx->ns, p_sync)) ERROR("Invalid sync name");
+    if (!get_real_sync(ctx, p_sync)) ERROR("Invalid sync name");
     //TODO: More validation should be done
 
 glSamplerParameterf: //GLuint p_sampler, GLenum p_pname, GLfloat p_param
@@ -5293,21 +5305,21 @@ glCreateFramebuffers: //GLsizei p_n, GLuint* p_framebuffers
 glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
-        trc_obj_t* fb = trc_lookup_name(ctx->ns, TrcFramebuffer, p_framebuffers[i], -1);
+        trc_obj_t* fb = trc_lookup_name(ctx->priv_ns, TrcFramebuffer, p_framebuffers[i], -1);
         if (fb && fb==trc_gl_state_get_read_framebuffer(ctx->trace))
             trc_gl_state_set_read_framebuffer(ctx->trace, NULL);
         if (fb && fb==trc_gl_state_get_draw_framebuffer(ctx->trace))
             trc_gl_state_set_draw_framebuffer(ctx->trace, NULL);
-        if (!(fbs[i] = get_real_framebuffer(ctx->ns, p_framebuffers[i])) && p_framebuffers[i]) {
+        if (!(fbs[i] = get_real_framebuffer(ctx, p_framebuffers[i])) && p_framebuffers[i]) {
             trc_add_warning(cmd, "Invalid framebuffer name");
         } else {
-            delete_obj(ctx->ns, p_framebuffers[i], TrcFramebuffer);
+            delete_obj(ctx, p_framebuffers[i], TrcFramebuffer);
         }
     }
     real(p_n, fbs);
 
 glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
-    const trc_gl_framebuffer_rev_t* rev = get_framebuffer(ctx->ns, p_framebuffer);
+    const trc_gl_framebuffer_rev_t* rev = get_framebuffer(ctx, p_framebuffer);
     if (!rev && p_framebuffer) ERROR("Invalid framebuffer name");
     real(p_target, p_framebuffer?rev->real:0);
     
@@ -5347,15 +5359,15 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
             trc_gl_state_set_bound_renderbuffer(ctx->trace, NULL);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
-        if (!(rbs[i] = get_real_renderbuffer(ctx->ns, p_renderbuffers[i])) && p_renderbuffers[i])
+        if (!(rbs[i] = get_real_renderbuffer(ctx, p_renderbuffers[i])) && p_renderbuffers[i])
             trc_add_warning(cmd, "Invalid renderbuffer name");
-        else delete_obj(ctx->ns, p_renderbuffers[i], TrcRenderbuffer);
+        else delete_obj(ctx, p_renderbuffers[i], TrcRenderbuffer);
     }
     
     real(p_n, rbs);
 
 glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
-    const trc_gl_renderbuffer_rev_t* rev = get_renderbuffer(ctx->ns, p_renderbuffer);
+    const trc_gl_renderbuffer_rev_t* rev = get_renderbuffer(ctx, p_renderbuffer);
     if (!rev && p_renderbuffer) ERROR("Invalid renderbuffer name");
     real(p_target, p_renderbuffer?rev->real:0);
     if (rev && !rev->has_object) {
@@ -5366,7 +5378,7 @@ glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
     trc_gl_state_set_bound_renderbuffer(ctx->trace, rev?rev->head.obj:NULL);
 
 glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
-    GLuint program = get_real_program(ctx->ns, p_program);
+    GLuint program = get_real_program(ctx, p_program);
     if (!program) ERROR("Invalid program ");
     
     if (p_pname == GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES) {
@@ -5382,19 +5394,19 @@ glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenu
     }
 
 glGetActiveUniformBlockName: //GLuint p_program, GLuint p_uniformBlockIndex, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_uniformBlockName
-    GLuint program = get_real_program(ctx->ns, p_program);
+    GLuint program = get_real_program(ctx, p_program);
     if (!program) ERROR("Invalid program name");
     GLchar buf[64];
     real(program, p_uniformBlockIndex, 64, NULL, buf);
 
 glGetActiveUniformName: //GLuint p_program, GLuint p_uniformIndex, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_uniformName
-    GLuint program = get_real_program(ctx->ns, p_program);
+    GLuint program = get_real_program(ctx, p_program);
     if (!program) ERROR("Invalid program name");
     GLchar buf[64];
     real(program, p_uniformIndex, 64, NULL, buf);
 
 glGetActiveUniformsiv: //GLuint p_program, GLsizei p_uniformCount, const GLuint* p_uniformIndices, GLenum p_pname, GLint* p_params
-    GLuint program = get_real_program(ctx->ns, p_program);
+    GLuint program = get_real_program(ctx, p_program);
     if (!program) ERROR("Invalid program name");
     GLint* params = replay_alloc(p_uniformCount*sizeof(GLint));
     real(program, p_uniformCount, p_uniformIndices, p_pname, params);
@@ -5418,7 +5430,7 @@ glFramebufferRenderbuffer: //GLenum p_target, GLenum p_attachment, GLenum p_rend
         real(p_target, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
 
 glNamedFramebufferRenderbuffer: //GLuint p_framebuffer, GLenum p_attachment, GLenum p_renderbuffertarget, GLuint p_renderbuffer
-    trc_obj_t* fb = trc_lookup_name(ctx->ns, TrcFramebuffer, p_framebuffer, -1);
+    trc_obj_t* fb = trc_lookup_name(ctx->priv_ns, TrcFramebuffer, p_framebuffer, -1);
     if (add_fb_attachment_rb(ctx, cmd, true, fb, p_attachment, p_renderbuffer, p_renderbuffer_rev))
         real(p_framebuffer_rev->real, p_attachment, p_renderbuffertarget, p_renderbuffer?p_renderbuffer_rev->real:0);
 
@@ -5428,7 +5440,7 @@ glFramebufferTexture: //GLenum p_target, GLenum p_attachment, GLuint p_texture, 
         real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level);
 
 glNamedFramebufferTexture: //GLuint p_framebuffer, GLenum p_attachment, GLuint p_texture, GLint p_level
-    trc_obj_t* fb = trc_lookup_name(ctx->ns, TrcFramebuffer, p_framebuffer, -1);
+    trc_obj_t* fb = trc_lookup_name(ctx->priv_ns, TrcFramebuffer, p_framebuffer, -1);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, 0))
         real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level);
 
@@ -5438,7 +5450,7 @@ glFramebufferTextureLayer: //GLenum p_target, GLenum p_attachment GLuint p_textu
         real(p_target, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
 
 glNamedFramebufferTextureLayer: //GLuint p_framebuffer, GLenum p_attachment GLuint p_texture, GLint p_level, GLint p_layer
-    trc_obj_t* fb = trc_lookup_name(ctx->ns, TrcFramebuffer, p_framebuffer, -1);
+    trc_obj_t* fb = trc_lookup_name(ctx->priv_ns, TrcFramebuffer, p_framebuffer, -1);
     if (add_fb_attachment(ctx, cmd, fb, p_attachment, true, p_texture, p_texture_rev, p_texture_rev?p_texture_rev->type:0, p_level, p_layer))
         real(p_framebuffer_rev->real, p_attachment, p_texture?p_texture_rev->real:0, p_level, p_layer);
 
@@ -5500,7 +5512,7 @@ glFenceSync: //GLenum p_condition, GLbitfield p_flags
 glDeleteSync: //GLsync p_sync
     if (!p_sync_rev && p_sync) ERROR("Invalid sync name");
     real(p_sync?(GLsync)p_sync_rev->real:0);
-    if (p_sync) delete_obj(ctx->ns, p_sync, TrcSync);
+    if (p_sync) delete_obj(ctx, p_sync, TrcSync);
 
 glWaitSync: //GLsync p_sync, GLbitfield p_flags, GLuint64 p_timeout
     if (!p_sync_rev) ERROR("Invalid sync name");
@@ -5527,9 +5539,9 @@ glDeleteQueries: //GLsizei p_n, const GLuint* p_ids
     GLuint* queries = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         //TODO: Handle when queries are in use
-        if (!(queries[i] = get_real_query(ctx->ns, p_ids[i])) && p_ids[i])
+        if (!(queries[i] = get_real_query(ctx, p_ids[i])) && p_ids[i])
             trc_add_warning(cmd, "Invalid query name");
-        else delete_obj(ctx->ns, p_ids[i], TrcQuery);
+        else delete_obj(ctx, p_ids[i], TrcQuery);
     }
     real(p_n, queries);
 
@@ -5548,7 +5560,7 @@ glEndQueryIndexed: //GLenum p_target, GLuint p_index
     if (end_query(ctx, cmd, p_target, p_index)) real(p_target, p_index);
 
 glQueryCounter: //GLuint p_id, GLenum p_target
-    const trc_gl_query_rev_t* rev = get_query(ctx->ns, p_id);
+    const trc_gl_query_rev_t* rev = get_query(ctx, p_id);
     if (!rev) ERROR("Invalid query name");
     
     bool bound = false;
@@ -5651,12 +5663,12 @@ glClearBufferfi: //GLenum p_buffer, GLint p_drawbuffer, GLfloat p_depth, GLint p
     update_drawbuffer(ctx, GL_STENCIL, p_drawbuffer);
 
 glBindFragDataLocation: //GLuint p_program, GLuint p_color, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     real(real_program, p_color, p_name);
 
 glBindFragDataLocationIndexed: //GLuint p_program, GLuint p_colorNumber, GLuint p_index, const GLchar* p_name
-    GLuint real_program = get_real_program(ctx->ns, p_program);
+    GLuint real_program = get_real_program(ctx, p_program);
     if (!real_program) ERROR("Invalid program name");
     real(real_program, p_colorNumber, p_index, p_name);
 
@@ -6109,7 +6121,7 @@ glBindTransformFeedback: //GLenum p_target, GLuint p_id
     if (get_current_tf(ctx)->active_not_paused)
         ERROR("The current transform feedback object is active and not paused");
     
-    const trc_gl_transform_feedback_rev_t* rev = get_transform_feedback(ctx->ns, p_id);
+    const trc_gl_transform_feedback_rev_t* rev = get_transform_feedback(ctx, p_id);
     if (!rev) ERROR("Invalid transform feedback name");
     
     if (!rev->has_object) {
@@ -6131,17 +6143,17 @@ glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
     for (size_t i = 0; i < p_n; ++i) {
         if (!p_ids[i]) continue;
         
-        if (!(tf[i] = get_real_transform_feedback(ctx->ns, p_ids[i]))) {
+        if (!(tf[i] = get_real_transform_feedback(ctx, p_ids[i]))) {
             trc_add_error(cmd, "Invalid transform feedback object name");
         } else {
-            const trc_gl_transform_feedback_rev_t* tf = get_transform_feedback(ctx->ns, p_ids[i]);
+            const trc_gl_transform_feedback_rev_t* tf = get_transform_feedback(ctx, p_ids[i]);
             if (tf->active) {
                 trc_add_error(cmd, "Transform feedback object at index %zu is active", i);
                 continue;
             }
             if (trc_gl_state_get_current_tf(ctx->trace) == tf->head.obj)
                 trc_gl_state_set_current_tf(ctx->trace, NULL);
-            delete_obj(ctx->ns, p_ids[i], TrcTransformFeedback);
+            delete_obj(ctx, p_ids[i], TrcTransformFeedback);
         }
     }
     real(p_n, tf);
@@ -6149,13 +6161,13 @@ glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
 static void bind_tf_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
                            GLuint tf, GLuint index, GLuint buffer,
                            bool ranged, GLintptr offset, GLsizeiptr size) {
-    const trc_gl_transform_feedback_rev_t* tf_rev = get_transform_feedback(ctx->ns, tf);
+    const trc_gl_transform_feedback_rev_t* tf_rev = get_transform_feedback(ctx, tf);
     if (!tf_rev) ERROR2(, "Invalid transform feedback name");
     if (tf_rev->active) ERROR2(, "The specified transform feedback object is active");
     size_t count = tf_rev->bindings->size / sizeof(trc_gl_buffer_binding_point_t);
     if (index >= count) ERROR2(, "Invalid index");
     
-    const trc_gl_buffer_rev_t* buf_rev = get_buffer(ctx->ns, buffer);
+    const trc_gl_buffer_rev_t* buf_rev = get_buffer(ctx, buffer);
     if (!buf_rev && buffer) ERROR2(, "Invalid buffer name");
     if (ranged && buf_rev && (size<=0 || offset+size>buf_rev->data.size))
         ERROR2(, "Invalid range");

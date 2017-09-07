@@ -435,20 +435,22 @@ objs = [('buffer', 'TrcBuffer'),
         ('transform_feedback', 'TrcTransformFeedback')]
 output.write('#pragma GCC diagnostic ignored "-Wunused-function"')
 for n, t in objs:
+    container = n in ['framebuffer', 'program_pipeline', 'transform_feedback', 'vao']
+    ns = 'priv_ns' if container else 'ns'
     output.write('''
-static const trc_gl_%s_rev_t* get_%s(trc_namespace_t* ns, uint64_t fake) {
-    return trc_get_obj(ns, %s, fake);
+static const trc_gl_%s_rev_t* get_%s(trc_replay_context_t* ctx, uint64_t fake) {
+    return trc_get_obj(ctx->%s, %s, fake);
 }
 
 static void set_%s(const trc_gl_%s_rev_t* rev) {
     trc_obj_set_rev(rev->head.obj, rev);
 }
 
-static uint64_t get_real_%s(trc_namespace_t* ns, uint64_t fake) {
-    const trc_gl_%s_rev_t* rev = get_%s(ns, fake);
+static uint64_t get_real_%s(trc_replay_context_t* ctx, uint64_t fake) {
+    const trc_gl_%s_rev_t* rev = get_%s(ctx, fake);
     return rev ? rev->real : 0;
 }
-''' % (n, n, t, n, n, n, n, n))
+''' % (n, n, ns, t, n, n, n, n, n))
 output.write('#pragma GCC diagnostic pop\n')
 
 nontrivial_str = open("nontrivial_func_impls.c").read()
@@ -493,6 +495,7 @@ for name, func in func_dict.items():
     } else {
         trc_obj_t* cur_ctx = trc_get_current_gl_context(ctx->trace, -1);
         ctx->ns = ((const trc_gl_context_rev_t*)trc_obj_get_rev(cur_ctx, -1))->namespace;
+        ctx->priv_ns = ((const trc_gl_context_rev_t*)trc_obj_get_rev(cur_ctx, -1))->priv_ns;
     }
     """)
     else:

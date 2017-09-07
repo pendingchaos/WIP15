@@ -208,6 +208,7 @@ static void open_trace(const char* filename) {
     if (state.gtk_was_init) {
         fill_trace_view();
         update_gui_for_revision();
+        open_object_list_tab();
     }
 }
 
@@ -340,11 +341,15 @@ void vertex_data_callback(GObject* obj, gpointer user_data) {
     open_vertex_data_tab();
 }
 
+static gboolean tick_callback(GtkWidget* _0, GdkFrameClock* _1, gpointer trace) {
+    static size_t countdown = 2;
+    if (!--countdown && trace) open_trace((const char*)trace);
+    return countdown ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+}
+
 int run_gui(const char* trace, int argc, char** argv) {
     memset(&state, 0, sizeof(state));
     state.revision = -1;
-    
-    if (trace) open_trace(trace);
     
     gtk_init(&argc, &argv);
     state.gtk_was_init = true;
@@ -392,11 +397,12 @@ int run_gui(const char* trace, int argc, char** argv) {
     //Create main window
     gtk_builder_connect_signals(state.builder, NULL);
     state.main_window = GTK_WIDGET(gtk_builder_get_object(state.builder, "main_window"));
-    fill_trace_view();
-    update_gui_for_revision();
     gtk_widget_show_all(state.main_window);
     
-    open_object_list_tab();
+    //It seems best to call open_trace once the gui has started
+    //problems seem to occur otherwise (probably because of SDL)
+    gtk_widget_add_tick_callback(
+        state.main_window, &tick_callback, (gpointer)trace, NULL);
     
     gtk_main();
     

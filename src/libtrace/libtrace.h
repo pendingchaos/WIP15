@@ -537,6 +537,7 @@ typedef struct trc_replay_context_t {
     trc_replay_test_t* tests;
     trc_replay_test_t* current_test;
     trc_namespace_t* ns; //current context's namespace
+    trc_namespace_t* priv_ns; //current context's private namespace (for container objects)
 } trc_replay_context_t;
 
 typedef enum trc_trace_program_arg_t {
