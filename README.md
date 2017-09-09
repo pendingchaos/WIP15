@@ -17,13 +17,12 @@ make -j$(getconf _NPROCESSORS_ONLN)
 ## Tracing
 Currently it can only trace GLX programs.
 ```shell
-./trace <limits-file> <output-trace> <program> <arguments>
+./trace -o <output-trace> <program> <arguments>
 ```
 For example:
 ```shell
-./trace limits/this.limits output.trace ./test
+./trace -o output.trace ./test
 ```
-Limits are not fully implemented and ignored so it does not matter which file you specify.
 Traces can also be created with the GUI.
 
 ## Inspection

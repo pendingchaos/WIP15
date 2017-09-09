@@ -101,7 +101,7 @@ static void run(int cmdc, char** cmd) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: trace <arguments> <command>\n");
+        fprintf(stderr, "Usage: %s <arguments> <command>\n", argv[0]);
         fprintf(stderr, "Arguments\n");
         fprintf(stderr, "    --output=<output>  or -o <output> | Defaults to output.trace\n");
         fprintf(stderr, "    --limits=<limits>  or -l <limits> | Defaults to limits/this.limits.txt\n");
