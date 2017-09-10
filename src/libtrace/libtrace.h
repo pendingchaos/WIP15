@@ -41,11 +41,6 @@ typedef enum trc_attachment_type_t {
     TrcAttachType_Error
 } trc_attachment_type_t;
 
-typedef enum trc_storage_type_t {
-    TrcStorage_Plain,
-    TrcStorage_External
-} trc_storage_type_t;
-
 typedef struct trc_attachment_t {
     trc_attachment_type_t type;
     char* message;
@@ -59,22 +54,36 @@ typedef enum trc_compression_t {
     TrcCompression_Zstd
 } trc_compression_t;
 
-typedef struct trc_data_external_storage_t {
-    trc_compression_t compression:32;
-    uint32_t size;
+typedef enum trc_data_storage_type_t {
+    TrcDataStorage_Independent,
+    TrcDataStorage_Container
+} trc_data_storage_type_t;
+
+typedef struct trc_indep_storage_t {
+    uint64_t compressed_size:60;
+    trc_compression_t compression:4;
+    uint64_t last_accessed;
     void* data;
-} trc_data_external_storage_t;
+} trc_indep_storage_t;
+
+typedef struct trc_data_container_t {
+    pthread_rwlock_t lock; //write lock->compress, read lock->don't compress
+    struct trc_data_container_t* prev;
+    struct trc_data_container_t* next;
+    
+    uint64_t last_accessed; //in milliseconds
+    size_t data_usage;
+    
+    trc_compression_t compression;
+    size_t compressed_size;
+    uint8_t* data;
+} trc_data_container_t;
 
 typedef struct trc_data_t {
-    pthread_rwlock_t lock;
-    uint8_t flags;
-    trc_storage_type_t storage_type:16;
-    uint32_t size;
-    union {
-        void* plain;
-        trc_data_external_storage_t* external; //only for immutable data
-    };
-    struct trc_data_t* queue_next; //this is not guarded by trc_data_t::mutex
+    uint64_t size:34;
+    trc_data_storage_type_t storage:2;
+    uint32_t storage_data:28; //container offset for container storage
+    //trc_data_container_t* or trc_indep_storage_t is stored after
 } trc_data_t;
 
 typedef struct trc_chunked_data_t {

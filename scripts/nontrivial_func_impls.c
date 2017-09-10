@@ -3483,7 +3483,7 @@ static bool read_uniform_spec(trc_replay_context_t* ctx, trc_gl_uniform_t* unifo
     trc_gl_uniform_t* spec = &uniforms[specindex];
     memset(spec, 0, sizeof(trc_gl_uniform_t)); //To fix usage of unintialized data because of compression
     spec->parent = parent;
-    spec->name = trc_create_data_no_copy(ctx->trace, name_length+1, name, TRC_DATA_IMMUTABLE);
+    spec->name = trc_create_data(ctx->trace, name_length+1, name, TRC_DATA_IMMUTABLE);
     spec->next = 0xffffffff;
     spec->dtype.dim[0] = 1;
     spec->dtype.dim[1] = 1;
@@ -3552,6 +3552,8 @@ static bool read_uniform_spec(trc_replay_context_t* ctx, trc_gl_uniform_t* unifo
         spec->data_offset = *storage_used;
         *storage_used += dtype_sizes[(int)spec->dtype.base] * spec->dtype.dim[0] * spec->dtype.dim[1];
     }
+    
+    free(name);
     
     return true;
 }

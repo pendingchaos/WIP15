@@ -1,5 +1,5 @@
 # WIP15
-WIP15 is a core OpenGL debugger. It allows you to trace unmodified OpenGL programs and inspect the traces. It is not stable and ready for use.
+WIP15 is a core OpenGL debugger. It allows you to trace unmodified OpenGL programs and to replay and inspect the traces. It is not stable and it is not ready for use.
 
 # Dependencies (excluding what is probably already installed)
 - [SDL2](https://libsdl.org) headers and libraries
