@@ -52,7 +52,7 @@ static void update(object_tab_t* tab, trc_obj_rev_head_t* rev_head, uint64_t rev
         gtk_tree_store_append(data->draw_buffers_store, &row, NULL);
         gtk_tree_store_set(data->draw_buffers_store, &row, 0, str, -1);
     }
-    trc_unmap_data(rev->draw_buffers);
+    trc_unmap_data(draw_buffers);
     
     trc_gl_framebuffer_attachment_t* attachments = trc_map_data(rev->attachments, TRC_MAP_READ);
     size_t count = rev->attachments->size/sizeof(trc_gl_framebuffer_attachment_t);
@@ -86,7 +86,7 @@ static void update(object_tab_t* tab, trc_obj_rev_head_t* rev_head, uint64_t rev
                            1, a->has_renderbuffer?"Renderbuffer":"Texture",
                            2, id, 3, level, 4, layer, 5, face, -1);
     }
-    trc_unmap_data(rev->attachments);
+    trc_unmap_data(attachments);
 }
 
 static __attribute__((constructor)) void init_callbacks() {

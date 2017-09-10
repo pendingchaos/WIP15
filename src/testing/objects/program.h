@@ -15,10 +15,10 @@ static double get_double_prop_program_uniforms(uint64_t index, const void* rev_)
             goto success;
         }
     }
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniforms);
     return NAN;
     success:
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniforms);
     
     uint8_t* data = trc_map_data(rev->uniform_data, TRC_MAP_READ);
     data += uniform.data_offset;
@@ -37,7 +37,7 @@ static double get_double_prop_program_uniforms(uint64_t index, const void* rev_)
     default: break;
     }
     
-    trc_unmap_data(rev->uniform_data);
+    trc_unmap_data(data);
     
     return val;
 }
@@ -58,7 +58,7 @@ static double get_double_prop_program_uniforms_gl(uint64_t index, void* ctx, con
             break;
         }
     }
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniforms);
     if (real_loc < 0) return NAN;
     #else
     GLuint real_loc = loc;

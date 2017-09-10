@@ -159,7 +159,7 @@ static void object_list(value_tree_state_t* state, const char* name, trc_data_t*
         value(state, static_format("%zu", i), "%s", obj?static_format_obj(obj, revision):null);
     }
     end_category(state);
-    trc_unmap_data(list);
+    trc_unmap_data(objs);
 }
 
 static void value_obj(value_tree_state_t* state, const char* name, trc_obj_ref_t obj, uint64_t revision) {
@@ -176,7 +176,7 @@ static void value_enums(value_tree_state_t* state, const char* group, const char
             value(state, static_format("%zu", i), "%s", get_enum_str(group, vals[i]));
         end_category(state);
     }
-    trc_unmap_data(list);
+    trc_unmap_data(vals);
 }
 
 static void value_bools(value_tree_state_t* state, const char* name, trc_data_t* list) {
@@ -189,7 +189,7 @@ static void value_bools(value_tree_state_t* state, const char* name, trc_data_t*
             value(state, static_format("%zu", i), "%s", vals[i]?"True":"False");
         end_category(state);
     }
-    trc_unmap_data(list);
+    trc_unmap_data(vals);
 }
 
 static void value_floats(value_tree_state_t* state, const char* name, trc_data_t* list) {
@@ -202,7 +202,7 @@ static void value_floats(value_tree_state_t* state, const char* name, trc_data_t
             value(state, static_format("%zu", i), "%g", vals[i]);
         end_category(state);
     }
-    trc_unmap_data(list);
+    trc_unmap_data(vals);
 }
 
 static void value_ints(value_tree_state_t* state, const char* name, trc_data_t* list) {
@@ -215,7 +215,7 @@ static void value_ints(value_tree_state_t* state, const char* name, trc_data_t* 
             value(state, static_format("%zu", i), "%d", vals[i]);
         end_category(state);
     }
-    trc_unmap_data(list);
+    trc_unmap_data(vals);
 }
 
 static void value_indexed_bufs(value_tree_state_t* state, const char* name,
@@ -234,7 +234,7 @@ static void value_indexed_bufs(value_tree_state_t* state, const char* name,
               static_format_obj(binding.buf.obj, revision),
               binding.offset, binding.offset+binding.size);
     }
-    trc_unmap_data(data);
+    trc_unmap_data(bindings);
     end_category(state);
 }
 
@@ -310,7 +310,7 @@ static void msaa_state(value_tree_state_t* state, const trc_gl_context_rev_t* re
             src[j] = "01"[sample_mask_ints[i]>>j & 1];
         cat_str(sample_mask, src, sizeof(sample_mask));
     }
-    trc_unmap_data(rev->state_int_GL_SAMPLE_MASK_VALUE);
+    trc_unmap_data(sample_mask_ints);
     value(state, "GL_SAMPLE_MASK_WORDS", "%s", sample_mask);
     end_category(state);
 }
@@ -326,7 +326,7 @@ static void vertex_array_state(value_tree_state_t* state, const trc_gl_context_r
         double* v = &cur_vertex_attrib[i];
         value(state, static_format("%u", i/4), "[%g, %g, %g, %g]", v[0], v[1], v[2], v[3]);
     }
-    trc_unmap_data(rev->state_double_GL_CURRENT_VERTEX_ATTRIB);
+    trc_unmap_data(cur_vertex_attrib);
     end_category(state);
     end_category(state);
 }
@@ -352,7 +352,7 @@ static void viewport_scissor_state(value_tree_state_t* state, const trc_gl_conte
               viewport[i], viewport[i+1], viewport[i+2], viewport[i+3]);
     }
     if (count != 4) end_category(state);
-    trc_unmap_data(rev->state_float_GL_VIEWPORT);
+    trc_unmap_data(viewport);
     
     value_bools(state, "GL_SCISSOR_TEST", rev->enabled_GL_SCISSOR_TEST);
     
@@ -366,7 +366,7 @@ static void viewport_scissor_state(value_tree_state_t* state, const trc_gl_conte
               scissor[i+2], scissor[i+3]);
     }
     if (count != 4) end_category(state);
-    trc_unmap_data(rev->state_int_GL_SCISSOR_BOX);
+    trc_unmap_data(scissor);
     
     end_category(state);
 }
@@ -398,7 +398,7 @@ static void blending_state(value_tree_state_t* state, const trc_gl_context_rev_t
     float* blend_color = trc_map_data(rev->state_float_GL_BLEND_COLOR, TRC_MAP_READ);
     value(state, "GL_BLEND_COLOR", "[%g, %g, %g, %g]",
           blend_color[0], blend_color[1], blend_color[2], blend_color[3]);
-    trc_unmap_data(rev->state_float_GL_BLEND_COLOR);
+    trc_unmap_data(blend_color);
     value_enums(state, "BlendingFactorDest", "GL_BLEND_DST_RGB",
                 rev->state_enum_GL_BLEND_DST_RGB);
     value_enums(state, "BlendingFactorDest", "GL_BLEND_DST_ALPHA",
@@ -563,7 +563,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     size_t count = rev->enabled_GL_CLIP_DISTANCE0->size / sizeof(bool);
     for (size_t i = 0;i < count;i++)
         value(&state, static_format("GL_CLIP_DISTANCE%zu", i), clip_distances[i]?"True":"False");
-    trc_unmap_data(rev->enabled_GL_CLIP_DISTANCE0);
+    trc_unmap_data(clip_distances);
     
     value_bools(&state, "GL_COLOR_LOGIC_OP", rev->enabled_GL_COLOR_LOGIC_OP);
     value_bools(&state, "GL_DEBUG_OUTPUT", rev->enabled_GL_DEBUG_OUTPUT);

@@ -85,12 +85,12 @@ static trc_gl_texture_image_t find_image(const trc_gl_texture_rev_t* rev, uint f
         if (images[i].face != face) continue;
         if (images[i].level != level) continue;
         trc_gl_texture_image_t res = images[i];
-        trc_unmap_data(rev->images);
+        trc_unmap_data(images);
         *found = true;
         return res;
     }
     
-    trc_unmap_data(rev->images);
+    trc_unmap_data(images);
     
     *found = false;
     trc_gl_texture_image_t res;
@@ -154,7 +154,7 @@ static void get_texture_info(const trc_gl_texture_rev_t* rev,
         if (images[i].depth > dims[2]) dims[2] = images[i].depth;
         if (images[i].level+1 > *mipmaps) *mipmaps = images[i].level + 1;
     }
-    trc_unmap_data(rev->images);
+    trc_unmap_data(images);
     
     int layers_index = -1;
     uint dim_count = 0;

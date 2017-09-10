@@ -134,7 +134,7 @@ const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index) {
         double* src = trc_map_data(cur_attrib, TRC_MAP_READ);
         src += s->attrib_index * 4;
         const char* res = static_format("[%g, %g, %g, %g]", src[0], src[1], src[2], src[3]);
-        trc_unmap_data(cur_attrib);
+        trc_unmap_data(src);
         return res;
     }
 }

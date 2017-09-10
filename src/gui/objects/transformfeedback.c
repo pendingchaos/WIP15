@@ -64,7 +64,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
                            1, static_format_obj(binding.buf.obj, revision),
                            2, off, 3, size, -1);
     }
-    trc_unmap_data(rev->bindings);
+    trc_unmap_data(bufs);
 }
 
 static __attribute__((constructor)) void init_callbacks() {

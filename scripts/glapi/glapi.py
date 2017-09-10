@@ -387,9 +387,9 @@ class tData(Type):
     def gen_replay_finalize_code(self, dest, src, array_count=None):
         if array_count != None:
             res += 'for (size_t i = 0; i < %s->count; i++)\n' % src
-            res += '    trc_unmap_data(%s->data_array[i]);\n' % src
+            res += '    trc_unmap_data(%s[i]);\n' % dest
         else:
-            return 'trc_unmap_data(%s->data);' % src
+            return 'trc_unmap_data(%s);' % dest
 
 class tString(Type):
     def gen_type_code(self, var_name='', array_count=None):

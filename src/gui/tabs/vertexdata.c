@@ -40,7 +40,7 @@ static void create_column_info(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* v
         }
     }
     
-    trc_unmap_data(vao->attribs);
+    trc_unmap_data(attribs);
 }
 
 static trc_obj_t* get_vertex_program(const trc_gl_context_rev_t* ctx) {
@@ -69,7 +69,7 @@ const char* format_column_title(int attrib, size_t attrib_count,
         res = static_format("%s+%d(%d)", name, rel_loc, attrib);
     else
         res = static_format("%s(%d)", name, attrib);
-    trc_unmap_data(attribs[index].name);
+    trc_unmap_data(name);
     return res;
 }
 
@@ -114,7 +114,7 @@ static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao,
         gtk_tree_view_column_set_attributes(column, renderer, "text", i, NULL);
     }
     
-    if (program_rev) trc_unmap_data(program_rev->vertex_attribs);
+    if (program_rev) trc_unmap_data(attribs);
 }
 
 static void fill_in_data_view(vertex_data_tab_t* tab,
@@ -190,7 +190,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
         end_index_list(&il_state);
     }
     
-    trc_unmap_data(vao->attribs);
+    trc_unmap_data(attribs);
 }
 
 typedef struct draw_call_info_t {

@@ -1217,7 +1217,7 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     if (name_table) {
         trc_name_table_rev_t* table = (trc_name_table_rev_t*)rev;
         table->entry_count = 0;
-        table->names = table->objects = trc_create_data(trace, 0, NULL, TRC_DATA_IMMUTABLE);
+        table->names = table->objects = trc_create_data(trace, 0, NULL, 0);
     } else {
         memcpy(rev+1, (trc_obj_rev_head_t*)revdata+1, obj_sizes[type]-sizeof(trc_obj_rev_head_t));
         in->objects[type] = realloc(in->objects[type], (in->object_count[type]+1)*sizeof(trc_obj_t*));
@@ -1286,7 +1286,7 @@ static void framebuffer_destructor(const trc_gl_framebuffer_rev_t* rev) {
         trc_del_obj_ref(attachments[i].renderbuffer);
         trc_del_obj_ref(attachments[i].texture);
     }
-    trc_unmap_data(rev->attachments);
+    trc_unmap_data(attachments);
 }
 
 static void vertex_array_destructor(const trc_gl_vao_rev_t* rev) {
@@ -1294,7 +1294,7 @@ static void vertex_array_destructor(const trc_gl_vao_rev_t* rev) {
     trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
     for (size_t i = 0; i < count; i++)
         trc_del_obj_ref(attribs[i].buffer);
-    trc_unmap_data(rev->attribs);
+    trc_unmap_data(attribs);
 }
 
 static void program_pipeline_destructor(const trc_gl_program_pipeline_rev_t* rev) {
@@ -1312,7 +1312,7 @@ static void transform_feedback_destructor(const trc_gl_transform_feedback_rev_t*
     const trc_gl_buffer_binding_point_t* bindings = trc_map_data(rev->bindings, TRC_MAP_READ);
     for (size_t i = 0; i < count; i++)
         trc_del_obj_ref(bindings[i].buf);
-    trc_unmap_data(rev->bindings);
+    trc_unmap_data(bindings);
 }
 
 void trc_drop_obj(trc_obj_t* obj) {
@@ -1414,7 +1414,7 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
             
             trc_name_table_rev_t newtable = table;
             newtable.objects = trc_create_data_no_copy(ns->trace, objects_size,
-                                                       newobjects, TRC_DATA_IMMUTABLE);
+                                                       newobjects, 0);
             
             trc_obj_set_rev(table_obj, &newtable);
             break;
@@ -1434,15 +1434,15 @@ bool trc_set_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t name, trc_o
         trc_name_table_rev_t newtable = table;
         newtable.entry_count++;
         newtable.names = trc_create_data_no_copy(ns->trace, newtable.entry_count*sizeof(uint64_t),
-                                                 newnames, TRC_DATA_IMMUTABLE);
+                                                 newnames, 0);
         newtable.objects = trc_create_data_no_copy(ns->trace, newtable.entry_count*sizeof(trc_obj_t*),
-                                                   newobjects, TRC_DATA_IMMUTABLE);
+                                                   newobjects, 0);
         
         trc_obj_set_rev(table_obj, &newtable);
     }
     
-    trc_unmap_data(table.objects);
-    trc_unmap_data(table.names);
+    trc_unmap_data(objects);
+    trc_unmap_data(names);
     
     if (prevobj) set_obj_name(prevobj, ns, false, 0);
     if (obj) set_obj_name(obj, ns, true, name);
@@ -1464,12 +1464,13 @@ trc_obj_t* trc_lookup_name(trc_namespace_t* ns, trc_obj_type_t type, uint64_t na
     for (; index < table->entry_count; index++) {
         if (names[index] == name) break;
     }
-    trc_unmap_data(table->names);
+    trc_unmap_data(names);
     
     trc_obj_t* res = NULL;
     if (index != table->entry_count) {
-        res = ((trc_obj_t**)trc_map_data(table->objects, TRC_MAP_READ))[index];
-        trc_unmap_data(table->objects);
+        trc_obj_t** objects = trc_map_data(table->objects, TRC_MAP_READ);
+        res = objects[index];
+        trc_unmap_data(objects);
     }
     
     return res;
@@ -1529,10 +1530,10 @@ void trc_set_obj_ref(trc_obj_ref_t* ref, trc_obj_t* obj) {
 }
 
 //TODO: Use trc_create_compressed_data_no_copy
-trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags) {
+trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src) {
     void* src_data = trc_map_data(src, TRC_MAP_READ);
-    trc_data_t* data = trc_create_data(trace, src->size, src_data, flags);
-    trc_unmap_data(src);
+    trc_data_t* data = trc_create_data(trace, src->size, src_data, 0);
+    trc_unmap_data(src_data);
     return data;
 }
 
@@ -1546,14 +1547,14 @@ static uint64_t div_ceil(uint64_t a, uint64_t b) {
 trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data) {
     trc_chunked_data_t res;
     res.size = size;
-    res.chunks = trc_create_data(trace, size, data, TRC_DATA_IMMUTABLE);
+    res.chunks = trc_create_data(trace, size, data, 0);
     return res;
 }
 
 trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info) {
     trc_chunked_data_t res;
     res.size = info.base.size;
-    res.chunks = trc_copy_data(trace, info.base.chunks, 0);
+    res.chunks = trc_copy_data(trace, info.base.chunks);
     
     uint8_t* data = trc_map_data(res.chunks, TRC_MAP_MODIFY);
     for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next)
@@ -1566,7 +1567,7 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
 void trc_read_chunked_data(trc_read_chunked_data_t info) {
     const uint8_t* data = trc_map_data(info.data.chunks, TRC_MAP_READ);
     memcpy(info.dest, data+info.start, info.size);
-    trc_unmap_data(info.data.chunks);
+    trc_unmap_data(data);
 }
 #else
 trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data) {
@@ -1578,13 +1579,13 @@ trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const vo
         size_t csize = size - i*chunk_size;
         if (csize > chunk_size) csize = chunk_size;
         chunks[i] = trc_create_data(
-            trace, csize, data?((uint8_t*)data+i*chunk_size):NULL, TRC_DATA_IMMUTABLE);
+            trace, csize, data?((uint8_t*)data+i*chunk_size):NULL, 0);
     }
     
     trc_chunked_data_t res;
     res.size = size;
     res.chunks = trc_create_data_no_copy(
-        trace, chunk_count*sizeof(trc_data_t*), chunks, TRC_DATA_IMMUTABLE);
+        trace, chunk_count*sizeof(trc_data_t*), chunks, 0);
     
     return res;
 }
@@ -1592,7 +1593,7 @@ trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const vo
 trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info) {
     trc_chunked_data_t res;
     res.size = info.base.size;
-    res.chunks = trc_copy_data(trace, info.base.chunks, 0);
+    res.chunks = trc_copy_data(trace, info.base.chunks);
     
     size_t chunk_size = info.base.chunks->size/sizeof(trc_data_t*);
     chunk_size = div_ceil(info.base.size, chunk_size);
@@ -1622,17 +1623,17 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
             const uint8_t* testmap = trc_map_data(chunks[i], TRC_MAP_READ);
             bool changed =
                 memcmp(testmap+write_off, mod->data+read_off, amount) != 0;
-            trc_unmap_data(chunks[i]);
+            trc_unmap_data(testmap);
             if (!changed) continue;
             
             //Write data
-            chunks[i] = trc_copy_data(trace, chunks[i], 0);
+            chunks[i] = trc_copy_data(trace, chunks[i]);
             uint8_t* dest = trc_map_data(chunks[i], TRC_MAP_MODIFY);
             memcpy(dest+write_off, mod->data+read_off, amount);
-            trc_unmap_freeze_data(trace, chunks[i]);
+            trc_unmap_data(dest);
         }
     }
-    trc_unmap_freeze_data(trace, res.chunks);
+    trc_unmap_data(chunks);
     
     return res;
 }
@@ -1665,8 +1666,8 @@ void trc_read_chunked_data(trc_read_chunked_data_t info) {
         
         const uint8_t* src = trc_map_data(chunks[i], TRC_MAP_READ);
         memcpy(info.dest+write_off, src+read_off, amount);
-        trc_unmap_data(chunks[i]);
+        trc_unmap_data(src);
     }
-    trc_unmap_data(info.data.chunks);
+    trc_unmap_data(chunks);
 }
 #endif

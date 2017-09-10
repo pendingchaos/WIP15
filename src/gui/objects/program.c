@@ -73,10 +73,13 @@ static void fill_uniform_tree(const trc_gl_uniform_t* uniforms, const uint8_t* u
         
         for (uint child = uniform->first_child; child!=0xffffffff; child = uniforms[child].next)
             fill_uniform_tree(uniforms, uniform_data, child, store, &row);
+        
+        trc_unmap_data(name);
     } else if (uniform->dtype.base==TrcUniformBaseType_AtomicCounter) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, parent);
         gtk_tree_store_set(store, &row, 0, name, -1);
+        trc_unmap_data(name);
     } else {
         const uint8_t* val = uniform_data + uniform->data_offset;
         
@@ -122,9 +125,8 @@ static void fill_uniform_tree(const trc_gl_uniform_t* uniforms, const uint8_t* u
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, parent);
         gtk_tree_store_set(store, &row, 0, name, 1, location_str, 2, value_str, -1);
+        trc_unmap_data(name);
     }
-    
-    trc_unmap_data(uniform->name);
 }
 
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
@@ -140,7 +142,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     //Info log
     const char* info_log = trc_map_data(rev->info_log, TRC_MAP_READ);
     gtk_text_buffer_set_text(gtk_text_view_get_buffer(data->info_log), info_log, -1);
-    trc_unmap_data(rev->info_log);
+    trc_unmap_data(info_log);
     
     //Attached shaders
     size_t shader_count = rev->shaders->size / sizeof(trc_gl_program_shader_t);
@@ -153,7 +155,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         gtk_tree_store_set(data->attached_shaders, &row, 1, rev_str,
                            0, static_format_obj(shaders[i].shader.obj, revision), -1);
     }
-    trc_unmap_data(rev->shaders);
+    trc_unmap_data(shaders);
     
     //Linked shaders
     size_t linked_count = rev->linked->size / sizeof(trc_gl_program_linked_shader_t);
@@ -166,7 +168,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         gtk_tree_store_set(data->linked_shaders, &row, 1, rev_str,
                            0, static_format_obj(linked[i].shader, revision), -1);
     }
-    trc_unmap_data(rev->linked);
+    trc_unmap_data(linked);
     
     //Uniform blocks
     size_t block_count = rev->uniform_blocks->size / sizeof(trc_gl_program_uniform_block_t);
@@ -182,7 +184,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         gtk_tree_store_append(data->attached_shaders, &row, NULL);
         gtk_tree_store_set(data->attached_shaders, &row, 0, index_str, 1, binding_str, -1);
     }
-    trc_unmap_data(rev->uniform_blocks);
+    trc_unmap_data(blocks);
     
     //Uniforms
     const trc_gl_uniform_t* uniforms = trc_map_data(rev->uniforms, TRC_MAP_READ);
@@ -190,8 +192,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     gtk_tree_store_clear(data->uniforms);
     for (size_t i = 0; i < rev->root_uniform_count; i++)
         fill_uniform_tree(uniforms, uniform_data, i, data->uniforms, NULL);
-    trc_unmap_data(rev->uniform_data);
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniform_data);
+    trc_unmap_data(uniforms);
 }
 
 static __attribute__((constructor)) void init_callbacks() {

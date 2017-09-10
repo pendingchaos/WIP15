@@ -60,7 +60,6 @@ static size_t queue_start = 0;
 static size_t queue_size = 0;
 static queue_entry_t queue[QUEUE_CAPACITY];
 
-static pthread_mutex_t mapping_mutex = PTHREAD_MUTEX_INITIALIZER;
 static data_mapping_t mappings[MAX_MAPPINGS];
 
 static uint64_t get_milliseconds() {
@@ -460,7 +459,7 @@ trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uin
 
 trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data) {
     return create_data(trace, data.size, data.compression, data.compressed_size,
-                       data.compressed_data, TRC_DATA_IMMUTABLE, false);
+                       data.compressed_data, 0, false);
 }
 
 void* trc_map_data(trc_data_t* data, uint32_t flags) {
@@ -494,68 +493,50 @@ void* trc_map_data(trc_data_t* data, uint32_t flags) {
     }
     }
     
-    pthread_mutex_lock(&mapping_mutex);
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
         if (mappings[i].data == NULL) {
             mappings[i] = mapping;
-            goto success;
+            return mapping.ptr;
         }
     }
     assert(false);
-    success:
-    pthread_mutex_unlock(&mapping_mutex);
-    return mapping.ptr;
+    return NULL;
 }
 
-void trc_unmap_data(trc_data_t* data) {
-    pthread_mutex_lock(&mapping_mutex);
-    
+void trc_unmap_data(const void* mapped_ptr) {
     data_mapping_t* mapping = NULL;
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
-        if (mappings[i].data == data) {
+        if (mappings[i].ptr == mapped_ptr) {
             mapping = &mappings[i];
             break;
         }
     }
+    assert(mapping);
+    
+    trc_data_t* data = mapping->data;
     
     switch (data->storage) {
     case TrcDataStorage_Container:
         pthread_rwlock_unlock(&(*get_data_container(data))->lock);
         break;
-    case TrcDataStorage_Independent:
-        if (mapping) {
-            trc_indep_storage_t* indep = get_data_indep(data);
-            if (indep->compression!=TrcCompression_None)
-                enqueue_for_compression((queue_entry_t){.data=data, .container=NULL});
-            if (mapping->flags&TRC_MAP_WRITE && indep->compression!=TrcCompression_None) {
-                free(indep->data);
-                indep->compression = TrcCompression_None;
-                indep->compressed_size = data->size;
-                indep->data = mapping->ptr;
-            }
-            indep->last_accessed = get_milliseconds();
+    case TrcDataStorage_Independent: {
+        trc_indep_storage_t* indep = get_data_indep(data);
+        if (indep->compression!=TrcCompression_None)
+            enqueue_for_compression((queue_entry_t){.data=data, .container=NULL});
+        if (mapping->flags&TRC_MAP_WRITE && indep->compression!=TrcCompression_None) {
+            free(indep->data);
+            indep->compression = TrcCompression_None;
+            indep->compressed_size = data->size;
+            indep->data = mapping->ptr;
         }
-        break;
-    default:
+        indep->last_accessed = get_milliseconds();
         break;
     }
-    
-    if (mapping) {
-        free(mapping->free_ptr ? mapping->ptr : NULL);
-        mapping->data = NULL;
-        mapping->ptr = NULL;
     }
     
-    pthread_mutex_unlock(&mapping_mutex);
+    free(mapping->free_ptr ? mapping->ptr : NULL);
+    mapping->data = NULL;
+    mapping->ptr = NULL;
     
     unlock_data(data);
-}
-
-void trc_freeze_data(trace_t* trace, trc_data_t* data) {
-    
-}
-
-void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data) {
-    trc_unmap_data(data);
-    trc_freeze_data(trace, data);
 }

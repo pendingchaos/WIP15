@@ -581,7 +581,7 @@ for prop in properties:
     elif prop.array:
         print('    %s* data = trc_map_data(arr, TRC_MAP_READ);' % prop.c_type)
         print('    %s res = data[index];' % (prop.c_type))
-        print('    trc_unmap_data(arr);')
+        print('    trc_unmap_data(data);')
         print('    return %s;' % (prop.get_code.format(src='&res')))
     print('}')
     print('')
@@ -615,10 +615,10 @@ for prop in properties:
     elif prop.array:
         print('    void* olddata = trc_map_data(*arr, TRC_MAP_READ);')
         print('    trc_data_t* newdata = trc_create_data(trace, (*arr)->size, olddata, 0);')
-        print('    trc_unmap_data(*arr);')
+        print('    trc_unmap_data(olddata);')
         print('    %s* data = trc_map_data(newdata, TRC_MAP_MODIFY);' % prop.c_type)
         print('    %s' % (prop.set_code.format(dest='&data[index]', src='&val')))
-        print('    trc_unmap_freeze_data(trace, newdata);')
+        print('    trc_unmap_data(data);')
         print('    *arr = newdata;')
     print('    trc_set_context(trace, &state);')
     print('}')
@@ -658,7 +658,7 @@ for prop in properties:
     if prop.chunked:
         print('    *arr = trc_create_chunked_data(trace, count*sizeof(%s), data);' % prop.c_type)
     else:
-        print('    *arr = trc_create_data(trace, count*sizeof(%s), data, TRC_DATA_IMMUTABLE);' % prop.c_type)
+        print('    *arr = trc_create_data(trace, count*sizeof(%s), data, 0);' % prop.c_type)
     print('    trc_set_context(trace, &state);')
     print('}')
     print('')
@@ -714,7 +714,7 @@ def print_prop_destructor(prop, name):
         print('    for (size_t i = 0; i < %s_count; i++)' % name)
         if prop.c_type == 'trc_obj_ref_t': print('    trc_del_obj_ref(%s_values[i]);' % name)
         else: print('        trc_del_obj_ref(%s_values[i].buf);' % name)
-        print('    trc_unmap_data(rev->%s);' % name)
+        print('    trc_unmap_data(%s_values);' % name)
     else:
         if prop.c_type == 'trc_obj_ref_t': print('    trc_del_obj_ref(rev->%s);' % name)
         else: print('    trc_del_obj_ref(rev->%s.buf);' % name)

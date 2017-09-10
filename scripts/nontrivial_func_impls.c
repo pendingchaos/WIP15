@@ -444,7 +444,7 @@ static void init_context(trc_replay_context_t* ctx) {
     default_tf.has_object = true;
     default_tf.real = 0;
     size_t size = max_transform_feedback_buffers * sizeof(trc_gl_buffer_binding_point_t);
-    default_tf.bindings = trc_create_data(ctx->trace, size, NULL, TRC_DATA_IMMUTABLE);
+    default_tf.bindings = trc_create_data(ctx->trace, size, NULL, 0);
     default_tf.active = false;
     default_tf.paused = false;
     default_tf.active_not_paused = false;
@@ -693,13 +693,13 @@ static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t*
             newimages[i] = images[i];
         }
     }
-    trc_unmap_data(rev->images);
+    trc_unmap_data(images);
     
     trc_gl_texture_rev_t newrev = *rev;
     if (!replaced) newimages[img_count++] = img;
     
     size_t size = img_count * sizeof(trc_gl_texture_image_t);
-    newrev.images = trc_create_data_no_copy(trace, size, newimages, TRC_DATA_IMMUTABLE);
+    newrev.images = trc_create_data_no_copy(trace, size, newimages, 0);
     
     set_texture(&newrev);
 }
@@ -977,13 +977,13 @@ static bool replay_append_fb_attachment(trc_replay_context_t* ctx, trace_command
             newattachs[i] = attachs[i];
         }
     }
-    trc_unmap_data(rev->attachments);
+    trc_unmap_data(attachs);
     
     trc_gl_framebuffer_rev_t newrev = *rev;
     if (!replaced) newattachs[attach_count++] = *attach;
     
     size_t size = attach_count * sizeof(trc_gl_framebuffer_attachment_t);
-    newrev.attachments = trc_create_data_no_copy(ctx->trace, size, newattachs, TRC_DATA_IMMUTABLE);
+    newrev.attachments = trc_create_data_no_copy(ctx->trace, size, newattachs, 0);
     
     set_framebuffer(&newrev);
     
@@ -1004,7 +1004,7 @@ static bool add_fb_attachment(trc_replay_context_t* ctx, trace_command_t* cmd, t
         trc_gl_texture_image_t* images = trc_map_data(tex->images, TRC_MAP_READ);
         bool found = false;
         for (size_t i = 0; i < image_count; i++) if (images[i].level == level) found = true;;
-        trc_unmap_data(tex->images);
+        trc_unmap_data(images);
         if (!found) ERROR2(false, "No such level for texture");
     }
     
@@ -1249,7 +1249,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
             goto success1;
         }
     }
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniforms);
     ERROR2(-1, "Failed to find uniform based on location");
     return -1;
     success1: ;
@@ -1272,19 +1272,19 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     case TrcUniformBaseType_Bool: goto success2;
     default: break;
     }
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(uniforms);
     return -1;
     success2: ;
     
     if (uniform.parent!=0xffffffff && uniforms[uniform.parent].dtype.base!=TrcUniformBaseType_Array && count>1) {
-        trc_unmap_data(rev->uniforms);
+        trc_unmap_data(uniforms);
         return -1;
     }
     
     size_t array_size = 1;
     for (uint u = uniform_index; uniforms[u].next!=0xffffffff; u = uniforms[u].next) array_size++;
     if (count!=array_size || uniform.dtype.dim[0]!=dimx || uniform.dtype.dim[1]!=dimy) {
-        trc_unmap_data(rev->uniforms);
+        trc_unmap_data(uniforms);
         return -1;
     }
     
@@ -1292,8 +1292,9 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     
     uint8_t* old_data = trc_map_data(rev->uniform_data, TRC_MAP_READ);
     newrev.uniform_data = trc_create_data(ctx->trace, rev->uniform_data->size, old_data, 0);
-    trc_unmap_data(rev->uniform_data);
-    uint8_t* data = trc_map_data(newrev.uniform_data, TRC_MAP_MODIFY) + uniform.data_offset;
+    trc_unmap_data(old_data);
+    uint8_t* data_base = trc_map_data(newrev.uniform_data, TRC_MAP_MODIFY);
+    uint8_t* data = data_base + uniform.data_offset;
     
     for (uint i = 0; i < count; i++) {
         for (uint x = 0; x < dimx; x++) {
@@ -1334,8 +1335,8 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
         if (count > 1) uniform = uniforms[uniform.next];
     }
     
-    trc_unmap_freeze_data(ctx->trace, newrev.uniform_data);
-    trc_unmap_data(rev->uniforms);
+    trc_unmap_data(data_base);
+    trc_unmap_data(uniforms);
     
     set_program(&newrev);
     
@@ -1662,7 +1663,7 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         if (!a->enabled) continue;
         const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(a->buffer.obj, -1);
         if (buf->mapped) {
-            trc_unmap_data(vao->attribs);
+            trc_unmap_data(vao_attribs);
             ERROR2(false, "Buffer for vertex attribute %zu is mapped", i);
         }
     }
@@ -1699,8 +1700,8 @@ static bool begin_draw(trc_replay_context_t* ctx, trace_command_t* cmd, GLenum p
         if (trc_gl_state_get_ver(ctx->trace) > 330)
             F(glVertexAttribDivisor)(real_loc, a->divisor);
     }
-    trc_unmap_data(vao->attribs);
-    trc_unmap_data(vertex_program->vertex_attribs);
+    trc_unmap_data(vao_attribs);
+    trc_unmap_data(prog_vertex_attribs);
     
     F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     
@@ -1727,8 +1728,9 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
         if (drawbuffer>=rev->draw_buffers->size/sizeof(GLenum)) {
             attachment = GL_NONE;
         } else {
-            attachment = ((GLenum*)trc_map_data(rev->draw_buffers, TRC_MAP_READ))[drawbuffer];
-            trc_unmap_data(rev->draw_buffers);
+            GLenum* draw_buffers = trc_map_data(rev->draw_buffers, TRC_MAP_READ);
+            attachment = draw_buffers[drawbuffer];
+            trc_unmap_data(draw_buffers);
         }
         
         size_t attach_count = rev->attachments->size / sizeof(trc_gl_framebuffer_attachment_t);
@@ -1739,7 +1741,7 @@ static void update_drawbuffer(trc_replay_context_t* ctx, GLenum buffer, GLuint d
             if (attach->has_renderbuffer) continue;
             replay_update_tex_image(ctx, trc_obj_get_rev(attach->texture.obj, -1), attach->level, attach->face);
         }
-        trc_unmap_data(rev->attachments);
+        trc_unmap_data(attachs);
     }
 }
 
@@ -1760,7 +1762,7 @@ static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield 
             const GLenum* draw_buffers = trc_map_data(rev->draw_buffers, TRC_MAP_READ);
             for (size_t i = 0; i < rev->draw_buffers->size/sizeof(GLenum); i++)
                 updates[update_count++] = draw_buffers[i];
-            trc_unmap_data(rev->draw_buffers);
+            trc_unmap_data(draw_buffers);
         }
         if (mask & GL_DEPTH_BUFFER_BIT)
             updates[update_count++] = GL_DEPTH_ATTACHMENT;
@@ -1779,7 +1781,7 @@ static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield 
                 replay_update_tex_image(ctx, trc_obj_get_rev(attach->texture.obj, -1), attach->level, attach->face);
             }
         }
-        trc_unmap_data(rev->attachments);
+        trc_unmap_data(attachs);
     }
 }
 
@@ -1815,7 +1817,7 @@ static void end_draw(trc_replay_context_t* ctx, trace_command_t* cmd) {
     if (depth) mask |= GL_DEPTH_BUFFER_BIT;
     if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
     //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
-    update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
+    //update_buffers(ctx, trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
     
     //TODO: Update shader storage buffers, images and atomic counters
     
@@ -1882,7 +1884,7 @@ static void gen_buffers(trc_replay_context_t* ctx, size_t count, const GLuint* r
 static void gen_framebuffers(trc_replay_context_t* ctx, size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_framebuffer_rev_t rev;
     rev.has_object = false;
-    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
     rev.attachments = empty_data;
     rev.draw_buffers = empty_data;
     for (size_t i = 0; i < count; ++i) {
@@ -1955,7 +1957,7 @@ static void gen_vertex_arrays(trc_replay_context_t* ctx, size_t count, const GLu
         attribs[j].divisor = 0;
         attribs[j].buffer = (trc_obj_ref_t){NULL};
     }
-    trc_unmap_data(rev.attribs);
+    trc_unmap_data(attribs);
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->priv_ns, TrcVAO, fake[i], &rev);
@@ -1967,7 +1969,7 @@ static void gen_transform_feedbacks(trc_replay_context_t* ctx, size_t count, con
     rev.has_object = create;
     size_t size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0);
     size *= sizeof(trc_gl_buffer_binding_point_t);
-    rev.bindings = trc_create_data(ctx->trace, size, NULL, TRC_DATA_IMMUTABLE);
+    rev.bindings = trc_create_data(ctx->trace, size, NULL, 0);
     rev.active = false;
     rev.paused = false;
     rev.active_not_paused = false;
@@ -2260,14 +2262,14 @@ static bool tex_image(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
             }
         }
         if (image == NULL) {
-            trc_unmap_data(tex_rev->images);
+            trc_unmap_data(images);
             ERROR2(false, "No such mipmap");
         }
         internal_format = image->internal_format; //Used for format validation later
         if (dim>=1 && (offset[0]<0 || offset[0]+size[0] > image->width)) ERROR2(false, "Invalid x range");
         if (dim>=2 && (offset[1]<0 || offset[1]+size[1] > image->height)) ERROR2(false, "Invalid x range");
         if (dim>=3 && (offset[2]<0 || offset[2]+size[2] > image->depth)) ERROR2(false, "Invalid x range");
-        trc_unmap_data(tex_rev->images);
+        trc_unmap_data(images);
     }
     if (border != 0) ERROR2(false, "Border must be 0");
     
@@ -2671,7 +2673,7 @@ glBindTexture: //GLenum p_target, GLuint p_texture
         trc_gl_texture_rev_t newrev = *rev;
         newrev.has_object = true;
         newrev.type = p_target;
-        newrev.images = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+        newrev.images = trc_create_data(ctx->trace, 0, NULL, 0);
         newrev.sample_params.min_filter = p_target==GL_TEXTURE_RECTANGLE ? GL_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
         GLenum wrap_mode = p_target==GL_TEXTURE_RECTANGLE ? GL_CLAMP_TO_EDGE : GL_REPEAT;
         newrev.sample_params.wrap_s = wrap_mode;
@@ -3077,8 +3079,8 @@ glCreateShader: //GLenum p_type
     GLuint fake = trc_get_uint(&cmd->ret)[0];
     trc_gl_shader_rev_t rev;
     rev.real = real_shdr;
-    rev.sources = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
-    rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
+    rev.sources = trc_create_data(ctx->trace, 0, NULL, 0);
+    rev.info_log = trc_create_data(ctx->trace, 1, "", 0);
     rev.type = p_type;
     trc_create_named_obj(ctx->ns, TrcShader, fake, &rev);
 
@@ -3118,7 +3120,7 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
     
     trc_gl_shader_rev_t shdr = *get_shader(ctx, p_shader);
     
-    shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, TRC_DATA_IMMUTABLE);
+    shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, 0);
     
     set_shader(&shdr);
 
@@ -3133,8 +3135,9 @@ glCompileShader: //GLuint p_shader
     GLint len;
     F(glGetShaderiv)(real_shdr, GL_INFO_LOG_LENGTH, &len);
     shdr.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
-    F(glGetShaderInfoLog)(real_shdr, len+1, NULL, trc_map_data(shdr.info_log, TRC_MAP_REPLACE));
-    trc_unmap_freeze_data(ctx->trace, shdr.info_log);
+    char* info_log = trc_map_data(shdr.info_log, TRC_MAP_REPLACE);
+    F(glGetShaderInfoLog)(real_shdr, len+1, NULL, info_log);
+    trc_unmap_data(info_log);
     
     set_shader(&shdr);
     
@@ -3147,7 +3150,7 @@ glCreateProgram: //
     GLuint fake = trc_get_uint(&cmd->ret)[0];
     trc_gl_program_rev_t rev;
     rev.real = real_program;
-    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
     rev.root_uniform_count = 0;
     rev.uniforms = empty_data;
     rev.uniform_data = empty_data;
@@ -3157,7 +3160,7 @@ glCreateProgram: //
     for (size_t i = 0; i < 6; i++) rev.subroutine_uniforms[i] = empty_data;
     rev.shaders = empty_data;
     rev.linked = empty_data;
-    rev.info_log = trc_create_data(ctx->trace, 1, "", TRC_DATA_IMMUTABLE);
+    rev.info_log = trc_create_data(ctx->trace, 1, "", 0);
     rev.binary_retrievable_hint = -1;
     rev.separable = false;
     trc_create_named_obj(ctx->ns, TrcProgram, fake, &rev);
@@ -3172,9 +3175,9 @@ glDeleteProgram: //GLuint p_program
     trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
         trc_del_obj_ref(shaders[i].shader);
-    trc_unmap_data(rev.shaders);
+    trc_unmap_data(shaders);
     
-    rev.shaders = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+    rev.shaders = trc_create_data(ctx->trace, 0, NULL, 0);
     set_program(&rev);
     
     delete_obj(ctx, p_program, TrcProgram);
@@ -3217,8 +3220,8 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     dest[shader_count].shader.obj = shader_rev->head.obj;
     trc_grab_obj(shader_rev->head.obj);
     dest[shader_count].shader_revision = shader->head.revision;
-    trc_unmap_data(old.shaders);
-    trc_unmap_freeze_data(ctx->trace, program.shaders);
+    trc_unmap_data(src);
+    trc_unmap_data(dest);
     
     set_program(&program);
 
@@ -3249,8 +3252,8 @@ glDetachShader: //GLuint p_program, GLuint p_shader
         }
         dest[next++] = src[i];
     }
-    trc_unmap_data(old.shaders);
-    trc_unmap_freeze_data(ctx->trace, program.shaders);
+    trc_unmap_data(src);
+    trc_unmap_data(dest);
     if (!found) ERROR("Shader is not attached to program");
     
     set_program(&program);
@@ -3331,7 +3334,7 @@ static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_c
         }
         
         trc_gl_program_vertex_attrib_t attrib;
-        attrib.name = trc_create_data(ctx->trace, strlen(extra.name)+1, extra.name, TRC_DATA_IMMUTABLE);
+        attrib.name = trc_create_data(ctx->trace, strlen(extra.name)+1, extra.name, 0);
         attrib.fake = extra.val;
         attrib.real = real_loc;
         attrib.type = 0xffffffff;
@@ -3365,7 +3368,7 @@ static trc_data_t* get_program_vertex_attribs(trace_command_t* cmd, trc_replay_c
     }
     
     size_t size = vertex_attrib_count * sizeof(trc_gl_program_vertex_attrib_t);
-    return trc_create_data_no_copy(ctx->trace, size, vertex_attribs, TRC_DATA_IMMUTABLE);
+    return trc_create_data_no_copy(ctx->trace, size, vertex_attribs, 0);
 }
 
 static trc_data_t* get_program_uniform_blocks(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program) {
@@ -3391,7 +3394,7 @@ static trc_data_t* get_program_uniform_blocks(trace_command_t* cmd, trc_replay_c
         free(extra.name);
     }
     
-    return trc_create_data_no_copy(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, TRC_DATA_IMMUTABLE);
+    return trc_create_data_no_copy(ctx->trace, uniform_block_count*sizeof(trc_gl_program_uniform_block_t), uniform_blocks, 0);
 }
 
 static void get_program_subroutines(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program, trc_data_t** datas) {
@@ -3423,7 +3426,7 @@ static void get_program_subroutines(trace_command_t* cmd, trc_replay_context_t* 
     }
     
     for (size_t i = 0; i < 6; i++)
-        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], TRC_DATA_IMMUTABLE);
+        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], 0);
 }
 
 static void get_program_subroutine_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, GLuint real_program, trc_data_t** datas) {
@@ -3456,7 +3459,7 @@ static void get_program_subroutine_uniforms(trace_command_t* cmd, trc_replay_con
     }
     
     for (size_t i = 0; i < 6; i++)
-        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], TRC_DATA_IMMUTABLE);
+        datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], 0);
 }
 
 bool read_uint32(size_t* data_size, uint8_t** data, uint32_t* val) {
@@ -3483,7 +3486,7 @@ static bool read_uniform_spec(trc_replay_context_t* ctx, trc_gl_uniform_t* unifo
     trc_gl_uniform_t* spec = &uniforms[specindex];
     memset(spec, 0, sizeof(trc_gl_uniform_t)); //To fix usage of unintialized data because of compression
     spec->parent = parent;
-    spec->name = trc_create_data(ctx->trace, name_length+1, name, TRC_DATA_IMMUTABLE);
+    spec->name = trc_create_data(ctx->trace, name_length+1, name, 0);
     spec->next = 0xffffffff;
     spec->dtype.dim[0] = 1;
     spec->dtype.dim[1] = 1;
@@ -3625,8 +3628,8 @@ static bool init_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, trc_g
     }
     
     rev->root_uniform_count = root_count;
-    rev->uniforms = trc_create_data_no_copy(ctx->trace, count*sizeof(trc_gl_uniform_t), uniforms, TRC_DATA_IMMUTABLE);
-    rev->uniform_data = trc_create_data_no_copy(ctx->trace, storage_needed, uniform_data, TRC_DATA_IMMUTABLE);
+    rev->uniforms = trc_create_data_no_copy(ctx->trace, count*sizeof(trc_gl_uniform_t), uniforms, 0);
+    rev->uniform_data = trc_create_data_no_copy(ctx->trace, storage_needed, uniform_data, 0);
     
     return true;
 }
@@ -3650,11 +3653,12 @@ glLinkProgram: //GLuint p_program
     GLint len;
     F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
-    F(glGetProgramInfoLog)(rev.real, len+1, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
-    trc_unmap_freeze_data(ctx->trace, rev.info_log);
+    char* info_log = trc_map_data(rev.info_log, TRC_MAP_REPLACE);
+    F(glGetProgramInfoLog)(rev.real, len+1, NULL, info_log);
+    trc_unmap_data(info_log);
     
     if (!init_uniforms(cmd, ctx, &rev)) {
-        trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, TRC_DATA_IMMUTABLE);
+        trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
         rev.root_uniform_count = 0;
         rev.uniforms = empty_data;
         rev.uniform_data = empty_data;
@@ -3674,10 +3678,9 @@ glLinkProgram: //GLuint p_program
         linked[i].shader = shaders[i].shader.obj;
         linked[i].shader_revision = shaders[i].shader_revision;
     }
-    trc_unmap_data(rev.shaders);
-    rev.linked = trc_create_data(ctx->trace, linked_count*sizeof(trc_gl_program_linked_shader_t),
-                                 linked, TRC_DATA_IMMUTABLE);
-    free(linked);
+    trc_unmap_data(shaders);
+    rev.linked = trc_create_data_no_copy(ctx->trace, linked_count*sizeof(trc_gl_program_linked_shader_t),
+                                         linked, 0);
     
     set_program(&rev);
 
@@ -3692,8 +3695,9 @@ glValidateProgram: //GLuint p_program
     GLint len;
     F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
-    F(glGetProgramInfoLog)(real_program, len, NULL, trc_map_data(rev.info_log, TRC_MAP_REPLACE));
-    trc_unmap_freeze_data(ctx->trace, rev.info_log);
+    char* info_log = trc_map_data(rev.info_log, TRC_MAP_REPLACE);
+    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    trc_unmap_data(info_log);
     
     set_program(&rev);
     
@@ -4162,15 +4166,16 @@ glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_
             real(p_program, blocks[i].real, p_uniformBlockBinding);
             trc_gl_program_rev_t newrev = rev;
             newrev.uniform_blocks = trc_create_data(ctx->trace, rev.uniform_blocks->size, blocks, 0);
-            ((trc_gl_program_uniform_block_t*)trc_map_data(newrev.uniform_blocks, TRC_MAP_MODIFY))[i].binding = p_uniformBlockBinding;
-            trc_unmap_data(newrev.uniform_blocks);
+            trc_gl_program_uniform_block_t* newblocks = trc_map_data(newrev.uniform_blocks, TRC_MAP_MODIFY);
+            newblocks[i].binding = p_uniformBlockBinding;
+            trc_unmap_data(newblocks);
             set_program(&newrev);
             goto success;
         }
     }
     trc_add_error(cmd, "No such uniform block");
     success:
-    trc_unmap_data(rev.uniform_blocks);
+    trc_unmap_data(blocks);
 
 glUniform1f: //GLint p_location, GLfloat p_v0
     GLint loc;
@@ -4680,9 +4685,9 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
     if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
-        trc_unmap_data(rev.attribs);
-        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
+        trc_gl_vao_attrib_t* a = &attribs[p_index];
         a->normalized = p_normalized;
         a->integer = false;
         a->size = p_size;
@@ -4690,7 +4695,7 @@ glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean 
         a->offset = p_pointer;
         a->type = p_type;
         trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
-        trc_unmap_freeze_data(ctx->trace, newattribs);
+        trc_unmap_data(attribs);
         rev.attribs = newattribs;
         set_vao(&rev);
     }
@@ -4700,16 +4705,16 @@ glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p
     if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
-        trc_unmap_data(rev.attribs);
-        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
+        trc_gl_vao_attrib_t* a = &attribs[p_index];
         a->integer = true;
         a->size = p_size;
         a->stride = p_stride;
         a->offset = p_pointer;
         a->type = p_type;
         trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
-        trc_unmap_freeze_data(ctx->trace, newattribs);
+        trc_unmap_data(attribs);
         rev.attribs = newattribs;
         set_vao(&rev);
     }
@@ -4718,11 +4723,11 @@ glEnableVertexAttribArray: //GLuint p_index
     if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
-        trc_unmap_data(rev.attribs);
-        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
+        trc_gl_vao_attrib_t* a = &attribs[p_index];
         a->enabled = true;
-        trc_unmap_freeze_data(ctx->trace, newattribs);
+        trc_unmap_data(attribs);
         rev.attribs = newattribs;
         set_vao(&rev);
     }
@@ -4731,11 +4736,11 @@ glDisableVertexAttribArray: //GLuint p_index
     if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
-        trc_unmap_data(rev.attribs);
-        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
+        trc_gl_vao_attrib_t* a = &attribs[p_index];
         a->enabled = false;
-        trc_unmap_freeze_data(ctx->trace, newattribs);
+        trc_unmap_data(attribs);
         rev.attribs = newattribs;
         set_vao(&rev);
     }
@@ -4744,11 +4749,11 @@ glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
     if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_create_data(ctx->trace, rev.attribs->size, trc_map_data(rev.attribs, TRC_MAP_READ), 0);
-        trc_unmap_data(rev.attribs);
-        trc_gl_vao_attrib_t* a = &((trc_gl_vao_attrib_t*)trc_map_data(newattribs, TRC_MAP_MODIFY))[p_index];
+        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
+        trc_gl_vao_attrib_t* a = &attribs[p_index];
         a->divisor = p_divisor;
-        trc_unmap_freeze_data(ctx->trace, newattribs);
+        trc_unmap_data(attribs);
         rev.attribs = newattribs;
         set_vao(&rev);
     }
@@ -5627,7 +5632,7 @@ glDrawBuffers: //GLsizei p_n, const GLenum* p_bufs
         trc_gl_state_state_enum_init(ctx->trace, GL_DRAW_BUFFER, p_n, p_bufs);
     } else {
         trc_gl_framebuffer_rev_t rev = *(const trc_gl_framebuffer_rev_t*)trc_obj_get_rev(fb, -1);
-        rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), p_bufs, TRC_DATA_IMMUTABLE);
+        rev.draw_buffers = trc_create_data(ctx->trace, p_n*sizeof(GLenum), p_bufs, 0);
         set_framebuffer(&rev);
     }
     
@@ -6179,12 +6184,12 @@ static void bind_tf_buffer(trc_replay_context_t* ctx, trace_command_t* cmd,
     else F(glTransformFeedbackBufferRange)(tf_rev->real, index, buf_rev?buf_rev->real:0, offset, size);
     
     trc_gl_transform_feedback_rev_t newrev = *tf_rev;
-    newrev.bindings = trc_copy_data(ctx->trace, newrev.bindings, 0);
+    newrev.bindings = trc_copy_data(ctx->trace, newrev.bindings);
     trc_gl_buffer_binding_point_t* bindings = trc_map_data(newrev.bindings, TRC_MAP_MODIFY);
     trc_set_obj_ref(&bindings[index].buf, buf_rev?buf_rev->head.obj:NULL);
     bindings[index].offset = ranged ? offset : 0;
     bindings[index].size = ranged ? size : 0;
-    trc_unmap_data(newrev.bindings);
+    trc_unmap_data(bindings);
     set_transform_feedback(&newrev);
 }
 

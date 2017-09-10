@@ -69,7 +69,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
                            9, buffer_str,
                            -1);
     }
-    trc_unmap_data(rev->attribs);
+    trc_unmap_data(attribs);
 }
 
 static __attribute__((constructor)) void init_callbacks() {

@@ -9,9 +9,7 @@
 #define TRC_GL_OBJ_HEAD trc_obj_rev_head_t head;\
 uint64_t real;
 
-#define TRC_DATA_IMMUTABLE (1<<0)
-#define TRC_DATA_NO_COMPRESS (1<<1)
-#define TRC_DATA_NO_ZERO (1<<2) //Used for trc_create_data
+#define TRC_DATA_NO_ZERO (1<<0)
 #define TRC_MAP_READ (1<<0)
 #define TRC_MAP_WRITE (1<<1)
 #define TRC_MAP_MODIFY (TRC_MAP_READ|TRC_MAP_WRITE)
@@ -627,11 +625,9 @@ typedef struct trc_compressed_data_t {
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
 trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data);
-trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src, uint32_t flags);
+trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src);
 void* trc_map_data(trc_data_t* data, uint32_t flags);
-void trc_unmap_data(trc_data_t* data);
-void trc_freeze_data(trace_t* trace, trc_data_t* data);
-void trc_unmap_freeze_data(trace_t* trace, trc_data_t* data);
+void trc_unmap_data(const void* mapped_ptr);
 
 //Chunked data
 typedef struct trc_chunked_data_mod_t {

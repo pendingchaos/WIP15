@@ -43,7 +43,7 @@ static char* get_shader_source(const trc_gl_shader_rev_t* shdr) {
         if (sourcesource[i] != 0)
             source[strlen(source)] = sourcesource[i];
     }
-    trc_unmap_data(shdr->sources);
+    trc_unmap_data(sourcesource);
     
     return source;
 }
@@ -58,7 +58,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     //Info log
     const char* info_log = trc_map_data(rev->info_log, TRC_MAP_READ);
     gtk_text_buffer_set_text(gtk_text_view_get_buffer(data->info_log), info_log, -1);
-    trc_unmap_data(rev->info_log);
+    trc_unmap_data(info_log);
     
     //Source
     char* source = get_shader_source(rev);
