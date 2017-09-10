@@ -33,6 +33,9 @@ typedef struct data_mapping_t {
     bool free_ptr;
     uint32_t flags;
     void* ptr;
+    int line;
+    const char* file;
+    const char* func;
 } data_mapping_t;
 
 typedef struct data_lock_t {
@@ -462,13 +465,17 @@ trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_da
                        data.compressed_data, 0, false);
 }
 
-void* trc_map_data(trc_data_t* data, uint32_t flags) {
+//void* trc_map_data(trc_data_t* data, uint32_t flags) {
+void* _trc_map_data(trc_data_t* data, uint32_t flags, int line, const char* file, const char* func) {
     lock_data(data, flags&TRC_MAP_WRITE, false);
     
     data_mapping_t mapping;
     mapping.data = data;
     mapping.free_ptr = false;
     mapping.flags = flags;
+    mapping.line = line;
+    mapping.file = file;
+    mapping.func = func;
     switch (data->storage) {
     case TrcDataStorage_Container: {
         trc_data_container_t* c = *get_data_container(data);

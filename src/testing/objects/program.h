@@ -20,8 +20,8 @@ static double get_double_prop_program_uniforms(uint64_t index, const void* rev_)
     success:
     trc_unmap_data(uniforms);
     
-    uint8_t* data = trc_map_data(rev->uniform_data, TRC_MAP_READ);
-    data += uniform.data_offset;
+    uint8_t* data_start = trc_map_data(rev->uniform_data, TRC_MAP_READ);
+    uint8_t* data = data_start + uniform.data_offset;
     
     double val = NAN;
     switch (uniform.dtype.base) {
@@ -37,7 +37,7 @@ static double get_double_prop_program_uniforms(uint64_t index, const void* rev_)
     default: break;
     }
     
-    trc_unmap_data(data);
+    trc_unmap_data(data_start);
     
     return val;
 }

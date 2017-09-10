@@ -19,7 +19,7 @@ output.write("""#include <X11/Xlib.h>
 #include "shared/glapi.h"
 
 #define F(name) (((replay_gl_funcs_t*)((const trc_replay_context_t*)ctx)->_replay_gl)->real_##name)
-#define RETURN do {replay_end_cmd(ctx, FUNC, cmd);return;} while(0)
+#define RETURN do {goto end;} while (0)
 #define ERROR(...) do {trc_add_error(cmd, __VA_ARGS__); RETURN;} while (0)
 #define ERROR2(ret, ...) do {trc_add_error(cmd, __VA_ARGS__); return ret;} while (0)
 #define FUNC ""
@@ -566,12 +566,15 @@ for name, func in func_dict.items():
         output.write('ERROR("Function not implemented D:\\n");\n')
         pass #output.write("    real(%s);\n" % (", ".join(["p_"+param.name for param in func.params])))
     
+    #The `goto end;` is to remove "label defined but not used" warnings
+    output.write('goto end; end: ;\n')
+    
     for i, param in zip(list(range(len(func.params))), func.params):
         output.write(param.dtype.gen_replay_finalize_code('p_'+param.name, 'arg_'+param.name, param.array_count)+'\n')
     
     output.write("replay_end_cmd(ctx, \"%s\", cmd);\n" % (name))
     
-    if name in nontrivial: output.write("#undef FUNC\n#define FUNC \"%s\"\nRETURN;\n" % (name))
+    if name in nontrivial: output.write("#undef FUNC\n#define FUNC \"%s\"\n" % (name))
     
     output.write("}\n\n")
 output.write("""#pragma GCC diagnostic pop

@@ -626,7 +626,9 @@ trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint3
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
 trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data);
 trc_data_t* trc_copy_data(trace_t* trace, trc_data_t* src);
-void* trc_map_data(trc_data_t* data, uint32_t flags);
+//void* trc_map_data(trc_data_t* data, uint32_t flags);
+void* _trc_map_data(trc_data_t* data, uint32_t flags, int line, const char* file, const char* func);
+#define trc_map_data(data, flags) _trc_map_data(data, flags, __LINE__, __FILE__, __func__)
 void trc_unmap_data(const void* mapped_ptr);
 
 //Chunked data

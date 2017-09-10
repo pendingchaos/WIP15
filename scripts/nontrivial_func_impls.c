@@ -424,6 +424,7 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
     trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, max_color_attachments);
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
+    trc_gl_state_state_int_init1(trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, max_transform_feedback_buffers);
     trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
     trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
