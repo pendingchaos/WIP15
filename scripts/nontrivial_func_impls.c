@@ -50,7 +50,7 @@ static bool expect_property_common(trace_command_t* cmd, trc_replay_context_t* c
     const trc_obj_rev_head_t* rev = NULL;\
     const testing_property_t* properties = NULL;\
     uint64_t realobj;\
-    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;\
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) RETURN;\
     bool tested = false;\
     type val, gl_val;\
     bool has_val, has_gl_val, success = true;\
@@ -108,7 +108,7 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
     const trc_obj_rev_head_t* rev = NULL;
     const testing_property_t* properties = NULL;
     uint64_t realobj;
-    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) return;
+    if (!expect_property_common(cmd, ctx, p_objType, p_objName, &rev, &realobj, &properties)) RETURN;
     bool tested = false;
     for (const testing_property_t* prop = properties; prop; prop = prop->next) {
         if (strcmp(prop->name, p_name) != 0) continue;
@@ -1788,7 +1788,7 @@ static void update_buffers(trc_replay_context_t* ctx, trc_obj_t* fb, GLbitfield 
 
 static void update_buffer_from_gl(trc_replay_context_t* ctx, trc_obj_t* obj, size_t offset, ptrdiff_t size_) {
     trc_gl_buffer_rev_t rev = *(trc_gl_buffer_rev_t*)trc_obj_get_rev(obj, -1);
-    size_t size = size_ < 0 ? rev.data.size : size_;
+    size_t size = size_ <= 0 ? rev.data.size : size_;
     
     GLint prev_array_buffer;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &prev_array_buffer);
@@ -2302,9 +2302,11 @@ static const trc_gl_buffer_rev_t* on_change_tf_binding(trc_replay_context_t* ctx
         newrev.tf_binding_count--;
         trc_obj_set_rev(prev_buf, &newrev);
     }
-    trc_gl_buffer_rev_t newrev = *(const trc_gl_buffer_rev_t*)trc_obj_get_rev(new_buf, -1);
-    newrev.tf_binding_count++;
-    trc_obj_set_rev(new_buf, &newrev);
+    if (new_buf) {
+        trc_gl_buffer_rev_t newrev = *(const trc_gl_buffer_rev_t*)trc_obj_get_rev(new_buf, -1);
+        newrev.tf_binding_count++;
+        trc_obj_set_rev(new_buf, &newrev);
+    }
     return trc_obj_get_rev(new_buf, -1);
 }
 
@@ -2352,6 +2354,13 @@ static void bind_buffer_indexed_ranged(trc_replay_context_t* ctx, GLenum target,
     point.offset = offset;
     point.size = size;
     trc_gl_state_set_bound_buffer_indexed(ctx->trace, target, index, point);
+    if (target == GL_TRANSFORM_FEEDBACK_BUFFER) {
+        trc_gl_context_rev_t ctx_rev = *trc_get_context(ctx->trace);
+        trc_gl_transform_feedback_rev_t tf_rev = *(trc_gl_transform_feedback_rev_t*)
+            trc_obj_get_rev(trc_gl_state_get_current_tf(ctx->trace), -1);
+        tf_rev.bindings = ctx_rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER;
+        set_transform_feedback(&tf_rev);
+    }
 }
 
 static void bind_buffer_indexed(trc_replay_context_t* ctx, GLenum target, GLuint index, GLuint buffer) {
