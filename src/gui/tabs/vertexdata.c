@@ -82,9 +82,10 @@ static void create_treeview(vertex_data_tab_t* tab, const trc_gl_vao_rev_t* vao,
     tab->data_view = GTK_TREE_VIEW(gtk_tree_view_new());
     gtk_widget_set_vexpand(GTK_WIDGET(tab->data_view), true);
     
-    GType types[tab->column_count];
-    for (size_t i = 0; i < tab->column_count; i++) types[i] = G_TYPE_STRING;
-    GtkTreeStore* store = gtk_tree_store_newv(tab->column_count, types);
+    //include one extra column to ensure there is always at least one
+    GType types[tab->column_count+1];
+    for (size_t i = 0; i < tab->column_count+1; i++) types[i] = G_TYPE_STRING;
+    GtkTreeStore* store = gtk_tree_store_newv(tab->column_count+1, types);
     
     gtk_tree_view_set_model(tab->data_view, GTK_TREE_MODEL(store));
     

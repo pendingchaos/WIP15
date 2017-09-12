@@ -135,7 +135,7 @@ wip15ExpectPropertybv: //GLenum p_objType, GLuint64 p_objName, const char* p_nam
         ctx->current_test->failures = f;
     }
 
-wip15ExpectError: //const char* p_error
+wip15ExpectAttachment: //const char* p_attachment
     if (!ctx->current_test) ERROR("No test is current");
     
     size_t frame_index = ctx->trace->inspection.frame_index;
@@ -159,13 +159,12 @@ wip15ExpectError: //const char* p_error
         break;
     }
     for (trc_attachment_t* a = other_cmd->attachments; a; a=a->next) {
-        if (a->type != TrcAttachType_Error) continue;
-        if (strcmp(a->message, p_error) == 0) goto success;
+        if (strcmp(a->message, p_attachment) == 0) goto success;
     }
     
     failure: ;
     trc_replay_test_failure_t* f = malloc(sizeof(trc_replay_test_failure_t));
-    snprintf(f->error_message, sizeof(f->error_message), "Expectation of error failed.");
+    snprintf(f->error_message, sizeof(f->error_message), "Expectation of attachment failed.");
     f->next = ctx->current_test->failures;
     ctx->current_test->failures = f;
     success: ;
@@ -457,7 +456,9 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_set_tf_primitive(ctx->trace, 0);
     
     trc_gl_state_default_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
+    trc_grab_obj(default_tf_obj); //trc_gl_state_default_tf_init does not increase the reference count
     trc_gl_state_current_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
+    trc_grab_obj(default_tf_obj); //trc_gl_state_current_tf_init does not increase the reference count
     
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
     trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
@@ -1986,7 +1987,7 @@ static bool buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bool ds
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
-        trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Buffer should not be modified as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     
     newrev.data = trc_create_chunked_data(ctx->trace, size, data);
@@ -2002,7 +2003,7 @@ static bool buffer_sub_data(trc_replay_context_t* ctx, trace_command_t* cmd, boo
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name does not have an object");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
-        trc_add_warning(cmd, "Buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Buffer should not be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (offset+size > rev->data.size) ERROR2(false, "Invalid range");
     if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
         ERROR2(false, "Buffer is mapped without persistent access");
@@ -2025,14 +2026,14 @@ static bool copy_buffer_data(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     if (!read_rev) ERROR2(false, dsa?"Invalid read buffer name":"No buffer bound to read target");
     if (!read_rev->has_object) ERROR2(false, "Read buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && read_rev->tf_binding_count)
-        trc_add_warning(cmd, "Read buffer cannot be read as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Read buffer should not be read as it is a transform feedback one while transform feedback is active and unpaused");
     if (read_off+size > read_rev->data.size) ERROR2(false, "Invalid size and read offset");
     
     const trc_gl_buffer_rev_t* write_rev = trc_obj_get_rev(write, -1);
     if (!write_rev) ERROR2(false, dsa?"Invalid write buffer name":"No buffer bound to write target");
     if (!write_rev->has_object) ERROR2(false, "Write buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && write_rev->tf_binding_count)
-        trc_add_warning(cmd, "Write buffer cannot be modified as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Write buffer should not be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (write_off+size > write_rev->data.size) ERROR2(false, "Invalid size and write offset");
     
     trc_gl_buffer_rev_t res = *write_rev;
@@ -2055,7 +2056,7 @@ static void map_buffer(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(, "Buffer name has no object");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
-        trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Buffer should not be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     if (rev->mapped) ERROR2(, "Buffer is already mapped");
     
     trc_gl_buffer_rev_t newrev = *rev;
@@ -2093,7 +2094,7 @@ static void map_buffer_range(trc_replay_context_t* ctx, trace_command_t* cmd, bo
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx, fake);
     if (!rev) ERROR2(, dsa?"Invalid buffer name":"No buffer bound to target");
     if (get_current_tf(ctx)->active_not_paused && rev->tf_binding_count)
-        trc_add_warning(cmd, "Buffer cannot be mapped as it is a transform feedback one while transform feedback is active and unpaused");
+        trc_add_warning(cmd, "Buffer should not be mapped as it is a transform feedback one while transform feedback is active and unpaused");
     trc_gl_buffer_rev_t newrev = *rev;
     
     if (offset+length > newrev.data.size)
@@ -2995,8 +2996,6 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
     real(p_n, buffers);
 
 glBindBuffer: //GLenum p_target, GLuint p_buffer
-    if (get_current_tf(ctx)->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
-        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     const trc_gl_buffer_rev_t* rev = get_buffer(ctx, p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
     real(p_target, rev?rev->real:0);
@@ -3648,7 +3647,7 @@ glLinkProgram: //GLuint p_program
     trc_obj_t* program = trc_lookup_name(ctx->ns, TrcProgram, p_program, -1);
     if (!program) ERROR("Invalid program name");
     
-    //TODO: Also test if it is part of the current program pipeline
+    //TODO: Also test if it is part of the current program pipeline?
     if (get_current_tf(ctx)->active_not_paused && program==trc_gl_state_get_bound_program(ctx->trace))
         ERROR("The bound program cannot be modified while transform feedback is active and unpaused");
     
@@ -3760,35 +3759,38 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
 //TODO: Do transform feedback checks in glBindProgramPipeline
 glBindProgramPipeline: //GLuint p_pipeline
     if (p_pipeline && !p_pipeline_rev) ERROR("Invalid program pipeline name");
+    if (get_current_tf(ctx)->active_not_paused)
+        ERROR("The program pipeline binding cannot be modified while transform feedback is active and unpaused");
     if (p_pipeline_rev && !p_pipeline_rev->has_object) {
         trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
         newrev.has_object = true;
         set_program_pipeline(&newrev);
     }
     trc_gl_state_set_bound_pipeline(ctx->trace, p_pipeline_rev->head.obj);
+    real(p_pipeline?p_pipeline_rev->real:0);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
-    if (!p_program_rev) ERROR("Invalid program name");
+    if (p_program && !p_program_rev) ERROR("Invalid program name");
     if (get_current_tf(ctx)->active_not_paused &&
         p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace)) {
         ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     }
-    real(p_pipeline_rev->real, p_stages, p_program_rev->real);
+    real(p_pipeline_rev->real, p_stages, p_program?p_program_rev->real:0);
     trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
     if (p_stages & GL_VERTEX_SHADER_BIT)
-        trc_set_obj_ref(&newrev.vertex_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.vertex_program, p_program?p_program_rev->head.obj:NULL);
     if (p_stages & GL_FRAGMENT_SHADER_BIT)
-        trc_set_obj_ref(&newrev.fragment_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.fragment_program, p_program?p_program_rev->head.obj:NULL);
     if (p_stages & GL_GEOMETRY_SHADER_BIT)
-        trc_set_obj_ref(&newrev.geometry_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.geometry_program, p_program?p_program_rev->head.obj:NULL);
     if (p_stages & GL_TESS_CONTROL_SHADER_BIT)
-        trc_set_obj_ref(&newrev.tess_control_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.tess_control_program, p_program?p_program_rev->head.obj:NULL);
     if (p_stages & GL_TESS_EVALUATION_SHADER_BIT)
-        trc_set_obj_ref(&newrev.tess_eval_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.tess_eval_program, p_program?p_program_rev->head.obj:NULL);
     if (p_stages & GL_COMPUTE_SHADER_BIT)
-        trc_set_obj_ref(&newrev.compute_program, p_program_rev->head.obj);
+        trc_set_obj_ref(&newrev.compute_program, p_program?p_program_rev->head.obj:NULL);
     set_program_pipeline(&newrev);
 
 glActiveShaderProgram: //GLuint p_pipeline, GLuint p_program
@@ -6169,7 +6171,7 @@ glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
                 continue;
             }
             if (trc_gl_state_get_current_tf(ctx->trace) == tf->head.obj)
-                trc_gl_state_set_current_tf(ctx->trace, NULL);
+                trc_gl_state_set_current_tf(ctx->trace, get_transform_feedback(ctx, 0)->head.obj);
             delete_obj(ctx, p_ids[i], TrcTransformFeedback);
         }
     }

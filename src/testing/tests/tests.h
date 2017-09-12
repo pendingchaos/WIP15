@@ -20,7 +20,7 @@ extern void (*wip15ExpectPropertyd)(GLenum objType, GLuint64 objName,
 extern void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
                                      const char* name, GLuint64 index,
                                      GLuint64 size, const GLvoid* data);
-extern void (*wip15ExpectError)(const GLchar* error);
+extern void (*wip15ExpectAttachment)(const GLchar* attachment);
 
 #define _STR_INTERNAL(v) #v
 #define _STR(v) _STR_INTERNAL(v)
@@ -44,6 +44,6 @@ void __attribute__((constructor)) _CONCAT4(register_test_, TEST_SUITE, _, testna
 }
 
 void assert_properties(GLenum objType, GLuint64 objName, ...);
-void assert_error(const char* message);
+void assert_attachment(const char* message);
 
 GLuint create_program(const char* vert, const char* frag);

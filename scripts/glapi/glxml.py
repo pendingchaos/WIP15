@@ -129,9 +129,9 @@ class GL:
         wip15ExpectPropertybv.params.append(FunctionParam('const void*', 'data'))
         self.functions['wip15ExpectPropertybv'] = wip15ExpectPropertybv
         
-        wip15ExpectError = Function('void')
-        wip15ExpectError.params.append(FunctionParam('const GLchar*', 'name'))
-        self.functions['wip15ExpectError'] = wip15ExpectError
+        wip15ExpectAttachment = Function('void')
+        wip15ExpectAttachment.params.append(FunctionParam('const GLchar*', 'attachment'))
+        self.functions['wip15ExpectAttachment'] = wip15ExpectAttachment
     
     def _run(self, root):
         groups = {}

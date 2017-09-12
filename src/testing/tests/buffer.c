@@ -30,7 +30,7 @@ END_TEST(glBindBuffer_1)
 
 BEGIN_TEST(glBindBuffer_2)
     glBindBuffer(GL_ARRAY_BUFFER, buf+1);
-    assert_error("Invalid buffer name");
+    assert_attachment("Invalid buffer name");
 END_TEST(glBindBuffer_2)
 
 BEGIN_TEST(glBufferData_0)
@@ -45,13 +45,13 @@ END_TEST(glBufferData_1)
 
 BEGIN_TEST(glBufferData_2)
     glBufferData(GL_ARRAY_BUFFER, -1, "Hello", GL_STATIC_DRAW);
-    assert_error("Invalid size");
+    assert_attachment("Invalid size");
 END_TEST(glBufferData_2)
 
 BEGIN_TEST(glBufferData_3)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
-    assert_error("No buffer bound to target");
+    assert_attachment("No buffer bound to target");
 END_TEST(glBufferData_3)
 
 BEGIN_TEST(glBufferSubData_0)
@@ -64,24 +64,24 @@ BEGIN_TEST(glBufferSubData_1)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBufferSubData(GL_ARRAY_BUFFER, 1, 3, "Hel");
-    assert_error("No buffer bound to target");
+    assert_attachment("No buffer bound to target");
 END_TEST(glBufferSubData_1)
 
 BEGIN_TEST(glBufferSubData_2)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     
     glBufferSubData(GL_ARRAY_BUFFER, -1, 3, "Hel");
-    assert_error("Invalid offset");
+    assert_attachment("Invalid offset");
     glBufferSubData(GL_ARRAY_BUFFER, 1, -1, "Hel");
-    assert_error("Invalid size");
+    assert_attachment("Invalid size");
     glBufferSubData(GL_ARRAY_BUFFER, 1, 6, "Hel");
-    assert_error("Invalid range");
+    assert_attachment("Invalid range");
     glBufferSubData(GL_ARRAY_BUFFER, 5, 3, "Hel");
-    assert_error("Invalid range");
+    assert_attachment("Invalid range");
     
     glMapBuffer(GL_ARRAY_BUFFER, GL_MAP_READ_BIT);
     glBufferSubData(GL_ARRAY_BUFFER, 1, 3, "Hel");
-    assert_error("Buffer is mapped without persistent access");
+    assert_attachment("Buffer is mapped without persistent access");
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
     //TODO: immutable storage without GL_DYNAMIC_STORAGE_BIT
@@ -115,24 +115,24 @@ END_TEST(glMapBuffer_1)
 BEGIN_TEST(glMapBuffer_2)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-    assert_error("No buffer bound to target");
+    assert_attachment("No buffer bound to target");
 END_TEST(glMapBuffer_2)
 
 BEGIN_TEST(glMapBuffer_3)
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-    assert_error("Buffer is already mapped");
+    assert_attachment("Buffer is already mapped");
 END_TEST(glMapBuffer_3)
 
 BEGIN_TEST(glUnmapBuffer_0)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUnmapBuffer(GL_ARRAY_BUFFER);
-    assert_error("No buffer bound to target");
+    assert_attachment("No buffer bound to target");
 END_TEST(glUnmapBuffer_0)
 
 BEGIN_TEST(glUnmapBuffer_1)
     glUnmapBuffer(GL_ARRAY_BUFFER);
-    assert_error("Buffer is not mapped");
+    assert_attachment("Buffer is not mapped");
 END_TEST(glUnmapBuffer_1)
 
 BEGIN_TEST(glMapBufferRange_0)
@@ -164,22 +164,22 @@ END_TEST(glMapBufferRange_1)
 BEGIN_TEST(glMapBufferRange_2)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("No buffer bound to target");
+    assert_attachment("No buffer bound to target");
 END_TEST(glMapBufferRange_2)
 
 BEGIN_TEST(glMapBufferRange_3)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     
     glMapBufferRange(GL_ARRAY_BUFFER, -1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Invalid offset");
+    assert_attachment("Invalid offset");
     glMapBufferRange(GL_ARRAY_BUFFER, 1, -3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Invalid length");
+    assert_attachment("Invalid length");
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 0, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Invalid length");
+    assert_attachment("Invalid length");
     glMapBufferRange(GL_ARRAY_BUFFER, 5, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Invalid range");
+    assert_attachment("Invalid range");
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 7, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Invalid range");
+    assert_attachment("Invalid range");
 END_TEST(glMapBufferRange_3)
 
 BEGIN_TEST(glMapBufferRange_4)
@@ -187,17 +187,17 @@ BEGIN_TEST(glMapBufferRange_4)
     
     glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
-    assert_error("Buffer is already mapped");
+    assert_attachment("Buffer is already mapped");
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, 0);
-    assert_error("Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
+    assert_attachment("Neither GL_MAP_READ_BIT or GL_MAP_WRITE_BIT is set");
     
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_READ_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
-    assert_error("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT and/or GL_MAP_UNSYNCHRONIZED_BIT is set");
+    assert_attachment("GL_MAP_READ_BIT is set and GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT and/or GL_MAP_UNSYNCHRONIZED_BIT is set");
     
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_FLUSH_EXPLICIT_BIT|GL_MAP_READ_BIT);
-    assert_error("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
+    assert_attachment("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
     
     //TODO: Test access bits against buffer storage flags
 END_TEST(glMapBufferRange_4)

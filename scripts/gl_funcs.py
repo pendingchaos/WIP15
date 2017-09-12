@@ -103,12 +103,12 @@ class wip15ExpectPropertybv(Func):
     gl_end_call();
 }''' % self.func_id
 
-class wip15ExpectError(Func):
+class wip15ExpectAttachment(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectError(const GLchar* error) {
-    func_decl_wip15ExpectError();
+        return '''void wip15ExpectAttachment(const GLchar* attachment) {
+    func_decl_wip15ExpectAttachment();
     gl_start_call(%d);
-    gl_write_str(error);
+    gl_write_str(attachment);
     gl_end_call();
 }''' % self.func_id
 
@@ -1224,7 +1224,7 @@ wip15TestFB(None, 'wip15TestFB', [P(tString, 'name'), P(tData('drawable_width*dr
 wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLint64, 'val')])
 wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLdouble, 'val')])
 wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
-wip15ExpectError(None, 'wip15ExpectError', [P(tString, 'error')])
+wip15ExpectAttachment(None, 'wip15ExpectAttachment', [P(tString, 'attachment')])
 
 #Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 #Func(None, 'glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)

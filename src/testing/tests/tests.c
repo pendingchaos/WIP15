@@ -24,7 +24,7 @@ void (*wip15ExpectPropertyd)(GLenum objType, GLuint64 objName,
 void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
                               const char* name, GLuint64 index,
                               GLuint64 size, const GLvoid* data);
-void (*wip15ExpectError)(const GLchar* error);
+void (*wip15ExpectAttachment)(const GLchar* attachment);
 
 void assert_properties(GLenum objType, GLuint64 objName, ...) {
     va_list list;
@@ -59,8 +59,8 @@ void assert_properties(GLenum objType, GLuint64 objName, ...) {
     va_end(list);
 }
 
-void assert_error(const char* message) {
-    wip15ExpectError(message);
+void assert_attachment(const char* message) {
+    wip15ExpectAttachment(message);
 }
 
 static void test_fb(const char* name) {
@@ -115,8 +115,8 @@ int main(int argc, char** argv) {
         if (!wip15ExpectPropertyd) goto fp_fail;
         wip15ExpectPropertybv = SDL_GL_GetProcAddress("wip15ExpectPropertybv");
         if (!wip15ExpectPropertybv) goto fp_fail;
-        wip15ExpectError = SDL_GL_GetProcAddress("wip15ExpectError");
-        if (!wip15ExpectError) goto fp_fail;
+        wip15ExpectAttachment = SDL_GL_GetProcAddress("wip15ExpectAttachment");
+        if (!wip15ExpectAttachment) goto fp_fail;
         
         wip15BeginTest(test->name);
         
