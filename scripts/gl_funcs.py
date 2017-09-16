@@ -487,11 +487,11 @@ Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(
                       P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])
 
 #Func((1, 0), 'glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
-#Func((1, 0), 'glGetBooleanv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func((1, 0), 'glGetDoublev', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func((1, 0), 'glGetFloatv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func((1, 0), 'glGetIntegerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'data')])
-#Func((1, 0), 'glGetString', [P(tGLenum, 'name')], tPointer)
+Func((1, 0), 'glGetBooleanv', [P(tGLenum, 'pname', None, 'GetPName'), P(tGLboolean, 'data', 1)])
+Func((1, 0), 'glGetDoublev', [P(tGLenum, 'pname', None, 'GetPName'), P(tGLdouble, 'data', 1)])
+Func((1, 0), 'glGetFloatv', [P(tGLenum, 'pname', None, 'GetPName'), P(tGLfloat, 'data', 1)])
+Func((1, 0), 'glGetIntegerv', [P(tGLenum, 'pname', None, 'GetPName'), P(tGLint, 'data', 1)])
+Func((1, 0), 'glGetString', [P(tGLenum, 'name', None, 'StringName')], tString)
 #Func((1, 0), 'glGetTexImage', [P(tGLenum, 'target'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
 
 tex_param = g(('GL_DEPTH_STENCIL_TEXTURE_MODE', 4, 3), 'GL_TEXTURE_MAG_FILTER', 'GL_TEXTURE_MIN_FILTER', 'GL_TEXTURE_MIN_LOD', 'GL_TEXTURE_MAX_LOD',

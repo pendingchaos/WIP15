@@ -320,7 +320,7 @@ static void glGetIntegerv_impl(GLenum pname, GLint* data) {
 }
 
 static void glGetInteger64v_impl(GLenum pname, GLint64* data) {
-    REALF(glGetIntegerv)(pname, data);
+    REALF(glGetInteger64v)(pname, data);
     gl_get(pname, NULL, data);
 }
 
