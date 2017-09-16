@@ -300,10 +300,11 @@ void new_callback(GObject* obj, gpointer user_data) {
         char** program_args = parse_arguments(program, args, &arg_count);
         
         int exitcode;
+        //TODO: Allow the configuration to be specified in the GUI
         bool success = trace_program(&exitcode, 5,
             TrcProgramArguments, program_args,
             TrcOutputFilename, static_format("%s.trace", program),
-            TrcLimitsFilename, "limits/this.limits.txt",
+            TrcConfigFilename, "configs/this.config.txt",
             TrcCompression, 60,
             TrcLibGL, lib_path);
         if (success && exitcode!=EXIT_SUCCESS) {

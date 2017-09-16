@@ -6,12 +6,16 @@
 #include <unistd.h>
 #include <getopt.h>
 
-static char* limits = NULL;
+static char* config = NULL;
 static char* output = NULL;
 static char* compress = NULL;
 
+typedef enum long_only_option_t {
+    LongOnlyOption_Config = 256
+} long_only_option_t;
+
 static struct option options[] = {
-    {"limits", required_argument, NULL, 'l'},
+    {"config", optional_argument, NULL, LongOnlyOption_Config},
     {"output", required_argument, NULL, 'o'},
     {"compress", required_argument, NULL, 'c'}
 };
@@ -19,12 +23,12 @@ static struct option options[] = {
 static void handle_options(int argc, char** argv) {
     int option_index = 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "l:o:c", options, &option_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "o:c", options, &option_index)) != -1) {
         switch (c) {
-        case 'l':
-            free(limits);
-            limits = malloc(strlen(optarg)+1);
-            strcpy(limits, optarg);
+        case LongOnlyOption_Config:
+            free(config);
+            config = malloc(strlen(optarg)+1);
+            strcpy(config, optarg);
             break;
         case 'o':
             free(output);
@@ -39,9 +43,9 @@ static void handle_options(int argc, char** argv) {
         }
     }
     
-    if (!limits) {
-        limits = malloc(strlen("limits/this.limits.txt")+1);
-        strcpy(limits, "limits/this.limits.txt");
+    if (!config) {
+        config = malloc(strlen("configs/this.config.txt")+1);
+        strcpy(config, "configs/this.config.txt");
     }
     
     if (!output) {
@@ -56,7 +60,7 @@ static void handle_options(int argc, char** argv) {
     
     char* end;
     strtol(compress, &end, 10);
-    if (end==compress) {
+    if (end == compress) {
         fprintf(stderr, "Invalid compression level.\n");
         exit(EXIT_FAILURE);
     }
@@ -80,19 +84,13 @@ static void run(int cmdc, char** cmd) {
     bool success = trace_program(&exitcode, 5,
         TrcProgramArguments, cmd,
         TrcOutputFilename, output_path,
-        TrcLimitsFilename, limits,
+        TrcConfigFilename, config,
         TrcCompression, atoi(compress),
         TrcLibGL, lib_path);
     if (success && exitcode!=EXIT_SUCCESS) {
-        fprintf(stderr, "Unable to execute command: Process returned %d\n", exitcode);
-        free(output_path);
-        free(lib_path);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "Process returned %d\n", exitcode);
     } else if (!success) {
         fprintf(stderr, "Failed to start process\n");
-        free(output_path);
-        free(lib_path);
-        exit(EXIT_FAILURE);
     }
     
     free(output_path);
@@ -112,7 +110,7 @@ int main(int argc, char** argv) {
     handle_options(argc, argv);
     run(argc-optind, argv+optind);
     
-    free(limits);
+    free(config);
     free(compress);
     free(output);
     

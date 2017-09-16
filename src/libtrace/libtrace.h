@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "shared/types.h"
+#include "shared/replay_config.h"
 
 #define TRC_GL_OBJ_HEAD trc_obj_rev_head_t head;\
 uint64_t real;
@@ -545,12 +546,15 @@ typedef struct trc_replay_context_t {
     trc_replay_test_t* current_test;
     trc_namespace_t* ns; //current context's namespace
     trc_namespace_t* priv_ns; //current context's private namespace (for container objects)
+    size_t target_option_count;
+    const char*const* target_option_names;
+    const char*const* target_option_values;
 } trc_replay_context_t;
 
 typedef enum trc_trace_program_arg_t {
     TrcProgramArguments, //const char**
     TrcOutputFilename, //const char*
-    TrcLimitsFilename, //const char*
+    TrcConfigFilename, //const char*
     TrcCompression, //int, 0-100, default 60
     TrcLibGL //const char*
 } trc_trace_program_arg_t;

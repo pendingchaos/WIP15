@@ -102,7 +102,7 @@ class Func(object):
             # TODO: Remove this
             for p1, p2 in zip(func_dict[name].params, params):
                 if p1.group!=None and p2.group==None:
-                    print("Warning: Group removed from", name)
+                    print("Warning: Group removed from %s" % name)
                     break
             
             self.func_id = func_dict[name].func_id
@@ -153,7 +153,7 @@ class Func(object):
         res += '    func_decl_%s();\n' % self.name
         
         res += '    if (!gl_%s)\n' % self.name
-        res += '        gl_%s = (%s_t)gl_glXGetProcAddress("%s");\n' % (self.name, self.name, self.name)
+        res += '        gl_%s = F(%s);\n' % (self.name, self.name)
         
         res += indent(self.trace_prologue_code, 1) + '\n'
         

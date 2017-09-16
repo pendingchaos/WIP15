@@ -64,7 +64,7 @@ void* _trc_compress_thread(void* userdata);
 bool trace_program(int* exitcode, size_t count, ...) {
     const char** arguments = NULL;
     const char* output_filename = NULL;
-    const char* limits = NULL;
+    const char* config = NULL;
     int compression = 60;
     const char* lib_path = NULL;
     
@@ -78,8 +78,8 @@ bool trace_program(int* exitcode, size_t count, ...) {
         case TrcOutputFilename:
             output_filename = va_arg(list, const char*);
             break;
-        case TrcLimitsFilename:
-            limits = va_arg(list, const char*);
+        case TrcConfigFilename:
+            config = va_arg(list, const char*);
             break;
         case TrcCompression:
             compression = va_arg(list, int);
@@ -92,13 +92,13 @@ bool trace_program(int* exitcode, size_t count, ...) {
     va_end(list);
     
     bool failure = compression<0 || compression>100;
-    failure = failure || !arguments || !output_filename || !limits || !lib_path;
+    failure = failure || !arguments || !output_filename || !config || !lib_path;
     if (failure) return false;
     
     //TODO: More error checking?
     pid_t pid;
     if (!(pid=fork())) {
-        setenv("WIP15_LIMITS", limits, 1);
+        setenv("WIP15_CONFIG", config, 1);
         setenv("WIP15_OUTPUT", output_filename, 1);
         char buf[16];
         sprintf(buf, "%d", compression);
@@ -709,6 +709,8 @@ trace_t *load_trace(const char* filename) {
             
             for (size_t i = 0; i < decl->arg_count; i++) {
                 if (!read_val(file, &command.args[i], decl->args+i, trace)) {
+                    memset(&command.args[i], 0, sizeof(trace_value_t));
+                    command.args[i].type = Type_Void;
                     free_command(&command);
                     ERROR("Failed to read argument");
                 }
@@ -1601,7 +1603,7 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
     //TODO: Handle overlapping modifications
     trc_data_t** chunks = trc_map_data(res.chunks, TRC_MAP_MODIFY);
     for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next) {
-        size_t start_chunks = mod->start / chunk_size;
+        size_t start_chunks = chunk_size ? mod->start/chunk_size : 0;
         size_t aligned_start = start_chunks * chunk_size;
         size_t chunk_count = mod->start+mod->size - aligned_start;
         chunk_count = div_ceil(chunk_count, chunk_size);

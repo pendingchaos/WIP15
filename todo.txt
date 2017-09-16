@@ -41,6 +41,10 @@ Bugs:
         both in replay and tracing
     vertex attribute indices are not being remapped with glVertexAttrib*n*?
 
+handle negative array sizes in the tracing code
+
+handle fork()?
+
 update various functions for OpenGL 4.6 support
     there is a change log near the end of the OpenGL 4.6 spec
 

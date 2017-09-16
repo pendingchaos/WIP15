@@ -526,6 +526,8 @@ print('    trc_obj_rev_head_t head;')
 print('    void* real;')
 print('    trc_namespace_t* namespace;')
 print('    trc_namespace_t* priv_ns;')
+print('    trc_replay_config_t host_cfg;')
+print('    trc_replay_config_t trace_cfg;')
 print('    ')
 for prop in properties:
     c_type = prop.c_type

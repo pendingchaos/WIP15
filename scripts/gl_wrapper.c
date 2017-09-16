@@ -8,6 +8,8 @@
 #include <zstd.h>
 #endif
 
+#include "shared/replay_config.h"
+
 #if __WORDSIZE == 64 //TODO: Why is this needed?
 #elif __WORDSIZE == 32
 #else
@@ -35,114 +37,33 @@
 #define COMPRESSION_LZ4 2
 #define COMPRESSION_ZSTD 3
 
-typedef struct {
-    bool exists;
-    int32_t val;
-} ival_t;
+typedef enum opengl_version_t {
+    OpenGLVersion_32,
+    OpenGLVersion_33,
+    OpenGLVersion_40,
+    OpenGLVersion_41,
+    OpenGLVersion_42,
+    OpenGLVersion_43,
+    OpenGLVersion_44,
+    OpenGLVersion_45,
+    OpenGLVersion_46,
+    OpenGLVersion_Count
+} opengl_version_t;
 
-typedef struct {
-    bool exists;
-    float val;
-} fval_t;
+typedef struct config_entry_t {
+    struct config_entry_t* next;
+    char name[64];
+    int value;
+} config_entry_t;
 
-typedef struct {
-    bool exists;
-    char* str;
-} sval_t;
-
-typedef struct {
-    bool exists;
-    size_t count;
-    char** vals;
-} sarrval_t;
-
-typedef struct {
-    bool exists;
-    size_t count;
-    int32_t* vals;
-} iarrval_t;
-
-typedef struct {
-    sval_t shading_language_version;
-    sval_t version;
-    sval_t renderer;
-    sval_t vendor;
-    ival_t max_lights;
-    ival_t max_clip_planes;
-    ival_t max_color_matrix_stack_depth;
-    ival_t max_modelview_stack_depth;
-    ival_t max_projection_stack_depth;
-    ival_t max_texture_stack_depth;
-    ival_t subpixel_bits;
-    ival_t max_3d_texture_size;
-    ival_t max_texture_size;
-    ival_t max_texture_lod_bias;
-    ival_t max_cube_map_texture_size;
-    ival_t max_pixel_map_table;
-    ival_t max_name_stack_depth;
-    ival_t max_list_nesting;
-    ival_t max_eval_order;
-    ival_t max_attrib_stack_depth;
-    ival_t max_client_attrib_stack_depth;
-    iarrval_t max_color_table_size;
-    ival_t max_histogram_table_size;
-    ival_t aux_buffers;
-    ival_t rgba_mode_supported;
-    ival_t index_mode_supported;
-    ival_t doublebuffer_supported;
-    ival_t stereo_supported;
-    iarrval_t aliased_point_size_range;
-    iarrval_t smooth_point_size_range;
-    fval_t smooth_point_size_granularity;
-    iarrval_t aliased_line_width_range;
-    iarrval_t smooth_line_width_range;
-    fval_t smooth_line_width_granularity;
-    iarrval_t max_convolution_width;
-    iarrval_t max_convolution_height;
-    ival_t max_elements_indices;
-    ival_t max_elements_vertices;
-    ival_t sample_buffers;
-    ival_t samples;
-    iarrval_t compressed_texture_formats;
-    ival_t query_counter_bits;
-    sarrval_t extensions;
-    ival_t max_texture_units;
-    ival_t max_vertex_attribs;
-    ival_t max_vertex_uniform_components;
-    ival_t max_varying_floats;
-    ival_t max_combined_texture_image_units;
-    ival_t max_vertex_texture_image_units;
-    ival_t max_texture_image_units;
-    ival_t max_texture_coords;
-    ival_t max_fragment_uniform_components;
-    ival_t max_draw_buffers;
-    iarrval_t red_bits_supported;
-    iarrval_t green_bits_supported;
-    iarrval_t blue_bits_supported;
-    iarrval_t alpha_bits_supported;
-    iarrval_t index_bits_supported;
-    iarrval_t depth_bits_supported;
-    iarrval_t stencil_bits_supported;
-    iarrval_t accum_red_bits_supported;
-    iarrval_t accum_green_bits_supported;
-    iarrval_t accum_blue_bits_supported;
-    iarrval_t accum_alpha_bits_supported;
-    char* extensions_str;
-} limits_t;
+typedef struct config_t {
+    config_entry_t* entries;
+} config_t;
 
 static FILE *trace_file = NULL;
 static void *lib_gl = NULL;
-static limits_t gl30_limits;
-static limits_t gl31_limits;
-static limits_t gl32_limits;
-static limits_t gl33_limits;
-static limits_t gl40_limits;
-static limits_t gl41_limits;
-static limits_t gl42_limits;
-static limits_t gl43_limits;
-static limits_t gl44_limits;
-static limits_t gl45_limits;
-static limits_t* current_limits = NULL;
+static config_t configs[OpenGLVersion_Count];
+static trc_replay_config_t current_config; //TODO: Make this thread local
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
@@ -339,6 +260,91 @@ static void* actual_dlopen(const char* filename, int flags) {
     return ((void* (*)(const char*, int))actual_func("dlopen"))(filename, flags);
 }
 
+//TODO: Make get_func_real() and get_func() thread safe
+static func_t get_func_real(const char* name) {
+    return gl_glXGetProcAddress(name);
+}
+
+static bool gl_get(GLenum pname, GLdouble* dval, GLint64* ival) {
+    switch (pname) {
+    #define VALF(name) \
+        {GLdouble v = current_config.name; if (dval) *dval = (v); if(ival) *ival = (v); break;}
+    #define VALI(name) \
+        {GLint64 v = current_config.name; if (dval) *dval = (v); if(ival) *ival = (v); break;}
+    case GL_MAJOR_VERSION: VALI(major_version)
+    case GL_MINOR_VERSION: VALI(minor_version)
+    case GL_MAX_VERTEX_STREAMS: VALI(max_vertex_streams)
+    case GL_MAX_CLIP_DISTANCES: VALI(max_clip_distances)
+    case GL_MAX_DRAW_BUFFERS: VALI(max_draw_buffers)
+    case GL_MAX_VIEWPORTS: VALI(max_viewports)
+    case GL_MAX_VERTEX_ATTRIBS: VALI(max_vertex_attribs)
+    case GL_MAX_COLOR_ATTACHMENTS: VALI(max_color_attachments)
+    case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: VALI(max_combined_texture_units)
+    case GL_MAX_PATCH_VERTICES: VALI(max_patch_vertices)
+    case GL_MAX_RENDERBUFFER_SIZE: VALI(max_renderbuffer_size)
+    case GL_MAX_TEXTURE_SIZE: VALI(max_texture_size)
+    case GL_MAX_TRANSFORM_FEEDBACK_BUFFERS: VALI(max_xfb_buffers)
+    case GL_MAX_UNIFORM_BUFFER_BINDINGS: VALI(max_ubo_bindings)
+    case GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS: VALI(max_atomic_counter_buffer_bindings)
+    case GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS: VALI(max_ssbo_bindings)
+    case GL_MAX_SAMPLE_MASK_WORDS: VALI(max_sample_mask_words)
+    #undef VALI
+    #undef VALF
+    default:
+        return false;
+    }
+    return true;
+}
+
+static void glGetBooleanv_impl(GLenum pname, GLboolean* data) {
+    REALF(glGetBooleanv)(pname, data);
+    GLint64 ival;
+    if (gl_get(pname, NULL, &ival)) *data = ival;
+}
+
+static void glGetDoublev_impl(GLenum pname, GLdouble* data) {
+    REALF(glGetDoublev)(pname, data);
+    gl_get(pname, data, NULL);
+}
+
+static void glGetFloatv_impl(GLenum pname, GLfloat* data) {
+    REALF(glGetFloatv)(pname, data);
+    GLdouble dval;
+    if (gl_get(pname, &dval, NULL)) *data = dval;
+}
+
+static void glGetIntegerv_impl(GLenum pname, GLint* data) {
+    REALF(glGetIntegerv)(pname, data);
+    GLint64 ival;
+    if (gl_get(pname, NULL, &ival)) *data = ival;
+}
+
+static void glGetInteger64v_impl(GLenum pname, GLint64* data) {
+    REALF(glGetIntegerv)(pname, data);
+    gl_get(pname, NULL, data);
+}
+
+static func_t get_func(func_t* f, const char* name) {
+    if (*f) return *f;
+    
+    struct {
+        const char* name;
+        func_t func;
+    } table[] = {
+        {"glGetBooleanv", &glGetBooleanv_impl},
+        {"glGetDoublev", &glGetDoublev_impl},
+        {"glGetFloatv", &glGetFloatv_impl},
+        {"glGetIntegerv", &glGetIntegerv_impl},
+        {"glGetInteger64v", &glGetInteger64v_impl}
+    };
+    size_t table_size = sizeof(table) / sizeof(table[0]);
+    for (size_t i = 0; i < table_size; i++) {
+        if (strcmp(name, table[i].name) == 0)
+            return *f = table[i].func;
+    }
+    return *f = get_func_real(name);
+}
+
 void* dlopen(const char* filename, int flags) {
     if (!filename)
         return actual_dlopen(filename, flags);
@@ -350,330 +356,155 @@ void* dlopen(const char* filename, int flags) {
     return actual_dlopen(filename, flags);
 }
 
-static void init_limits(limits_t* limits) {
-    memset(limits, 0, sizeof(limits_t));
-}
-
-static void set_int_limit(ival_t* dest, const char* str) {
-    dest->exists = true;
-    sscanf(str, "%"PRIi32, &dest->val);
-}
-
-static void set_float_limit(fval_t* dest, const char* str) {
-    dest->exists = true;
-    sscanf(str, "%f", &dest->val);
-}
-
-static void set_str_limit(sval_t* dest, const char* str) {
-    dest->exists = true;
+static bool set_config_value_int(config_t* config, const char* name, int value) {
+    config_entry_t entry;
+    entry.next = config->entries;
+    entry.name[sizeof(entry.name)-1] = 0;
+    strncpy(entry.name, name, sizeof(entry.name)-1);
+    entry.value = value;
     
-    while ((*str == ' ') && *str)
-        str++;
-    
-    const char* c = str;
-    const char* end = c;
-    while (*c) {
-        if (*c != ' ')
-            end = c;
-        c++;
-    }
-    
-    size_t len = end - str + 1;
-    
-    dest->str = malloc(len+1);
-    memcpy(dest->str, str, len);
-    dest->str[len] = 0;
-}
-
-static void set_str_array_limit(sarrval_t* dest, const char* str) {
-    dest->exists = true;
-    
-    bool empty = true;
-    const char* c = str;
-    while (*c) {
-        empty = empty && (*c == ' ');
-        c++;
-    }
-    
-    if (empty) {
-        dest->count = 0;
-    } else {
-        dest->count = 1;
-        c = str;
-        while (*c) dest->count += (*c++) == ',' ? 1 : 0;
-    }
-    
-    dest->vals = malloc(sizeof(char*)*dest->count);
-    char** cs = dest->vals;
-    char element_str[256];
-    memset(element_str, 0, 256);
-    char* cur = element_str;
-    while (*str) {
-        if (*str == ' ') {
-        } else if (*str == ',') {
-            size_t len = strlen(element_str);
-            *cs = malloc(len+1);
-            memcpy(*cs, element_str, len);
-            cs[len] = 0;
-            cs++;
-            
-            memset(element_str, 0, 256);
-            cur = element_str;
-        } else {
-            *cur = *str;
-            cur++;
+    for (config_entry_t* cur = config->entries; cur; cur = cur->next) {
+        if (strncmp(cur->name, name, sizeof(cur->name)-1)==0) {
+            cur->value = entry.value;
+            return true;
         }
-        str++;
     }
     
-    size_t len = strlen(element_str);
-    *cs = malloc(len+1);
-    memcpy(*cs, element_str, len);
-    cs[len] = 0;
+    config_entry_t* entryp = malloc(sizeof(config_entry_t));
+    *entryp = entry;
+    config->entries = entryp;
+    return true;
 }
 
-static void set_int_array_limit(iarrval_t* dest, const char* str) {
-    dest->exists = true;
-    
-    bool empty = true;
-    const char* c = str;
-    while (*c) {
-        empty = empty && (*c == ' ');
-        c++;
+static bool set_config_value(config_t* config, const char* name, const char* value) {
+    int ival = 0;
+    for (const char* c = value; *c; c++) {
+        if (*c<'0' || *c>'9') return false;
+        ival = ival*10 + (*c-'0');
+    }
+    return set_config_value_int(config, name, ival);
+}
+
+static void get_major_minor(opengl_version_t ver, int* major, int* minor) {
+    switch (ver) {
+    case OpenGLVersion_32:
+    case OpenGLVersion_33: *major = 3; break;
+    case OpenGLVersion_40:
+    case OpenGLVersion_41:
+    case OpenGLVersion_42:
+    case OpenGLVersion_43:
+    case OpenGLVersion_44:
+    case OpenGLVersion_45:
+    case OpenGLVersion_46: *major = 4; break;
+    case OpenGLVersion_Count: break;
     }
     
-    if (empty) {
-        dest->count = 0;
-    } else {
-        dest->count = 1;
-        c = str;
-        while (*c) dest->count += (*c++) == ',' ? 1 : 0;
+    switch (ver) {
+    case OpenGLVersion_32: *minor = 2; break;
+    case OpenGLVersion_33: *minor = 3; break;
+    case OpenGLVersion_40: *minor = 0; break;
+    case OpenGLVersion_41: *minor = 1; break;
+    case OpenGLVersion_42: *minor = 2; break;
+    case OpenGLVersion_43: *minor = 3; break;
+    case OpenGLVersion_44: *minor = 4; break;
+    case OpenGLVersion_45: *minor = 5; break;
+    case OpenGLVersion_46: *minor = 6; break;
+    case OpenGLVersion_Count: break;
     }
-    
-    dest->vals = malloc(sizeof(int32_t)*dest->count);
-    int32_t* ci = dest->vals;
-    char element_str[256];
-    memset(element_str, 0, 256);
-    char* cur = element_str;
-    while (*str) {
-        if (*str == ' ') {
-        } else if (*str == ',') {
-            sscanf(element_str, "%"PRIi32, ci);
-            ci++;
-            memset(element_str, 0, 256);
-            cur = element_str;
-        } else {
-            *cur = *str;
-            cur++;
+}
+
+static bool parse_major_minor(int major, int minor, opengl_version_t* ver) {
+    for (size_t i = 0; i < OpenGLVersion_Count; i++) {
+        int major2, minor2;
+        get_major_minor(i, &major2, &minor2);
+        if (major2==major && minor2==minor) {
+            *ver = i;
+            return true;
         }
-        str++;
+    }
+    return false;
+}
+
+static bool parse_version(const char* src, opengl_version_t* ver) {
+    if (!src[0] || src[0]<'0' || src[0]>'9') return false;
+    int major = src[0] - '0';
+    if (src[1] != '.') return false;
+    if (!src[2] || src[2]<'0' || src[2]>'9') return false;
+    int minor = src[2] - '0';
+    
+    return parse_major_minor(major, minor, ver);
+}
+
+static bool add_version_spec(bool* mask, const char* spec) {
+    opengl_version_t base_ver;
+    if (!parse_version(spec, &base_ver)) return false;
+    spec += 3;
+    
+    if (spec[0] == 0) {
+        mask[base_ver] = true;
+    } else if (spec[0]=='+' && spec[1]==0) {
+        for (size_t i = base_ver; i < OpenGLVersion_Count; i++)
+            mask[i] = true;
+    } else if (spec[0]=='-') {
+        opengl_version_t end_ver;
+        if (!parse_version(spec+1, &end_ver)) return false;
+        for (size_t i = base_ver; i <= end_ver; i++)
+            mask[i] = true;
+    } else {
+        return false;
     }
     
-    sscanf(element_str, "%"PRIi32, ci);
+    return true;
 }
 
-static void set_limit_value(limits_t* limits, const char* name, const char* value) {
-    #define INT_LIMIT(limit) else if (strcmp(name, #limit) == 0) set_int_limit(&limits->limit, value);
-    #define INT_ARR_LIMIT(limit) else if (strcmp(name, #limit) == 0) set_int_array_limit(&limits->limit, value);
-    #define FLOAT_LIMIT(limit) else if (strcmp(name, #limit) == 0) set_float_limit(&limits->limit, value);
-    
-    if (strcmp(name, "shading_language_version") == 0)
-        set_str_limit(&limits->shading_language_version, value);
-    else if (strcmp(name, "version") == 0)
-        set_str_limit(&limits->version, value);
-    else if (strcmp(name, "renderer") == 0)
-        set_str_limit(&limits->renderer, value);
-    else if (strcmp(name, "vendor") == 0)
-        set_str_limit(&limits->vendor, value);
-    else if (strcmp(name, "extensions") == 0)
-        set_str_array_limit(&limits->extensions, value);
-    INT_LIMIT(max_lights)
-    INT_LIMIT(max_clip_planes)
-    INT_LIMIT(max_color_matrix_stack_depth)
-    INT_LIMIT(max_modelview_stack_depth)
-    INT_LIMIT(max_projection_stack_depth)
-    INT_LIMIT(max_texture_stack_depth)
-    INT_LIMIT(subpixel_bits)
-    INT_LIMIT(max_3d_texture_size)
-    INT_LIMIT(max_texture_size)
-    INT_LIMIT(max_texture_lod_bias)
-    INT_LIMIT(max_cube_map_texture_size)
-    INT_LIMIT(max_pixel_map_table)
-    INT_LIMIT(max_name_stack_depth)
-    INT_LIMIT(max_list_nesting)
-    INT_LIMIT(max_eval_order)
-    INT_LIMIT(max_attrib_stack_depth)
-    INT_LIMIT(max_client_attrib_stack_depth)
-    INT_ARR_LIMIT(max_color_table_size)
-    INT_LIMIT(max_histogram_table_size)
-    INT_LIMIT(aux_buffers)
-    INT_LIMIT(rgba_mode_supported)
-    INT_LIMIT(index_mode_supported)
-    INT_LIMIT(doublebuffer_supported)
-    INT_LIMIT(stereo_supported)
-    INT_ARR_LIMIT(aliased_point_size_range)
-    INT_ARR_LIMIT(smooth_point_size_range)
-    FLOAT_LIMIT(smooth_point_size_granularity)
-    INT_ARR_LIMIT(aliased_line_width_range)
-    INT_ARR_LIMIT(smooth_line_width_range)
-    FLOAT_LIMIT(smooth_line_width_granularity)
-    INT_ARR_LIMIT(max_convolution_width)
-    INT_ARR_LIMIT(max_convolution_height)
-    INT_LIMIT(max_elements_indices)
-    INT_LIMIT(max_elements_vertices)
-    INT_LIMIT(sample_buffers)
-    INT_LIMIT(samples)
-    INT_ARR_LIMIT(compressed_texture_formats)
-    INT_LIMIT(query_counter_bits)
-    INT_LIMIT(max_texture_units)
-    INT_LIMIT(max_vertex_attribs)
-    INT_LIMIT(max_vertex_uniform_components)
-    INT_LIMIT(max_varying_floats)
-    INT_LIMIT(max_combined_texture_image_units)
-    INT_LIMIT(max_vertex_texture_image_units)
-    INT_LIMIT(max_texture_image_units)
-    INT_LIMIT(max_texture_coords)
-    INT_LIMIT(max_fragment_uniform_components)
-    INT_LIMIT(max_draw_buffers)
-    INT_ARR_LIMIT(red_bits_supported)
-    INT_ARR_LIMIT(green_bits_supported)
-    INT_ARR_LIMIT(blue_bits_supported)
-    INT_ARR_LIMIT(alpha_bits_supported)
-    INT_ARR_LIMIT(index_bits_supported)
-    INT_ARR_LIMIT(depth_bits_supported)
-    INT_ARR_LIMIT(stencil_bits_supported)
-    INT_ARR_LIMIT(accum_red_bits_supported)
-    INT_ARR_LIMIT(accum_green_bits_supported)
-    INT_ARR_LIMIT(accum_blue_bits_supported)
-    INT_ARR_LIMIT(accum_alpha_bits_supported)
-    else
-        fprintf(stderr, "Unknown limit \"%s\".\n", name);
-}
-
-static void create_extensions_str(limits_t* limits) {
-    if (!limits->extensions.exists)
-        return;
-    
-    size_t len = 0;
-    for (size_t i = 0; i < limits->extensions.count; i++)
-        len += strlen(limits->extensions.vals[i]) + 1;
-    limits->extensions_str = malloc(len);
-    len -= 1;
-    
-    char* c = limits->extensions_str;
-    for (size_t i = 0; i < limits->extensions.count; i++) {
-        char* ext = limits->extensions.vals[i];
-        size_t ext_len = strlen(ext);
-        memcpy(c, ext, ext_len);
-        c += ext_len;
-        
-        if (i != limits->extensions.count-1)
-            *(c++) = ' ';
-    }
-    c[len] = 0;
-}
-
-static void handle_limits() {
-    char *filename = getenv("WIP15_LIMITS");
+static void handle_config() {
+    char *filename = getenv("WIP15_CONFIG");
     if (!filename) {
-        fprintf(stderr, "WIP15_LIMITS environment variable (the filename of the limits file) has not been set.\n");
+        fprintf(stderr, "WIP15_CONFIG environment variable (the filename of the limits file) has not been set.\n");
         exit(1);
     }
     
     FILE* file = fopen(filename, "r");
-    
     if (!file) {
-        fprintf(stderr, "Unable to find limits file.\n");
+        fprintf(stderr, "Unable to open config file '%s'.\n", filename);
         exit(1);
     }
     
-    init_limits(&gl30_limits);
-    init_limits(&gl31_limits);
-    init_limits(&gl32_limits);
-    init_limits(&gl33_limits);
-    init_limits(&gl40_limits);
-    init_limits(&gl41_limits);
-    init_limits(&gl42_limits);
-    init_limits(&gl43_limits);
-    init_limits(&gl44_limits);
-    init_limits(&gl45_limits);
-    
-    bool gl30 = false;
-    bool gl31 = false;
-    bool gl32 = false;
-    bool gl33 = false;
-    bool gl40 = false;
-    bool gl41 = false;
-    bool gl42 = false;
-    bool gl43 = false;
-    bool gl44 = false;
-    bool gl45 = false;
+    for (size_t i = 0; i < OpenGLVersion_Count; i++) {
+        configs[i].entries = NULL;
+        int major, minor;
+        get_major_minor(i, &major, &minor);
+        set_config_value_int(&configs[i], "major_version", major);
+        set_config_value_int(&configs[i], "minor_version", minor);
+    }
+    bool version_mask[OpenGLVersion_Count] = {0};
     
     while (true) {
         int c = fgetc(file);
         if (c == EOF) {
             break;
         } else if (c == '@') {
-            gl30 = false;
-            gl31 = false;
-            gl32 = false;
-            gl33 = false;
-            gl40 = false;
-            gl41 = false;
-            gl42 = false;
-            gl43 = false;
-            gl44 = false;
-            gl45 = false;
+            for (size_t i = 0; i < OpenGLVersion_Count; i++) version_mask[i] = false;
             
-            #define UPDATE_VERSION int major, minor;\
-            if (sscanf(version, "%d.%d", &major, &minor) != 2) {\
-                fprintf(stderr, "Invalid version \"%s\".\n", version);\
-                exit(1);\
-            }\
-            if ((major == 3) && (minor == 0))\
-                gl30 = true;\
-            else if ((major == 3) && (minor == 1))\
-                gl31 = true;\
-            else if ((major == 3) && (minor == 2))\
-                gl32 = true;\
-            else if ((major == 3) && (minor == 3))\
-                gl33 = true;\
-            else if ((major == 4) && (minor == 0))\
-                gl40 = true;\
-            else if ((major == 4) && (minor == 1))\
-                gl41 = true;\
-            else if ((major == 4) && (minor == 2))\
-                gl42 = true;\
-            else if ((major == 4) && (minor == 3))\
-                gl43 = true;\
-            else if ((major == 4) && (minor == 4))\
-                gl44 = true;\
-            else if ((major == 4) && (minor == 5))\
-                gl45 = true;\
-            else\
-                fprintf(stderr, "Unknown version \"%s\".\n", version);
-            
-            char version[256];
-            memset(version, 0, 256);
-            size_t i = 0;
-            while (i < 255) {
+            //TODO: handle errors in add_version_spec
+            char version_spec[16] = {0};
+            while (true) {
                 c = fgetc(file);
-                if (c == EOF) {
-                    break;
-                } else if (c == '\n') {
+                if (c==EOF || c=='\n') {
                     break;
                 } else if (c == ',') {
-                    UPDATE_VERSION
-                    memset(version, 0, 256);
-                    i = 0;
-                } else if (c != ' ') {
-                    version[i++] = c;
+                    add_version_spec(version_mask, version_spec);
+                    memset(version_spec, 0, sizeof(version_spec));
+                } else if (c==' ' || c=='\t' || c=='\r') {
+                    //ignore whitespace
+                } else {
+                    if (strlen(version_spec) < 15)
+                        version_spec[strlen(version_spec)] = c;
                 }
             }
             
-            UPDATE_VERSION
-            
-            #undef UPDATE_VERSION
+            if (strlen(version_spec))
+                add_version_spec(version_mask, version_spec);
         } else if (c == '#') {
             while (true) {
                 c = fgetc(file);
@@ -715,79 +546,173 @@ static void handle_limits() {
                     value[i++] = c;
             }
             
-            if (gl30) set_limit_value(&gl30_limits, name, value);
-            if (gl31) set_limit_value(&gl31_limits, name, value);
-            if (gl32) set_limit_value(&gl32_limits, name, value);
-            if (gl33) set_limit_value(&gl33_limits, name, value);
-            if (gl40) set_limit_value(&gl40_limits, name, value);
-            if (gl41) set_limit_value(&gl41_limits, name, value);
-            if (gl42) set_limit_value(&gl42_limits, name, value);
-            if (gl43) set_limit_value(&gl43_limits, name, value);
-            if (gl44) set_limit_value(&gl44_limits, name, value);
-            if (gl45) set_limit_value(&gl45_limits, name, value);
+            //TODO: Handle errors in set_config_value
+            for (size_t i = 0; i < OpenGLVersion_Count; i++) {
+                if (version_mask[i])
+                    set_config_value(&configs[i], name, value);
+            }
         }
     }
     
     fclose(file);
-    
-    create_extensions_str(&gl30_limits);
-    create_extensions_str(&gl31_limits);
-    create_extensions_str(&gl32_limits);
-    create_extensions_str(&gl33_limits);
-    create_extensions_str(&gl40_limits);
-    create_extensions_str(&gl41_limits);
-    create_extensions_str(&gl42_limits);
-    create_extensions_str(&gl43_limits);
-    create_extensions_str(&gl44_limits);
-    create_extensions_str(&gl45_limits);
 }
 
-static void free_limits(limits_t* limits) {
-    free(limits->shading_language_version.str);
-    free(limits->version.str);
-    free(limits->renderer.str);
-    free(limits->vendor.str);
-    free(limits->max_color_table_size.vals);
-    free(limits->aliased_point_size_range.vals);
-    free(limits->smooth_point_size_range.vals);
-    free(limits->aliased_line_width_range.vals);
-    free(limits->smooth_line_width_range.vals);
-    free(limits->max_convolution_width.vals);
-    free(limits->max_convolution_height.vals);
-    free(limits->compressed_texture_formats.vals);
-    
-    for (size_t i = 0; i < limits->extensions.count; i++)
-        free(limits->extensions.vals[i]);
-    free(limits->extensions.vals);
-    
-    free(limits->red_bits_supported.vals);
-    free(limits->green_bits_supported.vals);
-    free(limits->blue_bits_supported.vals);
-    free(limits->alpha_bits_supported.vals);
-    free(limits->index_bits_supported.vals);
-    free(limits->depth_bits_supported.vals);
-    free(limits->stencil_bits_supported.vals);
-    free(limits->accum_red_bits_supported.vals);
-    free(limits->accum_green_bits_supported.vals);
-    free(limits->accum_blue_bits_supported.vals);
-    free(limits->accum_alpha_bits_supported.vals);
-    free(limits->extensions_str);
+static void free_config(config_t* config) {
+    for (config_entry_t* entry = config->entries; entry;) {
+        config_entry_t* next = entry->next;
+        free(entry);
+        entry = next;
+    }
 }
 
 void __attribute__ ((destructor)) wip15_gl_deinit() {
     fclose(trace_file);
     dlclose(lib_gl);
     
-    free_limits(&gl30_limits);
-    free_limits(&gl31_limits);
-    free_limits(&gl32_limits);
-    free_limits(&gl33_limits);
-    free_limits(&gl40_limits);
-    free_limits(&gl41_limits);
-    free_limits(&gl42_limits);
-    free_limits(&gl43_limits);
-    free_limits(&gl44_limits);
-    free_limits(&gl45_limits);
+    for (size_t i = 0; i < OpenGLVersion_Count; i++)
+        free_config(&configs[i]);
+}
+
+void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth);
+void wip15DrawableSize(GLsizei width, GLsizei height);
+
+static void update_drawable_size() {
+    Display* dpy = F(glXGetCurrentDisplay)();
+    GLXDrawable drawable = F(glXGetCurrentDrawable)();
+    
+    if (!F(glXGetCurrentContext)())
+        return;
+    
+    int w, h;
+    if (dpy && drawable!=None) {
+        uint w_, h_;
+        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
+        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
+        
+        w = w_;
+        h = h_;
+    } else {
+        w = -1;
+        h = -1;
+    }
+    
+    if (w!=drawable_width || h!=drawable_height)
+        wip15DrawableSize(w, h);
+}
+
+static config_t* get_current_config() {
+    GLint major, minor;
+    REALF(glGetIntegerv)(GL_MAJOR_VERSION, &major);
+    REALF(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+    opengl_version_t ver;
+    if (!parse_major_minor(major, minor, &ver))
+        ver = OpenGLVersion_Count - 1; //Just use the latest
+    return &configs[ver];
+}
+
+//TODO: from test_host_config() in nontrivial_func_impls.c
+typedef struct cap_info_t {
+    const char* name;
+    size_t offset;
+} cap_info_t;
+static const cap_info_t caps[] = {
+    {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
+    {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
+    {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
+    {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
+    {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
+    {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
+    {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
+    {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
+    {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
+    {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
+    {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
+    {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
+    {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
+    {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
+
+#define REPLAY_CONFIG_FUNCS
+#define RC_F REALF
+#include "shared/replay_config.h"
+#undef RC_F
+#undef REPLAY_CONFIG_FUNCS
+
+static trc_replay_config_t create_replay_config() {
+    trc_replay_config_t cfg;
+    init_host_config(NULL, &cfg);
+    
+    config_t* src_cfg = get_current_config();
+    
+    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
+    
+    for (config_entry_t* entry = src_cfg->entries; entry; entry = entry->next) {
+        for (size_t i = 0; i < cap_count; i++) {
+            if (strcmp(caps[i].name, entry->name) == 0) {
+                *(int*)(((uint8_t*)&cfg) + caps[i].offset) = entry->value;
+            }
+        }
+    }
+    
+    return cfg;
+}
+
+static void glx_make_current_epilogue() {
+    if (F(glXGetCurrentContext)())
+        current_config = create_replay_config();
+    reset_gl_funcs();
+    update_drawable_size();
+}
+
+void wip15SetTargetOptions(GLsizeiptr count, const char*const* names, const char*const* values);
+
+static void set_target_options(GLXContext ctx) {
+    trc_replay_config_t cfg = create_replay_config();
+    
+    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
+    const char** names = malloc(cap_count*sizeof(const char*));
+    char** values = malloc(cap_count*sizeof(char*));
+    
+    for (size_t i = 0; i < cap_count; i++) {
+        names[i] = caps[i].name;
+        values[i] = malloc(16);
+        sprintf(values[i], "%d", *(int*)(((uint8_t*)&cfg)+caps[i].offset));
+    }
+    wip15SetTargetOptions(cap_count, names, (const char*const*)values);
+    
+    for (size_t i = 0; i < cap_count; i++) free(values[i]);
+    free(values);
+    free(names);
+}
+
+#define BEGIN_PROLOGUE(fb_config) Display* prev_dpy = F(glXGetCurrentDisplay)();\
+GLXDrawable prev_draw_drawable = F(glXGetCurrentDrawable)();\
+GLXDrawable prev_read_drawable = F(glXGetCurrentReadDrawable)();\
+GLXContext prev_ctx = F(glXGetCurrentContext)();\
+GLXPixmap pbuf = F(glXCreatePbuffer)(dpy, fb_config, (int[]){None});\
+
+#define END_PROLOGUE if (ctx) {\
+    F(glXMakeCurrent)(dpy, pbuf, ctx);\
+    reset_gl_funcs();\
+    set_target_options(ctx);\
+    F(glXDestroyContext)(dpy, ctx);\
+}\
+F(glXDestroyPbuffer)(dpy, pbuf);\
+F(glXMakeContextCurrent)(prev_dpy, prev_draw_drawable, prev_read_drawable, prev_ctx);\
+reset_gl_funcs();
+
+static void glx_create_context_attribs_prologue(Display* dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int* attrib_list) {
+    BEGIN_PROLOGUE(config)
+    GLXContext ctx = F(glXCreateContextAttribsARB)(dpy, config, share_context, direct, (int*)attrib_list);
+    END_PROLOGUE
+}
+
+static void glx_create_context_prologue(Display* dpy, XVisualInfo* vis, GLXContext shareList, Bool direct) {
+    int _;
+    GLXFBConfig* fb_configs = (GLXFBConfig*)F(glXChooseFBConfig)(dpy, vis->screen, (int[]){None}, &_);
+    BEGIN_PROLOGUE(fb_configs[0])
+    XFree(fb_configs);
+    GLXContext ctx = F(glXCreateContext)(dpy, vis, shareList, direct);
+    END_PROLOGUE
 }
 
 static size_t get_texel_size(GLenum format, GLenum type) {
@@ -855,33 +780,6 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     }
     
     return final_size;
-}
-
-void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth);
-void wip15DrawableSize(GLsizei width, GLsizei height);
-
-static void update_drawable_size() {
-    Display* dpy = F(glXGetCurrentDisplay)();
-    GLXDrawable drawable = F(glXGetCurrentDrawable)();
-    
-    if (!F(glXGetCurrentContext)())
-        return;
-    
-    int w, h;
-    if (dpy && drawable!=None) {
-        uint w_, h_;
-        F(glXQueryDrawable)(dpy, drawable, GLX_WIDTH, &w_);
-        F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &h_);
-        
-        w = w_;
-        h = h_;
-    } else {
-        w = -1;
-        h = -1;
-    }
-    
-    if (w!=drawable_width || h!=drawable_height)
-        wip15DrawableSize(w, h);
 }
 
 size_t glx_attrib_int_count(const int* attribs) {

@@ -50,12 +50,10 @@ gl_c.write('''}
 
 #define _STR(...) #__VA_ARGS__
 #define STR(...) _STR(__VA_ARGS__)
+//REALF() returns a function directly from the opengl implementation
+//F() may return a wrapped function which takes into account the replay configuration
+#define REALF(name) ((name##_t)get_func_real(STR(name)))
 #define F(name) ((name##_t)get_func((func_t*)&gl_##name, STR(name)))
-
-static func_t get_func(func_t* f, const char* name) {
-    if (*f) return *f;
-    else return *f = gl_glXGetProcAddress(name);
-}
 ''')
 
 gl_c.write(open("gl_wrapper.c", "r").read())
@@ -159,9 +157,7 @@ void __attribute__((constructor)) wip15_gl_init() {
         fflush(stderr);
     }
     
-    handle_limits();
-    
-    current_limits = NULL;
+    handle_config();
     
     gl_glXGetProcAddress = dlsym(lib_gl, "glXGetProcAddress");
     

@@ -1,3 +1,9 @@
+#define REPLAY_CONFIG_FUNCS
+#define RC_F F
+#include "shared/replay_config.h"
+#undef RC_F
+#undef REPLAY_CONFIG_FUNCS
+
 #define REPLAY 1
 #define SWITCH_REPLAY(a, b) a
 #include "testing/objects/objects.h"
@@ -357,6 +363,8 @@ static void replay_update_fb0_buffers(trc_replay_context_t* ctx, bool backcolor,
 static void init_context(trc_replay_context_t* ctx) {
     trace_t* trace = ctx->trace;
     
+    trc_replay_config_t cfg = trc_get_context(trace)->trace_cfg;
+    
     trc_gl_state_set_made_current_before(trace, false);
     
     GLint major, minor;
@@ -390,92 +398,73 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_draw_framebuffer_init(trace, (trc_obj_ref_t){NULL});
     trc_gl_state_set_active_texture_unit(trace, 0);
     
-    GLint max_query_bindings = 64; //TODO
-    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, max_query_bindings, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, max_query_bindings, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, max_query_bindings, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, max_query_bindings, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, max_query_bindings, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, max_query_bindings, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, 1, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, 1, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, 1, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, cfg.max_vertex_streams, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, cfg.max_vertex_streams, NULL);
+    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, 1, NULL);
     
-    GLint max_clip_distances, max_draw_buffers, max_viewports;
-    GLint max_vertex_attribs, max_color_attachments, max_tex_units;
-    GLint max_patch_vertices, max_renderbuffer_size, max_texture_size, max_transform_feedback_buffers;
-    GLint max_uniform_buffer_bindings, max_atomic_counter_buffer_bindings, max_shader_storage_buffer_bindings;
-    F(glGetIntegerv)(GL_MAX_CLIP_DISTANCES, &max_clip_distances);
-    F(glGetIntegerv)(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
-    if (ver>=410) F(glGetIntegerv)(GL_MAX_VIEWPORTS, &max_viewports);
-    else max_viewports = 1;
-    F(glGetIntegerv)(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
-    F(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
-    F(glGetIntegerv)(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_tex_units);
-    F(glGetIntegerv)(GL_MAX_PATCH_VERTICES, &max_patch_vertices);
-    F(glGetIntegerv)(GL_MAX_RENDERBUFFER_SIZE, &max_renderbuffer_size);
-    F(glGetIntegerv)(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-    F(glGetIntegerv)(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, &max_transform_feedback_buffers);
-    F(glGetIntegerv)(GL_MAX_UNIFORM_BUFFER_BINDINGS, &max_uniform_buffer_bindings);
-    F(glGetIntegerv)(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &max_atomic_counter_buffer_bindings);
-    F(glGetIntegerv)(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &max_shader_storage_buffer_bindings);
-    
-    trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, max_clip_distances);
-    trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, max_draw_buffers);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, max_viewports);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, max_vertex_attribs);
-    trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, max_color_attachments);
-    trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, max_tex_units);
-    trc_gl_state_state_int_init1(trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, max_transform_feedback_buffers);
-    trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, max_uniform_buffer_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, max_patch_vertices);
-    trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, max_renderbuffer_size);
-    trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, max_texture_size);
-    trc_gl_state_state_int_init1(trace, GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, max_atomic_counter_buffer_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, max_shader_storage_buffer_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, major);
-    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, minor);
+    trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, cfg.max_clip_distances);
+    trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, cfg.max_draw_buffers);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, cfg.max_viewports);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, cfg.max_vertex_attribs);
+    trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, cfg.max_color_attachments);
+    trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, cfg.max_combined_texture_units);
+    trc_gl_state_state_int_init1(trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, cfg.max_xfb_buffers);
+    trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, cfg.max_ubo_bindings);
+    trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, cfg.max_patch_vertices);
+    trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, cfg.max_renderbuffer_size);
+    trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, cfg.max_texture_size);
+    trc_gl_state_state_int_init1(trace, GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, cfg.max_atomic_counter_buffer_bindings);
+    trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, cfg.max_ssbo_bindings);
+    trc_gl_state_state_int_init1(trace, GL_MAX_SAMPLE_MASK_WORDS, cfg.max_sample_mask_words);
+    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, cfg.major_version);
+    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.minor_version);
     trc_gl_state_set_ver(trace, ver);
     
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, max_uniform_buffer_bindings, NULL);
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_ATOMIC_COUNTER_BUFFER, max_atomic_counter_buffer_bindings, NULL);
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_SHADER_STORAGE_BUFFER, max_shader_storage_buffer_bindings, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, cfg.max_ubo_bindings, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_ATOMIC_COUNTER_BUFFER, cfg.max_atomic_counter_buffer_bindings, NULL);
+    trc_gl_state_bound_buffer_indexed_init(trace, GL_SHADER_STORAGE_BUFFER, cfg.max_ssbo_bindings, NULL);
     
-    trc_gl_context_rev_t rev = *trc_get_context(ctx->trace);
+    trc_gl_context_rev_t rev = *trc_get_context(trace);
     
     trc_gl_transform_feedback_rev_t default_tf;
     default_tf.has_object = true;
     default_tf.real = 0;
-    size_t size = max_transform_feedback_buffers * sizeof(trc_gl_buffer_binding_point_t);
-    default_tf.bindings = trc_create_data(ctx->trace, size, NULL, 0);
+    size_t size = cfg.max_xfb_buffers * sizeof(trc_gl_buffer_binding_point_t);
+    default_tf.bindings = trc_create_data(trace, size, NULL, 0);
     default_tf.active = false;
     default_tf.paused = false;
     default_tf.active_not_paused = false;
     trc_obj_t* default_tf_obj = trc_create_named_obj(rev.priv_ns, TrcTransformFeedback, 0, &default_tf);
     
     rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = default_tf.bindings;
-    trc_set_context(ctx->trace, &rev);
+    trc_set_context(trace, &rev);
     
-    trc_gl_state_set_tf_primitive(ctx->trace, 0);
+    trc_gl_state_set_tf_primitive(trace, 0);
     
-    trc_gl_state_default_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
+    trc_gl_state_default_tf_init(trace, (trc_obj_ref_t){default_tf_obj});
     trc_grab_obj(default_tf_obj); //trc_gl_state_default_tf_init does not increase the reference count
-    trc_gl_state_current_tf_init(ctx->trace, (trc_obj_ref_t){default_tf_obj});
+    trc_gl_state_current_tf_init(trace, (trc_obj_ref_t){default_tf_obj});
     trc_grab_obj(default_tf_obj); //trc_gl_state_current_tf_init does not increase the reference count
     
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, max_tex_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, max_tex_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, cfg.max_combined_texture_units, NULL);
+    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, cfg.max_combined_texture_units, NULL);
     
-    trc_gl_state_bound_samplers_init(trace, max_tex_units, NULL);
+    trc_gl_state_bound_samplers_init(trace, cfg.max_combined_texture_units, NULL);
     
-    trc_gl_state_enabled_init(trace, GL_BLEND, max_draw_buffers, NULL);
-    trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, max_clip_distances, NULL);
+    trc_gl_state_enabled_init(trace, GL_BLEND, cfg.max_draw_buffers, NULL);
+    trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, cfg.max_clip_distances, NULL);
     trc_gl_state_enabled_init1(trace, GL_COLOR_LOGIC_OP, false);
     trc_gl_state_enabled_init1(trace, GL_CULL_FACE, false);
     trc_gl_state_enabled_init1(trace, GL_DEBUG_OUTPUT, false);
@@ -498,15 +487,15 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_enabled_init1(trace, GL_SAMPLE_COVERAGE, false);
     trc_gl_state_enabled_init1(trace, GL_SAMPLE_SHADING, false);
     trc_gl_state_enabled_init1(trace, GL_SAMPLE_MASK, false);
-    trc_gl_state_enabled_init(trace, GL_SCISSOR_TEST, max_viewports, NULL);
+    trc_gl_state_enabled_init(trace, GL_SCISSOR_TEST, cfg.max_viewports, NULL);
     trc_gl_state_enabled_init1(trace, GL_STENCIL_TEST, false);
     trc_gl_state_enabled_init1(trace, GL_TEXTURE_CUBE_MAP_SEAMLESS, false);
     trc_gl_state_enabled_init1(trace, GL_PROGRAM_POINT_SIZE, false);
     
     trc_gl_state_state_bool_init1(trace, GL_DEPTH_WRITEMASK, GL_TRUE);
-    bool color_mask[max_draw_buffers*4];
-    for (size_t i = 0; i < max_draw_buffers*4; i++) color_mask[i] = GL_TRUE;
-    trc_gl_state_state_bool_init(trace, GL_COLOR_WRITEMASK, max_draw_buffers*4, color_mask);
+    bool color_mask[cfg.max_draw_buffers*4];
+    for (size_t i = 0; i < cfg.max_draw_buffers*4; i++) color_mask[i] = GL_TRUE;
+    trc_gl_state_state_bool_init(trace, GL_COLOR_WRITEMASK, cfg.max_draw_buffers*4, color_mask);
     trc_gl_state_state_int_init1(trace, GL_STENCIL_WRITEMASK, 0xffffffff);
     trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_WRITEMASK, 0xffffffff);
     
@@ -556,34 +545,34 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_PASS, GL_KEEP);
     trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_FAIL, GL_KEEP);
     
-    GLenum blenddata[max_draw_buffers];
-    for (size_t i = 0; i < max_draw_buffers; i++) blenddata[i] = GL_ONE;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_RGB, max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_ALPHA, max_draw_buffers, blenddata);
+    GLenum blenddata[cfg.max_draw_buffers];
+    for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_ONE;
+    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_RGB, cfg.max_draw_buffers, blenddata);
+    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_ALPHA, cfg.max_draw_buffers, blenddata);
     
-    for (size_t i = 0; i < max_draw_buffers; i++) blenddata[i] = GL_ZERO;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_RGB, max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_ALPHA, max_draw_buffers, blenddata);
+    for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_ZERO;
+    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_RGB, cfg.max_draw_buffers, blenddata);
+    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_ALPHA, cfg.max_draw_buffers, blenddata);
     
     float blend_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     trc_gl_state_state_float_init(trace, GL_BLEND_COLOR, 4, blend_color);
     
-    for (size_t i = 0; i < max_draw_buffers; i++) blenddata[i] = GL_FUNC_ADD;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_RGB, max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_ALPHA, max_draw_buffers, blenddata);
+    for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_FUNC_ADD;
+    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_RGB, cfg.max_draw_buffers, blenddata);
+    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_ALPHA, cfg.max_draw_buffers, blenddata);
     
     trc_gl_state_set_hints(trace, GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_DONT_CARE);
     trc_gl_state_set_hints(trace, GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
     trc_gl_state_set_hints(trace, GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
     trc_gl_state_set_hints(trace, GL_TEXTURE_COMPRESSION_HINT, GL_DONT_CARE);
     
-    float zerof[max_viewports*4];
-    for (size_t i = 0; i < max_viewports*4; i++) zerof[i] = 0.0f;
-    trc_gl_state_state_float_init(trace, GL_VIEWPORT, max_viewports*4, zerof);
-    trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, max_viewports*4, NULL);
-    float depth_range[max_viewports*2];
-    for (int i = 0; i < max_viewports*2; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
-    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, max_viewports*2, depth_range);
+    float zerof[cfg.max_viewports*4];
+    for (size_t i = 0; i < cfg.max_viewports*4; i++) zerof[i] = 0.0f;
+    trc_gl_state_state_float_init(trace, GL_VIEWPORT, cfg.max_viewports*4, zerof);
+    trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, cfg.max_viewports*4, NULL);
+    float depth_range[cfg.max_viewports*2];
+    for (int i = 0; i < cfg.max_viewports*2; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
+    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, cfg.max_viewports*2, depth_range);
     
     trc_gl_state_state_enum_init1(trace, GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
     trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
@@ -593,8 +582,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_enum_init1(trace, GL_FRONT_FACE, GL_CCW);
     trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
     trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
-    trc_gl_state_state_enum_init1(ctx->trace, GL_CLIP_ORIGIN, GL_LOWER_LEFT);
-    trc_gl_state_state_enum_init1(ctx->trace, GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
+    trc_gl_state_state_enum_init1(trace, GL_CLIP_ORIGIN, GL_LOWER_LEFT);
+    trc_gl_state_state_enum_init1(trace, GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
     trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
     trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
     trc_gl_state_state_float_init1(trace, GL_MIN_SAMPLE_SHADING_VALUE, 0.0f);
@@ -604,28 +593,25 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_OUTER_LEVEL, 4, one4);
     trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_INNER_LEVEL, 2, one4);
     
-    double* va = malloc(max_vertex_attribs*4*sizeof(double));
-    for (size_t i = 0; i < max_vertex_attribs*4; i++) va[i] = i%4==3 ? 1 : 0;
-    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, max_vertex_attribs*4, va);
+    double* va = malloc(cfg.max_vertex_attribs*4*sizeof(double));
+    for (size_t i = 0; i < cfg.max_vertex_attribs*4; i++) va[i] = i%4==3 ? 1 : 0;
+    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, cfg.max_vertex_attribs*4, va);
     free(va);
     
     GLenum draw_buffers[1] = {GL_BACK};
     trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, 1, draw_buffers);
     
-    GLint max_sample_mask_words;
-    F(glGetIntegerv)(GL_MAX_SAMPLE_MASK_WORDS, &max_sample_mask_words);
-    int sample_mask_value[max_sample_mask_words];
-    memset(sample_mask_value, 0xff, max_sample_mask_words*sizeof(int));
-    trc_gl_state_state_int_init1(ctx->trace, GL_MAX_SAMPLE_MASK_WORDS, max_sample_mask_words);
-    trc_gl_state_state_int_init(ctx->trace, GL_SAMPLE_MASK_VALUE, max_sample_mask_words, sample_mask_value);
+    int sample_mask_value[cfg.max_sample_mask_words];
+    memset(sample_mask_value, 0xff, cfg.max_sample_mask_words*sizeof(int));
+    trc_gl_state_state_int_init(trace, GL_SAMPLE_MASK_VALUE, cfg.max_sample_mask_words, sample_mask_value);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
     F(glBindVertexArray)(draw_vao);
     trc_gl_state_set_draw_vao(trace, draw_vao);
     
-    rev = *trc_get_context(ctx->trace);
-    replay_create_context_buffers(ctx->trace, &rev);
+    rev = *trc_get_context(trace);
+    replay_create_context_buffers(trace, &rev);
     trc_set_context(ctx->trace, &rev);
     replay_update_fb0_buffers(ctx, true, true, true, true);
     
@@ -2465,6 +2451,89 @@ glXGetVisualFromFBConfigSGIX: //Display* p_dpy, GLXFBConfigSGIX p_config
 glXGetClientString: //Display* p_dpy, int p_name
     ;
 
+static void test_host_config(trace_command_t* cmd, const trc_replay_config_t* host, const trc_replay_config_t* trace) {
+    uint host_ver = host->major_version*100 + host->minor_version*10;
+    uint trace_ver = trace->major_version*100 + trace->minor_version*10;
+    if (host_ver < trace_ver) trc_add_warning(cmd, "Expected version not supported by host");
+    
+    typedef struct cap_info_t {
+        const char* name;
+        size_t offset;
+    } cap_info_t;
+    cap_info_t caps[] = {
+        {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
+        {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
+        {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
+        {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
+        {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
+        {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
+        {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
+        {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
+        {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
+        {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
+        {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
+        {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
+        {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
+        {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
+    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
+    
+    for (size_t i = 0; i < cap_count; i++) {
+        const char* name = caps[i].name;
+        int host_val = *(const int*)((const uint8_t*)host+caps[i].offset);
+        int trace_val = *(const int*)((const uint8_t*)trace+caps[i].offset);
+        if (host_val < trace_val) {
+            trc_add_warning(cmd, "Host value for capability '%s' is lower than that of trace: %d < %d",
+                            name, host_val, trace_val);
+        }
+    }
+}
+
+wip15SetTargetOptions: //GLsizeiptr p_count, const GLchar*const* p_names, const GLchar*const* p_values
+    if (p_count < 0) ERROR("Invalid count");
+    ctx->target_option_count = p_count;
+    ctx->target_option_names = p_names;
+    ctx->target_option_values = p_values;
+
+static void apply_target_options(trace_command_t* cmd, trc_replay_context_t* ctx, trc_replay_config_t* cfg) {
+    typedef struct option_info_t {
+        const char* name;
+        int* ptr;
+    } option_info_t;
+    
+    //TODO: Use the array in test_host_config()
+    const option_info_t options[] = {
+        {"major_version", &cfg->major_version},
+        {"minor_version", &cfg->minor_version},
+        {"max_vertex_streams", &cfg->max_vertex_streams},
+        {"max_clip_distances", &cfg->max_clip_distances},
+        {"max_draw_buffers", &cfg->max_draw_buffers},
+        {"max_viewports", &cfg->max_viewports},
+        {"max_vertex_attribs", &cfg->max_vertex_attribs},
+        {"max_color_attachments", &cfg->max_color_attachments},
+        {"max_combined_texture_units", &cfg->max_combined_texture_units},
+        {"max_patch_vertices", &cfg->max_patch_vertices},
+        {"max_renderbuffer_size", &cfg->max_renderbuffer_size},
+        {"max_texture_size", &cfg->max_texture_size},
+        {"max_xfb_buffers", &cfg->max_xfb_buffers},
+        {"max_ubo_bindings", &cfg->max_ubo_bindings},
+        {"max_atomic_counter_buffer_bindings", &cfg->max_atomic_counter_buffer_bindings},
+        {"max_ssbo_bindings", &cfg->max_ssbo_bindings},
+        {"nvidia_xfb_object_bindings_bug", &cfg->nvidia_xfb_object_bindings_bug}};
+    size_t option_count = sizeof(options) / sizeof(options[0]);
+    
+    for (GLsizeiptr i = 0; i < ctx->target_option_count; i++) {
+        //TODO: Improve the parsing code
+        int value = atoi(ctx->target_option_values[i]);
+        for (size_t j = 0; j < option_count; j++) {
+            if (strcmp(options[j].name, ctx->target_option_names[i])) continue;
+            *options[j].ptr = value;
+            goto done;
+        }
+        trc_add_error(cmd, "Unknown target option '%s'", ctx->target_option_names[i]);
+        done: ;
+    }
+}
+
 glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct
     trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
     
@@ -2495,6 +2564,12 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     if (shareList) rev.namespace = shareList->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     rev.priv_ns = trc_create_namespace(ctx->trace);
+    
+    init_host_config(ctx, &rev.host_cfg);
+    rev.trace_cfg = rev.host_cfg;
+    apply_target_options(cmd, ctx, &rev.trace_cfg);
+    test_host_config(cmd, &rev.host_cfg, &rev.trace_cfg);
+    
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
@@ -2580,6 +2655,12 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     if (share_ctx) rev.namespace = share_ctx->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     rev.priv_ns = trc_create_namespace(ctx->trace);
+    
+    init_host_config(ctx, &rev.host_cfg);
+    rev.trace_cfg = rev.host_cfg;
+    apply_target_options(cmd, ctx, &rev.trace_cfg);
+    test_host_config(cmd, &rev.host_cfg, &rev.trace_cfg);
+    
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
