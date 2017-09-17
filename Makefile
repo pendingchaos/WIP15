@@ -1,8 +1,9 @@
 USE_LZ4 = $(shell pkg-config liblz4 --exists && echo 1 || echo 0)
 USE_ZLIB = $(shell pkg-config zlib --exists && echo 1 || echo 0)
 USE_ZSTD = 0
+USE_GTKSOURCEVIEW = $(shell pkg-config gtksourceview-3.0 --exists && echo 1 || echo 0)
 
-CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 gtksourceview-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
+CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
 COMP_LIBS =
 ifeq ($(USE_LZ4), 1)
@@ -18,6 +19,12 @@ endif
 ifeq ($(USE_ZSTD), 1)
 COMP_LIBS += `pkg-config libzstd --libs`
 CFLAGS += -DZSTD_ENABLED `pkg-config libzstd --cflags`
+endif
+
+GTK_SOURCEVIEW_LIBS =
+ifeq ($(USE_GTKSOURCEVIEW), 1)
+GTK_SOURCEVIEW_LIBS += `pkg-config gtksourceview-3.0 --libs`
+CFLAGS += -DGTKSOURCEVIEW_ENABLED `pkg-config gtksourceview-3.0 --cflags`
 endif
 
 gui_src = $(shell find src/gui/ -type f -name '*.c')
@@ -78,7 +85,7 @@ bin/libtrace.so: $(libtrace_obj)
 	$(CC) $^ -o bin/libtrace.so -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
 bin/gui: $(gui_obj) bin/libtrace.so
-	$(CC) -Lbin -Wl,-rpath=. -ltrace -lm -lepoxy $(gui_obj) -o bin/gui -g `pkg-config gtk+-3.0 gtksourceview-3.0 --libs` -rdynamic $(CFLAGS)
+	$(CC) -Lbin -Wl,-rpath=. -ltrace -lm -lepoxy $(gui_obj) -o bin/gui -g `pkg-config gtk+-3.0 --libs` $(GTK_SOURCEVIEW_LIBS) -rdynamic $(CFLAGS)
 
 bin/replaytrace: src/.replaytrace.o bin/libtrace.so
 	$(CC) -Lbin -Wl,-rpath=. -ltrace src/.replaytrace.o -o bin/replaytrace -g -rdynamic $(CFLAGS)

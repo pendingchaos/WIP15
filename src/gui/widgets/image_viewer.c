@@ -3,7 +3,9 @@
 #include "image_viewer.h"
 #include "../utils.h"
 
+#if GTKSOURCEVIEW_ENABLED
 #include <gtksourceview/gtksource.h>
+#endif
 #include <stdlib.h>
 #include <math.h>
 
@@ -504,12 +506,17 @@ image_viewer_t* create_image_viewer() {
     g_signal_connect(viewer->gl_area, "scroll-event",
                      G_CALLBACK(image_viewer_scroll), viewer);
     
+    #if GTKSOURCEVIEW_ENABLED
     viewer->shader_editor = GTK_TEXT_VIEW(gtk_source_view_new());
+    #else
+    viewer->shader_editor = GTK_TEXT_VIEW(gtk_text_view_new());
+    #endif
     viewer->shader_info_log = GTK_TEXT_VIEW(gtk_text_view_new());
     gtk_text_view_set_editable(viewer->shader_info_log, false);
     gtk_text_view_set_monospace(viewer->shader_info_log, true);
     gtk_text_view_set_monospace(viewer->shader_editor, true);
     
+    #if GTKSOURCEVIEW_ENABLED
     GtkSourceView* source_view = GTK_SOURCE_VIEW(viewer->shader_editor);
     gtk_source_view_set_auto_indent(source_view, true);
     gtk_source_view_set_highlight_current_line(source_view, true);
@@ -522,6 +529,7 @@ image_viewer_t* create_image_viewer() {
     GtkSourceBuffer* source_buf = GTK_SOURCE_BUFFER(
         gtk_text_view_get_buffer(viewer->shader_editor));
     gtk_source_buffer_set_implicit_trailing_newline(source_buf, false);
+    #endif
     
     GtkBox* upper_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 5));
     gtk_box_pack_start(upper_box, box, false, false, 0);
