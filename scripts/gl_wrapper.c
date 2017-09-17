@@ -267,27 +267,27 @@ static func_t get_func_real(const char* name) {
 
 static bool gl_get(GLenum pname, GLdouble* dval, GLint64* ival) {
     switch (pname) {
-    #define VALF(name) \
-        {GLdouble v = current_config.name; if (dval) *dval = (v); if(ival) *ival = (v); break;}
-    #define VALI(name) \
-        {GLint64 v = current_config.name; if (dval) *dval = (v); if(ival) *ival = (v); break;}
-    case GL_MAJOR_VERSION: VALI(major_version)
-    case GL_MINOR_VERSION: VALI(minor_version)
-    case GL_MAX_VERTEX_STREAMS: VALI(max_vertex_streams)
-    case GL_MAX_CLIP_DISTANCES: VALI(max_clip_distances)
-    case GL_MAX_DRAW_BUFFERS: VALI(max_draw_buffers)
-    case GL_MAX_VIEWPORTS: VALI(max_viewports)
-    case GL_MAX_VERTEX_ATTRIBS: VALI(max_vertex_attribs)
-    case GL_MAX_COLOR_ATTACHMENTS: VALI(max_color_attachments)
-    case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: VALI(max_combined_texture_units)
-    case GL_MAX_PATCH_VERTICES: VALI(max_patch_vertices)
-    case GL_MAX_RENDERBUFFER_SIZE: VALI(max_renderbuffer_size)
-    case GL_MAX_TEXTURE_SIZE: VALI(max_texture_size)
-    case GL_MAX_TRANSFORM_FEEDBACK_BUFFERS: VALI(max_xfb_buffers)
-    case GL_MAX_UNIFORM_BUFFER_BINDINGS: VALI(max_ubo_bindings)
-    case GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS: VALI(max_atomic_counter_buffer_bindings)
-    case GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS: VALI(max_ssbo_bindings)
-    case GL_MAX_SAMPLE_MASK_WORDS: VALI(max_sample_mask_words)
+    #define VALF(expr) \
+        {GLdouble v = (expr); if (dval) *dval = (v); if(ival) *ival = (v); break;}
+    #define VALI(expr) \
+        {GLint64 v = (expr); if (dval) *dval = (v); if(ival) *ival = (v); break;}
+    case GL_MAJOR_VERSION: VALI(current_config.version/100)
+    case GL_MINOR_VERSION: VALI(current_config.version/10)
+    case GL_MAX_VERTEX_STREAMS: VALI(current_config.max_vertex_streams)
+    case GL_MAX_CLIP_DISTANCES: VALI(current_config.max_clip_distances)
+    case GL_MAX_DRAW_BUFFERS: VALI(current_config.max_draw_buffers)
+    case GL_MAX_VIEWPORTS: VALI(current_config.max_viewports)
+    case GL_MAX_VERTEX_ATTRIBS: VALI(current_config.max_vertex_attribs)
+    case GL_MAX_COLOR_ATTACHMENTS: VALI(current_config.max_color_attachments)
+    case GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: VALI(current_config.max_combined_texture_units)
+    case GL_MAX_PATCH_VERTICES: VALI(current_config.max_patch_vertices)
+    case GL_MAX_RENDERBUFFER_SIZE: VALI(current_config.max_renderbuffer_size)
+    case GL_MAX_TEXTURE_SIZE: VALI(current_config.max_texture_size)
+    case GL_MAX_TRANSFORM_FEEDBACK_BUFFERS: VALI(current_config.max_xfb_buffers)
+    case GL_MAX_UNIFORM_BUFFER_BINDINGS: VALI(current_config.max_ubo_bindings)
+    case GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS: VALI(current_config.max_atomic_counter_buffer_bindings)
+    case GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS: VALI(current_config.max_ssbo_bindings)
+    case GL_MAX_SAMPLE_MASK_WORDS: VALI(current_config.max_sample_mask_words)
     #undef VALI
     #undef VALF
     default:
@@ -616,6 +616,7 @@ typedef struct cap_info_t {
     size_t offset;
 } cap_info_t;
 static const cap_info_t caps[] = {
+    {"version", offsetof(trc_replay_config_t, version)},
     {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
     {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
     {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},

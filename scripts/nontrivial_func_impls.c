@@ -419,8 +419,8 @@ static void init_context(trc_replay_context_t* ctx) {
     trc_gl_state_state_int_init1(trace, GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, cfg.max_atomic_counter_buffer_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, cfg.max_ssbo_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_SAMPLE_MASK_WORDS, cfg.max_sample_mask_words);
-    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, cfg.major_version);
-    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.minor_version);
+    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, cfg.version/100);
+    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.version/10);
     trc_gl_state_set_ver(trace, ver);
     
     trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, cfg.max_ubo_bindings, NULL);
@@ -2452,15 +2452,12 @@ glXGetClientString: //Display* p_dpy, int p_name
     ;
 
 static void test_host_config(trace_command_t* cmd, const trc_replay_config_t* host, const trc_replay_config_t* trace) {
-    uint host_ver = host->major_version*100 + host->minor_version*10;
-    uint trace_ver = trace->major_version*100 + trace->minor_version*10;
-    if (host_ver < trace_ver) trc_add_warning(cmd, "Expected version not supported by host");
-    
     typedef struct cap_info_t {
         const char* name;
         size_t offset;
     } cap_info_t;
     cap_info_t caps[] = {
+        {"version", offsetof(trc_replay_config_t, version)},
         {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
         {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
         {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
@@ -2502,8 +2499,7 @@ static void apply_target_options(trace_command_t* cmd, trc_replay_context_t* ctx
     
     //TODO: Use the array in test_host_config()
     const option_info_t options[] = {
-        {"major_version", &cfg->major_version},
-        {"minor_version", &cfg->minor_version},
+        {"version", &cfg->version},
         {"max_vertex_streams", &cfg->max_vertex_streams},
         {"max_clip_distances", &cfg->max_clip_distances},
         {"max_draw_buffers", &cfg->max_draw_buffers},
