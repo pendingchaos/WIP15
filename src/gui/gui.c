@@ -1,3 +1,4 @@
+#include "widgets/info_box.h"
 #include "tabs/tabs.h"
 #include "utils.h"
 #include "gui.h"
@@ -237,19 +238,20 @@ void about_callback(GObject* obj, gpointer user_data) {
 }
 
 //TODO: Support escaping of arguments
-char** parse_arguments(char* program, const char* args, size_t* count) {
-    *count = 0;
+char** parse_arguments(const char* program, const char* args) {
+    size_t count = 0;
     for (const char* c = args; *c; c++) {
         if (*c!=' ' && *c!='\t') {
-            (*count)++;
+            count++;
             while (*c!=' ' && *c!='\t' && *c!=0) c++;
         }
     }
     
-    char** program_args = calloc(*count+2, sizeof(const char*));
-    program_args[0] = program;
+    char** program_args = calloc(count+2, sizeof(const char*));
+    program_args[0] = calloc(strlen(program)+1, 1);
+    strcpy(program_args[0], program);
     const char* cur_arg = args;
-    for (size_t i = 0; i < *count; i++) {
+    for (size_t i = 0; i < count; i++) {
         const char* c = cur_arg;
         while (*c!=' ' && *c!='\t' && *c!=0) c++;
         size_t len = c - cur_arg;
@@ -262,6 +264,36 @@ char** parse_arguments(char* program, const char* args, size_t* count) {
     return program_args;
 }
 
+static void create_new_trace(const char* args, const char* program, const char* config, int compression) {
+    char* lib_path = realpath("libgl.so", NULL);
+    if (!lib_path) {
+        display_error_dialog("Unable to find libgl.so\n");
+        return;
+    }
+    
+    char** program_args = parse_arguments(program, args);
+    
+    int exitcode;
+    bool success = trace_program(&exitcode, 5,
+        TrcProgramArguments, program_args,
+        TrcOutputFilename, static_format("%s.trace", program),
+        TrcConfigFilename, config ? config : "configs/this.config.txt",
+        TrcCompression, compression,
+        TrcLibGL, lib_path);
+    if (success && exitcode!=EXIT_SUCCESS) {
+        display_error_dialog(
+            static_format("Unable to execute command: Process returned %d\n", exitcode));
+    } else if (!success) {
+        display_error_dialog("Failed to start process\n");
+    } else {
+        open_trace(static_format("%s.trace", program));
+    }
+    
+    for (size_t i = 0; program_args[i]; i++) free(program_args[i]);
+    free(program_args);
+    free(lib_path);
+}
+
 void new_callback(GObject* obj, gpointer user_data) {
     GtkDialog* dialog = GTK_DIALOG(
     gtk_dialog_new_with_buttons("New Trace",
@@ -272,62 +304,50 @@ void new_callback(GObject* obj, gpointer user_data) {
                                 "Cancel",
                                 GTK_RESPONSE_REJECT,
                                 NULL));
+    gtk_box_set_spacing(GTK_BOX(gtk_dialog_get_content_area(dialog)), 5);
     
-    GtkWidget* content = gtk_dialog_get_content_area(dialog);
-    
-    GtkWidget* prog_button = gtk_file_chooser_button_new("Select a Program", GTK_FILE_CHOOSER_ACTION_OPEN);
-    
+    GtkWidget* prog_button =
+        gtk_file_chooser_button_new("Select a Program", GTK_FILE_CHOOSER_ACTION_OPEN);
+    GtkWidget* config_button =
+        gtk_file_chooser_button_new("Select a Configuration", GTK_FILE_CHOOSER_ACTION_OPEN);
     GtkEntry* arg_entry = GTK_ENTRY(gtk_entry_new());
+    GtkRange* compression_range = GTK_RANGE(
+        gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0, 100.0, 1.0));
+    gtk_range_set_value(compression_range, 60.0);
     
-    GtkBox* box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 0));
-    gtk_box_pack_end(box, GTK_WIDGET(arg_entry), FALSE, TRUE, 0);
-    gtk_box_pack_end(box, GTK_WIDGET(prog_button), FALSE, TRUE, 0);
+    info_box_t* info_box = create_info_box();
     
-    gtk_container_add(GTK_CONTAINER(content), GTK_WIDGET(box));
+    add_custom_to_info_box(info_box, "Program", prog_button);
+    add_custom_to_info_box(info_box, "Arguments", GTK_WIDGET(arg_entry));
+    add_custom_to_info_box(info_box, "Configuration", config_button);
+    add_custom_to_info_box(info_box, "Compression", GTK_WIDGET(compression_range));
+    gtk_widget_set_halign(prog_button, GTK_ALIGN_FILL);
+    gtk_widget_set_halign(GTK_WIDGET(arg_entry), GTK_ALIGN_FILL);
+    gtk_widget_set_halign(config_button, GTK_ALIGN_FILL);
+    gtk_widget_set_halign(GTK_WIDGET(compression_range), GTK_ALIGN_FILL);
+    
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(dialog)), info_box->widget);
     
     gtk_widget_show_all(GTK_WIDGET(dialog));
     if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
         const char* args = gtk_entry_get_text(arg_entry);
         char* program = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(prog_button));
+        char* config = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(config_button));
         
-        char* lib_path = realpath("libgl.so", NULL);
-        if (!lib_path) {
-            display_error_dialog("Unable to find libgl.so\n");
-            goto failure;
-        }
+        const char* real_config = config ? config : "configs/this.config.txt";
+        int compression = gtk_range_get_value(compression_range);
+        create_new_trace(args, program, real_config, compression);
         
-        size_t arg_count;
-        char** program_args = parse_arguments(program, args, &arg_count);
-        
-        int exitcode;
-        //TODO: Allow the configuration to be specified in the GUI
-        bool success = trace_program(&exitcode, 5,
-            TrcProgramArguments, program_args,
-            TrcOutputFilename, static_format("%s.trace", program),
-            TrcConfigFilename, "configs/this.config.txt",
-            TrcCompression, 60,
-            TrcLibGL, lib_path);
-        if (success && exitcode!=EXIT_SUCCESS) {
-            display_error_dialog(
-                static_format("Unable to execute command: Process returned %d\n", exitcode));
-        } else if (!success) {
-            display_error_dialog("Failed to start process\n");
-        } else {
-            open_trace(static_format("%s.trace", program));
-        }
-        
-        for (size_t i = 1; i < arg_count+1; i++) free(program_args[i]);
-        free(program_args);
-        free(lib_path);
-        
-        failure:
-        
+        g_free(config);
         g_free(program);
     }
     
-    gtk_widget_destroy(prog_button);
+    free_info_box(info_box);
+    
+    gtk_widget_destroy(GTK_WIDGET(compression_range));
     gtk_widget_destroy(GTK_WIDGET(arg_entry));
-    gtk_widget_destroy(GTK_WIDGET(box));
+    gtk_widget_destroy(config_button);
+    gtk_widget_destroy(prog_button);
     gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 

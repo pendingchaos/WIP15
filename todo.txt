@@ -9,12 +9,6 @@ Debugging:
         Uninitialized textures
         Uninitialized buffers
     Asynchronous replaying
-    Object viewing
-        samplers
-        program pipelines
-        program uniforms
-        large buffers
-        program's linked shaders (not attached shaders)
     Shader debugger
         Can use SSBOs
         Possible without by rendering the values to the framebuffer
@@ -27,14 +21,12 @@ Debugging:
     Debug markers and stuff
     State inspection
         Currently have lots though more still needed.
-    Replay should check to see if the user supplied limits have been reached.
 
 Tests:
     Implement more of them
 
 Bugs:
     Handle stuff like this: https://github.com/apitrace/apitrace/issues/5#issuecomment-1025742
-    The state, textures, etc will not be updated when opening a trace in the GUI.
     Group indices are stored in traces
     ensure that packed and shared layout for UBOs work
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
@@ -57,8 +49,6 @@ Much more validation during replay
 
 Various TODOs in the source code.
 
-Vertex attribute indices need to work with matrices.
-
 Dramatically reduce memory usage and size of trace files.
 
 Cube map, 1D array, 2D array, rectangle, buffer, multisample, proxy, 1D and 3D textures.
@@ -68,8 +58,6 @@ Enabling or disabling state depending on OpenGL version and extensions.
 glDelete* should handle when objects are in use.
 
 Control over the output trace filename in the GUI.
-
-Control over the limits file in the GUI.
 
 Multiple thread support
 

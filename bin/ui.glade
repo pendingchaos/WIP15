@@ -31,7 +31,7 @@
                       <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">New</property>
+                        <property name="label" translatable="yes">New Trace</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="new_callback" swapped="no"/>
                       </object>
@@ -40,7 +40,7 @@
                       <object class="GtkMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Open</property>
+                        <property name="label" translatable="yes">Open Trace</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="open_callback" swapped="no"/>
                       </object>
