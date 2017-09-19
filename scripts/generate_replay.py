@@ -17,6 +17,7 @@ output.write("""#include <X11/Xlib.h>
 #include <assert.h>
 #include "libtrace/libtrace.h"
 #include "shared/glapi.h"
+#include "shared/utils.h"
 
 #define F(name) (((replay_gl_funcs_t*)((const trc_replay_context_t*)ctx)->_replay_gl)->real_##name)
 #define RETURN do {goto end;} while (0)

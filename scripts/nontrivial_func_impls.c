@@ -3548,145 +3548,161 @@ static void get_program_subroutine_uniforms(trace_command_t* cmd, trc_replay_con
         datas[i] = trc_create_data_no_copy(ctx->trace, subroutine_count[i]*2*sizeof(uint), subroutines[i], 0);
 }
 
-bool read_uint32(size_t* data_size, uint8_t** data, uint32_t* val) {
-    if (*data_size < 4) return false;
-    memcpy(val, *data, 4);
-    *val = le32toh(*val);
-    *data += 4;
+typedef struct uniform_spec_state_t {
+    trc_replay_context_t* ctx;
+    data_reader_t dr;
+    trc_gl_uniform_t* uniforms;
+    size_t next_index;
+    size_t storage_used;
+    uint32_t spec_count;
+    uint32_t root_count;
+    GLuint real_program;
+} uniform_spec_state_t;
+
+static bool read_normal_uniform(uniform_spec_state_t* state, trc_gl_uniform_t* spec) {
+    if (!dr_read_le(&state->dr, 4, &spec->fake_loc, -1)) return false;
+    
+    uint8_t dim[2];
+    if (!dr_read(&state->dr, 2, dim)) return false;
+    if (dim[0]>4 || dim[1]>4) return false;
+    spec->dtype.dim[0] = dim[0];
+    spec->dtype.dim[1] = dim[1];
+    
     return true;
 }
 
-//TODO: Validation
-//TODO: Cleanup
-static bool read_uniform_spec(trc_replay_context_t* ctx, trc_gl_uniform_t* uniforms, size_t* data_size,
-                              uint8_t** data, size_t* next_index, size_t* storage_used, size_t spec_count,
-                              uint specindex, GLuint program, const char* var_name_base, uint parent) {
-    uint32_t name_length;
-    if (!read_uint32(data_size, data, &name_length)) return false;
-    if (*data_size < name_length) return false;
-    char* name = calloc(name_length+1, 1);
-    memcpy(name, *data, name_length);
-    *data += name_length;
-    *data_size -= name_length;
+static bool read_texture_uniform(uniform_spec_state_t* state, trc_gl_uniform_t* spec) {
+    if (!dr_read_le(&state->dr, 4, &spec->fake_loc, -1)) return false;
     
-    trc_gl_uniform_t* spec = &uniforms[specindex];
+    uint8_t params[5];
+    if (!dr_read(&state->dr, 5, params)) return false;
+    if (params[0] > 5) return false;
+    if (params[4]!=0 && params[4]!=2 && params[4]!=3) return false;
+    spec->dtype.tex_type = params[0];
+    spec->dtype.tex_shadow = params[1];
+    spec->dtype.tex_array = params[2];
+    spec->dtype.tex_multisample = params[3];
+    spec->dtype.tex_dtype = params[4];
+    
+    return true;
+}
+
+static bool read_uniform_spec(uniform_spec_state_t* state, uint specindex,
+                              str_t var_name_base, uint parent);
+
+static bool read_composite_uniform(uniform_spec_state_t* state, trc_gl_uniform_t* spec,
+                                   str_t var_name_base, str_t name, uint specindex) {
+    uint32_t child_count;
+    if (!dr_read_le(&state->dr, 4, &child_count, -1)) return false;
+    
+    size_t prev_index;
+    for (size_t i = 0; i < child_count; i++) {
+        size_t index = state->next_index++;
+        if (index >= state->spec_count) return false;
+        
+        str_t base;
+        if (spec->dtype.base == TrcUniformBaseType_Struct)
+            base = str_fmt(NULL, "%s%s.", var_name_base.data, name.data);
+        else
+            base = str_fmt(NULL, "%s%s[%zu]", var_name_base.data, name.data, i);
+        if (!read_uniform_spec(state, index, base, specindex)) {
+            str_del(base);
+            return false;
+        }
+        str_del(base);
+        
+        if (i == 0) spec->first_child = index;
+        else state->uniforms[prev_index].next = index;
+        prev_index = index;
+    }
+    
+    return true;
+}
+
+static bool read_uniform_spec(uniform_spec_state_t* state, uint specindex,
+                              str_t var_name_base, uint parent) {
+    uint32_t name_length;
+    if (!dr_read_le(&state->dr, 4, &name_length, -1)) goto failure;
+    str_t name;
+    if (!dr_read_str(&state->dr, NULL, name_length, &name));
+    
+    trc_gl_uniform_t* spec = &state->uniforms[specindex];
     memset(spec, 0, sizeof(trc_gl_uniform_t)); //To fix usage of unintialized data because of compression
     spec->parent = parent;
-    spec->name = trc_create_data(ctx->trace, name_length+1, name, 0);
+    spec->name = trc_create_data(state->ctx->trace, name.length+1, name.data, 0);
     spec->next = 0xffffffff;
     spec->dtype.dim[0] = 1;
     spec->dtype.dim[1] = 1;
     spec->first_child = 0xffffffff;
     
-    if (*data_size < 1) return false;
-    spec->dtype.base = (trc_gl_uniform_base_dtype_t)**data;
-    (*data_size)--;
-    (*data)++;
-    
-    if ((int)spec->dtype.base <= 8) {
-        uint32_t loc;
-        if (!read_uint32(data_size, data, &loc)) return false;
-        spec->fake_loc = loc;
-    }
+    uint8_t base;
+    if (!dr_read(&state->dr, 1, &base)) goto failure;
+    spec->dtype.base = (trc_gl_uniform_base_dtype_t)base;
     
     if ((int)spec->dtype.base <= 6) {
-        if (*data_size < 2) return false;
-        spec->dtype.dim[0] = (*data)[0];
-        spec->dtype.dim[1] = (*data)[1];
-        (*data_size) -= 2;
-        (*data) += 2;
+        if (!read_normal_uniform(state, spec)) goto failure;
     } else if ((int)spec->dtype.base <= 8) {
-        spec->dtype.tex_type = (*data)[0];
-        spec->dtype.tex_shadow = (*data)[1];
-        spec->dtype.tex_array = (*data)[2];
-        spec->dtype.tex_multisample = (*data)[3];
-        spec->dtype.tex_dtype = (*data)[4];
-        (*data_size) -= 5;
-        (*data) += 5;
+        if (!read_texture_uniform(state, spec)) goto failure;
     } else if ((int)spec->dtype.base==10 || (int)spec->dtype.base==11) {
-        uint32_t child_count;
-        if (!read_uint32(data_size, data, &child_count)) return false;
-        
-        size_t prev_index;
-        for (size_t i = 0; i < child_count; i++) {
-            size_t index = (*next_index)++;
-            if (index >= spec_count) return false;
-            
-            char* base = calloc(strlen(var_name_base)+strlen(name)+8, 1);
-            if (spec->dtype.base == TrcUniformBaseType_Struct)
-                sprintf(base, "%s%s.", var_name_base, name);
-            else
-                sprintf(base, "%s%s[%zu]", var_name_base, name, i);
-            if (!read_uniform_spec(ctx, uniforms, data_size, data, next_index, storage_used, spec_count, index, program, base, parent)) {
-                free(base);
-                return false;
-            }
-            free(base);
-            
-            if (i == 0) spec->first_child = index;
-            else uniforms[prev_index].next = index;
-            prev_index = index;
-        }
+        if (!read_composite_uniform(state, spec, var_name_base, name, specindex))
+            goto failure;
+    } else {
+        goto failure;
     }
     
     if ((int)spec->dtype.base <= 8) {
-        char* full_name = calloc(strlen(var_name_base)+strlen(name)+1, 1);
-        strcpy(full_name, var_name_base);
-        strcat(full_name, name);
-        spec->real_loc = F(glGetUniformLocation)(program, full_name);
-        free(full_name);
-        if (spec->real_loc < 0) return false;
+        str_t full_name = str_cat(NULL, var_name_base, name);
+        void* ctx = state->ctx;
+        spec->real_loc = F(glGetUniformLocation)(state->real_program, full_name.data);
+        str_del(full_name);
+        if (spec->real_loc < 0) goto failure;
         
         size_t dtype_sizes[] = {4, 8, 4, 4, 8, 8, 1, 4, 4};
-        spec->data_offset = *storage_used;
-        *storage_used += dtype_sizes[(int)spec->dtype.base] * spec->dtype.dim[0] * spec->dtype.dim[1];
+        spec->data_offset = state->storage_used;
+        state->storage_used += dtype_sizes[(int)spec->dtype.base] * spec->dtype.dim[0] * spec->dtype.dim[1];
     }
     
-    free(name);
+    bool success = true;
+    goto success;
+    failure: success = false;
+    success: ;
     
-    return true;
+    str_del(name);
+    
+    return success;
 }
 
-static trc_gl_uniform_t* read_uniform_specs(trc_replay_context_t* ctx, size_t* data_size, uint8_t** data,
-                                            size_t* root_count, size_t* count, GLuint program, size_t* storage_needed) {
-    uint32_t spec_count;
-    if (!read_uint32(data_size, data, &spec_count)) return NULL;
-    *count = spec_count;
+static bool read_uniform_specs(uniform_spec_state_t* state) {
+    if (!dr_read_le(&state->dr, 4, &state->spec_count, -1)) return false;
+    if (!dr_read_le(&state->dr, 4, &state->root_count, -1)) return false;
     
-    uint32_t root_spec_count;
-    if (!read_uint32(data_size, data, &root_spec_count)) return NULL;
-    *root_count = root_spec_count;
-    
-    *storage_needed = 0;
-    
-    trc_gl_uniform_t* uniforms = malloc(spec_count*sizeof(trc_gl_uniform_t));
-    size_t next_index = root_spec_count;
-    for (size_t i = 0; i < root_spec_count; i++) {
-        if (!read_uniform_spec(ctx, uniforms, data_size, data, &next_index,
-                               storage_needed, spec_count, i, program, "", 0xffffffff)) {
-            return NULL;
+    state->uniforms = malloc(state->spec_count*sizeof(trc_gl_uniform_t));
+    state->next_index = state->root_count;
+    state->storage_used = 0;
+    for (size_t i = 0; i < state->root_count; i++) {
+        if (!read_uniform_spec(state, i, (str_t){false, 0, ""}, 0xffffffff)) {
+            free(state->uniforms);
+            return false;
         }
     }
-    return uniforms;
+    return true;
 }
 
 static bool init_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, trc_gl_program_rev_t* rev) {
     trace_extra_t* extra = trc_get_extrai(cmd, "replay/program/uniforms", 0);
     if (!extra) return false;
     
-    size_t data_size = extra->size;
-    uint8_t* data = extra->data;
-    size_t root_count, count, storage_needed;
-    trc_gl_uniform_t* uniforms = read_uniform_specs(ctx, &data_size, &data, &root_count, &count, rev->real, &storage_needed);
-    if (!uniforms) {
-        free(uniforms);
+    uniform_spec_state_t state;
+    state.ctx = ctx;
+    state.dr = dr_new(extra->size, extra->data);
+    state.real_program = rev->real;
+    if (!read_uniform_specs(&state))
         return false;
-    }
     
-    uint8_t* uniform_data = malloc(storage_needed);
+    uint8_t* uniform_data = malloc(state.storage_used);
     //Initialize data
-    for (size_t i = 0; i < count; i++) {
-        trc_gl_uniform_t u = uniforms[i];
+    for (size_t i = 0; i < state.spec_count; i++) {
+        trc_gl_uniform_t u = state.uniforms[i];
         if ((int)u.dtype.base > 8) continue;
         uint8_t* data = uniform_data + u.data_offset;
         
@@ -3713,9 +3729,9 @@ static bool init_uniforms(trace_command_t* cmd, trc_replay_context_t* ctx, trc_g
         }
     }
     
-    rev->root_uniform_count = root_count;
-    rev->uniforms = trc_create_data_no_copy(ctx->trace, count*sizeof(trc_gl_uniform_t), uniforms, 0);
-    rev->uniform_data = trc_create_data_no_copy(ctx->trace, storage_needed, uniform_data, 0);
+    rev->root_uniform_count = state.root_count;
+    rev->uniforms = trc_create_data_no_copy(ctx->trace, state.spec_count*sizeof(trc_gl_uniform_t), state.uniforms, 0);
+    rev->uniform_data = trc_create_data_no_copy(ctx->trace, state.storage_used, uniform_data, 0);
     
     return true;
 }

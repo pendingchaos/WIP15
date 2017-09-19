@@ -801,6 +801,7 @@ static void add_program_extra(const char* type, const char* name, GLenum stage, 
     gl_add_extra(type, strlen(name)+12, data);
 }
 
+//TODO: Move all this uniform code into a separate file
 typedef enum uniform_type_t {
     UniformType_Variable,
     UniformType_Struct,
@@ -810,161 +811,136 @@ typedef enum uniform_type_t {
 
 typedef struct uniform_t {
     union {
-        char* name;
+        str_t name;
         size_t index;
     };
     uniform_type_t type;
     struct uniform_t* prev;
     struct uniform_t* next;
-    union {
-        struct {
-            GLenum dtype;
-            GLuint location;
-        };
-        struct {
-            size_t child_count;
-            struct uniform_t* first_child;
-        };
-    };
+    GLenum dtype;
+    GLuint location;
+    uint32_t child_count;
+    struct uniform_t* first_child;
 } uniform_t;
 
-//TODO: Make this smaller
-static bool add_uniform_variable(GLuint program, uniform_t** uniforms, GLchar* name, GLint size,
-                                 GLenum type, GLint loc, bool array) {
-    GLchar name_temp[strlen(name)+1];
-    strcpy(name_temp, name);
-    GLchar* name_ptr = name_temp;
-    uniform_t* cur = NULL;
+typedef struct uniform_state_t {
+    GLuint program;
+    void* root_alloc;
+    uniform_t* uniforms;
+} uniform_state_t;
+
+typedef struct uniform_name_t {
+    str_t base;
+    ptrdiff_t index;
+    struct uniform_name_t* next;
+} uniform_name_t;
+
+static bool parse_uniform_name(uniform_name_t** res, void* parent_alloc, uniform_name_t* prev, const char* src) {
+    if (src[0] == 0) return true;
     
-    char* name_end = name_ptr;
-    for (; *name_end!=0 && *name_end!='.' && *name_end!='['; name_end++) ;
-    size_t name_len = name_end - name_ptr;
-    
-    for (cur = *uniforms; cur; cur = cur->next) {
-        if (strlen(cur->name)==name_len && strncmp(cur->name, name_ptr, name_len)==0)
-            goto cont;
+    uniform_name_t* name = alloc(parent_alloc, sizeof(uniform_name_t));
+    name->base = str_null();
+    name->index = -1;
+    name->next = NULL;
+    if (src[0] == '[') {
+        if (!prev) return false;
+        
+        src++;
+        name->index = strtoull(src, (char**)&src, 10);
+        if (src[0] != ']') return false;
+        src++;
+    } else {
+        if (src[0]=='.' && prev) src++;
+        else if (src[0]=='.') return false;
+        const char* end = src;
+        for (; end[0]!='[' && end[0]!='.' && end[0]!=0; end++)
+            ;
+        name->base = str_new(name, end-src, src);
+        src = end;
     }
     
-    cur = malloc(sizeof(uniform_t));
-    cur->name = calloc(name_len+1, 1);
-    memcpy(cur->name, name_ptr, name_len);
-    cur->type = UniformType_Unspecified;
-    cur->prev = NULL;
-    cur->next = *uniforms;
-    *uniforms = cur;
+    if (prev) prev->next = name;
+    else *res = name;
+    return parse_uniform_name(res, parent_alloc, name, src);
+}
+
+static uniform_t* get_child(uniform_t* container, uniform_t** first_child, str_t name, size_t index) {
+    if (container) first_child = &container->first_child;
     
-    cont:
-    name_ptr = name_end;
+    uniform_t* child = NULL;
+    for (child = *first_child; child; child = child->next) {
+        if (name.data ? (strcmp(child->name.data, name.data)==0) : (child->index==index))
+            return child;
+    }
     
-    while (*name_ptr != 0) {
-        if (*name_ptr == '.') {
-            if (cur->type == UniformType_Unspecified) {
-                cur->type = UniformType_Struct;
-                cur->child_count = 0;
-                cur->first_child = NULL;
-            }
-            if (cur->type != UniformType_Struct) return false;
-            name_ptr++;
+    child = alloc(child, sizeof(uniform_t));
+    if (!name.data) child->index = index;
+    else child->name = str_copy(child, name);
+    child->type = UniformType_Unspecified;
+    child->next = *first_child;
+    child->child_count = 0;
+    child->first_child = NULL;
+    *first_child = child;
+    if (container) container->child_count++;
+    return child;
+}
+
+typedef struct src_uniform_info_t {
+    char* name;
+    GLint size;
+    GLenum dtype;
+    GLint location;
+    bool array;
+} src_uniform_info_t;
+
+static bool add_uniform_variable(uniform_state_t* state, src_uniform_info_t info) {
+    void* name_root_alloc = alloc(NULL, 0);
+    uniform_name_t* name = NULL;
+    if (!parse_uniform_name(&name, name_root_alloc, NULL, info.name)) goto failure;
+    
+    uniform_t* cur = get_child(NULL, &state->uniforms, name->base, 0);
+    name = name->next;
+    
+    for (; name; name = name->next) {
+        if (name->base.data) {
+            if (cur->type == UniformType_Unspecified)
+                cur->type = UniformType_Struct; //it must be a struct
+            if (cur->type != UniformType_Struct) goto failure;
             
-            char* name_end = name_ptr;
-            for (; *name_end!=0 && *name_end!='.' && *name_end!='['; name_end++) ;
-            size_t name_len = name_end - name_ptr;
-            
-            uniform_t* member;
-            for (member = cur->first_child; member; member = member->next) {
-                if (strlen(member->name)==name_len && strncmp(member->name, name_ptr, name_len)==0)
-                    goto cont2;
-            }
-            
-            member = calloc(sizeof(uniform_t), 1);
-            member->name = calloc(name_len+1, 1);
-            memcpy(member->name, name_ptr, name_len);
-            member->type = UniformType_Unspecified;
-            member->next = cur->first_child;
-            cur->first_child = member;
-            cur->child_count++;
-            
-            cont2:
-            cur = member;
-            name_ptr = name_end;
-        } else if (*name_ptr == '[') {
-            if (cur->type == UniformType_Unspecified) {
-                cur->type = UniformType_Array;
-                cur->child_count = 0;
-                cur->first_child = NULL;
-            }
+            cur = get_child(cur, NULL, name->base, 0);
+        } else if (name->index >= 0) {
+            if (cur->type == UniformType_Unspecified)
+                cur->type = UniformType_Array; //it must be an array
             if (cur->type != UniformType_Array) return false;
             
-            name_ptr++;
-            unsigned long long int index = strtoull(name_ptr, &name_ptr, 10);
-            if (*name_ptr != ']') return false;
-            name_ptr++;
-            
-            uniform_t* element;
-            for (element = cur->first_child; element; element = element->next) {
-                if (element->index == index)
-                    goto cont3;
-            }
-            
-            element = calloc(sizeof(uniform_t), 1);
-            element->index = index;
-            element->type = UniformType_Unspecified;
-            element->next = cur->first_child;
-            cur->first_child = element;
-            cur->child_count++;
-            
-            cont3:
-            cur = element;
+            cur = get_child(cur, NULL, str_null(), name->index);
         } else {
-            return false;
+            goto failure;
         }
     }
+    if (cur->type != UniformType_Unspecified) goto failure;
     
-    if (cur->type != UniformType_Unspecified) return false;
-    
-    if (array) {
+    if (info.array) {
         cur->type = UniformType_Array;
-        cur->first_child = NULL;
-        cur->child_count = size;
-        for (size_t j = 0; j < size; j++) {
-            uniform_t* element = malloc(sizeof(uniform_t));
-            element->index = j;
-            element->type = UniformType_Variable;
-            element->prev = NULL;
-            element->next = cur->first_child;
-            cur->first_child = element;
-            element->dtype = type;
-            GLchar element_name[strlen(name)+8];
-            sprintf(element_name, "%s[%zu]", name, j);
-            element->location = F(glGetUniformLocation)(program, element_name);
+        for (size_t j = 0; j < info.size; j++) {
+            uniform_t* element = get_child(cur, NULL, str_null(), j);
+            element->dtype = info.dtype;
+            str_t name = str_fmt(NULL, "%s[%zu]", info.name, j);
+            element->location = F(glGetUniformLocation)(state->program, name.data);
+            str_del(name);
         }
     } else {
         cur->type = UniformType_Variable;
-        cur->dtype = type;
-        cur->location = loc;
+        cur->dtype = info.dtype;
+        cur->location = info.location;
     }
     
-    return true;
-}
-
-static size_t get_uniforms_extra_max_size(uniform_t* uniform, bool array_element) {
-    switch (uniform->type) {
-    case UniformType_Variable: {
-        return array_element ? 14 : 14+strlen(uniform->name);
-    }
-    case UniformType_Struct:
-    case UniformType_Array: {
-        size_t size = array_element ? 9+uniform->child_count*4
-                                    : 9+uniform->child_count*4+strlen(uniform->name);
-        for (uniform_t* child = uniform->first_child; child; child = child->next)
-            size += get_uniforms_extra_max_size(child, uniform->type==UniformType_Array);
-        return size;
-    }
-    case UniformType_Unspecified: {
-        return 0;
-    }
-    }
-    return 0;
+    bool success = true;
+    goto success_label;
+    failure: success = false;
+    success_label:
+    dealloc(name_root_alloc);
+    return success;
 }
 
 static size_t get_uniforms_spec_count(uniform_t* uniform) {
@@ -1112,11 +1088,11 @@ static uniform_dtype_info_t uniform_dtype_info[] = {
     {GL_UNSIGNED_INT_ATOMIC_COUNTER, 9, {0, 0}, 0, false, false, false, 0},
 };
 
-static uint8_t* write_uniform_extra(uint8_t* data, uniform_t* uniform, bool array_element) {
-    uint32_t name_len = htole32(array_element?0:strlen(uniform->name));
-    memcpy(data, &name_len, 4);
-    memcpy(data+4, uniform->name, name_len);
-    data += 4 + name_len;
+static void write_uniform_extra(data_writer_t* dw, uniform_t* uniform, bool array_element) {
+    uint32_t name_len = array_element ? 0 : uniform->name.length;
+    dw_write_le(dw, 4, &name_len, -1);
+    dw_write(dw, name_len, uniform->name.data);
+    
     switch (uniform->type) {
     case UniformType_Variable: {
         uniform_dtype_info_t info;
@@ -1126,43 +1102,35 @@ static uint8_t* write_uniform_extra(uint8_t* data, uniform_t* uniform, bool arra
                 goto found;
             }
         }
-        //TODO: Handle
-        found:
-        *data++ = info.base_type;
-        uint32_t loc = htole32(uniform->location);
-        memcpy(data, &loc, 4);
-        data += 4;
+        assert(false);
+        found: ;
+        uint32_t loc = uniform->location;
+        dw_write_le(dw, 1, &info.base_type, 4, &loc, -1);
         if (info.dim[0]==0 && info.dim[0]==0) {
-            *data++ = info.tex_type;
-            *data++ = info.tex_shadow;
-            *data++ = info.tex_array;
-            *data++ = info.tex_multisample;
-            *data++ = info.tex_dtype;
+            uint8_t params[5] = {
+                info.tex_type, info.tex_shadow, info.tex_array,
+                info.tex_multisample, info.tex_dtype};
+            dw_write(dw, 5, params);
         } else {
-            *data++ = info.dim[0];
-            *data++ = info.dim[1];
+            dw_write(dw, 2, info.dim);
         }
         break;
     }
     case UniformType_Struct: {
-        *data++ = 10;
-        uint32_t member_count = htole32(uniform->child_count);
-        memcpy(data, &member_count, 4);
-        data += 4;
+        uint8_t base_type = 10;
+        dw_write_le(dw, 1, &base_type, 4, &uniform->child_count, -1);
         for (uniform_t* member = uniform->first_child; member; member = member->next)
-            data = write_uniform_extra(data, member, false);
+            write_uniform_extra(dw, member, false);
         break;
     }
     case UniformType_Array: {
-        *data++ = 11;
-        uint32_t element_count = htole32(uniform->child_count);
-        memcpy(data, &element_count, 4);
-        data += 4;
+        uint8_t base_type = 11;
+        dw_write_le(dw, 1, &base_type, 4, &uniform->child_count, -1);
         for (size_t i = 0; i < uniform->child_count; i++) {
             uniform_t* element = uniform->first_child;
             for (; element&&element->index!=i; element = element->next)
             if (!element) ; //TODO: This should never happen because of previous validation
-            data = write_uniform_extra(data, element, true);
+            write_uniform_extra(dw, element, true);
         }
         break;
     }
@@ -1170,33 +1138,27 @@ static uint8_t* write_uniform_extra(uint8_t* data, uniform_t* uniform, bool arra
         break;
     }
     }
-    return data;
 }
 
 static void write_uniforms_extra(uniform_t* uniforms) {
-    size_t size = 8;
-    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
-        size += get_uniforms_extra_max_size(uniform, false);
-    uint8_t* data = malloc(size);
+    data_writer_t dw = dw_new(1024, alloc(NULL, 1024), true);
     
     uint32_t spec_count = 0;
     for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
         spec_count += get_uniforms_spec_count(uniform);
-    spec_count = htole32(spec_count);
-    memcpy(data, &spec_count, 4);
     
     uint32_t root_spec_count = 0;
-    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next) root_spec_count++;
-    root_spec_count = htole32(root_spec_count);
-    memcpy(data+4, &root_spec_count, 4);
-    
-    uint8_t* data_ptr = data + 8;
     for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
-        data_ptr = write_uniform_extra(data_ptr, uniform, false);
+        root_spec_count++;
     
-    gl_add_extra("replay/program/uniforms", size, data);
+    dw_write_le(&dw, 4, &spec_count, 4, &root_spec_count, -1);
     
-    free(data);
+    for (uniform_t* uniform = uniforms; uniform; uniform = uniform->next)
+        write_uniform_extra(&dw, uniform, false);
+    
+    gl_add_extra("replay/program/uniforms", dw.size, dw.data);
+    
+    dealloc(dw.data);
 }
 
 static void link_program_extras(GLuint program) {
@@ -1205,30 +1167,33 @@ static void link_program_extras(GLuint program) {
     GLint maxNameLen;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxNameLen);
     
-    uniform_t* uniforms = NULL;
+    uniform_state_t state;
+    state.program = program;
+    state.root_alloc = alloc(NULL, 0);
+    state.uniforms = NULL;
+    src_uniform_info_t info;
+    info.name = alloc(state.root_alloc, maxNameLen+1);
     for (size_t i = 0; i < count; i++) {
-        GLchar name[maxNameLen+1];
-        memset(name, 0, maxNameLen+1);
-        GLint size;
-        GLenum type;
-        F(glGetActiveUniform)(program, i, maxNameLen, NULL, &size, &type, name);
-        GLint loc = F(glGetUniformLocation)(program, name);
-        if (loc < 0) continue; //Probably part of a uniform buffer block or a builtin variable
+        memset(info.name, 0, maxNameLen+1);
+        F(glGetActiveUniform)(program, i, maxNameLen, NULL, &info.size, &info.dtype, info.name);
+        info.location = F(glGetUniformLocation)(state.program, info.name);
+        if (info.location < 0) continue; //Probably part of a uniform buffer block or a builtin variable
         
-        bool array = strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0;
-        array = array || size!=1;
+        info.array = strlen(info.name)>3 && strcmp(info.name+strlen(info.name)-3, "[0]")==0;
+        info.array = info.array || info.size!=1;
         
-        if (strlen(name)>3 && strcmp(name+strlen(name)-3, "[0]")==0)
-            name[strlen(name)-3] = 0;
+        if (strlen(info.name)>3 && strcmp(info.name+strlen(info.name)-3, "[0]")==0)
+            info.name[strlen(info.name)-3] = 0;
         
-        if (!add_uniform_variable(program, &uniforms, name, size, type, loc, array)) {
-            //TODO: Free uniforms and don't write the extra
-        }
+        if (!add_uniform_variable(&state, info))
+            goto failure;
     }
     
     //TODO: Validate uniforms
     
-    write_uniforms_extra(uniforms);
+    write_uniforms_extra(state.uniforms);
+    failure:
+    dealloc(state.root_alloc);
     
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTES, &count);
     F(glGetProgramiv)(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxNameLen);

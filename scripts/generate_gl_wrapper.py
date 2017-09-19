@@ -9,6 +9,7 @@ gl_c.write('''#include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <dlfcn.h>
 #include <stdio.h>
+#include <assert.h>
 #include <endian.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -18,6 +19,7 @@ gl_c.write('''#include <X11/Xlib.h>
 #include <inttypes.h>
 
 #include "shared/types.h"
+#include "shared/utils.h"
 
 typedef void (*func_t)();
 
