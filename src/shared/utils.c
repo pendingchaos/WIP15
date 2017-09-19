@@ -204,7 +204,7 @@ bool dr_read_le(data_reader_t* reader, ...) {
             break;
         }
         
-        bool swap = htole16(1) == 1;
+        bool swap = htole16(1) != 1;
         for (int i = 0; i < size; i++)
             dest[i] = swap ? reader->data[size-i-1] : reader->data[i];
         
@@ -253,7 +253,7 @@ bool dw_write_le(data_writer_t* writer, ...) {
         if (size < 0) break;
         const uint8_t* src = va_arg(list, const uint8_t*);
         
-        bool swap = htole16(1) == 1;
+        bool swap = htole16(1) != 1;
         success = success && write(writer, size, swap, src);
         if (!success) break;
     }

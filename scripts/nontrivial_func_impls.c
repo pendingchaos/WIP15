@@ -3347,7 +3347,7 @@ glDetachShader: //GLuint p_program, GLuint p_shader
 typedef struct link_program_extra_t {
     char* name;
     uint32_t val;
-    GLenum stage;
+    uint32_t stage;
     uint32_t stage_idx;
 } link_program_extra_t;
 
@@ -3355,12 +3355,15 @@ static uint link_program_extra(trace_command_t* cmd, const char* name, size_t* i
     trace_extra_t* extra = trc_get_extrai(cmd, name, (*i)++);
     if (!extra) return -1; //-1=End
     
-    if (extra->size < 12) ERROR2(1, "Invalid %s extra", name); //1=skip
-    void* data = extra->data;
-    res->val = le32toh(((uint32_t*)data)[0]);
-    res->stage = le32toh(((uint32_t*)data)[1]);
-    uint32_t len = le32toh(((uint32_t*)data)[2]);
-    if (extra->size < 12+len) ERROR2(1, "Invalid %s extra", name); //1=skip
+    data_reader_t dr = dr_new(extra->size, extra->data);
+    uint32_t len;
+    if (!dr_read_le(&dr, 4, &res->val, 4, &res->stage, 4, &len, -1))
+        ERROR2(1, "Invalid %s extra", name); //1=skip
+    res->name = calloc(len+1, 1);
+    if (!dr_read(&dr, len, res->name)) {
+        free(res->name);
+        ERROR2(1, "Invalid %s extra", name); //1=skip
+    }
     
     switch (res->stage) {
     case GL_VERTEX_SHADER: res->stage_idx = 0; break;
@@ -3372,9 +3375,6 @@ static uint link_program_extra(trace_command_t* cmd, const char* name, size_t* i
     case 0: res->stage_idx = 0; break;
     default: ERROR2(1, "Invalid %s extra", name); //1=skip
     }
-    
-    res->name = calloc(1, len+1);
-    memcpy(res->name, (uint8_t*)data+12, len);
     
     return 0; //0=Use
 }
@@ -3622,8 +3622,8 @@ static bool read_composite_uniform(uniform_spec_state_t* state, trc_gl_uniform_t
 static bool read_uniform_spec(uniform_spec_state_t* state, uint specindex,
                               str_t var_name_base, uint parent) {
     uint32_t name_length;
+    str_t name = str_null();
     if (!dr_read_le(&state->dr, 4, &name_length, -1)) goto failure;
-    str_t name;
     if (!dr_read_str(&state->dr, NULL, name_length, &name));
     
     trc_gl_uniform_t* spec = &state->uniforms[specindex];
