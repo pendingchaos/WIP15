@@ -7,9 +7,8 @@
 #include <stdio.h>
 
 typedef struct header_t {
-    void* parent;
     void* first_sibling;
-    void* prev;
+    void** prev_nextp;
     void* next;
 } header_t;
 
@@ -35,16 +34,16 @@ void* copy2(void* parent, size_t size, size_t src_size, const void* src) {
         header_t* parent_header = get_header(parent);
         if (parent_header->first_sibling) {
             header_t* sibling_header = get_header(parent_header->first_sibling);
-            sibling_header->prev = res;
+            sibling_header->prev_nextp = &header->next;
         }
         header->next = parent_header->first_sibling;
         parent_header->first_sibling = res;
+        header->prev_nextp = &parent_header->first_sibling;
     } else {
         header->next = NULL;
+        header->prev_nextp = NULL;
     }
     
-    header->prev = NULL;
-    header->parent = parent;
     header->first_sibling = NULL;
     
     return res;
@@ -59,20 +58,13 @@ void* resize(void* ptr, size_t size) {
     if (!header) return NULL;
     void* newptr = header + 1;
     
-    if (header->parent) {
-        header_t* parent_header = get_header(header->parent);
-        if (parent_header->first_sibling == ptr)
-            parent_header->first_sibling = newptr;
+    if (header->first_sibling) {
+        header_t* sibling_header = get_header(header->first_sibling);
+        sibling_header->prev_nextp = &header->first_sibling;
     }
     
-    for (void* sibling = header->first_sibling; sibling;) {
-        header_t* sibling_header = get_header(sibling);
-        sibling_header->parent = newptr;
-        sibling = sibling_header->next;
-    }
-    
-    if (header->prev) get_header(header->prev)->next = newptr;
-    if (header->next) get_header(header->next)->prev = newptr;
+    if (header->next)
+        get_header(header->next)->prev_nextp = &header->next;
     
     return newptr;
 }
@@ -86,14 +78,9 @@ void dealloc(void* ptr) {
         sibling = next;
     }
     
-    if (header->parent) {
-        header_t* parent_header = get_header(header->parent);
-        if (parent_header->first_sibling == ptr)
-            parent_header->first_sibling = header->next;
-    }
-    
-    if (header->prev) get_header(header->prev)->next = header->next;
-    if (header->next) get_header(header->next)->prev = header->prev;
+    if (header->prev_nextp) *header->prev_nextp = header->next;
+    if (header->next)
+        get_header(header->next)->prev_nextp = header->prev_nextp;
     
     free(header);
 }
