@@ -8,6 +8,14 @@ for fname, func in func_dict.items():
         if isinstance(param.dtype, tGLenum) and param.group==None:
             print("Warning: Parameter %s of %s is probably missing a group" % (param.name, fname))
 
+exceptions = {}
+for fname, func in func_dict.items():
+    for param in func.params:
+        if param.dtype.__class__ != tGLuint: continue
+        if param.name in exceptions.get(fname, []): continue
+        for s in ['buf', 'sampler', 'tex', 'query', 'framebuffer', 'fb', 'renderbuffer', 'rb', 'sync', 'program', 'pipeline', 'shader', 'vao', 'vaobj', 'array', 'id', 'xfb']:
+            if s in param.name: print 'Note: Parameter %s of %s might be an object name' % (param.name, fname)
+
 replay_func_impls_str = open("nontrivial_func_impls.c").read()
 implemented = set()
 
