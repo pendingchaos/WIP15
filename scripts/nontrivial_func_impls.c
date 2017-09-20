@@ -654,6 +654,28 @@ static void replay_pixel_store(trc_replay_context_t* ctx, trace_command_t* cmd, 
     F(glPixelStorei)(pname, param);
 }
 
+static bool is_compressed_format(uint internal_format) {
+    switch (internal_format) {
+    case GL_COMPRESSED_RED:
+    case GL_COMPRESSED_RG:
+    case GL_COMPRESSED_RGB:
+    case GL_COMPRESSED_RGBA:
+    case GL_COMPRESSED_SRGB:
+    case GL_COMPRESSED_SRGB_ALPHA:
+    case GL_COMPRESSED_RED_RGTC1:
+    case GL_COMPRESSED_SIGNED_RED_RGTC1:
+    case GL_COMPRESSED_RG_RGTC2:
+    case GL_COMPRESSED_SIGNED_RG_RGTC2:
+    case GL_COMPRESSED_RGBA_BPTC_UNORM:
+    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+    case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
+    case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t* rev, uint level, uint face,
                                      uint internal_format, uint width, uint height, uint depth,
                                      trc_image_format_t format, trc_chunked_data_t data) {
@@ -662,6 +684,7 @@ static void replay_set_texture_image(trace_t* trace, const trc_gl_texture_rev_t*
     img.face = face;
     img.level = level;
     img.internal_format = internal_format;
+    img.compressed_internal_format = is_compressed_format(internal_format);
     img.width = width;
     img.height = height;
     img.depth = depth;
@@ -3248,6 +3271,7 @@ glCreateProgram: //
     rev.linked = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", 0);
     rev.binary_retrievable_hint = -1;
+    rev.has_been_linked = false;
     rev.separable = false;
     trc_create_named_obj(ctx->ns, TrcProgram, fake, &rev);
 
@@ -3784,6 +3808,8 @@ glLinkProgram: //GLuint p_program
     rev.linked = trc_create_data_no_copy(ctx->trace, linked_count*sizeof(trc_gl_program_linked_shader_t),
                                          linked, 0);
     
+    rev.has_been_linked = true;
+    
     set_program(&rev);
 
 glValidateProgram: //GLuint p_program
@@ -3980,7 +4006,7 @@ glGetShaderSource: //GLuint p_shader, GLsizei p_bufSize, GLsizei* p_length, GLch
     if (!real_shdr) ERROR("Invalid shader name");
 
 glGetQueryiv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ; //TODO: Validation
+    ;
 
 glGetQueryObjectiv: //GLuint p_id, GLenum p_pname, GLint* p_params
     GLuint real_query = get_real_query(ctx, p_id);
@@ -4052,78 +4078,125 @@ glGetObjectLabel: //GLenum p_identifier, GLuint p_name, GLsizei p_bufSize, GLsiz
 glGetError: //
     ;
 
-//TODO: Validation for these
+static bool is_proxy_target(GLenum target) {
+    switch (target) {
+    case GL_PROXY_TEXTURE_1D:
+    case GL_PROXY_TEXTURE_2D:
+    case GL_PROXY_TEXTURE_3D:
+    case GL_PROXY_TEXTURE_1D_ARRAY:
+    case GL_PROXY_TEXTURE_2D_ARRAY:
+    case GL_PROXY_TEXTURE_RECTANGLE:
+    case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
+    case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+    case GL_PROXY_TEXTURE_CUBE_MAP:
+    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool is_compressed_image(const trc_gl_texture_rev_t* tex, uint level) {
+    if (tex->type == GL_TEXTURE_BUFFER)
+        return level==0 && is_compressed_format(tex->buffer.internal_format);
+    
+    trc_gl_texture_image_t* images = trc_map_data(tex->images, TRC_MAP_READ);
+    for (size_t i = 0; i < tex->images->size/sizeof(images[0]); i++) {
+        if (images[i].level == level) {
+            bool res = images[i].compressed_internal_format;
+            trc_unmap_data(images);
+            return res;
+        }
+    }
+    trc_unmap_data(images);
+    return false;
+}
+
+static uint ceil_log2(uint val) {
+    uint res = 0;
+    while (1<<res < val) res++;
+    return res;
+}
+
+static void get_tex_level_parameter(trc_replay_context_t* ctx, trace_command_t* cmd,
+                                    GLenum target, GLint level, GLenum pname,
+                                    bool dsa, const trc_gl_texture_rev_t* tex) {
+    if (!tex) ERROR2(, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex->has_object) ERROR2(, "Texture name has no object");
+    
+    if (level < 0) ERROR2(, "The specified level is negative\n");
+    if (level > ceil_log2(trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0)))
+        ERROR2(, "The specified level is greater than ceil(log2(GL_MAX_TEXTURE_SIZE))");
+    if (target==GL_TEXTURE_BUFFER && level!=0)
+        ERROR2(, "The level must be zero when the target is GL_TEXTURE_BUFFER");
+    
+    if (pname==GL_TEXTURE_COMPRESSED_IMAGE_SIZE && is_compressed_image(tex, level))
+        ERROR2(, "GL_TEXTURE_COMPRESSED_IMAGE_SIZE cannot be quered with uncompressed textures");
+    if (target!=0 && pname==GL_TEXTURE_COMPRESSED_IMAGE_SIZE && is_proxy_target(target))
+        ERROR2(, "GL_TEXTURE_COMPRESSED_IMAGE_SIZE cannot be quered with proxy targets");
+}
+
+static void get_tex_parameter(GLenum pname, bool dsa, trc_gl_texture_rev_t* tex) {
+    if (!tex) ERROR2(, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex->has_object) ERROR2(, "Texture name has no object");
+}
+
 glGetTexLevelParameterfv: //GLenum p_target, GLint p_level, GLenum p_pname, GLfloat* p_params
-    ;
+    get_tex_level_parameter(ctx, cmd, p_target, p_level, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexLevelParameteriv: //GLenum p_target, GLint p_level, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_level_parameter(ctx, cmd, p_target, p_level, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterfv: //GLenum p_target, GLenum p_pname, GLfloat* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterIiv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterIuiv: //GLenum p_target, GLenum p_pname, GLuint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTextureLevelParameterfv: //GLuint p_texture, GLint p_level, GLenum p_pname, GLfloat* p_params
-    ;
+    get_tex_level_parameter(ctx, cmd, 0, p_level, p_pname, true, p_texture_rev);
 
 glGetTextureLevelParameteriv: //GLuint p_texture, GLint p_level, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_level_parameter(ctx, cmd, 0, p_level, p_pname, true, p_texture_rev);
 
 glGetTextureParameterfv: //GLuint p_texture, GLenum p_pname, GLfloat* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
 
 glGetTextureParameteriv: //GLuint p_texture, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
 
 glGetTextureParameterIiv: //GLuint p_texture, GLenum p_pname, GLint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
 
 glGetTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, GLuint* p_params
-    ;
+    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
 
-glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length GLsizei* p_size, GLenum* p_type, GLchar* p_name
-    ;
+glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLsizei* p_size, GLenum* p_type, GLchar* p_name
+    if (!p_program_rev) ERROR("Invalid program name");
+    if (!p_program_rev->has_been_linked) ERROR("Program has not been linked");
+    GLint varying_count;
+    F(glGetProgramiv)(p_program_rev->real, GL_TRANSFORM_FEEDBACK_VARYINGS, &varying_count);
+    if (p_index >= varying_count) ERROR("Index is out of bounds")
 
 glCheckFramebufferStatus: //GLenum p_target
     ;
 
+glCheckNamedFramebufferStatus: //GLuint p_framebuffer
+    if (!p_framebuffer_rev) ERROR2(, dsa?"Invalid framebuffer name");
+    if (!p_framebuffer_rev->has_object) ERROR2(, "Framebuffer name has no object");
+
 glGetPointerv: //GLenum p_pname, void** p_params
     ;
 
-glGetPolygonStipple: //GLubyte* p_mask
-    ;
-
-glGetMinmax: //GLenum p_target, GLboolean p_reset, GLenum p_format, GLenum p_type, void * p_values
-    ;
-
-glGetMinmaxParameterfv: //GLenum p_target, GLenum p_pname, GLfloat* p_params
-    ;
-
-glGetMinmaxParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    ;
-
-glGetPixelMapfv: //GLenum p_map, GLfloat* p_values
-    ;
-
-glGetPixelMapuiv: //GLenum p_map, GLuint* p_values
-    ;
-
-glGetPixelMapusv: //GLenum p_map, GLushort* p_values
-    ;
-
-glGetSeparableFilter: //GLenum p_target, GLenum p_format, GLenum p_type, void * p_row, void * p_column, void * p_span
-    ;
-
 glGetProgramPipelineiv: //GLuint p_pipeline, GLenum p_pname, GLint  * p_params
-    ;
+    if (!p_pipeline_rev) ERROR2(, dsa?"Invalid program pipeline name");
+    if (!p_pipeline_rev->has_object) ERROR2(, "Program pipeline name has no object");
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
     if (!get_bound_buffer(ctx, p_target)) ERROR("No buffer bound to target");
@@ -4152,8 +4225,50 @@ glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, voi
 glGetNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, void* p_data
     get_buffer_sub_data(ctx, cmd, true, trc_lookup_name(ctx->ns, TrcBuffer, p_buffer, -1), p_offset, p_size);
 
-glGetTexImage: //GLenum p_target, GLint p_level, GLenum p_format, GLenum p_type, void * p_pixels
+//TODO: Validation for these two functions
+glGetTexImage: //GLenum p_target, GLint p_level, GLenum p_format, GLenum p_type, void* p_pixels
     ;
+
+glGetCompressedTexImage: //GLenum p_target, GLint p_level, void* p_img
+    ;
+
+static void get_vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint index, GLenum pname) {
+    if (pname!=GL_CURRENT_VERTEX_ATTRIB && !trc_gl_state_get_bound_vao(ctx->trace))
+        ERROR("No vertex array object is bound");
+    if (index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR("Index is out of bounds");
+}
+
+glGetVertexAttribdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribfv: //GLuint p_index, GLenum p_pname, GLfloat* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribiv: //GLuint p_index, GLenum p_pname, GLint* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribIiv: //GLuint p_index, GLenum p_pname, GLint* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribIuiv: //GLuint p_index, GLenum p_pname, GLuint* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribLdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetVertexAttribPointerv: //GLuint p_index, GLenum p_pname, void** p_pointer
+    get_vertex_attrib(ctx, cmd, p_index, p_pname);
+
+glGetAttachedShaders: //GLuint p_program, GLsizei p_maxCount, GLsizei* p_count, GLuint* p_shaders
+    if (!p_program_rev) ERROR("Invalid program name");
+    if (p_maxCount < 0) ERROR("maxCount must be greater than or equal to zero")
+
+glGetActiveUniform: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
+    if (!p_program_rev) ERROR("Invalid program name");
+
+glGetActiveAttrib: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
+    if (!p_program_rev) ERROR("Invalid program name");
 
 glGetBooleanv: //GLenum p_pname, GLboolean* p_data
     ;
@@ -4170,57 +4285,10 @@ glGetIntegerv: //GLenum p_pname, GLint* p_data
 glGetString: //GLenum p_name
     ;
 
-glGetStringi: //GLenum p_name, GLuint p_index
-    ;
-
-glGetDoublei_v: //GLenum p_target, GLuint p_index, GLdouble* p_data
-    ;
-
-glGetVertexAttribdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
-    ;
-
-glGetVertexAttribfv: //GLuint p_index, GLenum p_pname, GLfloat* p_params
-    ;
-
-glGetVertexAttribiv: //GLuint p_index, GLenum p_pname, GLint* p_params
-    ;
-
-glGetVertexAttribIiv: //GLuint p_index, GLenum p_pname, GLint* p_params
-    ;
-
-glGetVertexAttribIuiv: //GLuint p_index, GLenum p_pname, GLuint* p_params
-    ;
-
-glGetVertexAttribLdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
-    ;
-
-glGetVertexAttribPointerv: //GLuint p_index, GLenum p_pname, void ** p_pointer
-    ;
-
-glGetCompressedTexImage: //GLenum p_target, GLint p_level, void * p_img
-    ;
-
-glGetAttachedShaders: //GLuint p_program, GLsizei p_maxCount, GLsizei* p_count, GLuint* p_shaders
-    ;
-
-glGetActiveUniform: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
-    if (!get_real_program(ctx, p_program)) ERROR("Invalid program name");
-
-glGetActiveAttrib: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
-    if (!get_real_program(ctx, p_program)) ERROR("Invalid program name");
-
-glGetBooleanv: //GLenum p_pname, GLboolean* p_data
-    ;
-
 glGetDoublev: //GLenum p_pname, GLdouble* p_data
     ;
 
-glGetFloatv: //GLenum p_pname, GLfloat* p_data
-    ;
-
-glGetIntegerv: //GLenum p_pname, GLint* p_data
-    ;
-
+//TODO: Validation for these
 glGetInteger64v: //GLenum p_pname, GLint64* p_data
     ;
 
@@ -4233,7 +4301,10 @@ glGetIntegeri_v: //GLenum p_target, GLuint p_index, GLint* p_data
 glGetFloati_v: //GLenum p_target, GLuint p_index, GLfloat* p_data
     ;
 
-glGetDoublev: //GLenum p_pname, GLdouble* p_data
+glGetStringi: //GLenum p_name, GLuint p_index
+    ;
+
+glGetDoublei_v: //GLenum p_target, GLuint p_index, GLdouble* p_data
     ;
 
 glGetInteger64i_v: //GLenum p_target, GLuint p_index, GLint64* p_data
@@ -4243,20 +4314,16 @@ glReadPixels: //GLint p_x, GLint p_y, GLsizei p_width, GLsizei p_height, GLenum 
     ;
 
 glGetSamplerParameterfv: //GLuint p_sampler, GLenum p_pname, GLfloat* p_params
-    if (!get_real_sampler(ctx, p_sampler))
-        ERROR("Invalid sampler name");
+    if (!get_real_sampler(ctx, p_sampler)) ERROR("Invalid sampler name");
 
 glGetSamplerParameteriv: //GLuint p_sampler, GLenum p_pname, GLint* p_params
-    if (!get_real_sampler(ctx, p_sampler))
-        ERROR("Invalid sampler name");
+    if (!get_real_sampler(ctx, p_sampler)) ERROR("Invalid sampler name");
 
 glGetSamplerParameterIiv: //GLuint p_sampler, GLenum p_pname, GLint* p_params
-    if (!get_real_sampler(ctx, p_sampler))
-        ERROR("Invalid sampler name");
+    if (!get_real_sampler(ctx, p_sampler)) ERROR("Invalid sampler name");
 
 glGetSamplerParameterIuiv: //GLuint p_sampler, GLenum p_pname, GLuint* p_params
-    if (!get_real_sampler(ctx, p_sampler))
-        ERROR("Invalid sampler name");
+    if (!get_real_sampler(ctx, p_sampler)) ERROR("Invalid sampler name");
 
 glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_uniformBlockBinding
     const trc_gl_program_rev_t* rev_ptr = get_program(ctx, p_program);

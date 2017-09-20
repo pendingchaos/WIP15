@@ -234,6 +234,7 @@ typedef struct trc_gl_texture_image_t {
     uint face; //0 if the texture is not a non-array cubemap
     uint level;
     uint internal_format;
+    bool compressed_internal_format;
     uint width;
     uint height;
     uint depth;
@@ -395,6 +396,7 @@ typedef struct trc_gl_program_rev_t {
     trc_data_t* linked; //array of trc_gl_program_linked_shader_t
     trc_data_t* info_log; //null-terminated ascii
     int binary_retrievable_hint; //-1=unset, 0=false, 1=true
+    bool has_been_linked;
     bool separable;
 } trc_gl_program_rev_t;
 
