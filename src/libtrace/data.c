@@ -511,6 +511,8 @@ void* _trc_map_data(trc_data_t* data, uint32_t flags, int line, const char* file
 }
 
 void trc_unmap_data(const void* mapped_ptr) {
+    if (!mapped_ptr) return;
+    
     data_mapping_t* mapping = NULL;
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
         if (mappings[i].ptr == mapped_ptr) {

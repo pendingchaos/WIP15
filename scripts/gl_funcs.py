@@ -131,77 +131,48 @@ class tTexImageData(tData):
         self.texel_count_expr = ['width', 'width*height', 'width*height*depth'][dim-1]
         self.row_count_expr = ['1', 'height', 'height'][dim-1]
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
+    def gen_write_code(self, var_name):
         res = 'size_t sz_%d = get_texel_size(format, type) * %s / %s;\n' % (id(self), self.texel_count_expr, self.row_count_expr)
         #TODO: Is this incorrect for single-rowed images?
         res += 'GLint alignment_%d;\n' % id(self)
         res += 'F(glGetIntegerv)(GL_UNPACK_ALIGNMENT, &alignment_%d);\n' % id(self)
         res += 'sz_%d = (sz_%d+(alignment_%d-1)) & ~(alignment_%d-1);\n' % (id(self), id(self), id(self), id(self))
         res += 'sz_%d = sz_%d * %s;\n' % (id(self), id(self), self.row_count_expr)
-        if array_count != None:
-            res += 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    if (%s[i]) gl_write_data(sz_%d, %s[i]);' % (var_name, id(self), var_name)
-            res += '    else {\n'
-            res += '        void* d = calloc(sz_%d, 1);\n' % id(self)
-            res += '        gl_write_data(sz_%d, d);' % id(self)
-            res += '        free(d);\n'
-            res += '    }'
-        else:
-            res += 'if (%s) gl_write_data(sz_%d, %s);\n' % (var_name, id(self), var_name)
-            res += 'else {\n'
-            res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
-            res += '    gl_write_data(sz_%d, d);\n' % id(self)
-            res += '    free(d);\n'
-            res += '}'
-        return res + self._gen_group_write_code(group)
+        res += 'if (%s) gl_write_data(sz_%d, %s);\n' % (var_name, id(self), var_name)
+        res += 'else {\n'
+        res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
+        res += '    gl_write_data(sz_%d, d);\n' % id(self)
+        res += '    free(d);\n'
+        res += '}'
+        return res
 
 class tBufData(tData):
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    if (%s[i]) gl_write_data((%s), %s[i]);\n' % (var_name, str(self.size_expr), var_name)
-            res += '    else {\n'
-            res += '        size_t sz_%d = %s;\n' % (id(self), str(self.size_expr))
-            res += '        void* d = calloc(sz_%d, 1);\n' % id(self)
-            res += '        gl_write_data(sz_%d, d);\n' % id(self)
-            res += '        free(d);\n'
-            res += '    }'
-        else:
-            res = 'if (%s) gl_write_data((%s), %s);\n' % (var_name, self.size_expr, var_name)
-            res += 'else {\n'
-            res += '    size_t sz_%d = %s;\n' % (id(self), str(self.size_expr))
-            res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
-            res += '    gl_write_data(sz_%d, d);\n' % id(self)
-            res += '    free(d);\n'
-            res += '}'
-        return res + self._gen_group_write_code(group)
+    def gen_write_code(self, var_name):
+        res = 'if (%s) gl_write_data((%s), %s);\n' % (var_name, self.size_expr, var_name)
+        res += 'else {\n'
+        res += '    size_t sz_%d = %s;\n' % (id(self), str(self.size_expr))
+        res += '    void* d = calloc(sz_%d, 1);\n' % id(self)
+        res += '    gl_write_data(sz_%d, d);\n' % id(self)
+        res += '    free(d);\n'
+        res += '}'
+        return res
 
 class tShdrSrc(Type):
+    base = 'BASE_STRING'
+    
     def gen_type_code(self, var_name='', array_count=None):
         return 'char** %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
+    def gen_write_code(self, var_name):
         return '''if (length) {
-    gl_write_uint32(count);
-    for (size_t i = 0; i < count; i++) {
-        GLchar* src = malloc(length[i]+1);
-        memcpy(src, string[i], length[i]);
-        src[length[i]] = 0;
-        gl_write_str(src);
-        free(src);
-    }
+    GLchar* src = malloc(length[i]+1);
+    memcpy(src, string[i], length[i]);
+    src[length[i]] = 0;
+    gl_write_str(src);
+    free(src);
 } else {
-    gl_write_uint32(count);
-    for (size_t i = 0; i < count; i++)
-        gl_write_str(string[i]);
-}''' + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        return 'gl_write_type(BASE_STRING, %s, true);' % ('true' if group else 'false')
+    gl_write_str(string[i]);
+}'''
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         return 'const char*const* %s = trc_get_str(%s);' % (dest, src)
@@ -582,8 +553,8 @@ Func((3, 3), 'glGetQueryObjectui64v', [P(tGLQuery, 'id'), P(tGLenum, 'pname'), P
 Func((1, 5), 'glDeleteBuffers', [P(tGLsizei, 'n'), P(tGLBuf, 'buffers', 'n')])
 Func((1, 5), 'glGenBuffers', [P(tGLsizei, 'n'), P(tGLBuf, 'buffers', 'n')])
 
-Func((1, 5), 'glBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tBufData('size'), 'data'), P(tGLenum, 'usage', None, 'BufferUsageARB')])
-Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tBufData('size>=0?size:0'), 'data')])
+Func((1, 5), 'glBufferData', [P(tGLenum, 'target', None, BufferTarget), P(tGLsizeiptr, 'size'), P(tOptional(tData('size')), 'data'), P(tGLenum, 'usage', None, 'BufferUsageARB')])
+Func((1, 5), 'glBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size>=0?size:0'), 'data')])
 
 Func((1, 5), 'glGetBufferSubData', [P(tGLenum, 'target', None, BufferTarget), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size>=0?size:0'), 'data')])
 Func((1, 5), 'glGetBufferParameteriv', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
@@ -612,7 +583,7 @@ Func((2, 0), 'glGetShaderiv', [P(tGLShader, 'shader'), P(tGLenum, 'pname'), P(tG
 #Func((2, 0), 'glGetVertexAttribfv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribPointerv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'pointer')])
-Func((2, 0), 'glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string'), P(tGLint, 'length', 'length?count:0')])
+Func((2, 0), 'glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string', 'count'), P(tGLint, 'length', 'length?count:0')])
 Func((2, 0), 'glUniform1fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count')])
 Func((2, 0), 'glUniform2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*2')])
 Func((2, 0), 'glUniform3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*3')])
@@ -998,7 +969,7 @@ Func((4, 5), 'glGetTransformFeedbacki_v', [P(tGLTransformFeedback, 'xfb'), P(tGL
 Func((4, 5), 'glGetTransformFeedbacki64_v', [P(tGLTransformFeedback, 'xfb'), P(tGLenum, 'pname'), P(tGLuint, 'index'), P(tGLint64, 'param', 1)])
 Func((4, 5), 'glCreateBuffers', [P(tGLsizei, 'n'), P(tGLBuf, 'buffers', 'n')])
 #Func((4, 5), 'glNamedBufferStorage', [P(tGLBuf, 'buffer'), P(tGLsizeiptr, 'size'), P(tPointer, 'data'), P(tGLbitfield, 'flags')])
-Func((4, 5), 'glNamedBufferData', [P(tGLBuf, 'buffer'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data'), P(tGLenum, 'usage')])
+Func((4, 5), 'glNamedBufferData', [P(tGLBuf, 'buffer'), P(tGLsizeiptr, 'size'), P(tOptional(tData('size')), 'data'), P(tGLenum, 'usage')])
 Func((4, 5), 'glNamedBufferSubData', [P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size'), P(tData('size'), 'data')])
 Func((4, 5), 'glCopyNamedBufferSubData', [P(tGLBuf, 'readBuffer'), P(tGLBuf, 'writeBuffer'), P(tGLintptr, 'readOffset'), P(tGLintptr, 'writeOffset'), P(tGLsizeiptr, 'size')])
 #Func((4, 5), 'glClearNamedBufferData', [P(tGLBuf, 'buffer'), P(tGLenum, 'internalformat'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])

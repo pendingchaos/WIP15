@@ -63,7 +63,7 @@ src/libtrace/.replay_gl.o: src/libtrace/replay_gl.c
 scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 	cd scripts; python generate_gl_funcs.py
 
-src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generated_gl_funcs.py scripts/gl_wrapper.c
+src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generated_gl_funcs.py scripts/gl_wrapper.c scripts/glapi/glapi.py
 	cd scripts; python generate_gl_wrapper.py
 
 src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scripts/gl_funcs.py

@@ -30,6 +30,7 @@
 #define BASE_STRING 7
 #define BASE_DATA 8
 #define BASE_FUNC_PTR 9
+#define BASE_VARIANT 10
 
 #define COMPRESSION_AUTO -1
 #define COMPRESSION_NONE 0

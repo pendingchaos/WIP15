@@ -1983,19 +1983,28 @@ static void gen_transform_feedbacks(size_t count, const GLuint* real, const GLui
     }
 }
 
-static bool buffer_data(bool dsa, trc_obj_t* buf, GLsizeiptr size, const void* data, GLenum usage) {
+static bool buffer_data_prologue(bool dsa, trc_obj_t* buf, GLsizeiptr size) {
     if (size < 0) ERROR2(false, "Invalid size");
     const trc_gl_buffer_rev_t* rev = trc_obj_get_rev(buf, -1);
     if (!rev) ERROR2(false, dsa?"Invalid buffer name":"No buffer bound to target");
     if (!rev->has_object) ERROR2(false, "Buffer name has no object");
     if (get_current_tf()->active_not_paused && rev->tf_binding_count)
         trc_add_warning(cmd, "Buffer should not be modified as it is a transform feedback one while transform feedback is active and unpaused");
-    trc_gl_buffer_rev_t newrev = *rev;
-    
-    newrev.data = trc_create_chunked_data(ctx->trace, size, data);
-    
-    set_buffer(&newrev);
     return true;
+}
+
+static void buffer_data_epilogue(bool dsa, GLenum target, trc_obj_t* buf, GLsizeiptr size, const void* data) {
+    trc_gl_buffer_rev_t newrev = *(const trc_gl_buffer_rev_t*)trc_obj_get_rev(buf, -1);
+    if (data) {
+        newrev.data = trc_create_chunked_data(ctx->trace, size, data);
+    } else {
+        void* newdata = malloc(size);
+        if (!dsa) F(glGetBufferSubData)(target, 0, size, newdata);
+        else F(glGetNamedBufferSubData)(newrev.real, 0, size, newdata);
+        newrev.data = trc_create_chunked_data(ctx->trace, size, newdata);
+        free(newdata);
+    }
+    set_buffer(&newrev);
 }
 
 static bool buffer_sub_data(bool dsa, trc_obj_t* buf, GLintptr offset, GLsizeiptr size, const void* data) {
@@ -3116,12 +3125,22 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     bind_buffer_indexed_ranged(p_target, p_index, p_buffer, p_offset, p_size);
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
-    if (buffer_data(false, get_bound_buffer(p_target), p_size, p_data, p_usage))
-        real(p_target, p_size, p_data, p_usage);
+    void* data = cmd->args[2].type==Type_Ptr ? NULL : trc_map_data(cmd->args[2].data, TRC_MAP_READ);
+    trc_obj_t* obj = get_bound_buffer(p_target);
+    if (buffer_data_prologue(false, obj, p_size)) {
+        real(p_target, p_size, data, p_usage);
+        buffer_data_epilogue(false, p_target, obj, p_size, data);
+    }
+    trc_unmap_data(data);
 
 glNamedBufferData: //GLuint p_buffer, GLsizeiptr p_size, const void* p_data, GLenum p_usage
-    if (buffer_data(true, p_buffer_rev?p_buffer_rev->head.obj:NULL, p_size, p_data, p_usage))
-        real(p_buffer_rev->real, p_size, p_data, p_usage);
+    void* data = cmd->args[2].type==Type_Ptr ? NULL : trc_map_data(cmd->args[2].data, TRC_MAP_READ);
+    trc_obj_t* obj = p_buffer_rev ? p_buffer_rev->head.obj : NULL;
+    if (buffer_data_prologue(true, obj, p_size)) {
+        real(p_buffer_rev->real, p_size, data, p_usage);
+        buffer_data_epilogue(true, 0, obj, p_size, data);
+    }
+    trc_unmap_data(data);
 
 glBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, const void* p_data
     trc_obj_t* buf = get_bound_buffer(p_target);

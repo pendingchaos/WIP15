@@ -52,18 +52,16 @@ class Type(object):
     def __init__(self):
         pass
     
-    def _gen_group_write_code(self, group):
-        if group != None: return ';gl_write_uint32(%d)' % group.group_id
-        else: return ''
-    
     def gen_type_code(self, var_name='', array_count=None):
         raise NotImplementedError
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
+    def gen_write_code(self, var_name):
         raise NotImplementedError
     
     def gen_write_type_code(self, array_count=None, group=False):
-        raise NotImplementedError
+        group = 'true' if group else 'false'
+        array = 'true' if array_count != None else 'false'
+        return 'gl_write_type(%s, %s, %s);' % (self.__class__.base, group, array)
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         raise NotImplementedError
@@ -84,7 +82,16 @@ class Param(object):
         return self.dtype.gen_type_code(self.name, self.array_count)
     
     def gen_write_code(self):
-        return self.dtype.gen_write_code(self.name, self.array_count, self.group)
+        if self.array_count:
+            res = 'size_t count_%d = (%s);\n' % (id(self), str(self.array_count))
+            res += 'gl_write_uint32(count_%d);\n' % id(self)
+            res += 'for (size_t i = 0; i < count_%d; i++) {' % id(self)
+            res += self.dtype.gen_write_code('%s[i]'%self.name)
+            res += '}'
+        else:
+            res = self.dtype.gen_write_code(self.name)
+        if self.group == None: return res
+        else: return res+'\ngl_write_uint32(%d);' % self.group.group_id
     
     def gen_write_type_code(self):
         return self.dtype.gen_write_type_code(self.array_count, self.group)
@@ -130,13 +137,13 @@ class Func(object):
         res += '        gl_start_func_decl(%d, "%s");\n' % (self.func_id, self.name)
         
         if self.rettype != None:
-            res += indent(self.rettype.gen_write_type_code(), 2) + ';\n'
+            res += indent(self.rettype.gen_write_type_code(), 2) + '\n'
         else:
             res += '        gl_write_type(BASE_VOID, false, false);\n'
         
         res += '        gl_start_func_decl_args(%d);\n' % len(self.params)
         for param in self.params:
-            res += indent(param.gen_write_type_code(), 2) + ';\n'
+            res += indent(param.gen_write_type_code(), 2) + '\n'
         res += '        gl_end_func_decl_args();\n'
         
         res += '        gl_end_func_decl();\n'
@@ -166,10 +173,10 @@ class Func(object):
         res += '    gl_start_call(%d);\n' % self.func_id
         
         for param in self.params:
-            res += indent(param.gen_write_code(), 1) + ';\n'
+            res += indent(param.gen_write_code(), 1) + '\n'
         
         if self.rettype != None:
-            res += indent(self.rettype.gen_write_code('result'), 1) + ';\n'
+            res += indent(self.rettype.gen_write_code('result'), 1) + '\n'
         
         res += indent(self.trace_extras_code, 1) + '\n'
         
@@ -190,20 +197,8 @@ class _BaseType(Type):
         else:
             return '%s %s' % (self.__class__.ctype, var_name)
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    %s(%s[i]);' % (self.__class__.write_func, var_name)
-            return res + self._gen_group_write_code(group)
-        else:
-            return '%s(%s)' % (self.__class__.write_func, var_name) + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(%s, %s, %s)' % (self.__class__.base, group, array)
+    def gen_write_code(self, var_name):
+        return '%s(%s);' % (self.__class__.write_func, var_name)
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         c_type = self.__class__.replay_ctype if 'replay_ctype' in dir(self.__class__) else self.__class__.ctype
@@ -213,6 +208,28 @@ class _BaseType(Type):
             return res
         else:
             return '%s %s = %s(%s, 0);' % (c_type, dest, self.__class__.read_func, src)
+    
+    def gen_replay_finalize_code(self, dest, src, array_count=None):
+        return ''
+
+class tOptional(Type):
+    base = 'BASE_VARIANT'
+    
+    def __init__(self, src_type):
+        Type.__init__(self);
+        self.src_type = src_type
+    
+    def gen_type_code(self, var_name='', array_count=None):
+        return self.src_type.gen_type_code(var_name, array_count)
+    
+    def gen_write_code(self, var_name):
+        res = 'gl_write_b(%s?%s:BASE_PTR);\n' % (var_name, self.src_type.__class__.base)
+        res += 'if (%s) {%s}\n' % (var_name, self.src_type.gen_write_code(var_name))
+        res += 'else {gl_write_ptr(0);}'
+        return res
+    
+    def gen_replay_read_code(self, dest, src, array_count=None):
+        return ''
     
     def gen_replay_finalize_code(self, dest, src, array_count=None):
         return ''
@@ -249,20 +266,14 @@ class _Bool(_BaseType):
     base = 'BASE_BOOL'
 
 class _FuncPtr(Type):
+    base = 'BASE_FUNC_PTR'
+    
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'func_t* %s' % (var_name)
         else: return 'func_t %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            return 'gl_write_uint32((%s));' % str(array_count) + self._gen_group_write_code(group)
-        else:
-            return self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_FUNC_PTR, %s, %s)' % (group, array)
+    def gen_write_code(self, var_name):
+        return ''
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         return ''
@@ -350,6 +361,8 @@ class tGLDEBUGPROCAMD(_FuncPtr): pass
 class t__GLXextFuncPtr(_FuncPtr): pass
 
 class tData(Type):
+    base = 'BASE_DATA'
+    
     def __init__(self, size_expr):
         Type.__init__(self)
         self.size_expr = size_expr
@@ -360,20 +373,8 @@ class tData(Type):
         else:
             return 'void* %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    gl_write_data((%s), %s[i]);' % (str(self.size_expr), var_name)
-            return res + self._gen_group_write_code(group)
-        else:
-            return 'gl_write_data((%s), %s)' % (str(self.size_expr), var_name) + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_DATA, %s, %s)' % (group, array)
+    def gen_write_code(self, var_name):
+        return 'gl_write_data((%s), %s);' % (str(self.size_expr), var_name)
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         if array_count != None:
@@ -381,6 +382,7 @@ class tData(Type):
             res += 'for (size_t i = 0; i < %s->count; i++) {\n' % src
             res += '    %s[i] = trc_map_data(%s->data_array[i], TRC_MAP_READ);\n' % (dest, src)
             res += '}\n'
+            return res
         else:
             return 'const void* %s = trc_map_data(%s->data, TRC_MAP_READ);' % (dest, src)
     
@@ -388,28 +390,19 @@ class tData(Type):
         if array_count != None:
             res += 'for (size_t i = 0; i < %s->count; i++)\n' % src
             res += '    trc_unmap_data(%s[i]);\n' % dest
+            return res
         else:
             return 'trc_unmap_data(%s);' % dest
 
 class tString(Type):
+    base = 'BASE_STRING'
+    
     def gen_type_code(self, var_name='', array_count=None):
         if array_count != None: return 'const char** %s' % var_name
         else: return 'const char* %s' % var_name
     
-    def gen_write_code(self, var_name, array_count=None, group=None):
-        if array_count != None:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++)\n' % id(self)
-            res += '    gl_write_str(%s[i]);' % (var_name)
-            return res + self._gen_group_write_code(group)
-        else:
-            return 'gl_write_str(%s)' % var_name + self._gen_group_write_code(group)
-    
-    def gen_write_type_code(self, array_count=None, group=False):
-        group = 'true' if group else 'false'
-        array = 'true' if array_count != None else 'false'
-        return 'gl_write_type(BASE_STRING, %s, %s)' % (group, array)
+    def gen_write_code(self, var_name):
+        return 'gl_write_str(%s);' % var_name
     
     def gen_replay_read_code(self, dest, src, array_count=None):
         if array_count != None:

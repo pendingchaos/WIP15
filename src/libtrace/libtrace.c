@@ -504,10 +504,11 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
             uint8_t v;
             if (!readf(&v, 1, 1, file)) return false;
             base = v;
-            break;
+            goto variant_continue;
         }
         }
         if (base != BaseType_Variant) break;
+        variant_continue: ;
     }
     
     if (type->has_group) {
