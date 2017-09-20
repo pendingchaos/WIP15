@@ -333,6 +333,16 @@ static int64_t read_sleb128(FILE* file, bool* error) {
 
 //Returns true on success
 static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trace) {
+    if (type->base == BaseType_Variant) {
+        uint8_t v[3];
+        if (!readf(&v, 3, 1, file)) return false;
+        type_t newtype;
+        newtype.base = v[0];
+        newtype.has_group = v[1];
+        newtype.is_array = v[2];
+        return read_val(file, val, &newtype, trace);
+    }
+    
     if (type->is_array) {
         if (!readf(&val->count, 4, 1, file))
             return false;
@@ -341,174 +351,167 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         val->count = 1;
     }
     
-    base_type_t base = type->base;
-    while (true) {
-        switch (base) {
-        case BaseType_Void: {
-            val->type = Type_Void;
-            break;
-        }
-        case BaseType_UnsignedInt: {
-            val->type = Type_UInt;
-            bool error;
-            if (val->count == 1) {
-                val->u64 = read_uleb128(file, &error);
-                if (error) return false;
-            } else {
-                val->u64_array = malloc(sizeof(uint64_t)*val->count);
-                
-                for (size_t i = 0; i < val->count; ++i) {
-                    val->u64_array[i] = read_uleb128(file, &error);
-                    if (error) {
-                        free(val->u64_array);
-                        return false;
-                    }
+    switch (type->base) {
+    case BaseType_Void: {
+        val->type = Type_Void;
+        break;
+    }
+    case BaseType_UnsignedInt: {
+        val->type = Type_UInt;
+        bool error;
+        if (val->count == 1) {
+            val->u64 = read_uleb128(file, &error);
+            if (error) return false;
+        } else {
+            val->u64_array = malloc(sizeof(uint64_t)*val->count);
+            
+            for (size_t i = 0; i < val->count; ++i) {
+                val->u64_array[i] = read_uleb128(file, &error);
+                if (error) {
+                    free(val->u64_array);
+                    return false;
                 }
             }
-            break;
         }
-        case BaseType_Int: {
-            val->type = Type_Int;
-            bool error;
-            if (val->count == 1) {
-                val->i64 = read_sleb128(file, &error);
-                if (error) return false;
-            } else {
-                val->i64_array = malloc(sizeof(int64_t)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    val->i64_array[i] = read_sleb128(file, &error);
-                    if (error) {
-                        free(val->i64_array);
-                        return false;
-                    }
+        break;
+    }
+    case BaseType_Int: {
+        val->type = Type_Int;
+        bool error;
+        if (val->count == 1) {
+            val->i64 = read_sleb128(file, &error);
+            if (error) return false;
+        } else {
+            val->i64_array = malloc(sizeof(int64_t)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                val->i64_array[i] = read_sleb128(file, &error);
+                if (error) {
+                    free(val->i64_array);
+                    return false;
                 }
             }
-            break;
         }
-        case BaseType_Ptr: {
-            val->type = Type_Ptr;
-            bool error;
-            if (val->count == 1) {
-                val->ptr = read_uleb128(file, &error);
-                if (error) return false;
-            } else {
-                val->ptr_array = malloc(sizeof(uint64_t)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    val->ptr_array[i] = read_uleb128(file, &error);
-                    if (error) {
-                        free(val->ptr_array);
-                        return false;
-                    }
+        break;
+    }
+    case BaseType_Ptr: {
+        val->type = Type_Ptr;
+        bool error;
+        if (val->count == 1) {
+            val->ptr = read_uleb128(file, &error);
+            if (error) return false;
+        } else {
+            val->ptr_array = malloc(sizeof(uint64_t)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                val->ptr_array[i] = read_uleb128(file, &error);
+                if (error) {
+                    free(val->ptr_array);
+                    return false;
                 }
             }
-            break;
         }
-        case BaseType_Bool: {
-            val->type = Type_Boolean;
-            if (val->count == 1) {
-                uint8_t v;
-                if (!readf(&v, 1, 1, file)) return false;
-                val->bl = v;
-            } else {
-                val->bl_array = malloc(val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    uint8_t v;
-                    if (!readf(&v, 1, 1, file)) {
-                        free(val->bl_array);
-                        return false;
-                    }
-                    val->bl_array[i] = v;
-                }
-            }
-            break;
-        }
-        case BaseType_Float: { //TODO: Make this more portable.
-            val->type = Type_Double;
-            if (val->count == 1) {
-                float v;
-                if (!readf(&v, 4, 1, file)) return false;
-                val->dbl = v;
-            } else {
-                val->dbl_array = malloc(sizeof(double)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    float v;
-                    if (!readf(&v, 4, 1, file)) {
-                        free(val->dbl_array);
-                        return false;
-                    }
-                    val->dbl_array[i] = v;
-                }
-            }
-            break;
-        }
-        case BaseType_Double: { //TODO: Make this more portable.
-            val->type = Type_Double;
-            if (val->count == 1) {
-                if (!readf(&val->dbl, 8, 1, file)) return false;
-            } else {
-                val->dbl_array = malloc(sizeof(double)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++)
-                    if (!readf(val->dbl_array+i, 8, 1, file))
-                        return false;
-            }
-            break;
-        }
-        case BaseType_String: {
-            val->type = Type_Str;
-            if (val->count == 1) {
-                val->str = read_str(file);
-                if (!val->str) return false;
-            } else {
-                val->str_array = malloc(sizeof(char*)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    val->str_array[i] = read_str(file);
-                    if (!val->str_array[i]) {
-                        for (size_t j = 0; j < i; j++)
-                            free(val->str_array[i]);
-                        free(val->str_array);
-                        return false;
-                    }
-                }
-            }
-            break;
-        }
-        case BaseType_Data: {
-            val->type = Type_Data;
-            if (val->count == 1) {
-                val->data = read_data_compressed(trace, file);
-                if (!val->data) return false;
-            } else {
-                val->data_array = malloc(sizeof(trc_data_t*)*val->count);
-                
-                for (size_t i = 0; i < val->count; i++) {
-                    val->data_array[i] = read_data_compressed(trace, file);
-                    if (!val->data_array) {
-                        free(val->data_array);
-                        return false;
-                    }
-                }
-            }
-            break;
-        }
-        case BaseType_FunctionPtr: {
-            val->type = Type_FunctionPtr;
-            break;
-        }
-        case BaseType_Variant: {
+        break;
+    }
+    case BaseType_Bool: {
+        val->type = Type_Boolean;
+        if (val->count == 1) {
             uint8_t v;
             if (!readf(&v, 1, 1, file)) return false;
-            base = v;
-            goto variant_continue;
+            val->bl = v;
+        } else {
+            val->bl_array = malloc(val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                uint8_t v;
+                if (!readf(&v, 1, 1, file)) {
+                    free(val->bl_array);
+                    return false;
+                }
+                val->bl_array[i] = v;
+            }
         }
+        break;
+    }
+    case BaseType_Float: { //TODO: Make this more portable.
+        val->type = Type_Double;
+        if (val->count == 1) {
+            float v;
+            if (!readf(&v, 4, 1, file)) return false;
+            val->dbl = v;
+        } else {
+            val->dbl_array = malloc(sizeof(double)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                float v;
+                if (!readf(&v, 4, 1, file)) {
+                    free(val->dbl_array);
+                    return false;
+                }
+                val->dbl_array[i] = v;
+            }
         }
-        if (base != BaseType_Variant) break;
-        variant_continue: ;
+        break;
+    }
+    case BaseType_Double: { //TODO: Make this more portable.
+        val->type = Type_Double;
+        if (val->count == 1) {
+            if (!readf(&val->dbl, 8, 1, file)) return false;
+        } else {
+            val->dbl_array = malloc(sizeof(double)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++)
+                if (!readf(val->dbl_array+i, 8, 1, file))
+                    return false;
+        }
+        break;
+    }
+    case BaseType_String: {
+        val->type = Type_Str;
+        if (val->count == 1) {
+            val->str = read_str(file);
+            if (!val->str) return false;
+        } else {
+            val->str_array = malloc(sizeof(char*)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                val->str_array[i] = read_str(file);
+                if (!val->str_array[i]) {
+                    for (size_t j = 0; j < i; j++)
+                        free(val->str_array[i]);
+                    free(val->str_array);
+                    return false;
+                }
+            }
+        }
+        break;
+    }
+    case BaseType_Data: {
+        val->type = Type_Data;
+        if (val->count == 1) {
+            val->data = read_data_compressed(trace, file);
+            if (!val->data) return false;
+        } else {
+            val->data_array = malloc(sizeof(trc_data_t*)*val->count);
+            
+            for (size_t i = 0; i < val->count; i++) {
+                val->data_array[i] = read_data_compressed(trace, file);
+                if (!val->data_array) {
+                    free(val->data_array);
+                    return false;
+                }
+            }
+        }
+        break;
+    }
+    case BaseType_FunctionPtr: {
+        val->type = Type_FunctionPtr;
+        break;
+    }
+    case BaseType_Variant: {
+        val->type = Type_Void; //Should never happen
+        break;
+    }
     }
     
     if (type->has_group) {

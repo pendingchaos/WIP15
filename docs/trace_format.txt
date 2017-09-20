@@ -86,17 +86,22 @@ ValueElement<FunctionPtr>
     (nothing)
 
 ValueElement<Variant>
-    BaseType base
-    ValueElement<base> val
+    (should never happen)
 
 Value<type>
-    if type.is_array
-        uint32 count
-        ValueElement<type.base> elements[count]
+    if type == Variant
+        uint8 base
+        bool has_group;
+        bool is_array;
+        Value<Type(base, has_group, is_array)> actual_value
     else
-        ValueElement<type.base> element
-    if type.has_group
-        uint32 group_index
+        if type.is_array
+            uint32 count
+            ValueElement<type.base> elements[count]
+        else
+            ValueElement<type.base> element
+        if type.has_group
+            uint32 group_index
 
 Function
     uint32 name_len

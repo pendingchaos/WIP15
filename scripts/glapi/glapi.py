@@ -58,6 +58,18 @@ class Type(object):
     def gen_write_code(self, var_name):
         raise NotImplementedError
     
+    def gen_write_code_outer(self, var_name, array_count, group):
+        if array_count:
+            res = 'size_t count_%d = (%s);\n' % (id(self), str(array_count))
+            res += 'gl_write_uint32(count_%d);\n' % id(self)
+            res += 'for (size_t i = 0; i < count_%d; i++) {' % id(self)
+            res += self.gen_write_code('%s[i]'%var_name)
+            res += '}'
+        else:
+            res = self.gen_write_code(var_name)
+        if group == None: return res
+        else: return res+'\ngl_write_uint32(%d);' % group.group_id
+    
     def gen_write_type_code(self, array_count=None, group=False):
         group = 'true' if group else 'false'
         array = 'true' if array_count != None else 'false'
@@ -82,16 +94,7 @@ class Param(object):
         return self.dtype.gen_type_code(self.name, self.array_count)
     
     def gen_write_code(self):
-        if self.array_count:
-            res = 'size_t count_%d = (%s);\n' % (id(self), str(self.array_count))
-            res += 'gl_write_uint32(count_%d);\n' % id(self)
-            res += 'for (size_t i = 0; i < count_%d; i++) {' % id(self)
-            res += self.dtype.gen_write_code('%s[i]'%self.name)
-            res += '}'
-        else:
-            res = self.dtype.gen_write_code(self.name)
-        if self.group == None: return res
-        else: return res+'\ngl_write_uint32(%d);' % self.group.group_id
+        return self.dtype.gen_write_code_outer(self.name, self.array_count, self.group)
     
     def gen_write_type_code(self):
         return self.dtype.gen_write_type_code(self.array_count, self.group)
@@ -222,10 +225,11 @@ class tOptional(Type):
     def gen_type_code(self, var_name='', array_count=None):
         return self.src_type.gen_type_code(var_name, array_count)
     
-    def gen_write_code(self, var_name):
-        res = 'gl_write_b(%s?%s:BASE_PTR);\n' % (var_name, self.src_type.__class__.base)
-        res += 'if (%s) {%s}\n' % (var_name, self.src_type.gen_write_code(var_name))
-        res += 'else {gl_write_ptr(0);}'
+    def gen_write_code_outer(self, var_name, array_count, group):
+        type_code = Type.gen_write_type_code(self.src_type, array_count, group)
+        write_code = self.src_type.gen_write_code_outer(var_name, array_count, group)
+        res = 'if (%s) {%s %s}\n' % (var_name, type_code, write_code)
+        res += 'else {gl_write_type(BASE_PTR, false, false); gl_write_ptr(0);}'
         return res
     
     def gen_replay_read_code(self, dest, src, array_count=None):
