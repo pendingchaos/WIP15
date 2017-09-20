@@ -14,7 +14,9 @@ for fname, func in func_dict.items():
         if param.dtype.__class__ != tGLuint: continue
         if param.name in exceptions.get(fname, []): continue
         for s in ['buf', 'sampler', 'tex', 'query', 'framebuffer', 'fb', 'renderbuffer', 'rb', 'sync', 'program', 'pipeline', 'shader', 'vao', 'vaobj', 'array', 'id', 'xfb']:
-            if s in param.name: print 'Note: Parameter %s of %s might be an object name' % (param.name, fname)
+            if s in param.name:
+                print 'Note: Parameter %s of %s might be an object name' % (param.name, fname)
+                break
 
 replay_func_impls_str = open("nontrivial_func_impls.c").read()
 implemented = set()
