@@ -1266,7 +1266,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     success1: ;
     
     uint count = array ? trc_get_int(&cmd->args[arg_pos++])[0] : 1;
-    bool transpose = dimy!=1 ? false : trc_get_bool(&cmd->args[arg_pos++])[0];
+    bool transpose = dimy==1 ? false : trc_get_bool(&cmd->args[arg_pos++])[0];
     
     switch (uniform.dtype.base) {
     case TrcUniformBaseType_Float:
