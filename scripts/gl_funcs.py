@@ -573,17 +573,19 @@ Func((2, 0), 'glGetActiveAttrib', [P(tGLProgram, 'program'), P(tGLuint, 'index')
 Func((2, 0), 'glGetActiveUniform', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
 Func((2, 0), 'glGetAttachedShaders', [P(tGLProgram, 'program'), P(tGLsizei, 'maxCount'), P(tGLsizei, 'count', 1), P(tGLShader, 'shaders', 'maxCount')])
 Func((2, 0), 'glGetProgramiv', [P(tGLProgram, 'program'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
-#Func((2, 0), 'glGetProgramInfoLog', [P(tGLProgram, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
+#TODO: Handle when bufSize == 0
+Func((2, 0), 'glGetProgramInfoLog', [P(tGLProgram, 'program'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'infoLog')])
 Func((2, 0), 'glGetShaderiv', [P(tGLShader, 'shader'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
-#Func((2, 0), 'glGetShaderInfoLog', [P(tGLShader, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
-#Func((2, 0), 'glGetShaderSource', [P(tGLShader, 'shader'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'source')])
+#TODO: Handle when bufSize == 0 for both of these
+Func((2, 0), 'glGetShaderInfoLog', [P(tGLShader, 'shader'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'infoLog')])
+Func((2, 0), 'glGetShaderSource', [P(tGLShader, 'shader'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'source')])
 #Func((2, 0), 'glGetUniformfv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetUniformiv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribdv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribfv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetVertexAttribPointerv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'pointer')])
-Func((2, 0), 'glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string', 'count'), P(tGLint, 'length', 'length?count:0')])
+Func((2, 0), 'glShaderSource', [P(tGLuint, 'shader'), P(tGLsizei, 'count'), P(tShdrSrc, 'string', 'count'), P(tOptional(tGLint), 'length', 'count')])
 Func((2, 0), 'glUniform1fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count')])
 Func((2, 0), 'glUniform2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*2')])
 Func((2, 0), 'glUniform3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLfloat, 'value', 'count*3')])
@@ -647,8 +649,8 @@ Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((3, 0), 'glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLProgram, 'program'), P(tGLsizei, 'count'), P(tString, 'varyings', 'count'), P(tGLenum, 'bufferMode')])
-#TODO: Update glGetTransformFeedbackVarying
-Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+#TODO: Handle when bufSize == 0
+Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tGLsizei, 'size', 1), P(tGLenum, 'type', 1), P(tMutableString, 'name')])
 Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 #Func((3, 0), 'glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 0), 'glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -692,9 +694,10 @@ Func((3, 1), 'glDrawElementsInstanced', [P(tGLenum, 'mode', None, 'PrimitiveType
 
 #Func((3, 1), 'glGetUniformIndices', [P(tGLProgram, 'program'), P(tGLsizei, 'uniformCount'), P(tPointer, 'uniformNames'), P(tMutablePointer, 'uniformIndices')])
 Func((3, 1), 'glGetActiveUniformsiv', [P(tGLProgram, 'program'), P(tGLsizei, 'uniformCount'), P(tGLuint, 'uniformIndices', 'uniformCount'), P(tGLenum, 'pname'), P(tGLint, 'params', 'uniformCount')])
-#Func((3, 1), 'glGetActiveUniformName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformName')])
+#TODO: Handle when bufSize == 0 for glGetActiveUniformName and glGetActiveUniformBlockName
+Func((3, 1), 'glGetActiveUniformName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tOptional(tMutableString), 'uniformName')])
 #Func((3, 1), 'glGetActiveUniformBlockiv', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
-#Func((3, 1), 'glGetActiveUniformBlockName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'uniformBlockName')])
+Func((3, 1), 'glGetActiveUniformBlockName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'uniformBlockName')])
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 
 Func((3, 2), 'glDrawElementsBaseVertex', [P(tGLenum, 'mode', None, 'PrimitiveType'),
@@ -907,7 +910,8 @@ Func((4, 1), 'glProgramUniformMatrix2x4dv', [P(tGLProgram, 'program'), P(tGLint,
 Func((4, 1), 'glProgramUniformMatrix4x2dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
 Func((4, 1), 'glProgramUniformMatrix3x4dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
 Func((4, 1), 'glProgramUniformMatrix4x3dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
-#Func((4, 1), 'glGetProgramPipelineInfoLog', [P(tGLProgramPipeline, 'pipeline'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
+#TODO: Handle when bufSize == 0
+Func((4, 1), 'glGetProgramPipelineInfoLog', [P(tGLProgramPipeline, 'pipeline'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'infoLog')])
 Func((4, 1), 'glVertexAttribL1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
 Func((4, 1), 'glVertexAttribL2dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
 Func((4, 1), 'glVertexAttribL3dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])
@@ -941,7 +945,7 @@ Func((4, 2), 'glDrawElementsInstancedBaseVertexBaseInstance', [P(tGLenum, 'mode'
 #Func((4, 3), 'glInvalidateSubFramebuffer', [P(tGLenum, 'target', None, FramebufferTarget), P(tGLsizei, 'numAttachments'), P(tPointer, 'attachments'), P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 #Func((4, 3), 'glMultiDrawArraysIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')])
 #Func((4, 3), 'glMultiDrawElementsIndirect', [P(tGLenum, 'mode', None, 'Boolean'), P(tGLenum, 'type', None, 'ElementType'), P(tPointer, 'indirect'), P(tGLsizei, 'drawcount'), P(tGLsizei, 'stride')])
-#Func((4, 3), 'glGetProgramInterfaceiv', [P(tGLProgram, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((4, 3), 'glGetProgramInterfaceiv', [P(tGLProgram, 'program'), P(tGLenum, 'programInterface'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])
 #Func((4, 3), 'glGetProgramResourceName', [P(tGLProgram, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'name')])
 #Func((4, 3), 'glGetProgramResourceiv', [P(tGLProgram, 'program'), P(tGLenum, 'programInterface'), P(tGLuint, 'index'), P(tGLsizei, 'propCount'), P(tPointer, 'props'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'params')])
 #Func((4, 3), 'glDebugMessageControl', [P(tGLenum, 'source'), P(tGLenum, 'type'), P(tGLenum, 'severity'), P(tGLsizei, 'count'), P(tPointer, 'ids'), P(tGLboolean, 'enabled')])

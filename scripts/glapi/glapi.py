@@ -220,7 +220,7 @@ class tOptional(Type):
     
     def __init__(self, src_type):
         Type.__init__(self);
-        self.src_type = src_type
+        self.src_type = src_type() if isinstance(src_type, type) else src_type
     
     def gen_type_code(self, var_name='', array_count=None):
         return self.src_type.gen_type_code(var_name, array_count)

@@ -3210,12 +3210,13 @@ glDeleteShader: //GLuint p_shader
     delete_obj(p_shader, TrcShader);
 
 glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string, const GLint* p_length
+    if (p_count < 0) ERROR("count cannot be negative");
     GLuint shader = get_real_shader(p_shader);
     if (!shader) ERROR("Invalid shader name");
     
     size_t res_sources_size = 0;
     char* res_sources = NULL;
-    if (arg_length->count == 0) {
+    if (arg_length->type == Type_Ptr) {
         real(shader, p_count, p_string, NULL);
         for (GLsizei i = 0; i < p_count; i++) {
             res_sources = realloc(res_sources, res_sources_size+strlen(p_string[i])+1);
@@ -3224,20 +3225,21 @@ glShaderSource: //GLuint p_shader, GLsizei p_count, const GLchar*const* p_string
             res_sources_size += strlen(p_string[i]) + 1;
         }
     } else {
-        real(shader, p_count, p_string, p_length);
+        const int64_t* length = trc_get_int(arg_length);
+        GLint* length_int = replay_alloc(p_count*sizeof(GLint));
+        for (GLsizei i = 0; i < p_count; i++) length_int[i] = length[i];
+        real(shader, p_count, p_string, length_int);
         for (GLsizei i = 0; i < p_count; i++) {
-            res_sources = realloc(res_sources, res_sources_size+p_length[i]+1);
-            memset(res_sources+res_sources_size, 0, p_length[i]+1);
-            memcpy(res_sources+res_sources_size, p_string[i], p_length[i]);
-            res_sources[res_sources_size+p_length[i]+1] = 0;
-            res_sources_size += p_length[i] + 1;
+            res_sources = realloc(res_sources, res_sources_size+length[i]+1);
+            memset(res_sources+res_sources_size, 0, length[i]+1);
+            memcpy(res_sources+res_sources_size, p_string[i], length[i]);
+            res_sources[res_sources_size+length[i]+1] = 0;
+            res_sources_size += length[i] + 1;
         }
     }
     
     trc_gl_shader_rev_t shdr = *get_shader(p_shader);
-    
     shdr.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, 0);
-    
     set_shader(&shdr);
 
 glCompileShader: //GLuint p_shader
