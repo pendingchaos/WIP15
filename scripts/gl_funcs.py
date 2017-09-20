@@ -597,9 +597,10 @@ DrawBufferBuffer = g('GL_NONE', 'GL_FRONT_LEFT', 'GL_FRONT_RIGHT', 'GL_BACK_LEFT
                      'GL_FRONT', 'GL_BACK', 'GL_LEFT', 'GL_RIGHT', 'GL_FRONT_AND_BACK', name='DrawBufferBuffer')
 for i in range(1024): DrawBufferBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
 Func((1, 0), 'glDrawBuffer', [P(tGLenum, 'buf', None, DrawBufferBuffer)])
-#Func((2, 0), 'glGetActiveAttrib', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func((2, 0), 'glGetActiveUniform', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
-#Func((2, 0), 'glGetAttachedShaders', [P(tGLuint, 'program'), P(tGLsizei, 'maxCount'), P(tMutablePointer, 'count'), P(tMutablePointer, 'shaders')])
+#TODO: Update glGetActiveAttrib and glGetActiveUniform
+Func((2, 0), 'glGetActiveAttrib', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+Func((2, 0), 'glGetActiveUniform', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+Func((2, 0), 'glGetAttachedShaders', [P(tGLProgram, 'program'), P(tGLsizei, 'maxCount'), P(tGLsizei, 'count', 1), P(tGLuint, 'shaders', 'maxCount')])
 #Func((2, 0), 'glGetProgramiv', [P(tGLuint, 'program'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((2, 0), 'glGetProgramInfoLog', [P(tGLuint, 'program'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutableString, 'infoLog')])
 #Func((2, 0), 'glGetShaderiv', [P(tGLuint, 'shader'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -675,7 +676,8 @@ Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 #Func((3, 0), 'glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLProgram, 'program'), P(tGLsizei, 'count'), P(tString, 'varyings', 'count'), P(tGLenum, 'bufferMode')])
-#Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLuint, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
+#TODO: Update glGetTransformFeedbackVarying
+Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tMutablePointer, 'length'), P(tMutablePointer, 'size'), P(tMutablePointer, 'type'), P(tMutableString, 'name')])
 Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 #Func((3, 0), 'glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 0), 'glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -1021,6 +1023,7 @@ Func((4, 5), 'glNamedFramebufferDrawBuffers', [P(tGLuint, 'framebuffer'), P(tGLs
 Func((4, 5), 'glBlitNamedFramebuffer', [P(tGLFramebuffer, 'readFramebuffer'), P(tGLFramebuffer, 'drawFramebuffer'), P(tGLint, 'srcX0'),
                                         P(tGLint, 'srcY0'), P(tGLint, 'srcX1'), P(tGLint, 'srcY1'), P(tGLint, 'dstX0'), P(tGLint, 'dstY0'),
                                         P(tGLint, 'dstX1'), P(tGLint, 'dstY1'), P(tGLbitfield, 'mask'), P(tGLenum, 'filter')])
+Func((4, 5), 'glCheckNamedFramebufferStatus', [P(tGLFramebuffer, 'framebuffer'), P(tGLenum, 'target')], tGLenum)
 Func((4, 5), 'glGetNamedFramebufferParameteriv', [P(tGLFramebuffer, 'framebuffer'), P(tGLenum, 'pname'), P(tGLint, 'param', 1)])
 #Func((4, 5), 'glGetNamedFramebufferAttachmentParameteriv', [P(tGLuint, 'framebuffer'), P(tGLenum, 'attachment'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 Func((4, 5), 'glCreateRenderbuffers', [P(tGLsizei, 'n'), P(tGLuint, 'renderbuffers', 'n')])

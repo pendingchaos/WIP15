@@ -1242,12 +1242,12 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                    bool array, uint dimx, uint dimy, GLenum type, uint* realprogram) {
     uint arg_pos = 0;
     const trc_gl_program_rev_t* rev;
-    if (dsa) rev = get_program(ctx, gl_param_GLuint(cmd, arg_pos++));
+    if (dsa) rev = get_program(ctx, trc_get_uint(&cmd->args[arg_pos++])[0]);
     else rev = trc_obj_get_rev(get_active_program(ctx), -1);
     if (!rev) ERROR2(-1, dsa?"Invalid program":"No active program");
     if (realprogram) *realprogram = rev->real;
     
-    int location = gl_param_GLint(cmd, arg_pos++);
+    int location = trc_get_int(&cmd->args[arg_pos++])[0];
     
     trc_gl_uniform_t uniform;
     
@@ -1265,8 +1265,8 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
     return -1;
     success1: ;
     
-    uint count = array ? gl_param_GLsizei(cmd, arg_pos++) : 1;
-    bool transpose = dimy==1 ? false : gl_param_GLboolean(cmd, arg_pos++);
+    uint count = array ? trc_get_int(&cmd->args[arg_pos++])[0] : 1;
+    bool transpose = dimy!=1 ? false : trc_get_bool(&cmd->args[arg_pos++])[0];
     
     switch (uniform.dtype.base) {
     case TrcUniformBaseType_Float:
@@ -1328,16 +1328,16 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
                 } else {
                     switch (type) {
                     case GL_FLOAT:
-                        data = write_uniform_value_double(data, uniform.dtype.base, gl_param_GLfloat(cmd, arg_pos++));
+                        data = write_uniform_value_double(data, uniform.dtype.base, trc_get_double(&cmd->args[arg_pos++])[0]);
                         break;
                     case GL_DOUBLE:
-                        data = write_uniform_value_double(data, uniform.dtype.base, gl_param_GLdouble(cmd, arg_pos++));
+                        data = write_uniform_value_double(data, uniform.dtype.base, trc_get_double(&cmd->args[arg_pos++])[0]);
                         break;
                     case GL_INT:
-                        data = write_uniform_value_int64(data, uniform.dtype.base, gl_param_GLint(cmd, arg_pos++));
+                        data = write_uniform_value_int64(data, uniform.dtype.base, trc_get_int(&cmd->args[arg_pos++])[0]);
                         break;
                     case GL_UNSIGNED_INT:
-                        data = write_uniform_value_uint64(data, uniform.dtype.base, gl_param_GLuint(cmd, arg_pos++));
+                        data = write_uniform_value_uint64(data, uniform.dtype.base, trc_get_uint(&cmd->args[arg_pos++])[0]);
                         break;
                     }
                 }
@@ -1356,7 +1356,7 @@ static int uniform(trc_replay_context_t* ctx, trace_command_t* cmd, bool dsa,
 
 static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd) {
     //TODO: Don't use glGetProgramiv to get the link status
-    GLuint fake = gl_param_GLuint(cmd, 0);
+    GLuint fake = trc_get_uint(&cmd->args[0])[0];
     GLuint real_program = get_real_program(ctx, fake);
     if (!real_program) ERROR2(, "No such program.");
     GLint status;
@@ -1368,7 +1368,7 @@ static void validate_get_uniform(trc_replay_context_t* ctx, trace_command_t* cmd
 //internal in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_INT, GL_INT]
 static void vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, uint comp,
                           GLenum type, bool array, bool normalized, GLenum internal) {
-    uint index = gl_param_GLuint(cmd, 0);
+    uint index = trc_get_uint(&cmd->args[0])[0];
     if (index>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR2(, "Invalid vertex attribute index");
     uint i = 0;
@@ -4136,7 +4136,7 @@ static void get_tex_level_parameter(trc_replay_context_t* ctx, trace_command_t* 
         ERROR2(, "GL_TEXTURE_COMPRESSED_IMAGE_SIZE cannot be quered with proxy targets");
 }
 
-static void get_tex_parameter(GLenum pname, bool dsa, trc_gl_texture_rev_t* tex) {
+static void get_tex_parameter(trace_command_t* cmd, GLenum pname, bool dsa, const trc_gl_texture_rev_t* tex) {
     if (!tex) ERROR2(, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex->has_object) ERROR2(, "Texture name has no object");
 }
@@ -4148,16 +4148,16 @@ glGetTexLevelParameteriv: //GLenum p_target, GLint p_level, GLenum p_pname, GLin
     get_tex_level_parameter(ctx, cmd, p_target, p_level, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterfv: //GLenum p_target, GLenum p_pname, GLfloat* p_params
-    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
+    get_tex_parameter(cmd, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
+    get_tex_parameter(cmd, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterIiv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
+    get_tex_parameter(cmd, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTexParameterIuiv: //GLenum p_target, GLenum p_pname, GLuint* p_params
-    get_tex_parameter(p_pname, arg_params->count, false, replay_get_bound_tex(ctx, p_target));
+    get_tex_parameter(cmd, p_pname, false, replay_get_bound_tex(ctx, p_target));
 
 glGetTextureLevelParameterfv: //GLuint p_texture, GLint p_level, GLenum p_pname, GLfloat* p_params
     get_tex_level_parameter(ctx, cmd, 0, p_level, p_pname, true, p_texture_rev);
@@ -4166,36 +4166,36 @@ glGetTextureLevelParameteriv: //GLuint p_texture, GLint p_level, GLenum p_pname,
     get_tex_level_parameter(ctx, cmd, 0, p_level, p_pname, true, p_texture_rev);
 
 glGetTextureParameterfv: //GLuint p_texture, GLenum p_pname, GLfloat* p_params
-    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
+    get_tex_parameter(cmd, p_pname, true, p_texture_rev);
 
 glGetTextureParameteriv: //GLuint p_texture, GLenum p_pname, GLint* p_params
-    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
+    get_tex_parameter(cmd, p_pname, true, p_texture_rev);
 
 glGetTextureParameterIiv: //GLuint p_texture, GLenum p_pname, GLint* p_params
-    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
+    get_tex_parameter(cmd, p_pname, true, p_texture_rev);
 
 glGetTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, GLuint* p_params
-    get_tex_parameter(p_pname, arg_params->count, true, p_texture_rev);
+    get_tex_parameter(cmd, p_pname, true, p_texture_rev);
 
 glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLsizei* p_size, GLenum* p_type, GLchar* p_name
     if (!p_program_rev) ERROR("Invalid program name");
     if (!p_program_rev->has_been_linked) ERROR("Program has not been linked");
     GLint varying_count;
     F(glGetProgramiv)(p_program_rev->real, GL_TRANSFORM_FEEDBACK_VARYINGS, &varying_count);
-    if (p_index >= varying_count) ERROR("Index is out of bounds")
+    if (p_index >= varying_count) ERROR("Index is out of bounds");
 
 glCheckFramebufferStatus: //GLenum p_target
     ;
 
 glCheckNamedFramebufferStatus: //GLuint p_framebuffer
-    if (!p_framebuffer_rev) ERROR2(, dsa?"Invalid framebuffer name");
+    if (!p_framebuffer_rev) ERROR2(, "Invalid framebuffer name");
     if (!p_framebuffer_rev->has_object) ERROR2(, "Framebuffer name has no object");
 
 glGetPointerv: //GLenum p_pname, void** p_params
     ;
 
 glGetProgramPipelineiv: //GLuint p_pipeline, GLenum p_pname, GLint  * p_params
-    if (!p_pipeline_rev) ERROR2(, dsa?"Invalid program pipeline name");
+    if (!p_pipeline_rev) ERROR2(, "Invalid program pipeline name");
     if (!p_pipeline_rev->has_object) ERROR2(, "Program pipeline name has no object");
 
 glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
@@ -4234,9 +4234,9 @@ glGetCompressedTexImage: //GLenum p_target, GLint p_level, void* p_img
 
 static void get_vertex_attrib(trc_replay_context_t* ctx, trace_command_t* cmd, GLuint index, GLenum pname) {
     if (pname!=GL_CURRENT_VERTEX_ATTRIB && !trc_gl_state_get_bound_vao(ctx->trace))
-        ERROR("No vertex array object is bound");
+        ERROR2(, "No vertex array object is bound");
     if (index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
-        ERROR("Index is out of bounds");
+        ERROR2(, "Index is out of bounds");
 }
 
 glGetVertexAttribdv: //GLuint p_index, GLenum p_pname, GLdouble* p_params
@@ -4262,7 +4262,7 @@ glGetVertexAttribPointerv: //GLuint p_index, GLenum p_pname, void** p_pointer
 
 glGetAttachedShaders: //GLuint p_program, GLsizei p_maxCount, GLsizei* p_count, GLuint* p_shaders
     if (!p_program_rev) ERROR("Invalid program name");
-    if (p_maxCount < 0) ERROR("maxCount must be greater than or equal to zero")
+    if (p_maxCount < 0) ERROR("maxCount must be greater than or equal to zero");
 
 glGetActiveUniform: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLint* p_size, GLenum* p_type, GLchar* p_name
     if (!p_program_rev) ERROR("Invalid program name");
