@@ -95,6 +95,7 @@ typedef struct trc_chunked_data_t {
 typedef struct {
     trace_type_t type;
     uint32_t count;
+    bool is_array;
     union {
         uint64_t u64;
         int64_t i64;

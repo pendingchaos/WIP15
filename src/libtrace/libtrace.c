@@ -351,6 +351,7 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
         val->count = 1;
     }
     
+    val->is_array = type->is_array;
     switch (type->base) {
     case BaseType_Void: {
         val->type = Type_Void;

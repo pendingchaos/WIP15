@@ -100,7 +100,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         }
     }
     
-    if (value.count != 1) cat_str(str, "[", n);
+    if (value.is_array) cat_str(str, "[", n);
     for (size_t i = 0; i < value.count; ++i) {
         switch (value.type) {
         case Type_Void: {
@@ -147,7 +147,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
         
         if (i != value.count-1) cat_str(str, ", ", n);
     }
-    if (value.count != 1) cat_str(str, "]", n);
+    if (value.is_array) cat_str(str, "]", n);
 }
 
 static void format_cmd(trace_t* trace, char* str, trace_command_t* cmd, size_t n, bool ext) {
