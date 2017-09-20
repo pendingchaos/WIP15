@@ -852,8 +852,8 @@ Func((4, 1), 'glUseProgramStages', [P(tGLProgramPipeline, 'pipeline'), P(tGLbitf
 Func((4, 1), 'glActiveShaderProgram', [P(tGLProgramPipeline, 'pipeline'), P(tGLProgram, 'program')], None)
 Func((4, 1), 'glProgramParameteri', [P(tGLProgram, 'program'), P(tGLenum, 'pname', None, g('GL_PROGRAM_BINARY_RETRIEVABLE_HINT', 'GL_PROGRAM_SEPARABLE')),
                                      P(tGLint, 'value', None, 'Boolean')])
-Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLuint)
-Func((2, 0), 'glCreateShader', [P(tGLenum, 'type', None, 'ShaderType')], tGLuint)
+Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLProgram)
+Func((2, 0), 'glCreateShader', [P(tGLenum, 'type', None, 'ShaderType')], tGLShader)
 Func((4, 1), 'glDeleteProgramPipelines', [P(tGLsizei, 'n'), P(tGLProgramPipeline, 'pipelines', 'n')])
 Func((4, 1), 'glGenProgramPipelines', [P(tGLsizei, 'n'), P(tGLProgramPipeline, 'pipelines', 'n')])
 Func((4, 1), 'glGetProgramPipelineiv', [P(tGLProgramPipeline, 'pipeline'), P(tGLenum, 'pname'), P(tGLint, 'params', 1)])

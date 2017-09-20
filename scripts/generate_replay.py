@@ -32,23 +32,26 @@ typedef void (*func_t)();
 output.write(gl.typedecls)
 
 output.write("""
-static uint64_t replay_get_uint(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+static trc_replay_context_t* ctx;
+static trace_command_t* cmd;
+
+static uint64_t replay_get_uint(trace_value_t* val, size_t i) {
     return trc_get_uint(val)[i];
 }
 
-static int64_t replay_get_int(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+static int64_t replay_get_int(trace_value_t* val, size_t i) {
     return trc_get_int(val)[i];
 }
 
-static double replay_get_double(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+static double replay_get_double(trace_value_t* val, size_t i) {
     return trc_get_double(val)[i];
 }
 
-static uint64_t replay_get_ptr(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+static uint64_t replay_get_ptr(trace_value_t* val, size_t i) {
     return trc_get_ptr(val)[i];
 }
 
-static bool replay_get_bool(trc_replay_context_t* ctx, trace_value_t* val, size_t i) {
+static bool replay_get_bool(trace_value_t* val, size_t i) {
     return trc_get_bool(val)[i];
 }
 
@@ -69,8 +72,8 @@ static void* replay_alloc(size_t amount) {
     }
 }
 
-static void reset_gl_funcs(trc_replay_context_t* ctx);
-static void reload_gl_funcs(trc_replay_context_t* ctx);
+static void reset_gl_funcs();
+static void reload_gl_funcs();
 
 extern func_t glXGetProcAddress(const GLubyte* procName);
 
@@ -207,7 +210,7 @@ for n, t in objs:
     container = n in ['framebuffer', 'program_pipeline', 'transform_feedback', 'vao']
     ns = 'priv_ns' if container else 'ns'
     output.write('''
-static const trc_gl_%s_rev_t* get_%s(trc_replay_context_t* ctx, uint64_t fake) {
+static const trc_gl_%s_rev_t* get_%s(uint64_t fake) {
     return trc_get_obj(ctx->%s, %s, fake);
 }
 
@@ -215,8 +218,8 @@ static void set_%s(const trc_gl_%s_rev_t* rev) {
     trc_obj_set_rev(rev->head.obj, rev);
 }
 
-static uint64_t get_real_%s(trc_replay_context_t* ctx, uint64_t fake) {
-    const trc_gl_%s_rev_t* rev = get_%s(ctx, fake);
+static uint64_t get_real_%s(uint64_t fake) {
+    const trc_gl_%s_rev_t* rev = get_%s(fake);
     return rev ? rev->real : 0;
 }
 ''' % (n, n, ns, t, n, n, n, n, n))
@@ -255,7 +258,8 @@ output.write("""#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 """)
 for name, func in func_dict.items():
-    output.write("void replay_%s(trc_replay_context_t* ctx, trace_command_t* cmd) {\n" % (name))
+    output.write("void replay_%s(trace_command_t* cmd_) {\n" % (name))
+    output.write("    cmd = cmd_;")
     
     if not name.startswith("glX") and not name.startswith("wip15"):
         output.write("""    if (!trc_get_current_gl_context(ctx->trace, -1)) {
@@ -305,9 +309,10 @@ for name, func in func_dict.items():
 output.write("""#pragma GCC diagnostic pop
 """)
 
-output.write("""static void reset_gl_funcs(trc_replay_context_t* ctx);
+output.write("""static void reset_gl_funcs();
 
-void init_replay_gl(trc_replay_context_t* ctx) {
+void init_replay_gl(trc_replay_context_t* ctx_) {
+    ctx = ctx_;
     replay_gl_funcs_t* funcs = malloc(sizeof(replay_gl_funcs_t));
     ctx->_replay_gl = funcs;
     reset_gl_funcs(ctx);
@@ -320,7 +325,7 @@ for name in list(func_dict.keys()):
 output.write("""    ctx->_replay_gl = funcs;
 }
 
-static void reset_gl_funcs(trc_replay_context_t* ctx) {
+static void reset_gl_funcs() {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
@@ -330,7 +335,7 @@ for name in list(func_dict.keys()):
 
 output.write("""}
 
-static void reload_gl_funcs(trc_replay_context_t* ctx) {
+static void reload_gl_funcs() {
     replay_gl_funcs_t* funcs = ctx->_replay_gl;
 """)
 
@@ -340,7 +345,7 @@ for name in list(func_dict.keys()):
 
 output.write("}\n\n")
 
-output.write("""void deinit_replay_gl(trc_replay_context_t* ctx) {
+output.write("""void deinit_replay_gl() {
     free(ctx->_replay_gl);
 }
 """)
