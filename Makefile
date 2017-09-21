@@ -36,7 +36,7 @@ base_gui_obj = $(gui_src:.c=.o)
 gui_obj = $(join $(dir $(base_gui_obj)), $(addprefix ., $(notdir $(base_gui_obj)))) src/shared/.glapi.o src/shared/.types.o
 
 base_libtrace_obj = $(libtrace_src:.c=.o)
-libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj)))) src/shared/.types.o src/shared/.utils.o src/libtrace/.replay_gl.o
+libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj)))) src/shared/.types.o src/shared/.utils.o src/libtrace/.replay_gl.o src/shared/.glapi.o
 
 base_tests_obj = $(tests_src:.c=.o)
 tests_obj = $(join $(dir $(base_tests_obj)), $(addprefix ., $(notdir $(base_tests_obj))))

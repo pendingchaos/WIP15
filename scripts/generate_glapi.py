@@ -59,7 +59,8 @@ for name, group in group_dict.items():
     for vn, vv in group.vals.items():
         ver_mask = "|".join([ver_to_mask[ver] for ver in versions[versions.index(group.minvers[vn]):]])
         
-        output.write("static const glapi_requirements_t req_%d = {%s, NULL, true, true};\n" %
+        #TODO: Extensions
+        output.write("static const glapi_requirements_t req_%d = {%s, 0, NULL};\n" %
                      (next_req_id, ver_mask))
         
         output.write("static const glapi_group_entry_t entry_%d_%d = {&req_%d, %du, \"%s\"};\n" %
@@ -100,11 +101,9 @@ for name, func in func_dict.items():
                  (i,
                   ", ".join(["&arg_%d" % id(arg) for arg in func.params])))
     
-    output.write("static const glapi_requirements_t req_%d = {%s, NULL, %s, %s};\n" %
-                 (next_req_id,
-                  ver_mask,
-                  "true",
-                  "true"))
+    #TODO: Extensions
+    output.write("static const glapi_requirements_t req_%d = {%s, 0, NULL};\n" %
+                 (next_req_id, ver_mask))
     
     output.write("static const glapi_function_t func_%d = {&req_%d, \"%s\", %d, args_%d};\n" %
                  (id(func),

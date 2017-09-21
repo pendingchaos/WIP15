@@ -66,6 +66,7 @@ void cat_str(char* buf, const char* src, size_t buf_size) {
 }
 
 void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
+    //TODO: Handle arrays here
     if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
         const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
         

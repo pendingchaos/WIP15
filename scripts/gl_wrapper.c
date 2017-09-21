@@ -475,8 +475,7 @@ static void handle_config() {
         configs[i].entries = NULL;
         int major, minor;
         get_major_minor(i, &major, &minor);
-        set_config_value_int(&configs[i], "major_version", major);
-        set_config_value_int(&configs[i], "minor_version", minor);
+        set_config_value_int(&configs[i], "version", major*100+minor*10);
     }
     bool version_mask[OpenGLVersion_Count] = {0};
     

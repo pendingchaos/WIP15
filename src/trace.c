@@ -20,6 +20,7 @@ static struct option options[] = {
     {"compress", required_argument, NULL, 'c'}
 };
 
+//TODO: This also tries to parse options after the command
 static void handle_options(int argc, char** argv) {
     int option_index = 0;
     int c = -1;

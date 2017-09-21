@@ -1,4 +1,5 @@
 #include "libtrace/libtrace.h"
+#include "shared/glapi.h"
 
 #include <assert.h>
 #include <malloc.h>
@@ -1078,6 +1079,104 @@ typedef void (*replay_func_t)(trace_command_t*);
 void init_replay_gl(trc_replay_context_t* ctx);
 void deinit_replay_gl(trc_replay_context_t* ctx);
 
+static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_requirements_t* req) {
+    //TODO: This is usually for glX functions, so test for glX version support?
+    if (req->version == glnone) return true;
+    
+    switch (ctx->ver) {
+    case 320: return req->version & gl3_2;
+    case 330: return req->version & gl3_3;
+    case 400: return req->version & gl4_0;
+    case 410: return req->version & gl4_1;
+    case 420: return req->version & gl4_2;
+    case 430: return req->version & gl4_3;
+    case 440: return req->version & gl4_4;
+    case 450: return req->version & gl4_5;
+    case 460: return req->version & gl4_6;
+    default: return false;
+    }
+    
+    //TODO: Test for extension support
+    
+    return true;
+}
+
+static uint64_t get_value_element(const trace_value_t* val, size_t index) {
+    switch (val->type) {
+    case Type_Boolean: return trc_get_bool(val)[index];
+    case Type_Double: return trc_get_double(val)[index];
+    case Type_Int: return trc_get_int(val)[index];
+    case Type_UInt: return trc_get_uint(val)[index];
+    default: return -1;
+    }
+}
+
+static bool validate_val(const trc_gl_context_rev_t* ctx, trace_command_t* cmd, const char* name,
+                         const glapi_group_t* group, const trace_value_t* val) {
+    if (!group) return true;
+    
+    for (size_t i = 0; i < val->count; i++) {
+        uint64_t element = get_value_element(val, i);
+        if (group->bitmask) {
+            //Bitmask
+            for (size_t j = 0; j < group->entry_count; j++) {
+                const glapi_group_entry_t* entry = group->entries[j];
+                if (!(entry->value&element)) continue;
+                if (!requirements_satisfied(ctx, entry->requirements))
+                    goto req_error;
+                element &= ~entry->value;
+            }
+            if (element) goto none_error;
+        } else {
+            //Enum
+            bool tested = false;
+            for (size_t j = 0; j < group->entry_count; j++) {
+                const glapi_group_entry_t* entry = group->entries[j];
+                if (entry->value != element) continue;
+                if (!requirements_satisfied(ctx, entry->requirements))
+                    goto req_error;
+                tested = true;
+                break;
+            }
+            if (!tested) goto none_error;
+        }
+        
+        continue;
+        none_error:
+        if (!val->is_array) trc_add_error(cmd, "No such group entry for %s", name);
+        else trc_add_error(cmd, "No such group entry for %s[%zu]", name, i);
+        return false;
+        req_error:
+        if (val->is_array)
+            trc_add_error(cmd, "%s[%zu] not supported with current version and extensions", name, i);
+        else
+            trc_add_error(cmd, "%s not supported with current version and extensions", name);
+        return false;
+    }
+    
+    return true;
+}
+
+static bool validate_command(trc_replay_context_t* ctx, trace_command_t* cmd, glapi_function_t** funcs) {
+    glapi_function_t* func = funcs[cmd->func_index];
+    if (!func) return true;
+    
+    const trc_gl_context_rev_t* ctx_rev = trc_get_context(ctx->trace);
+    
+    if (!requirements_satisfied(ctx_rev, func->requirements)) {
+        trc_add_error(cmd, "Function not supported with current version and extensions");
+        return false;
+    }
+    
+    for (size_t i = 0; i < cmd->arg_count; i++) {
+        const glapi_arg_t* arg = func->args[i];
+        if (!validate_val(ctx_rev, cmd, arg->name, arg->group, &cmd->args[i]))
+            return false;
+    }
+    
+    return true;
+}
+
 void trc_run_inspection(trace_t* trace) {
     replay_func_t* funcs = malloc(trace->func_name_count * sizeof(replay_func_t));
     
@@ -1119,6 +1218,16 @@ void trc_run_inspection(trace_t* trace) {
     
     init_replay_gl(&ctx);
     
+    glapi_function_t** glapi_funcs = calloc(trace->func_name_count, sizeof(glapi_function_t*));
+    for (size_t i = 0; i < trace->func_name_count; i++) {
+        if (!trace->func_names[i]) continue;
+        for (size_t j = 0; j < glapi.function_count; j++) {
+            if (strcmp(glapi.functions[j]->name, trace->func_names[i]) != 0)
+                continue;
+            glapi_funcs[i] = glapi.functions[j];
+        }
+    }
+    
     for (size_t i = 0; i < trace->frame_count; i++) {
         trace_frame_t* frame = &trace->frames[i];
         trace->inspection.frame_index = i;
@@ -1126,10 +1235,13 @@ void trc_run_inspection(trace_t* trace) {
             trace_command_t* cmd = &frame->commands[j];
             ctx.current_command = cmd;
             trace->inspection.cmd_index = j;
-            funcs[cmd->func_index](cmd);
+            if (validate_command(&ctx, cmd, glapi_funcs))
+                funcs[cmd->func_index](cmd);
             cmd->revision = trace->inspection.cur_revision++;
         }
     }
+    
+    free(glapi_funcs);
     
     deinit_replay_gl(&ctx);
     

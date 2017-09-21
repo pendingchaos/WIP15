@@ -29,10 +29,9 @@ typedef enum {
 } glapi_version_mask_t;
 
 typedef struct {
-    glapi_version_mask_t version; //Can be 0
-    const char* extension; //Can be NULL
-    bool compatibility;
-    bool core;
+    glapi_version_mask_t version; //Can be glnone
+    size_t extension_count;
+    const char** extensions;
 } glapi_requirements_t;
 
 typedef struct {

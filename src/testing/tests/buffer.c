@@ -79,7 +79,7 @@ BEGIN_TEST(glBufferSubData_2)
     glBufferSubData(GL_ARRAY_BUFFER, 5, 3, "Hel");
     assert_attachment("Invalid range");
     
-    glMapBuffer(GL_ARRAY_BUFFER, GL_MAP_READ_BIT);
+    glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
     glBufferSubData(GL_ARRAY_BUFFER, 1, 3, "Hel");
     assert_attachment("Buffer is mapped without persistent access");
     glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -107,6 +107,10 @@ BEGIN_TEST(glMapBuffer_0)
 END_TEST(glMapBuffer_0)
 
 BEGIN_TEST(glMapBuffer_1)
+    //TODO: The nvidia driver seems to fail at glMapBuffer with
+    //GL_INVALID_OPERATION if this is not called
+    glBufferData(GL_ARRAY_BUFFER, 5, NULL, GL_STATIC_DRAW);
+    
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     assert_properties(GL_BUFFER, buf, "mapped", 1, NULL);
     glUnmapBuffer(GL_ARRAY_BUFFER);

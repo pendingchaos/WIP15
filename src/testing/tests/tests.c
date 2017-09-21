@@ -95,8 +95,8 @@ int main(int argc, char** argv) {
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
     window = SDL_CreateWindow("", pos, pos, 100, 100, flags);
     
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     for (test_t* test = tests; test; test=test->next) {
         SDL_GLContext context = SDL_GL_CreateContext(window);

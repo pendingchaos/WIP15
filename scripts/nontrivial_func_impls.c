@@ -367,11 +367,6 @@ static void init_context() {
     
     trc_gl_state_set_made_current_before(trace, false);
     
-    GLint major, minor;
-    F(glGetIntegerv)(GL_MAJOR_VERSION, &major);
-    F(glGetIntegerv)(GL_MINOR_VERSION, &minor);
-    uint ver = major*100 + minor*10;
-    
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     trc_gl_state_set_drawable_width(trace, w);
@@ -420,8 +415,8 @@ static void init_context() {
     trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, cfg.max_ssbo_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_SAMPLE_MASK_WORDS, cfg.max_sample_mask_words);
     trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, cfg.version/100);
-    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.version/10);
-    trc_gl_state_set_ver(trace, ver);
+    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.version%100/10);
+    trc_gl_state_set_ver(trace, cfg.version);
     
     trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, cfg.max_ubo_bindings, NULL);
     trc_gl_state_bound_buffer_indexed_init(trace, GL_ATOMIC_COUNTER_BUFFER, cfg.max_atomic_counter_buffer_bindings, NULL);
@@ -615,7 +610,7 @@ static void init_context() {
     trc_set_context(ctx->trace, &rev);
     update_fb0_buffers(true, true, true, true);
     
-    if (ver >= 430) {
+    if (cfg.version >= 430) {
         F(glEnable)(GL_DEBUG_OUTPUT);
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         F(glDebugMessageCallback)(debug_callback, ctx);

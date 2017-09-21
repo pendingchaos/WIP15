@@ -1158,12 +1158,14 @@ Func((1, 0), 'glViewport', [P(tGLint, 'x'), P(tGLint, 'y'),
 
 f = Func((1, 5), 'glUnmapBuffer', [P(tGLenum, 'target', None, BufferTarget)], tGLboolean)
 f.trace_prologue_code = '''
-GLint mapped, access;
+GLint mapped=0, access=0;
+GLint64 offset=0, length=0;
 F(glGetBufferParameteriv)(target, GL_BUFFER_MAPPED, &mapped);
-if (mapped) F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
-GLint64 offset, length;
-F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_OFFSET, &offset);
-F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_LENGTH, &length);
+if (mapped) {
+    F(glGetBufferParameteriv)(target, GL_BUFFER_ACCESS, &access);
+    F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_OFFSET, &offset);
+    F(glGetBufferParameteri64v)(target, GL_BUFFER_MAP_LENGTH, &length);
+}
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
     uint64_t offset_le = htole64(offset);
@@ -1177,12 +1179,14 @@ f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
 
 f = Func((4, 5), 'glUnmapNamedBuffer', [P(tGLBuf, 'buffer')], tGLboolean)
 f.trace_prologue_code = '''
-GLint mapped, access;
+GLint mapped=0, access=0;
+GLint64 offset=0, length=0;
 F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_MAPPED, &mapped);
-if (mapped) F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
-GLint64 offset, length;
-F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_OFFSET, &offset);
-F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_LENGTH, &length);
+if (mapped) {
+    F(glGetNamedBufferParameteriv)(buffer, GL_BUFFER_ACCESS, &access);
+    F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_OFFSET, &offset);
+    F(glGetNamedBufferParameteri64v)(buffer, GL_BUFFER_MAP_LENGTH, &length);
+}
 '''
 f.trace_extras_code = '''if (mapped && access!=GL_READ_ONLY) {
     uint64_t offset_le = htole64(offset);
