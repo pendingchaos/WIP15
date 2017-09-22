@@ -1232,8 +1232,6 @@ WUV(write_uniform_value_double, double)
 #undef D
 
 static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint* realprogram) {
-    if (location == -1) return -1;
-    
     uint arg_pos = 0;
     const trc_gl_program_rev_t* rev;
     if (dsa) rev = get_program(trc_get_uint(&cmd->args[arg_pos++])[0]);
@@ -1242,6 +1240,7 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
     if (realprogram) *realprogram = rev->real;
     
     int location = trc_get_int(&cmd->args[arg_pos++])[0];
+    if (location == -1) return -1;
     
     trc_gl_uniform_t uniform;
     
@@ -1286,7 +1285,7 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
     
     bool is_array = false;
     if (uniform.parent != 0xffffffff)
-        is_array = uniforms[uniform.parent].dtype.base == TrcUniformBaseType_Array
+        is_array = uniforms[uniform.parent].dtype.base == TrcUniformBaseType_Array;
     if (!is_array && count>1) {
         trc_unmap_data(uniforms);
         ERROR2(-1, "cound is greater than one but the uniform is not an array");
