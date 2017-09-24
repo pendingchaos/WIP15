@@ -441,6 +441,7 @@ class tGLFramebuffer(tGLObj): obj_type = 'framebuffer'
 class tGLRenderbuffer(tGLObj): obj_type = 'renderbuffer'
 class tGLsync(_Ptr):
     ctype = 'GLsync'
+    obj_type = 'sync'
     def gen_replay_read_code(self, dest, src, array_count=None):
         res = _Ptr.gen_replay_read_code(self, dest, src, array_count)
         if array_count != None:
@@ -455,7 +456,9 @@ class tGLShader(tGLObj): obj_type = 'shader'
 class tGLVAO(tGLObj): obj_type = 'vao'
 class tGLTransformFeedback(tGLObj): obj_type = 'transform_feedback'
 class tGLeglImageOES(_Ptr): ctype = 'GLeglImageOES'
-class tGLXContext(_Ptr): ctype = 'GLXContext'
+class tGLXContext(_Ptr):
+    ctype = 'GLXContext'
+    obj_type = 'context'
 class tXID(tuint32_t): pass
 
 _cur_file = 'generated_gl_funcs.py'

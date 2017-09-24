@@ -28,6 +28,36 @@ typedef enum {
     gl4_6 = 1 << 19
 } glapi_version_mask_t;
 
+typedef enum {
+    GLApi_Void,
+    GLApi_UInt,
+    GLApi_Int,
+    GLApi_Double,
+    GLApi_Boolean,
+    GLApi_Str,
+    GLApi_FunctionPtr,
+    GLApi_Ptr,
+    GLApi_Data,
+    GLApi_Variant
+} glapi_dtype_base_t;
+
+typedef enum {
+    GLApi_NoObj,
+    GLApi_Buffer,
+    GLApi_Sampler,
+    GLApi_Texture,
+    GLApi_Query,
+    GLApi_Framebuffer,
+    GLApi_Renderbuffer,
+    GLApi_Sync,
+    GLApi_Program,
+    GLApi_ProgramPipeline,
+    GLApi_Shader,
+    GLApi_VAO,
+    GLApi_TransformFeedback,
+    GLApi_Context
+} glapi_obj_type_t;
+
 typedef struct {
     glapi_version_mask_t version; //Can be glnone
     size_t extension_count;
@@ -47,9 +77,16 @@ typedef struct {
     const glapi_group_entry_t** entries;
 } glapi_group_t;
 
+typedef struct glapi_dtype_t {
+    const glapi_group_t* group; //Can be NULL
+    bool is_array;
+    glapi_dtype_base_t base;
+    glapi_obj_type_t obj_type;
+} glapi_dtype_t;
+
 typedef struct {
     const char* name;
-    const glapi_group_t* group; //Can be NULL
+    glapi_dtype_t dtype;
 } glapi_arg_t;
 
 typedef struct {
@@ -57,6 +94,7 @@ typedef struct {
     const char *name;
     size_t arg_count;
     const glapi_arg_t** args;
+    glapi_dtype_t return_dtype;
 } glapi_function_t;
 
 typedef struct {

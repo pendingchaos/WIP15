@@ -1170,7 +1170,7 @@ static bool validate_command(trc_replay_context_t* ctx, trace_command_t* cmd, gl
     
     for (size_t i = 0; i < cmd->arg_count; i++) {
         const glapi_arg_t* arg = func->args[i];
-        if (!validate_val(ctx_rev, cmd, arg->name, arg->group, &cmd->args[i]))
+        if (!validate_val(ctx_rev, cmd, arg->name, arg->dtype.group, &cmd->args[i]))
             return false;
     }
     

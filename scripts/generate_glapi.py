@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from glapi.glapi import *
+import hashlib
 
 versions = [(1, 0),
             (1, 1),
@@ -83,14 +84,42 @@ for name, group in group_dict.items():
 
 i = 0
 
+def gen_dtype(group, array_count, base):
+    group = ("&group_%s" % group.name) if group != None else "NULL"
+    is_array = "true" if array_count != None else "false"
+    base_str = {'BASE_VOID': 'GLApi_Void',
+                'BASE_UNSIGNED_INT': 'GLApi_UInt',
+                'BASE_INT': 'GLApi_Int',
+                'BASE_PTR': 'GLApi_Ptr',
+                'BASE_BOOL': 'GLApi_Boolean',
+                'BASE_FLOAT': 'GLApi_Double',
+                'BASE_DOUBLE': 'GLApi_Double',
+                'BASE_STRING': 'GLApi_Str',
+                'BASE_DATA': 'GLApi_Data',
+                'BASE_FUNC_PTR': 'GLApi_FunctionPtr',
+                'BASE_VARIANT': 'GLApi_Variant'}[base.__class__.base if base else 'BASE_VOID']
+    obj_type = 'GLApi_NoObj'
+    if base and 'obj_type' in dir(base.__class__):
+        obj_type = {'buffer': 'GLApi_Buffer',
+                    'sampler': 'GLApi_Sampler',
+                    'texture': 'GLApi_Texture',
+                    'query': 'GLApi_Query',
+                    'framebuffer': 'GLApi_Framebuffer',
+                    'renderbuffer': 'GLApi_Renderbuffer',
+                    'sync': 'GLApi_Sync',
+                    'program': 'GLApi_Program',
+                    'program_pipeline': 'GLApi_ProgramPipeline',
+                    'shader': 'GLApi_Shader',
+                    'vao': 'GLApi_VAO',
+                    'transform_feedback': 'GLApi_TransformFeedback',
+                    'context': 'GLApi_Context'}[base.__class__.obj_type]
+    return '(glapi_dtype_t){%s, %s, %s, %s}' % (group, is_array, base_str, obj_type)
+
 for name, func in func_dict.items():
     for arg in func.params:
-        group = ("&group_%s" % arg.group.name) if arg.group != None else "NULL"
-        
+        dtype = gen_dtype(arg.group, arg.array_count, arg.dtype)
         output.write("static const glapi_arg_t arg_%d = {\"%s\", %s};\n" %
-                     (id(arg),
-                      arg.name,
-                      group))
+                     (id(arg), arg.name, dtype))
     
     if func.minver != None:
         ver_mask = "|".join([ver_to_mask[ver] for ver in versions[versions.index(func.minver):]])
@@ -105,12 +134,9 @@ for name, func in func_dict.items():
     output.write("static const glapi_requirements_t req_%d = {%s, 0, NULL};\n" %
                  (next_req_id, ver_mask))
     
-    output.write("static const glapi_function_t func_%d = {&req_%d, \"%s\", %d, args_%d};\n" %
-                 (id(func),
-                  next_req_id,
-                  name,
-                  len(func.params),
-                  i))
+    output.write("static const glapi_function_t func_%d = {&req_%d, \"%s\", %d, args_%d, %s};\n" %
+                 (id(func), next_req_id, name, len(func.params), i,
+                  gen_dtype(None, None, func.rettype)))
     
     next_req_id += 1
     
@@ -122,6 +148,4 @@ output.write("static glapi_group_t*const* groups[] = {%s};\n" %
 output.write("static glapi_function_t** funcs[] = {%s};\n" %
              ", ".join(["&func_%d" % id(func) for func in list(func_dict.values())]))
 
-output.write("const glapi_t glapi = {%d, groups, %d, funcs};\n" %
-             (len(group_dict),
-              len(func_dict)))
+output.write("const glapi_t glapi = {%d, groups, %d, funcs};\n" % (len(group_dict), len(func_dict)))
