@@ -1184,21 +1184,41 @@ static trc_obj_t* get_bound_buffer(GLenum target) {
     return trc_gl_state_get_bound_buffer(ctx->trace, target);
 }
 
+static bool program_has_stage(trc_obj_t* program, GLenum stage) {
+    const trc_gl_program_rev_t* rev = trc_obj_get_rev(program, -1);
+    const trc_gl_program_linked_shader_t* linked = trc_map_data(rev->linked, TRC_MAP_READ);
+    bool found = false;
+    for (size_t i = 0; i < rev->linked->size/sizeof(linked[0]); i++) {
+        trc_gl_program_linked_shader_t ls = linked[i];
+        const trc_gl_shader_rev_t* shader = trc_obj_get_rev(ls.shader, ls.shader_revision);
+        if (shader->type != stage) continue;
+        found = true;
+        break;
+    }
+    trc_unmap_data(linked);
+    return found;
+}
+
 static trc_obj_t* get_active_program_for_stage(GLenum stage) {
     trc_obj_t* program = trc_gl_state_get_bound_program(ctx->trace);
-    if (program) return program;
+    if (program) return program_has_stage(program, stage) ? program : NULL;
+    
     trc_obj_t* pipeline = trc_gl_state_get_bound_pipeline(ctx->trace);
     if (!pipeline) return NULL;
+    
     const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
+    trc_obj_t* res = NULL;
     switch (stage) {
-    case GL_VERTEX_SHADER: return rev->vertex_program.obj;
-    case GL_FRAGMENT_SHADER: return rev->fragment_program.obj;
-    case GL_GEOMETRY_SHADER: return rev->geometry_program.obj;
-    case GL_TESS_CONTROL_SHADER: return rev->tess_control_program.obj;
-    case GL_TESS_EVALUATION_SHADER: return rev->tess_eval_program.obj;
-    case GL_COMPUTE_SHADER: return rev->compute_program.obj;
-    default: return NULL;
+    case GL_VERTEX_SHADER: res = rev->vertex_program.obj; break;
+    case GL_FRAGMENT_SHADER: res = rev->fragment_program.obj; break;
+    case GL_GEOMETRY_SHADER: res = rev->geometry_program.obj; break;
+    case GL_TESS_CONTROL_SHADER: res = rev->tess_control_program.obj; break;
+    case GL_TESS_EVALUATION_SHADER: res = rev->tess_eval_program.obj; break;
+    case GL_COMPUTE_SHADER: res = rev->compute_program.obj; break;
+    default: break;
     }
+    
+    return res && program_has_stage(res, stage) ? res : NULL;
 }
 
 static trc_obj_t* get_active_program() {
@@ -1623,12 +1643,10 @@ static bool tf_draw_validation(GLenum primitive) {
     
     //Test the primitive
     GLint test_primitive = primitive;
-    
-    trc_obj_t* geom_program;
-    if ((geom_program=trc_gl_state_get_bound_program(ctx->trace))) {
-        F(glGetError)(); //TODO: Do this in a less hackish way
-        F(glGetProgramiv)(((trc_gl_program_rev_t*)trc_obj_get_rev(geom_program, -1))->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
-        if (F(glGetError)() == GL_INVALID_OPERATION) test_primitive = primitive; //No geometry shader
+    trc_obj_t* geom_program = get_active_program_for_stage(GL_GEOMETRY_SHADER);
+    if (geom_program) {
+        const trc_gl_program_rev_t* geom_program_rev = trc_obj_get_rev(geom_program, -1);
+        F(glGetProgramiv)(geom_program_rev->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
     }
     
     switch (trc_gl_state_get_tf_primitive(ctx->trace)) {
