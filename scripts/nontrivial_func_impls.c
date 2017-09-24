@@ -1649,7 +1649,10 @@ static bool tf_draw_validation(GLenum primitive) {
     return true;
 }
 
-static bool begin_draw(GLenum primitive) {
+#define DRAW_INDIRECT (1<<0)
+#define DRAW_INDEXED (1<<1)
+
+static bool begin_draw(GLenum primitive, uint flags) {
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(state->bound_vao.obj, -1);
     if (!vao) ERROR2(false, "No VAO bound");
@@ -1658,6 +1661,26 @@ static bool begin_draw(GLenum primitive) {
     if (!vertex_program) ERROR2(false, "No vertex program active");
     
     if (!tf_draw_validation(primitive)) return false;
+    
+    if (primitive==GL_PATCHES && get_active_program_for_stage(GL_TESS_CONTROL_SHADER)==NULL)
+        ERROR2(false, "No tesselation control shader is active");
+    
+    if (flags & DRAW_INDIRECT) {
+        trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
+        if (!buf)
+            ERROR2(false, "No buffer is bound at GL_DRAW_INDIRECT_BUFFER");
+        const trc_gl_buffer_rev_t* buf_rev = trc_obj_get_rev(buf, -1);
+        if (buf_rev->mapped)
+            ERROR2(false, "Buffer bound at GL_DRAW_INDIRECT_BUFFER is mapped");
+    }
+    
+    if (flags & DRAW_INDEXED) {
+        if (!vao->element_buffer.obj)
+            ERROR2(false, "No buffer is bound at the current VAO's GL_ELEMENT_ARRAY_BUFFER");
+        const trc_gl_buffer_rev_t* buf_rev = trc_obj_get_rev(vao->element_buffer.obj, -1);
+        if (buf_rev->mapped)
+            ERROR2(false, "Buffer bound at the current VAO's GL_ELEMENT_ARRAY_BUFFER is mapped");
+    }
     
     GLint last_buf;
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
@@ -5166,113 +5189,104 @@ glEndConditionalRender: //
 
 glDrawArrays: //GLenum p_mode, GLint p_first, GLsizei p_count
     if (p_count<0) ERROR("Invalid count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, 0)) RETURN;
     real(p_mode, p_first, p_count);
     end_draw();
 
 glDrawArraysIndirect: //GLenum p_mode, const void* p_indirect
-    trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
-    if (!buf) ERROR("No buffer bound to GL_DRAW_INDIRECT_BUFFER");
-    if (((trc_gl_buffer_rev_t*)trc_obj_get_rev(buf, -1))->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDIRECT)) RETURN;
     real(p_mode, (const GLvoid*)p_indirect);
     end_draw();
 
 glDrawArraysInstanced: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount
     if (p_count<0 || p_instancecount<0)
         ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, 0)) RETURN;
     real(p_mode, p_first, p_count, p_instancecount);
     end_draw();
 
 glMultiDrawArrays: //GLenum p_mode, const GLint* p_first, const GLsizei* p_count, GLsizei p_drawcount
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
-    for (size_t i = 0; i < p_drawcount; i++) {
+    for (size_t i = 0; i < p_drawcount; i++)
         if (p_count[i]<0) ERROR("Invalid count parameter at index %zu", i);
-    }
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, 0)) RETURN;
     real(p_mode, p_first, p_count, p_drawcount);
     end_draw();
 
 glMultiDrawElements: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void*const* p_indices, GLsizei p_drawcount
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
-    for (size_t i = 0; i < p_drawcount; i++) {
+    for (size_t i = 0; i < p_drawcount; i++)
         if (p_count[i] < 0) ERROR("Invalid count parameter at index %zu", i);
-    }
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, 0)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount);
     end_draw();
 
 glMultiDrawElementsBaseVertex: //GLenum p_mode, const GLsizei* p_count, GLenum p_type, const void*const* p_indices, GLsizei p_drawcount, const GLint* p_basevertex
     if (p_drawcount < 0) ERROR("Invalid draw count parameter");
-    for (size_t i = 0; i < p_drawcount; i++) {
+    for (size_t i = 0; i < p_drawcount; i++)
         if (p_count[i] < 0) ERROR("Invalid count parameter at index %zu", i);
-    }
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, p_indices, p_drawcount, p_basevertex);
     end_draw();
 
 glDrawElements: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices
     if (p_count < 0) ERROR("Invalid count parameter");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, (const void*)p_indices);
     end_draw();
 
 glDrawElementsIndirect: //GLenum p_mode, GLenum p_type, const void* indirect
-    trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
-    if (!buf) ERROR("No buffer bound to GL_DRAW_INDIRECT_BUFFER");
-    if (((trc_gl_buffer_rev_t*)trc_obj_get_rev(buf, -1))->mapped) ERROR("GL_DRAW_INDIRECT_BUFFER mapped");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED|DRAW_INDIRECT)) RETURN;
     real(p_mode, p_type, (const void*)p_indirect);
     end_draw();
 
 glDrawElementsBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
     if (p_count < 0) ERROR("Invalid count parameter");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, false)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw();
 
 glDrawElementsInstanced: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount
     if (p_count<0 || p_instancecount<0) ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount);
     end_draw();
 
 glDrawElementsInstancedBaseVertex: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex
     if (p_count<0 || p_instancecount<0) ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex);
     end_draw();
 
 glDrawElementsInstancedBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLuint p_baseinstance
     if (p_count<0 || p_instancecount<0) ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_baseinstance);
     end_draw();
 
 glDrawElementsInstancedBaseVertexBaseInstance: //GLenum p_mode, GLsizei p_count, GLenum p_type, const void* p_indices, GLsizei p_instancecount, GLint p_basevertex, GLuint p_baseinstance
     if (p_count<0 || p_instancecount<0) ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_count, p_type, (const GLvoid*)p_indices, p_instancecount, p_basevertex, p_baseinstance);
     end_draw();
 
 glDrawArraysInstancedBaseInstance: //GLenum p_mode, GLint p_first, GLsizei p_count, GLsizei p_instancecount, GLuint p_baseinstance
     if (p_count<0 || p_instancecount<0) ERROR("Invalid count or instance count parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_first, p_count, p_instancecount, p_baseinstance);
     end_draw();
 
 //TODO: Check if indices are in-range
 glDrawRangeElements: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices
     if (p_count<0 || p_end<p_start) ERROR("Invalid count or range parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices);
     end_draw();
 
 //TODO: Check if indices are in-range
 glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GLsizei p_count, GLenum p_type, const void* p_indices, GLint p_basevertex
     if (p_count<0 || p_end<p_start) ERROR("Invalid count or range parameters");
-    if (!begin_draw(p_mode)) RETURN;
+    if (!begin_draw(p_mode, DRAW_INDEXED)) RETURN;
     real(p_mode, p_start, p_end, p_count, p_type, (const GLvoid*)p_indices, p_basevertex);
     end_draw();
 
