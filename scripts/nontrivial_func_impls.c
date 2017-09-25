@@ -1792,9 +1792,15 @@ static void update_drawbuffer(GLenum buffer, GLuint drawbuffer) {
     }
 }
 
-static void update_buffers(trc_obj_t* fb, GLbitfield mask) {
+static void update_buffers(trc_obj_t* fb, GLbitfield mask, bool use_color_writemask) {
     if (fb == 0) {
         bool color = mask & GL_COLOR_BUFFER_BIT;
+        bool writemask[4];
+        for (size_t j = 0; j < 4; j++)
+            writemask[j] = trc_gl_state_get_state_bool(ctx->trace, GL_COLOR_WRITEMASK, j);
+        if (use_color_writemask)
+            color = color && (writemask[0]||writemask[1]||writemask[2]||writemask[3]);
+        
         bool depth = mask & GL_DEPTH_BUFFER_BIT;
         bool stencil = mask & GL_STENCIL_BUFFER_BIT;
         update_fb0_buffers(color, false, depth, stencil);
@@ -1807,10 +1813,16 @@ static void update_buffers(trc_obj_t* fb, GLbitfield mask) {
         
         if (mask & GL_COLOR_BUFFER_BIT) {
             const GLenum* draw_buffers = trc_map_data(rev->draw_buffers, TRC_MAP_READ);
-            for (size_t i = 0; i < rev->draw_buffers->size/sizeof(GLenum); i++)
+            for (size_t i = 0; i < rev->draw_buffers->size/sizeof(GLenum); i++) {
+                bool writemask[4];
+                for (size_t j = 0; j < 4; j++)
+                    writemask[j] = trc_gl_state_get_state_bool(ctx->trace, GL_COLOR_WRITEMASK, i*4+j);
+                if (use_color_writemask && (writemask[0]||writemask[1]||writemask[2]||writemask[3]))
                 updates[update_count++] = draw_buffers[i];
+            }
             trc_unmap_data(draw_buffers);
         }
+        
         if (mask & GL_DEPTH_BUFFER_BIT)
             updates[update_count++] = GL_DEPTH_ATTACHMENT;
         if (mask & GL_STENCIL_BUFFER_BIT)
@@ -2770,7 +2782,7 @@ wip15DrawableSize: //GLsizei p_width, GLsizei p_height
 
 glClear: //GLbitfield p_mask
     real(p_mask);
-    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask);
+    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask, true);
 
 glGenTextures: //GLsizei p_n, GLuint* p_textures
     if (p_n < 0) ERROR("Invalid texture name count");
@@ -6316,7 +6328,7 @@ glGetQueryIndexediv: //GLenum p_target, GLuint p_index, GLenum p_pname, GLint* p
 glBlitFramebuffer: //GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
     real(p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
     VALIDATE_BLIT_FRAMEBUFFER
-    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask);
+    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask, false); //TODO: Use GL_COLOR_WRITEMASK here?
 
 glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
     if (!p_readFramebuffer_rev || !p_drawFramebuffer_rev) ERROR("Invalid framebuffer name");
@@ -6324,7 +6336,7 @@ glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GL
         ERROR("Framebuffer name has no object");
     VALIDATE_BLIT_FRAMEBUFFER
     real(p_readFramebuffer_rev->real, p_drawFramebuffer_rev->real, p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
-    update_buffers(p_drawFramebuffer_rev->head.obj, p_mask);
+    update_buffers(p_drawFramebuffer_rev->head.obj, p_mask, false); //TODO: Use GL_COLOR_WRITEMASK here?
 
 glGenTransformFeedbacks: //GLsizei p_n, GLuint* p_ids
     if (p_n < 0) ERROR("Invalid transform feedback name count");
