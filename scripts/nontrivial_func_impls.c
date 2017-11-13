@@ -365,8 +365,6 @@ static void init_context() {
     
     trc_replay_config_t cfg = trc_get_context(trace)->trace_cfg;
     
-    trc_gl_state_set_made_current_before(trace, false);
-    
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
     trc_gl_state_set_drawable_width(trace, w);
@@ -1818,7 +1816,7 @@ static void update_buffers(trc_obj_t* fb, GLbitfield mask, bool use_color_writem
                 for (size_t j = 0; j < 4; j++)
                     writemask[j] = trc_gl_state_get_state_bool(ctx->trace, GL_COLOR_WRITEMASK, i*4+j);
                 if (use_color_writemask && (writemask[0]||writemask[1]||writemask[2]||writemask[3]))
-                updates[update_count++] = draw_buffers[i];
+                    updates[update_count++] = draw_buffers[i];
             }
             trc_unmap_data(draw_buffers);
         }
@@ -2430,6 +2428,106 @@ static void bind_buffer_indexed(GLenum target, GLuint index, GLuint buffer) {
     bind_buffer_indexed_ranged(target, index, buffer, 0, 0);
 }
 
+static void test_host_config(const trc_replay_config_t* host, const trc_replay_config_t* trace) {
+    typedef struct cap_info_t {
+        const char* name;
+        size_t offset;
+    } cap_info_t;
+    cap_info_t caps[] = {
+        {"version", offsetof(trc_replay_config_t, version)},
+        {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
+        {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
+        {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
+        {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
+        {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
+        {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
+        {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
+        {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
+        {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
+        {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
+        {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
+        {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
+        {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
+        {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
+    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
+    
+    for (size_t i = 0; i < cap_count; i++) {
+        const char* name = caps[i].name;
+        int host_val = *(const int*)((const uint8_t*)host+caps[i].offset);
+        int trace_val = *(const int*)((const uint8_t*)trace+caps[i].offset);
+        if (host_val < trace_val) {
+            trc_add_warning(cmd, "Host value for capability '%s' is lower than that of trace: %d < %d",
+                            name, host_val, trace_val);
+        }
+    }
+}
+
+static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* extra) {
+    init_host_config(ctx, &rev->host_cfg);
+    rev->trace_cfg = rev->host_cfg;
+    trc_replay_config_t* cfg = &rev->trace_cfg;
+    
+    if (extra) {
+        typedef struct option_info_t {
+            const char* name;
+            int* ptr;
+        } option_info_t;
+        
+        //TODO: Use the array in test_host_config()
+        const option_info_t options[] = {
+            {"version", &cfg->version},
+            {"max_vertex_streams", &cfg->max_vertex_streams},
+            {"max_clip_distances", &cfg->max_clip_distances},
+            {"max_draw_buffers", &cfg->max_draw_buffers},
+            {"max_viewports", &cfg->max_viewports},
+            {"max_vertex_attribs", &cfg->max_vertex_attribs},
+            {"max_color_attachments", &cfg->max_color_attachments},
+            {"max_combined_texture_units", &cfg->max_combined_texture_units},
+            {"max_patch_vertices", &cfg->max_patch_vertices},
+            {"max_renderbuffer_size", &cfg->max_renderbuffer_size},
+            {"max_texture_size", &cfg->max_texture_size},
+            {"max_xfb_buffers", &cfg->max_xfb_buffers},
+            {"max_ubo_bindings", &cfg->max_ubo_bindings},
+            {"max_atomic_counter_buffer_bindings", &cfg->max_atomic_counter_buffer_bindings},
+            {"max_ssbo_bindings", &cfg->max_ssbo_bindings},
+            {"nvidia_xfb_object_bindings_bug", &cfg->nvidia_xfb_object_bindings_bug}};
+        size_t option_count = sizeof(options) / sizeof(options[0]);
+        
+        data_reader_t dr = dr_new(extra->size, extra->data);
+        
+        uint32_t count;
+        if (!dr_read_le(&dr, 4, &count, -1))
+            ERROR2(, "Invalid %s extra: End of data", extra->name);
+        
+        for (uint32_t i = 0; i < count; i++) {
+            uint32_t name_len;
+            if (!dr_read_le(&dr, 4, &name_len, -1))
+                ERROR2(, "Invalid %s extra: End of data", extra->name);
+            char* name = calloc(name_len+1, 1);
+            if (!dr_read(&dr, name_len, name)) {
+                free(name);
+                ERROR2(, "Invalid %s extra: End of data", extra->name);
+            }
+            
+            int32_t value;
+            if (!dr_read_le(&dr, 4, &value, -1))
+                ERROR2(, "Invalid %s extra: End of data", extra->name);
+            
+            for (size_t j = 0; j < option_count; j++) {
+                if (strcmp(options[j].name, name)) continue;
+                *options[j].ptr = value;
+                goto done;
+            }
+            trc_add_error(cmd, "Unknown target option '%s'", ctx->target_option_names[i]);
+            done: ;
+            
+            free(name);
+        }
+    }
+    
+    test_host_config(&rev->host_cfg, &rev->trace_cfg);
+}
+
 glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     SDL_GLContext glctx = NULL;
     trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
@@ -2444,13 +2542,22 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     if (glctx) {
         reload_gl_funcs();
         trc_set_current_gl_context(ctx->trace, trc_lookup_name(global_ns, TrcContext, p_ctx, -1));
-        if (!trc_gl_state_get_made_current_before(ctx->trace)) {
+        if (!trc_get_context(ctx->trace)->made_current_before) {
+            trc_gl_context_rev_t rev = *trc_get_context(ctx->trace);
+            trace_extra_t* config_extra = trc_get_extrai(cmd, "replay/glXMakeCurrent/config", 0);
+            //config_extra may be NULL but handle_new_context_config handles that
+            handle_new_context_config(&rev, config_extra);
+            rev.made_current_before = true;
+            trc_set_context(ctx->trace, &rev);
+            
+            init_context();
+            
             trace_extra_t* extra = trc_get_extra(cmd, "replay/glXMakeCurrent/drawable_size");
             if (!extra) ERROR("replay/glXMakeCurrent/drawable_size extra not found");
             if (extra->size != 8) ERROR("replay/glXMakeCurrent/drawable_size is not 8 bytes");
             int32_t width = ((int32_t*)extra->data)[0];
             int32_t height = ((int32_t*)extra->data)[1];
-            if (width>=0 && height>=0) {
+            if (width>=0 && height>=0) { //TODO: Move this into init_context()
                 trc_gl_state_set_drawable_width(ctx->trace, width);
                 trc_gl_state_set_drawable_height(ctx->trace, height);
                 SDL_SetWindowSize(ctx->window, width, height);
@@ -2469,7 +2576,6 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
                 }
             }
         }
-        trc_gl_state_set_made_current_before(ctx->trace, true);
     } else {
         reset_gl_funcs();
         trc_set_current_gl_context(ctx->trace, NULL);
@@ -2527,85 +2633,6 @@ glXGetVisualFromFBConfigSGIX: //Display* p_dpy, GLXFBConfigSGIX p_config
 glXGetClientString: //Display* p_dpy, int p_name
     ;
 
-static void test_host_config(const trc_replay_config_t* host, const trc_replay_config_t* trace) {
-    typedef struct cap_info_t {
-        const char* name;
-        size_t offset;
-    } cap_info_t;
-    cap_info_t caps[] = {
-        {"version", offsetof(trc_replay_config_t, version)},
-        {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
-        {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
-        {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
-        {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
-        {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
-        {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
-        {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
-        {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
-        {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
-        {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
-        {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
-        {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
-        {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
-        {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
-    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
-    
-    for (size_t i = 0; i < cap_count; i++) {
-        const char* name = caps[i].name;
-        int host_val = *(const int*)((const uint8_t*)host+caps[i].offset);
-        int trace_val = *(const int*)((const uint8_t*)trace+caps[i].offset);
-        if (host_val < trace_val) {
-            trc_add_warning(cmd, "Host value for capability '%s' is lower than that of trace: %d < %d",
-                            name, host_val, trace_val);
-        }
-    }
-}
-
-wip15SetTargetOptions: //GLsizeiptr p_count, const GLchar*const* p_names, const GLchar*const* p_values
-    if (p_count < 0) ERROR("Invalid count");
-    ctx->target_option_count = p_count;
-    ctx->target_option_names = p_names;
-    ctx->target_option_values = p_values;
-
-static void apply_target_options(trc_replay_config_t* cfg) {
-    typedef struct option_info_t {
-        const char* name;
-        int* ptr;
-    } option_info_t;
-    
-    //TODO: Use the array in test_host_config()
-    const option_info_t options[] = {
-        {"version", &cfg->version},
-        {"max_vertex_streams", &cfg->max_vertex_streams},
-        {"max_clip_distances", &cfg->max_clip_distances},
-        {"max_draw_buffers", &cfg->max_draw_buffers},
-        {"max_viewports", &cfg->max_viewports},
-        {"max_vertex_attribs", &cfg->max_vertex_attribs},
-        {"max_color_attachments", &cfg->max_color_attachments},
-        {"max_combined_texture_units", &cfg->max_combined_texture_units},
-        {"max_patch_vertices", &cfg->max_patch_vertices},
-        {"max_renderbuffer_size", &cfg->max_renderbuffer_size},
-        {"max_texture_size", &cfg->max_texture_size},
-        {"max_xfb_buffers", &cfg->max_xfb_buffers},
-        {"max_ubo_bindings", &cfg->max_ubo_bindings},
-        {"max_atomic_counter_buffer_bindings", &cfg->max_atomic_counter_buffer_bindings},
-        {"max_ssbo_bindings", &cfg->max_ssbo_bindings},
-        {"nvidia_xfb_object_bindings_bug", &cfg->nvidia_xfb_object_bindings_bug}};
-    size_t option_count = sizeof(options) / sizeof(options[0]);
-    
-    for (GLsizeiptr i = 0; i < ctx->target_option_count; i++) {
-        //TODO: Improve the parsing code
-        int value = atoi(ctx->target_option_values[i]);
-        for (size_t j = 0; j < option_count; j++) {
-            if (strcmp(options[j].name, ctx->target_option_names[i])) continue;
-            *options[j].ptr = value;
-            goto done;
-        }
-        trc_add_error(cmd, "Unknown target option '%s'", ctx->target_option_names[i]);
-        done: ;
-    }
-}
-
 glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct
     trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
     
@@ -2636,20 +2663,10 @@ glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, 
     if (shareList) rev.namespace = shareList->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     rev.priv_ns = trc_create_namespace(ctx->trace);
-    
-    init_host_config(ctx, &rev.host_cfg);
-    rev.trace_cfg = rev.host_cfg;
-    apply_target_options(&rev.trace_cfg);
-    test_host_config(&rev.host_cfg, &rev.trace_cfg);
+    rev.made_current_before = false;
     
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
-    
-    trc_obj_t* prev_ctx = trc_get_current_gl_context(ctx->trace, -1);
-    size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
-    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = cur_ctx; //TODO: A hack
-    init_context();
-    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = prev_ctx;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs();
@@ -2727,20 +2744,10 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     if (share_ctx) rev.namespace = share_ctx->namespace;
     else rev.namespace = trc_create_namespace(ctx->trace);
     rev.priv_ns = trc_create_namespace(ctx->trace);
-    
-    init_host_config(ctx, &rev.host_cfg);
-    rev.trace_cfg = rev.host_cfg;
-    apply_target_options(&rev.trace_cfg);
-    test_host_config(&rev.host_cfg, &rev.trace_cfg);
+    rev.made_current_before = false;
     
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
     trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
-    
-    trc_obj_t* prev_ctx = trc_get_current_gl_context(ctx->trace, -1);
-    size_t end = ctx->trace->inspection.cur_ctx_revision_count - 1;
-    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = cur_ctx; //TODO: A hack
-    init_context();
-    ctx->trace->inspection.cur_ctx_revisions[end].context.obj = prev_ctx;
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs();

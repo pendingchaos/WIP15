@@ -132,12 +132,6 @@ class GL:
         wip15ExpectAttachment = Function('void')
         wip15ExpectAttachment.params.append(FunctionParam('const GLchar*', 'attachment'))
         self.functions['wip15ExpectAttachment'] = wip15ExpectAttachment
-        
-        wip15SetTargetOptions = Function('void')
-        wip15SetTargetOptions.params.append(FunctionParam('GLsizeiptr', 'count'))
-        wip15SetTargetOptions.params.append(FunctionParam('const GLchar*const*', 'names'))
-        wip15SetTargetOptions.params.append(FunctionParam('const GLchar*const*', 'values'))
-        self.functions['wip15SetTargetOptions'] = wip15SetTargetOptions
     
     def _run(self, root):
         groups = {}

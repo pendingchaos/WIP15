@@ -9,6 +9,7 @@
 
 typedef struct context_data_t {
     object_tab_t* tab;
+    GtkTreeView* view;
     GtkTreeStore* store;
     GtkWidget* open_back_buffer;
     GtkWidget* open_front_buffer;
@@ -99,10 +100,12 @@ static void init(object_tab_t* tab) {
     
     add_custom_to_info_box(tab->info_box, "Open Buffer", box);
     
-    GtkTreeView* view = create_tree_view(2, "Name", "Value");
-    gtk_tree_view_set_search_column(view, 0);
-    data->store = GTK_TREE_STORE(gtk_tree_view_get_model(view));
-    add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    data->view = create_tree_view(2, "Name", "Value");
+    gtk_tree_view_set_search_column(data->view, 0);
+    data->store = GTK_TREE_STORE(gtk_tree_view_get_model(data->view));
+    add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->view)));
+    
+    add_custom_to_info_box(tab->info_box, "This context has not yet been made current", NULL);
 }
 
 static void deinit(object_tab_t* tab) {
@@ -516,6 +519,118 @@ static void texturing_state(value_tree_state_t* state, const trc_gl_context_rev_
     object_list(state, "Sampler Bindings", rev->bound_samplers, TrcSampler, revision);
 }
 
+static void fill_context_value_tree(
+    const trc_gl_context_rev_t* rev, value_tree_state_t* state, uint64_t revision) {
+    value(state, "Drawable Size", "%ux%u", rev->drawable_width, rev->drawable_height);
+    
+    buffer_state(state, rev, revision);
+    query_state(state, rev, revision);
+    texturing_state(state, rev, revision);
+    
+    value_obj(state, "GL_CURRENT_PROGRAM", rev->bound_program, revision);
+    value_obj(state, "GL_PROGRAM_PIPELINE_BINDING", rev->bound_pipeline, revision);
+    value_obj(state, "GL_RENDERBUFFER_BINDING", rev->bound_renderbuffer, revision);
+    value_obj(state, "GL_READ_FRAMEBUFFER_BINDING", rev->read_framebuffer, revision);
+    value_obj(state, "GL_DRAW_FRAMEBUFFER_BINDING", rev->draw_framebuffer, revision);
+    value_enums(state, "DrawBufferBuffer", "GL_DRAW_BUFFER", rev->state_enum_GL_DRAW_BUFFER);
+    
+    begin_category(state, "Transform Feedback");
+    value_obj(state, "Binding", rev->current_tf, revision);
+    //TODO: Use a better group
+    value(state, "Primitive", "%s",
+          get_enum_str("PrimitiveType", rev->tf_primitive));
+    end_category(state);
+    
+    vertex_array_state(state, rev, revision);
+    primitive_restart_state(state, rev);
+    viewport_scissor_state(state, rev);
+    rasterization_state(state, rev);
+    depth_buffering_state(state, rev);
+    
+    msaa_state(state, rev);
+    
+    begin_category(state, "Enabled");
+    
+    bool* clip_distances = trc_map_data(rev->enabled_GL_CLIP_DISTANCE0, TRC_MAP_READ);
+    size_t count = rev->enabled_GL_CLIP_DISTANCE0->size / sizeof(bool);
+    for (size_t i = 0;i < count;i++)
+        value(state, static_format("GL_CLIP_DISTANCE%zu", i), clip_distances[i]?"True":"False");
+    trc_unmap_data(clip_distances);
+    
+    value_bools(state, "GL_COLOR_LOGIC_OP", rev->enabled_GL_COLOR_LOGIC_OP);
+    value_bools(state, "GL_DEBUG_OUTPUT", rev->enabled_GL_DEBUG_OUTPUT);
+    value_bools(state, "GL_DEBUG_OUTPUT_SYNCHRONOUS",
+                rev->enabled_GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    value_bools(state, "GL_DITHER", rev->enabled_GL_DITHER);
+    value_bools(state, "GL_FRAMEBUFFER_SRGB", rev->enabled_GL_FRAMEBUFFER_SRGB);
+    value_bools(state, "GL_LINE_SMOOTH", rev->enabled_GL_LINE_SMOOTH);
+    value_bools(state, "GL_POLYGON_SMOOTH", rev->enabled_GL_POLYGON_SMOOTH);
+    value_bools(state, "GL_PROGRAM_POINT_SIZE", rev->enabled_GL_PROGRAM_POINT_SIZE);
+    end_category(state);
+    
+    blending_state(state, rev);
+    stencil_state(state, rev);
+    packing_state(state, rev);
+    unpacking_state(state, rev);
+    tesselation_state(state, rev);
+    polygon_offset_state(state, rev);
+    
+    value_bools(state, "GL_COLOR_WRITEMASK", rev->state_bool_GL_COLOR_WRITEMASK);
+    
+    value_enums(state, "LogicOp", "GL_LOGIC_OP_MODE", rev->state_enum_GL_LOGIC_OP_MODE);
+    value_enums(state, "ClipOrigin", "GL_CLIP_ORIGIN", rev->state_enum_GL_CLIP_ORIGIN);
+    value_enums(state, "ClipDepth", "GL_CLIP_DEPTH_MODE", rev->state_enum_GL_CLIP_DEPTH_MODE);
+    value_enums(state, "PointSpriteCoordOrigin", "GL_POINT_SPRITE_COORD_ORIGIN",
+                rev->state_enum_GL_POINT_SPRITE_COORD_ORIGIN);
+    value_enums(state, "ProvokingVertex", "GL_PROVOKING_VERTEX",
+                rev->state_enum_GL_PROVOKING_VERTEX);
+    
+    value_floats(state, "GL_DEPTH_CLEAR_VALUE", rev->state_float_GL_DEPTH_CLEAR_VALUE);
+    value_floats(state, "GL_COLOR_CLEAR_VALUE", rev->state_float_GL_COLOR_CLEAR_VALUE);
+    value_floats(state, "GL_DEPTH_RANGE", rev->state_float_GL_DEPTH_RANGE);
+    value_floats(state, "GL_POINT_FADE_THRESHOLD_SIZE",
+                 rev->state_float_GL_POINT_FADE_THRESHOLD_SIZE);
+    
+    begin_category(state, "Hints");
+    value(state, "GL_FRAGMENT_SHADER_DERIVATIVE_HINT",
+          get_enum_str("HintMode", rev->hints_GL_FRAGMENT_SHADER_DERIVATIVE_HINT));
+    value(state, "GL_LINE_SMOOTH_HINT",
+          get_enum_str("HintMode", rev->hints_GL_LINE_SMOOTH_HINT));
+    value(state, "GL_POLYGON_SMOOTH_HINT",
+          get_enum_str("HintMode", rev->hints_GL_POLYGON_SMOOTH_HINT));
+    value(state, "GL_TEXTURE_COMPRESSION_HINT",
+          get_enum_str("HintMode", rev->hints_GL_TEXTURE_COMPRESSION_HINT));
+    end_category(state);
+    
+    begin_category(state, "Capabilities");
+    value_ints(state, "GL_MAX_CLIP_DISTANCES", rev->state_int_GL_MAX_CLIP_DISTANCES);
+    value_ints(state, "GL_MAX_TEXTURE_SIZE", rev->state_int_GL_MAX_TEXTURE_SIZE);
+    value_ints(state, "GL_MAJOR_VERSION", rev->state_int_GL_MAJOR_VERSION);
+    value_ints(state, "GL_MINOR_VERSION", rev->state_int_GL_MINOR_VERSION);
+    value_ints(state, "GL_MAX_VIEWPORTS", rev->state_int_GL_MAX_VIEWPORTS);
+    value_ints(state, "GL_MAX_RENDERBUFFER_SIZE", rev->state_int_GL_MAX_RENDERBUFFER_SIZE);
+    value_ints(state, "GL_MAX_DRAW_BUFFERS", rev->state_int_GL_MAX_DRAW_BUFFERS);
+    value_ints(state, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS",
+               rev->state_int_GL_MAX_TRANSFORM_FEEDBACK_BUFFERS);
+    value_ints(state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS",
+               rev->state_int_GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
+    value_ints(state, "GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS",
+               rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
+    value_ints(state, "GL_MAX_VERTEX_ATTRIBS",
+               rev->state_int_GL_MAX_VERTEX_ATTRIBS);
+    value_ints(state, "GL_MAX_COLOR_ATTACHMENTS",
+               rev->state_int_GL_MAX_COLOR_ATTACHMENTS);
+    value_ints(state, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS",
+               rev->state_int_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    value_ints(state, "GL_MAX_UNIFORM_BUFFER_BINDINGS",
+               rev->state_int_GL_MAX_UNIFORM_BUFFER_BINDINGS);
+    value_ints(state, "GL_MAX_PATCH_VERTICES",
+               rev->state_int_GL_MAX_PATCH_VERTICES);
+    value_ints(state, "GL_MAX_SAMPLE_MASK_WORDS",
+               rev->state_int_GL_MAX_SAMPLE_MASK_WORDS);
+    end_category(state);
+}
+
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
     const trc_gl_context_rev_t* rev = (const trc_gl_context_rev_t*)rev_head;
     context_data_t* data = tab->data;
@@ -525,135 +640,36 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     
     gtk_tree_store_clear(data->store);
     
-    value_tree_state_t state;
-    state.category_stack_size = 0;
-    state.store = data->store;
-    
-    value(&state, "Drawable Size", "%ux%u", rev->drawable_width, rev->drawable_height);
-    
-    buffer_state(&state, rev, revision);
-    query_state(&state, rev, revision);
-    texturing_state(&state, rev, revision);
-    
-    value_obj(&state, "GL_CURRENT_PROGRAM", rev->bound_program, revision);
-    value_obj(&state, "GL_PROGRAM_PIPELINE_BINDING", rev->bound_pipeline, revision);
-    value_obj(&state, "GL_RENDERBUFFER_BINDING", rev->bound_renderbuffer, revision);
-    value_obj(&state, "GL_READ_FRAMEBUFFER_BINDING", rev->read_framebuffer, revision);
-    value_obj(&state, "GL_DRAW_FRAMEBUFFER_BINDING", rev->draw_framebuffer, revision);
-    value_enums(&state, "DrawBufferBuffer", "GL_DRAW_BUFFER", rev->state_enum_GL_DRAW_BUFFER);
-    
-    begin_category(&state, "Transform Feedback");
-    value_obj(&state, "Binding", rev->current_tf, revision);
-    //TODO: Use a better group
-    value(&state, "Primitive", "%s",
-          get_enum_str("PrimitiveType", rev->tf_primitive));
-    end_category(&state);
-    
-    vertex_array_state(&state, rev, revision);
-    primitive_restart_state(&state, rev);
-    viewport_scissor_state(&state, rev);
-    rasterization_state(&state, rev);
-    depth_buffering_state(&state, rev);
-    
-    msaa_state(&state, rev);
-    
-    begin_category(&state, "Enabled");
-    
-    bool* clip_distances = trc_map_data(rev->enabled_GL_CLIP_DISTANCE0, TRC_MAP_READ);
-    size_t count = rev->enabled_GL_CLIP_DISTANCE0->size / sizeof(bool);
-    for (size_t i = 0;i < count;i++)
-        value(&state, static_format("GL_CLIP_DISTANCE%zu", i), clip_distances[i]?"True":"False");
-    trc_unmap_data(clip_distances);
-    
-    value_bools(&state, "GL_COLOR_LOGIC_OP", rev->enabled_GL_COLOR_LOGIC_OP);
-    value_bools(&state, "GL_DEBUG_OUTPUT", rev->enabled_GL_DEBUG_OUTPUT);
-    value_bools(&state, "GL_DEBUG_OUTPUT_SYNCHRONOUS",
-                rev->enabled_GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    value_bools(&state, "GL_DITHER", rev->enabled_GL_DITHER);
-    value_bools(&state, "GL_FRAMEBUFFER_SRGB", rev->enabled_GL_FRAMEBUFFER_SRGB);
-    value_bools(&state, "GL_LINE_SMOOTH", rev->enabled_GL_LINE_SMOOTH);
-    value_bools(&state, "GL_POLYGON_SMOOTH", rev->enabled_GL_POLYGON_SMOOTH);
-    value_bools(&state, "GL_PROGRAM_POINT_SIZE", rev->enabled_GL_PROGRAM_POINT_SIZE);
-    end_category(&state);
-    
-    blending_state(&state, rev);
-    stencil_state(&state, rev);
-    packing_state(&state, rev);
-    unpacking_state(&state, rev);
-    tesselation_state(&state, rev);
-    polygon_offset_state(&state, rev);
-    
-    value_bools(&state, "GL_COLOR_WRITEMASK", rev->state_bool_GL_COLOR_WRITEMASK);
-    
-    value_enums(&state, "LogicOp", "GL_LOGIC_OP_MODE", rev->state_enum_GL_LOGIC_OP_MODE);
-    value_enums(&state, "ClipOrigin", "GL_CLIP_ORIGIN", rev->state_enum_GL_CLIP_ORIGIN);
-    value_enums(&state, "ClipDepth", "GL_CLIP_DEPTH_MODE", rev->state_enum_GL_CLIP_DEPTH_MODE);
-    value_enums(&state, "PointSpriteCoordOrigin", "GL_POINT_SPRITE_COORD_ORIGIN",
-                rev->state_enum_GL_POINT_SPRITE_COORD_ORIGIN);
-    value_enums(&state, "ProvokingVertex", "GL_PROVOKING_VERTEX",
-                rev->state_enum_GL_PROVOKING_VERTEX);
-    
-    value_floats(&state, "GL_DEPTH_CLEAR_VALUE", rev->state_float_GL_DEPTH_CLEAR_VALUE);
-    value_floats(&state, "GL_COLOR_CLEAR_VALUE", rev->state_float_GL_COLOR_CLEAR_VALUE);
-    value_floats(&state, "GL_DEPTH_RANGE", rev->state_float_GL_DEPTH_RANGE);
-    value_floats(&state, "GL_POINT_FADE_THRESHOLD_SIZE",
-                 rev->state_float_GL_POINT_FADE_THRESHOLD_SIZE);
-    
-    begin_category(&state, "Hints");
-    value(&state, "GL_FRAGMENT_SHADER_DERIVATIVE_HINT",
-          get_enum_str("HintMode", rev->hints_GL_FRAGMENT_SHADER_DERIVATIVE_HINT));
-    value(&state, "GL_LINE_SMOOTH_HINT",
-          get_enum_str("HintMode", rev->hints_GL_LINE_SMOOTH_HINT));
-    value(&state, "GL_POLYGON_SMOOTH_HINT",
-          get_enum_str("HintMode", rev->hints_GL_POLYGON_SMOOTH_HINT));
-    value(&state, "GL_TEXTURE_COMPRESSION_HINT",
-          get_enum_str("HintMode", rev->hints_GL_TEXTURE_COMPRESSION_HINT));
-    end_category(&state);
-    
-    begin_category(&state, "Capabilities");
-    value_ints(&state, "GL_MAX_CLIP_DISTANCES", rev->state_int_GL_MAX_CLIP_DISTANCES);
-    value_ints(&state, "GL_MAX_TEXTURE_SIZE", rev->state_int_GL_MAX_TEXTURE_SIZE);
-    value_ints(&state, "GL_MAJOR_VERSION", rev->state_int_GL_MAJOR_VERSION);
-    value_ints(&state, "GL_MINOR_VERSION", rev->state_int_GL_MINOR_VERSION);
-    value_ints(&state, "GL_MAX_VIEWPORTS", rev->state_int_GL_MAX_VIEWPORTS);
-    value_ints(&state, "GL_MAX_RENDERBUFFER_SIZE", rev->state_int_GL_MAX_RENDERBUFFER_SIZE);
-    value_ints(&state, "GL_MAX_DRAW_BUFFERS", rev->state_int_GL_MAX_DRAW_BUFFERS);
-    value_ints(&state, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS",
-               rev->state_int_GL_MAX_TRANSFORM_FEEDBACK_BUFFERS);
-    value_ints(&state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS",
-               rev->state_int_GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
-    value_ints(&state, "GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS",
-               rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
-    value_ints(&state, "GL_MAX_VERTEX_ATTRIBS",
-               rev->state_int_GL_MAX_VERTEX_ATTRIBS);
-    value_ints(&state, "GL_MAX_COLOR_ATTACHMENTS",
-               rev->state_int_GL_MAX_COLOR_ATTACHMENTS);
-    value_ints(&state, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS",
-               rev->state_int_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
-    value_ints(&state, "GL_MAX_UNIFORM_BUFFER_BINDINGS",
-               rev->state_int_GL_MAX_UNIFORM_BUFFER_BINDINGS);
-    value_ints(&state, "GL_MAX_PATCH_VERTICES",
-               rev->state_int_GL_MAX_PATCH_VERTICES);
-    value_ints(&state, "GL_MAX_SAMPLE_MASK_WORDS",
-               rev->state_int_GL_MAX_SAMPLE_MASK_WORDS);
-    end_category(&state);
-    
-    int dim[2] = {rev->drawable_width, rev->drawable_height};
-    if (data->back_viewer) {
-        update_image_viewer(data->back_viewer, 0, rev->back_color_buffer,
-                            dim, TrcImageFormat_SRGBA_U8);
-    }
-    if (data->front_viewer) {
-        update_image_viewer(data->front_viewer, 0, rev->front_color_buffer,
-                            dim, TrcImageFormat_SRGBA_U8);
-    }
-    if (data->depth_viewer) {
-        update_image_viewer(data->depth_viewer, 0, rev->back_depth_buffer,
-                            dim, TrcImageFormat_Red_F32);
-    }
-    if (data->stencil_viewer) {
-        update_image_viewer(data->stencil_viewer, 0, rev->back_stencil_buffer,
-                            dim, TrcImageFormat_Red_U32);
+    gtk_widget_set_visible(GTK_WIDGET(data->view), rev->made_current_before);
+    set_visible_at_info_box(box, "This context has not yet been made current", !rev->made_current_before);
+    if (rev->made_current_before) {
+        value_tree_state_t state;
+        state.category_stack_size = 0;
+        state.store = data->store;
+        fill_context_value_tree(rev, &state, revision);
+        
+        int dim[2] = {rev->drawable_width, rev->drawable_height};
+        if (data->back_viewer) {
+            update_image_viewer(data->back_viewer, 0, rev->back_color_buffer,
+                                dim, TrcImageFormat_SRGBA_U8);
+        }
+        if (data->front_viewer) {
+            update_image_viewer(data->front_viewer, 0, rev->front_color_buffer,
+                                dim, TrcImageFormat_SRGBA_U8);
+        }
+        if (data->depth_viewer) {
+            update_image_viewer(data->depth_viewer, 0, rev->back_depth_buffer,
+                                dim, TrcImageFormat_Red_F32);
+        }
+        if (data->stencil_viewer) {
+            update_image_viewer(data->stencil_viewer, 0, rev->back_stencil_buffer,
+                                dim, TrcImageFormat_Red_U32);
+        }
+    } else {
+        if (data->back_viewer) clear_image_viewer(data->back_viewer);
+        if (data->front_viewer) clear_image_viewer(data->front_viewer);
+        if (data->depth_viewer) clear_image_viewer(data->depth_viewer);
+        if (data->stencil_viewer) clear_image_viewer(data->stencil_viewer);
     }
 }
 

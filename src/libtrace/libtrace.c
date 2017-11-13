@@ -1267,7 +1267,7 @@ void trc_run_inspection(trace_t* trace) {
         ctx.current_test = NULL;
     }
     
-    //SDL_DestroyWindow(ctx.window);
+    //SDL_DestroyWindow(ctx.window); //TODO: Why is this commented?
     if (!sdl_was_init)
         ;//SDL_Quit(); //TODO: Only quit the video subsystem
     

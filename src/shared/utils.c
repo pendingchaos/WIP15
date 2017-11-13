@@ -54,6 +54,8 @@ void* copy(void* parent, size_t size, const void* src) {
 }
 
 void* resize(void* ptr, size_t size) {
+    if (!ptr) return alloc(NULL, size);
+    
     header_t* header = realloc(get_header(ptr), size+sizeof(header_t));
     if (!header) return NULL;
     void* newptr = header + 1;
@@ -217,7 +219,7 @@ static bool write(data_writer_t* writer, size_t amount, bool swap, const uint8_t
         return false;
     } else if (left<amount) {
         while (writer->capacity-writer->size < amount)
-            writer->capacity *= 2;
+            writer->capacity = writer->capacity ? writer->capacity*2 : 1;
         writer->data = resize(writer->data, writer->capacity);
     }
     

@@ -664,56 +664,25 @@ static void glx_make_current_epilogue() {
     update_drawable_size();
 }
 
-void wip15SetTargetOptions(GLsizeiptr count, const char*const* names, const char*const* values);
-
-static void set_target_options(GLXContext ctx) {
+static void create_make_current_config_extra(GLXContext ctx) {
+    if (!ctx) return;
+    
+    reset_gl_funcs(); //TODO: this is also called in glx_make_current_epilogue
+    
     trc_replay_config_t cfg = create_replay_config();
     
-    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
-    const char** names = malloc(cap_count*sizeof(const char*));
-    char** values = malloc(cap_count*sizeof(char*));
-    
-    for (size_t i = 0; i < cap_count; i++) {
-        names[i] = caps[i].name;
-        values[i] = malloc(16);
-        sprintf(values[i], "%d", *(int*)(((uint8_t*)&cfg)+caps[i].offset));
+    data_writer_t dw = dw_new(0, NULL, true);
+    uint32_t cap_count = sizeof(caps) / sizeof(caps[0]);
+    dw_write_le(&dw, 4, &cap_count, -1);
+    for (uint32_t i = 0; i < cap_count; i++) {
+        uint32_t len = strlen(caps[i].name);
+        dw_write_le(&dw, 4, &len, -1);
+        dw_write(&dw, len, caps[i].name);
+        int32_t val = *(int*)(((uint8_t*)&cfg)+caps[i].offset);
+        dw_write_le(&dw, 4, &val, -1);
     }
-    wip15SetTargetOptions(cap_count, names, (const char*const*)values);
-    
-    for (size_t i = 0; i < cap_count; i++) free(values[i]);
-    free(values);
-    free(names);
-}
-
-#define BEGIN_PROLOGUE(fb_config) Display* prev_dpy = F(glXGetCurrentDisplay)();\
-GLXDrawable prev_draw_drawable = F(glXGetCurrentDrawable)();\
-GLXDrawable prev_read_drawable = F(glXGetCurrentReadDrawable)();\
-GLXContext prev_ctx = F(glXGetCurrentContext)();\
-GLXPixmap pbuf = F(glXCreatePbuffer)(dpy, fb_config, (int[]){None});\
-
-#define END_PROLOGUE if (ctx) {\
-    F(glXMakeCurrent)(dpy, pbuf, ctx);\
-    reset_gl_funcs();\
-    set_target_options(ctx);\
-    F(glXDestroyContext)(dpy, ctx);\
-}\
-F(glXDestroyPbuffer)(dpy, pbuf);\
-F(glXMakeContextCurrent)(prev_dpy, prev_draw_drawable, prev_read_drawable, prev_ctx);\
-reset_gl_funcs();
-
-static void glx_create_context_attribs_prologue(Display* dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int* attrib_list) {
-    BEGIN_PROLOGUE(config)
-    GLXContext ctx = F(glXCreateContextAttribsARB)(dpy, config, share_context, direct, (int*)attrib_list);
-    END_PROLOGUE
-}
-
-static void glx_create_context_prologue(Display* dpy, XVisualInfo* vis, GLXContext shareList, Bool direct) {
-    int _;
-    GLXFBConfig* fb_configs = (GLXFBConfig*)F(glXChooseFBConfig)(dpy, vis->screen, (int[]){None}, &_);
-    BEGIN_PROLOGUE(fb_configs[0])
-    XFree(fb_configs);
-    GLXContext ctx = F(glXCreateContext)(dpy, vis, shareList, direct);
-    END_PROLOGUE
+    gl_add_extra("replay/glXMakeCurrent/config", dw.size, dw.data);
+    dealloc(dw.data);
 }
 
 static size_t get_texel_size(GLenum format, GLenum type) {

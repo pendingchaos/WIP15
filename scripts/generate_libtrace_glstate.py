@@ -5,7 +5,6 @@ src = '''
 uint drawable_width
 uint drawable_height
 uint ver
-bool made_current_before
 
 map buffer bound_buffer
     GL_ARRAY_BUFFER
@@ -526,6 +525,8 @@ print('    trc_obj_rev_head_t head;')
 print('    void* real;')
 print('    trc_namespace_t* namespace;')
 print('    trc_namespace_t* priv_ns;')
+print('    bool made_current_before;')
+print('    //all these members are only initialized if the context has been made current before')
 print('    trc_replay_config_t host_cfg;')
 print('    trc_replay_config_t trace_cfg;')
 print('    ')
@@ -693,6 +694,7 @@ print('#endif')
 
 print('#ifdef WIP15_STATE_GEN_DESTRUCTOR')
 print('static void gl_context_destructor(const trc_gl_context_rev_t* rev) {')
+print('    if (!rev->made_current_before) return;')
 
 def print_prop_destructor(prop, name):
     if prop.c_type not in ['trc_obj_ref_t', 'trc_gl_buffer_binding_point_t']:

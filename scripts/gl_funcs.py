@@ -112,19 +112,6 @@ class wip15ExpectAttachment(Func):
     gl_end_call();
 }''' % self.func_id
 
-class wip15SetTargetOptions(Func):
-    def gen_wrapper(self):
-        return '''void wip15SetTargetOptions(GLsizeiptr count, const GLchar*const* names, const GLchar*const* values) {
-    func_decl_wip15SetTargetOptions();
-    gl_start_call(%d);
-    gl_write_sleb128(count);
-    gl_write_uint32(count);
-    for (size_t i = 0; i < count; i++) gl_write_str(names[i]);
-    gl_write_uint32(count);
-    for (size_t i = 0; i < count; i++) gl_write_str(values[i]);
-    gl_end_call();
-}''' % self.func_id
-
 class tTexImageData(tData):
     def __init__(self, dim):
         Type.__init__(self)
@@ -1221,7 +1208,6 @@ wip15ExpectPropertyi64(None, 'wip15ExpectPropertyi64', [P(tGLenum, 'objType'), P
 wip15ExpectPropertyd(None, 'wip15ExpectPropertyd', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLdouble, 'val')])
 wip15ExpectPropertybv(None, 'wip15ExpectPropertybv', [P(tGLenum, 'objType'), P(tGLuint64, 'objName'), P(tString, 'name'), P(tGLuint64, 'index'), P(tGLuint64, 'size'), P(tData('size'), 'data')])
 wip15ExpectAttachment(None, 'wip15ExpectAttachment', [P(tString, 'attachment')])
-wip15SetTargetOptions(None, 'wip15SetTargetOptions', [P(tGLsizeiptr, 'count'), P(tString, 'names', 'count'), P(tString, 'values', 'count')])
 
 #Func(None, 'glXGetFBConfigs', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 #Func(None, 'glXGetGPUIDsAMD', [P(tunsignedint, 'maxCount'), P(tMutablePointer, 'ids')], tunsignedint)
@@ -1303,7 +1289,6 @@ Func(None, 'glXGetCurrentDisplay', [], tMutablePointer)
 #Func(None, 'glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
 #Func(None, 'glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
 f = Func(None, 'glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
-f.trace_prologue_code = 'glx_create_context_attribs_prologue(dpy, config, share_context, direct, attrib_list);'
 f.trace_epilogue_code = 'update_drawable_size();'
 #Func(None, 'glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
 #Func(None, 'glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
@@ -1314,7 +1299,7 @@ f.trace_epilogue_code = 'update_drawable_size();'
 glXGetProcAddressFunc(None, 'glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func(None, 'glXEnumerateVideoDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 f = Func(None, 'glXCreateContext', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'vis'), P(tGLXContext, 'shareList'), P(tBool, 'direct')], tGLXContext)
-f.trace_prologue_code = 'glx_create_context_prologue(dpy, vis, shareList, direct);'
+f.trace_epilogue_code = 'update_drawable_size();'
 #Func(None, 'glXReleaseTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer')])
 #Func(None, 'glXJoinSwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLuint, 'group')], tBool)
 #Func(None, 'glXCreateAssociatedContextAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_list')], tGLXContext)
@@ -1355,4 +1340,5 @@ if (dpy && drawable!=None) {
     F(glXQueryDrawable)(dpy, drawable, GLX_HEIGHT, &size[1]);
 }
 gl_add_extra("replay/glXMakeCurrent/drawable_size", 8, size);
+create_make_current_config_extra(ctx);
 '''
