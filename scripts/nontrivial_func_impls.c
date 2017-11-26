@@ -275,6 +275,29 @@ static void delete_obj(uint64_t fake, trc_obj_type_t type) {
     trc_free_name(ns, type, fake);
 }
 
+static const char* sample_params_valid_with_tex(const trc_gl_sample_params_t* params, const trc_gl_texture_rev_t* tex) {
+    if (tex->type == GL_TEXTURE_RECTANGLE) {
+        if (params->min_filter!=GL_NEAREST && params->min_filter!=GL_LINEAR)
+            return "Mipmapping is not supported for rectangle textures";
+        
+        switch (params->wrap_s) {
+        case GL_MIRROR_CLAMP_TO_EDGE:
+        case GL_MIRRORED_REPEAT:
+        case GL_REPEAT:
+            return "Wrap S mode is not supported for rectangle textures";
+        }
+        
+        switch (params->wrap_t) {
+        case GL_MIRROR_CLAMP_TO_EDGE:
+        case GL_MIRRORED_REPEAT:
+        case GL_REPEAT:
+            return "Wrap T mode is not supported for rectangle textures";
+        }
+    }
+    
+    return NULL;
+}
+
 static bool sample_param_double(trc_gl_sample_params_t* params, GLenum param,
                                 uint32_t count, const double* val) {
     switch (param) {
@@ -708,102 +731,182 @@ static void set_texture_image(const trc_gl_texture_rev_t* rev, uint level, uint 
     set_texture(&newrev);
 }
 
-static trc_image_format_t get_image_format(GLenum internal_format) {
-    switch (internal_format) {
-    case GL_DEPTH_COMPONENT: return TrcImageFormat_Red_F32;
-    case GL_DEPTH_COMPONENT16: return TrcImageFormat_Red_F32;
-    case GL_DEPTH_COMPONENT24: return TrcImageFormat_Red_F32;
-    case GL_DEPTH_COMPONENT32: return TrcImageFormat_Red_F32;
-    case GL_DEPTH_COMPONENT32F: return TrcImageFormat_Red_F32;
-    case GL_DEPTH_STENCIL: return TrcImageFormat_F32_U24_U8;
-    case GL_DEPTH24_STENCIL8: return TrcImageFormat_F32_U24_U8;
-    case GL_DEPTH32F_STENCIL8: return TrcImageFormat_F32_U24_U8;
-    case GL_STENCIL_INDEX: return TrcImageFormat_Red_U32;
-    case GL_STENCIL_INDEX1: return TrcImageFormat_Red_U32;
-    case GL_STENCIL_INDEX4: return TrcImageFormat_Red_U32;
-    case GL_STENCIL_INDEX8: return TrcImageFormat_Red_U32;
-    case GL_STENCIL_INDEX16: return TrcImageFormat_Red_U32;
-    case GL_RED: return TrcImageFormat_Red_F32;
-    case GL_RG: return TrcImageFormat_RedGreen_F32;
-    case GL_RGB: return TrcImageFormat_RGB_F32;
-    case GL_RGBA: return TrcImageFormat_RGBA_F32;
-    case GL_R8: return TrcImageFormat_Red_F32;
-    case GL_R8_SNORM: return TrcImageFormat_Red_F32;
-    case GL_R16: return TrcImageFormat_Red_F32;
-    case GL_R16_SNORM: return TrcImageFormat_Red_F32;
-    case GL_RG8: return TrcImageFormat_RedGreen_F32;
-    case GL_RG8_SNORM: return TrcImageFormat_RedGreen_F32;
-    case GL_RG16: return TrcImageFormat_RedGreen_F32;
-    case GL_RG16_SNORM: return TrcImageFormat_RedGreen_F32;
-    case GL_R3_G3_B2: return TrcImageFormat_RGB_F32;
-    case GL_RGB4: return TrcImageFormat_RGB_F32;
-    case GL_RGB5: return TrcImageFormat_RGB_F32;
-    case GL_RGB8: return TrcImageFormat_RGB_F32;
-    case GL_RGB8_SNORM: return TrcImageFormat_RGB_F32;
-    case GL_RGB10: return TrcImageFormat_RGB_F32;
-    case GL_RGB12: return TrcImageFormat_RGB_F32;
-    case GL_RGB16_SNORM: return TrcImageFormat_RGB_F32;
-    case GL_RGBA2: return TrcImageFormat_RGBA_F32;
-    case GL_RGBA4: return TrcImageFormat_RGBA_F32;
-    case GL_RGB5_A1: return TrcImageFormat_RGBA_F32;
-    case GL_RGBA8: return TrcImageFormat_RGBA_F32;
-    case GL_RGBA8_SNORM: return TrcImageFormat_RGBA_F32;
-    case GL_RGB10_A2: return TrcImageFormat_RGBA_F32;
-    case GL_RGB10_A2UI: return TrcImageFormat_RGBA_U32;
-    case GL_RGBA12: return TrcImageFormat_RGBA_F32;
-    case GL_RGBA16: return TrcImageFormat_RGBA_F32;
-    case GL_SRGB8: return TrcImageFormat_SRGB_U8;
-    case GL_SRGB8_ALPHA8: return TrcImageFormat_SRGBA_U8;
-    case GL_R16F: return TrcImageFormat_Red_F32;
-    case GL_RG16F: return TrcImageFormat_RedGreen_F32;
-    case GL_RGB16F: return TrcImageFormat_RGB_F32;
-    case GL_RGBA16F: return TrcImageFormat_RGBA_F32;
-    case GL_R32F: return TrcImageFormat_Red_F32;
-    case GL_RG32F: return TrcImageFormat_RedGreen_F32;
-    case GL_RGB32F: return TrcImageFormat_RGB_F32;
-    case GL_RGBA32F: return TrcImageFormat_RGBA_F32;
-    case GL_R11F_G11F_B10F: return TrcImageFormat_RGB_F32;
-    case GL_RGB9_E5: return TrcImageFormat_RGB_F32;
-    case GL_R8I: return TrcImageFormat_Red_I32;
-    case GL_R8UI: return TrcImageFormat_Red_U32;
-    case GL_R16I: return TrcImageFormat_Red_I32;
-    case GL_R16UI: return TrcImageFormat_Red_U32;
-    case GL_R32I: return TrcImageFormat_Red_I32;
-    case GL_R32UI: return TrcImageFormat_Red_U32;
-    case GL_RG8I: return TrcImageFormat_RedGreen_I32;
-    case GL_RG8UI: return TrcImageFormat_RedGreen_U32;
-    case GL_RG16I: return TrcImageFormat_RedGreen_I32;
-    case GL_RG16UI: return TrcImageFormat_RedGreen_U32;
-    case GL_RG32I: return TrcImageFormat_RedGreen_I32;
-    case GL_RG32UI: return TrcImageFormat_RedGreen_U32;
-    case GL_RGB8I: return TrcImageFormat_RGB_I32;
-    case GL_RGB8UI: return TrcImageFormat_RGB_U32;
-    case GL_RGB16I: return TrcImageFormat_RGB_I32;
-    case GL_RGB16UI: return TrcImageFormat_RGB_U32;
-    case GL_RGB32I: return TrcImageFormat_RGB_I32;
-    case GL_RGB32UI: return TrcImageFormat_RGB_U32;
-    case GL_RGBA8I: return TrcImageFormat_RGBA_I32;
-    case GL_RGBA8UI: return TrcImageFormat_RGBA_U32;
-    case GL_RGBA16I: return TrcImageFormat_RGBA_I32;
-    case GL_RGBA16UI: return TrcImageFormat_RGBA_U32;
-    case GL_RGBA32I: return TrcImageFormat_RGBA_I32;
-    case GL_RGBA32UI: return TrcImageFormat_RGBA_U32;
-    case GL_COMPRESSED_RED: return TrcImageFormat_Red_F32;
-    case GL_COMPRESSED_RG: return TrcImageFormat_RedGreen_F32;
-    case GL_COMPRESSED_RGB: return TrcImageFormat_RGB_F32;
-    case GL_COMPRESSED_RGBA: return TrcImageFormat_RGBA_F32;
-    case GL_COMPRESSED_SRGB: return TrcImageFormat_SRGB_U8;
-    case GL_COMPRESSED_SRGB_ALPHA: return TrcImageFormat_SRGBA_U8;
-    case GL_COMPRESSED_RED_RGTC1: return TrcImageFormat_Red_F32;
-    case GL_COMPRESSED_SIGNED_RED_RGTC1: return TrcImageFormat_Red_F32;
-    case GL_COMPRESSED_RG_RGTC2: return TrcImageFormat_RedGreen_F32;
-    case GL_COMPRESSED_SIGNED_RG_RGTC2: return TrcImageFormat_RedGreen_F32;
-    case GL_COMPRESSED_RGBA_BPTC_UNORM: return TrcImageFormat_RGBA_F32;
-    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM: return TrcImageFormat_SRGBA_U8;
-    case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT: return TrcImageFormat_RGB_F32;
-    case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: return TrcImageFormat_RGB_F32;
-    default: assert(false);
+typedef enum internal_format_data_type_t {
+    FmtDType_U8_Norm,
+    FmtDType_I8_Norm,
+    FmtDType_U16_Norm,
+    FmtDType_I16_Norm,
+    FmtDType_U24_Norm,
+    FmtDType_U32_Norm,
+    FmtDType_U8,
+    FmtDType_I8,
+    FmtDType_U16,
+    FmtDType_I16,
+    FmtDType_U32,
+    FmtDType_I32,
+    FmtDType_F16,
+    FmtDType_F32,
+    FmtDType_D24_S8,
+    FmtDType_D32F_S8,
+    FmtDType_S1,
+    FmtDType_S4,
+    FmtDType_S8,
+    FmtDType_S16,
+    FmtDType_F11_F11_F10,
+    FmtDType_9E5F,
+    FmtDType_U3_U3_U2_Norm,
+    FmtDType_U2_Norm,
+    FmtDType_U4_Norm,
+    FmtDType_U5_Norm,
+    FmtDType_U10_Norm,
+    FmtDType_U12_Norm,
+    FmtDType_U5_U6_U5_Norm,
+    FmtDType_U5_U5_U5_U1_Norm,
+    FmtDType_U10_U10_U10_U2,
+    FmtDType_U10_U10_U10_U2_Norm,
+    FmtDType_U8_Srgb,
+    FmtDType_Unspecified,
+    FmtDType_Compressed
+} internal_format_data_type_t;
+
+typedef struct internal_format_info_t {
+    GLenum internal_format;
+    //GL_DEPTH_COMPONENT, GL_DEPTH_STENCIL, GL_RED, GL_RG, GL_RGB,
+    //GL_RGBA or GL_STENCIL_INDEX
+    GLenum base;
+    internal_format_data_type_t dtype;
+    trc_image_format_t trc_image_format;
+} internal_format_info_t;
+
+static const internal_format_info_t internal_formats[] = {
+    {GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, FmtDType_Unspecified, TrcImageFormat_Red_F32},
+    {GL_DEPTH_STENCIL, GL_DEPTH_STENCIL, FmtDType_Unspecified, TrcImageFormat_F32_U24_U8},
+    {GL_RED, GL_RED, FmtDType_Unspecified, TrcImageFormat_Red_F32},
+    {GL_RG, GL_RG, FmtDType_Unspecified, TrcImageFormat_RedGreen_F32},
+    {GL_RGB, GL_RGB, FmtDType_Unspecified, TrcImageFormat_RGB_F32},
+    {GL_RGBA, GL_RGBA, FmtDType_Unspecified, TrcImageFormat_RGBA_F32},
+    
+    {GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, FmtDType_U16_Norm, TrcImageFormat_Red_F32},
+    {GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, FmtDType_U24_Norm, TrcImageFormat_Red_F32},
+    {GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, FmtDType_U32_Norm, TrcImageFormat_Red_F32},
+    {GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, FmtDType_F32, TrcImageFormat_Red_F32},
+    
+    {GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, FmtDType_D24_S8, TrcImageFormat_F32_U24_U8},
+    {GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, FmtDType_D32F_S8, TrcImageFormat_F32_U24_U8},
+    
+    {GL_STENCIL_INDEX1, GL_STENCIL_INDEX, FmtDType_S1, TrcImageFormat_Red_U32},
+    {GL_STENCIL_INDEX4, GL_STENCIL_INDEX, FmtDType_S4, TrcImageFormat_Red_U32},
+    {GL_STENCIL_INDEX8, GL_STENCIL_INDEX, FmtDType_S8, TrcImageFormat_Red_U32},
+    {GL_STENCIL_INDEX16, GL_STENCIL_INDEX, FmtDType_S16, TrcImageFormat_Red_U32},
+    
+    {GL_R8, GL_RED, FmtDType_U8_Norm, TrcImageFormat_Red_F32},
+    {GL_R8_SNORM, GL_RED, FmtDType_I8_Norm, TrcImageFormat_Red_F32},
+    {GL_R16, GL_RED, FmtDType_U16_Norm, TrcImageFormat_Red_F32},
+    {GL_R16_SNORM, GL_RED, FmtDType_I16_Norm, TrcImageFormat_Red_F32},
+    
+    {GL_RG8, GL_RG, FmtDType_U8_Norm, TrcImageFormat_RedGreen_F32},
+    {GL_RG8_SNORM, GL_RG, FmtDType_I8_Norm, TrcImageFormat_RedGreen_F32},
+    {GL_RG16, GL_RG, FmtDType_U16_Norm, TrcImageFormat_RedGreen_F32},
+    {GL_RG16_SNORM, GL_RG, FmtDType_I16_Norm, TrcImageFormat_RedGreen_F32},
+    
+    {GL_R3_G3_B2, GL_RGB, FmtDType_U3_U3_U2_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB4, GL_RGB, FmtDType_U4_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB5, GL_RGB, FmtDType_U5_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB8, GL_RGB, FmtDType_U8_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB8_SNORM, GL_RGB, FmtDType_I8_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB10, GL_RGB, FmtDType_U10_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB12, GL_RGB, FmtDType_U12_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB16_SNORM, GL_RGB, FmtDType_I16_Norm, TrcImageFormat_RGB_F32},
+    {GL_RGB565, GL_RGB, FmtDType_U5_U6_U5_Norm, TrcImageFormat_RGB_F32},
+    
+    {GL_RGBA2, GL_RGBA, FmtDType_U2_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGBA4, GL_RGBA, FmtDType_U4_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGB5_A1, GL_RGBA, FmtDType_U5_U5_U5_U1_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGBA8, GL_RGBA, FmtDType_U8_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGBA8_SNORM, GL_RGBA, FmtDType_I8_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGB10_A2, GL_RGBA, FmtDType_U10_U10_U10_U2_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGB10_A2UI, GL_RGBA, FmtDType_U10_U10_U10_U2, TrcImageFormat_RGBA_U32},
+    {GL_RGBA12, GL_RGBA, FmtDType_U12_Norm, TrcImageFormat_RGBA_F32},
+    {GL_RGBA16, GL_RGBA, FmtDType_U16_Norm, TrcImageFormat_RGBA_F32},
+    
+    {GL_SRGB8, GL_RGB, FmtDType_U8_Srgb, TrcImageFormat_SRGB_U8},
+    {GL_SRGB8_ALPHA8, GL_RGBA, FmtDType_U8_Srgb, TrcImageFormat_SRGBA_U8},
+    
+    {GL_R16F, GL_RED, FmtDType_F16, TrcImageFormat_Red_F32},
+    {GL_RG16F, GL_RG, FmtDType_F16, TrcImageFormat_RedGreen_F32},
+    {GL_RGB16F, GL_RGB, FmtDType_F16, TrcImageFormat_RGB_F32},
+    {GL_RGBA16F, GL_RGBA, FmtDType_F16, TrcImageFormat_RGBA_F32},
+    
+    {GL_R32F, GL_RED, FmtDType_F32, TrcImageFormat_Red_F32},
+    {GL_RG32F, GL_RG, FmtDType_F32, TrcImageFormat_RedGreen_F32},
+    {GL_RGB32F, GL_RGB, FmtDType_F32, TrcImageFormat_RGB_F32},
+    {GL_RGBA32F, GL_RGBA, FmtDType_F32, TrcImageFormat_RGBA_F32},
+    
+    {GL_R11F_G11F_B10F, GL_RGBA, FmtDType_F11_F11_F10, TrcImageFormat_RGB_F32},
+    {GL_RGB9_E5, GL_RGB, FmtDType_9E5F, TrcImageFormat_RGB_F32},
+    
+    {GL_R8I, GL_RED, FmtDType_I8, TrcImageFormat_Red_I32},
+    {GL_R8UI, GL_RED, FmtDType_U8, TrcImageFormat_Red_U32},
+    {GL_R16I, GL_RED, FmtDType_I16, TrcImageFormat_Red_I32},
+    {GL_R16UI, GL_RED, FmtDType_U16, TrcImageFormat_Red_U32},
+    {GL_R32I, GL_RED, FmtDType_I32, TrcImageFormat_Red_I32},
+    {GL_R32UI, GL_RED, FmtDType_U32, TrcImageFormat_Red_U32},
+    
+    {GL_RG8I, GL_RG, FmtDType_I8, TrcImageFormat_RedGreen_I32},
+    {GL_RG8UI, GL_RG, FmtDType_U8, TrcImageFormat_RedGreen_U32},
+    {GL_RG16I, GL_RG, FmtDType_I16, TrcImageFormat_RedGreen_I32},
+    {GL_RG16UI, GL_RG, FmtDType_U16, TrcImageFormat_RedGreen_U32},
+    {GL_RG32I, GL_RG, FmtDType_I32, TrcImageFormat_RedGreen_I32},
+    {GL_RG32UI, GL_RG, FmtDType_U32, TrcImageFormat_RedGreen_U32},
+    
+    {GL_RGB8I, GL_RGB, FmtDType_I8, TrcImageFormat_RGB_I32},
+    {GL_RGB8UI, GL_RGB, FmtDType_U8, TrcImageFormat_RGB_U32},
+    {GL_RGB16I, GL_RGB, FmtDType_I16, TrcImageFormat_RGB_I32},
+    {GL_RGB16UI, GL_RGB, FmtDType_U16, TrcImageFormat_RGB_U32},
+    {GL_RGB32I, GL_RGB, FmtDType_I32, TrcImageFormat_RGB_I32},
+    {GL_RGB32UI, GL_RGB, FmtDType_U32, TrcImageFormat_RGB_U32},
+    
+    {GL_RGBA8I, GL_RGBA, FmtDType_I8, TrcImageFormat_RGBA_I32},
+    {GL_RGBA8UI, GL_RGBA, FmtDType_U8, TrcImageFormat_RGBA_U32},
+    {GL_RGBA16I, GL_RGBA, FmtDType_I16, TrcImageFormat_RGBA_I32},
+    {GL_RGBA16UI, GL_RGBA, FmtDType_U16, TrcImageFormat_RGBA_U32},
+    {GL_RGBA32I, GL_RGBA, FmtDType_I32, TrcImageFormat_RGBA_I32},
+    {GL_RGBA32UI, GL_RGBA, FmtDType_U32, TrcImageFormat_RGBA_U32},
+    
+    {GL_COMPRESSED_RED, GL_RED, FmtDType_Compressed, TrcImageFormat_Red_F32},
+    {GL_COMPRESSED_RG, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32},
+    {GL_COMPRESSED_RGB, GL_RGB, FmtDType_Compressed, TrcImageFormat_RGB_F32},
+    {GL_COMPRESSED_RGBA, GL_RGBA, FmtDType_Compressed, TrcImageFormat_RGBA_F32},
+    {GL_COMPRESSED_SRGB, GL_RGB, FmtDType_Compressed, TrcImageFormat_SRGB_U8},
+    {GL_COMPRESSED_SRGB_ALPHA, GL_RGBA, FmtDType_Compressed, TrcImageFormat_SRGBA_U8},
+    
+    {GL_COMPRESSED_RED_RGTC1, GL_RED, FmtDType_Compressed, TrcImageFormat_Red_F32},
+    {GL_COMPRESSED_SIGNED_RED_RGTC1, GL_RED, FmtDType_Compressed, TrcImageFormat_Red_F32},
+    {GL_COMPRESSED_RG_RGTC2, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32},
+    {GL_COMPRESSED_SIGNED_RG_RGTC2, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32},
+    
+    {GL_COMPRESSED_RGBA_BPTC_UNORM, GL_RGBA, FmtDType_Compressed, TrcImageFormat_RGBA_F32},
+    {GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM, GL_RGBA, FmtDType_Compressed, TrcImageFormat_SRGBA_U8},
+    {GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT, GL_RGB, FmtDType_Compressed, TrcImageFormat_RGB_F32},
+    {GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, GL_RGB, FmtDType_Compressed, TrcImageFormat_RGB_F32},
+    
+    {GL_COMPRESSED_RGB8_ETC2, GL_RGB, FmtDType_Compressed, TrcImageFormat_RGB_F32},
+    {GL_COMPRESSED_SRGB8_ETC2, GL_RGB, FmtDType_Compressed, TrcImageFormat_SRGB_U8},
+    {GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2, GL_RGBA, FmtDType_Compressed, TrcImageFormat_RGBA_F32},
+    {GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2, GL_RGBA, FmtDType_Compressed, TrcImageFormat_SRGBA_U8},
+    {GL_COMPRESSED_RGBA8_ETC2_EAC, GL_RGBA, FmtDType_Compressed, TrcImageFormat_RGBA_F32},
+    {GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC, GL_RGBA, FmtDType_Compressed, TrcImageFormat_SRGBA_U8},
+    {GL_COMPRESSED_R11_EAC, GL_RED, FmtDType_Compressed, TrcImageFormat_Red_F32},
+    {GL_COMPRESSED_SIGNED_R11_EAC, GL_RED, FmtDType_Compressed, TrcImageFormat_Red_F32},
+    {GL_COMPRESSED_RG11_EAC, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32},
+    {GL_COMPRESSED_SIGNED_RG11_EAC, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32}};
+
+static internal_format_info_t get_internal_format_info(GLenum internal_format) {
+    for (size_t i = 0; i < sizeof(internal_formats)/sizeof(internal_formats[0]); i++) {
+        if (internal_formats[i].internal_format == internal_format)
+            return internal_formats[i];
     }
+    assert(false);
 }
 
 static void save_init_packing_config(GLint temp[9]) {
@@ -867,7 +970,7 @@ static void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint f
     if (!height) height = 1;
     if (!depth) depth = 1;
     
-    trc_image_format_t image_format = get_image_format(internal_format);
+    trc_image_format_t image_format = get_internal_format_info(internal_format).trc_image_format;
     
     GLenum format, type;
     size_t pixel_size;
@@ -1077,18 +1180,8 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
     if (!rev->has_object) ERROR2(true, "Texture name has no object");
     trc_gl_texture_rev_t newrev = *rev;
     
-    bool rectangle = rev->type==GL_TEXTURE_RECTANGLE;
-    bool multisampled = rev->type==GL_TEXTURE_2D_MULTISAMPLE || rev->type==GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-    
-    if (rectangle && param==GL_TEXTURE_MIN_FILTER && count==1) {
-        if (val[0]!=GL_NEAREST && val[0]!=GL_LINEAR)
-            ERROR2(true, "Mipmapping is not supported for rectangle textures");
-    }
-    
-    if (rectangle && (param==GL_TEXTURE_WRAP_S || param==GL_TEXTURE_WRAP_T) && count==1) {
-        if (val[0]==GL_MIRROR_CLAMP_TO_EDGE || val[0]==GL_MIRRORED_REPEAT || val[0]==GL_REPEAT)
-            ERROR2(true, "Provided wrap mode is not supported for rectangle textures");
-    }
+    bool rectangle = newrev.type==GL_TEXTURE_RECTANGLE;
+    bool multisampled = newrev.type==GL_TEXTURE_2D_MULTISAMPLE || newrev.type==GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
     
     switch (param) {
     case GL_TEXTURE_MIN_FILTER:
@@ -1105,9 +1198,11 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
     case GL_TEXTURE_MAX_ANISOTROPY: {
         if (multisampled)
             ERROR2(true, "Sampler parameters cannot be set for multisampled textures");
-        bool res = sample_param_double(&newrev.sample_params, param, count, val);
+        const char* err = sample_params_valid_with_tex(&newrev.sample_params, &newrev);
+        if (err) ERROR2(true, err);
+        sample_param_double(&newrev.sample_params, param, count, val);
         set_texture(&newrev);
-        return res;
+        return true;
     }
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
@@ -1127,7 +1222,7 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
     
     switch (param) {
     case GL_TEXTURE_BASE_LEVEL:
-        if ((multisampled||rev->type==GL_TEXTURE_RECTANGLE) && val[0]!=0.0)
+        if ((multisampled||rectangle) && val[0]!=0.0)
             ERROR2(true, "Parameter value must be zero due to the texture's type");
     case GL_TEXTURE_MAX_LEVEL:
         if (val[0] < 0.0) ERROR2(true, "Parameter value must be nonnegative");
@@ -1228,7 +1323,7 @@ static trc_obj_t* get_active_program() {
     return rev->active_program.obj;
 }
 
-#define D(e, t) case e: *(t*)data = val; return 1 + (t*)data;
+#define D(e, t) case e: {t tmp = val; memcpy(data, &tmp, sizeof(t)); return 1 + (t*)data;}
 #define WUV(name, srct) static void* name(void* data, trc_gl_uniform_base_dtype_t dtype, srct val) {\
     switch (dtype) {\
     D(TrcUniformBaseType_Float, float)\
@@ -1665,6 +1760,240 @@ static bool tf_draw_validation(GLenum primitive) {
     return true;
 }
 
+static GLenum get_sampler_target(trc_gl_uniform_dtype_t dtype) {
+    switch (dtype.tex_type) {
+    case TrcUniformTexType_1D:
+        return dtype.tex_array ? GL_TEXTURE_1D_ARRAY : GL_TEXTURE_1D;
+    case TrcUniformTexType_2D:
+        if (dtype.tex_multisample)
+            return dtype.tex_array ? GL_TEXTURE_2D_MULTISAMPLE_ARRAY : GL_TEXTURE_2D_MULTISAMPLE;
+        else
+            return dtype.tex_array ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
+    case TrcUniformTexType_3D:
+        return GL_TEXTURE_3D;
+    case TrcUniformTexType_Cube:
+        return dtype.tex_array ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_CUBE_MAP;
+    case TrcUniformTexType_Rect:
+        return GL_TEXTURE_RECTANGLE;
+    case TrcUniformTexType_Buffer:
+        return GL_TEXTURE_BUFFER;
+    }
+    assert(false);
+}
+
+//Ignoring stencil
+static bool is_internal_format_integral(GLenum format) {
+    internal_format_info_t info = get_internal_format_info(format);
+    switch (info.dtype) {
+    case FmtDType_U8:
+    case FmtDType_I8:
+    case FmtDType_U16:
+    case FmtDType_I16:
+    case FmtDType_U32:
+    case FmtDType_I32:
+    case FmtDType_U10_U10_U10_U2: return true;
+    default: return false;
+    }
+}
+
+static uint floor_log2(uint val) {
+    if (val == 0) return 0; //invalid input - just return zero
+    uint lower = 1;
+    for (uint guess = 0; guess < sizeof(uint)*8; guess++) {
+        uint upper = lower*2u - 1u; //this should be fine due to how unsigned arithmatic wraps around
+        if (val>=lower && val<=upper) return guess;
+        lower = upper + 1u;
+    }
+    return 0; //should never happen - just return zero
+}
+
+static const trc_gl_texture_image_t* find_image(size_t num_images,
+                                                const trc_gl_texture_image_t* images,
+                                                uint face, uint level) {
+    for (size_t i = 0; i < num_images; i++) {
+        if (images[i].face==face || images[i].level==level)
+            return &images[i];
+    }
+    return NULL;
+}
+
+static const char* validate_mipmap_completeness(const trc_gl_texture_rev_t* tex, size_t num_images,
+                                                const trc_gl_texture_image_t* images) {
+    switch (tex->type) {
+    case GL_TEXTURE_RECTANGLE:
+    case GL_TEXTURE_BUFFER:
+    case GL_TEXTURE_2D_MULTISAMPLE:
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+        return NULL;
+    }
+    
+    if (tex->base_level > tex->max_level)
+        return "The texture's base level is greater than it's maximum level";
+    
+    uint faces = tex->type == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+    for (size_t face = 0; face < faces; face++) {
+        const trc_gl_texture_image_t* base_img = find_image(num_images, images, face, tex->base_level);
+        uint dims[3] = {base_img->width, base_img->height, base_img->depth};
+        
+        uint max_size = dims[0];
+        if (dims[1] > max_size) max_size = dims[1];
+        if (dims[2] > max_size) max_size = dims[2];
+        uint p = tex->base_level + floor_log2(max_size);
+        uint q = p<tex->max_level ? p : tex->max_level;
+        
+        uint internal_format = 0;
+        for (uint i = tex->base_level; i<=q; i++) {
+            const trc_gl_texture_image_t* img = find_image(num_images, images, face, i);
+            if (!img)
+                return "The texture is missing at least one image";
+            
+            if (internal_format == 0)
+                internal_format = img->internal_format;
+            if (internal_format != img->internal_format)
+                return "The texture's images has mismatching internal formats";
+            
+            uint actual[3] = {img->width, img->height, img->depth};
+            for (size_t j = 0; j < 3; j++) {
+                uint expected = dims[j] / (1<<i);
+                if (expected == 0) expected = 1;
+                if (expected != actual[j])
+                    return "The texture's images are incorrectly sized for mipmapping";
+            }
+        }
+    }
+    
+    return NULL;
+}
+
+static const char* validate_cube_completeness(const trc_gl_texture_rev_t* tex, size_t num_images,
+                                              const trc_gl_texture_image_t* images) {
+    if (tex->type == GL_TEXTURE_CUBE_MAP) {
+        bool found_image = false;
+        uint width = 0;
+        uint height = 0;
+        uint internal_format = 0;
+        for (size_t i = 0; i < 6; i++) {
+            const trc_gl_texture_image_t* img = find_image(num_images, images, i, tex->base_level);
+            if (img->width != img->height)
+                return "The texture has a non-square cubemap face";
+            if (found_image) {
+                if (img->width!=width || img->height!=height)
+                    return "The texture has inconsistently sized cubemap faces";
+                if (img->internal_format!=internal_format)
+                    return "The texture has inconsistent internal formats of the cubemap faces";
+            }
+            width = img->width;
+            height = img->height;
+            internal_format = img->internal_format;
+            found_image = true;
+        }
+    }
+    
+    return NULL;
+}
+
+//sampler_obj may be NULL
+//TODO: The results of this function could be cached
+static const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
+    const trc_gl_texture_rev_t* tex = trc_obj_get_rev(tex_obj, -1);
+    trc_gl_sample_params_t sample_params = tex->sample_params;
+    if (sampler_obj) {
+        const trc_gl_sampler_rev_t* sampler = trc_obj_get_rev(sampler_obj, -1);
+        sample_params = sampler->params;
+        const char* err = sample_params_valid_with_tex(&sampler->params, tex);
+        if (err) return err;
+    }
+    
+    size_t num_images = tex->images->size / sizeof(trc_gl_texture_image_t);
+    const trc_gl_texture_image_t* images = trc_map_data(tex->images, TRC_MAP_READ);
+    
+    uint faces = tex->type == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+    for (size_t face = 0; face < faces; face++) {
+        const trc_gl_texture_image_t* base_img = find_image(num_images, images, face, tex->base_level);
+        if (!base_img) {
+            trc_unmap_data(images);
+            return "The texture has a missing base image";
+        }
+    }
+    
+    if (sample_params.min_filter!=GL_NEAREST && sample_params.min_filter!=GL_LINEAR) {
+        const char* err = validate_mipmap_completeness(tex, num_images, images);
+        if (err) {
+            trc_unmap_data(images);
+            return err;
+        }
+    }
+    
+    bool min_linear = sample_params.min_filter != GL_NEAREST_MIPMAP_NEAREST;
+    min_linear = min_linear && sample_params.min_filter!=GL_NEAREST;
+    if (min_linear || sample_params.mag_filter!=GL_NEAREST) {
+        const trc_gl_texture_image_t* img = find_image(num_images, images, 0, tex->base_level);
+        const char* err = NULL;
+        if (is_internal_format_integral(img->internal_format))
+            err = "The filtering parameters are incompatible with the integral internal format";
+        internal_format_info_t info = get_internal_format_info(img->internal_format);
+        if (info.base==GL_STENCIL_INDEX)
+            err = "The filtering parameters are incompatible with the stencil index internal format";
+        if (info.base==GL_DEPTH_STENCIL && tex->depth_stencil_mode==GL_STENCIL_INDEX)
+            err = "The filtering parameters are incompatible with the depth stencil internal format and GL_STENCIL_INDEX depth stencil mode";
+        if (err) {
+            trc_unmap_data(images);
+            return err;
+        }
+    }
+    
+    for (size_t i = 0; i < 6; i++) {
+        const trc_gl_texture_image_t* img = find_image(num_images, images, i, tex->base_level);
+        if (!img) continue;
+        if (img->width==0 || img->height==0 || img->depth==0) {
+            trc_unmap_data(images);
+            return "One of the base images has a dimension of zero";
+        }
+    }
+    
+    const char* err = validate_cube_completeness(tex, num_images, images);
+    if (err) {
+        trc_unmap_data(images);
+        return err;
+    }
+    
+    trc_unmap_data(images);
+    
+    return NULL;
+}
+
+//TODO: Validate images
+static void validate_samplers(const trc_gl_program_rev_t* rev) {
+    size_t units = trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0);
+    
+    size_t uniform_count = rev->uniforms->size / sizeof(trc_gl_uniform_t);
+    const trc_gl_uniform_t* uniforms = trc_map_data(rev->uniforms, TRC_MAP_READ);
+    uint8_t* uniform_data = trc_map_data(rev->uniform_data, TRC_MAP_READ);
+    for (size_t i = 0; i < uniform_count; i++) {
+        const trc_gl_uniform_t* uniform = &uniforms[i];
+        if (uniform->dtype.base == TrcUniformBaseType_Sampler) {
+            GLenum target = get_sampler_target(uniform->dtype);
+            uint unit;
+            memcpy(&unit, uniform_data+uniform->data_offset, sizeof(uint));
+            
+            if (unit < units) {
+                trc_obj_t* tex = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
+                trc_obj_t* sampler = trc_gl_state_get_bound_samplers(ctx->trace, unit);
+                const char* err = validate_texture_completeness(tex, sampler);
+                if (err) {
+                    trc_add_error(cmd, "Uniform at location %u uses an incomplete texture: %s",
+                                  uniform->fake_loc, err);
+                }
+            } else {
+                trc_add_error(cmd, "Uniform at location %u is set to an invalid texture unit",
+                              uniform->fake_loc);
+            }
+        }
+    }
+    trc_unmap_data(uniform_data);
+    trc_unmap_data(uniforms);
+}
+
 #define DRAW_INDIRECT (1<<0)
 #define DRAW_INDEXED (1<<1)
 
@@ -1675,6 +2004,24 @@ static bool begin_draw(GLenum primitive, uint flags) {
     trc_obj_t* vertex_program_obj = get_active_program_for_stage(GL_VERTEX_SHADER);
     const trc_gl_program_rev_t* vertex_program = trc_obj_get_rev(vertex_program_obj, -1);
     if (!vertex_program) ERROR2(false, "No vertex program active");
+    
+    //Validate samplers
+    trc_obj_t* programs[5] = {vertex_program_obj, NULL, NULL, NULL, NULL};
+    for (size_t i = 0; i < 4; i++) {
+        GLenum stage = ((GLenum[]){GL_FRAGMENT_SHADER, GL_GEOMETRY_SHADER,
+                                   GL_TESS_EVALUATION_SHADER, GL_TESS_CONTROL_SHADER})[i];
+        trc_obj_t* program = get_active_program_for_stage(stage);
+        //Remove duplicates
+        for (size_t j = 0; j < 5; j++) if (programs[j] == program) goto found;
+        programs[i] = program;
+        found: ;
+    }
+    for (size_t i = 0; i < 5; i++) {
+        if (!programs[i]) continue;
+        const trc_gl_program_rev_t* rev = trc_obj_get_rev(programs[i], -1);
+        if (!rev) continue;
+        validate_samplers(rev);
+    }
     
     if (!tf_draw_validation(primitive)) return false;
     
