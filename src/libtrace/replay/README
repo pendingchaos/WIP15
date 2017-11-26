@@ -1,0 +1,7 @@
+The files in this directory are concatenated and then preprocessed before compilation.
+
+The files contain what appears to be labels except they are outside function implementations.
+
+At each of these labels, the following indented code is used to create a function which replays the function specified by the label name.
+
+The result of the preprocessing is written to the file "replay_gl.c" in src/libtrace/.

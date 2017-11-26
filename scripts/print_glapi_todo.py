@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import math
 from glapi.glapi import *
+from glob import glob
 
 for fname, func in func_dict.items():
     for param in func.params:
@@ -18,7 +19,7 @@ for fname, func in func_dict.items():
                 print 'Note: Parameter %s of %s might be an object name' % (param.name, fname)
                 break
 
-replay_func_impls_str = open("nontrivial_func_impls.c").read()
+replay_func_impls_str = '\n\n'.join([open(f).read() for f in glob('../src/libtrace/replay/*.c')])
 implemented = set()
 
 current_name = ""

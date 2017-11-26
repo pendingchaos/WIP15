@@ -1,4 +1,5 @@
 import math
+from glob import glob
 
 test_names = []
 for fname in ['../src/testing/tests/buffer.c']:
@@ -11,8 +12,7 @@ done_functions = set([n.split('_')[0] for n in test_names])
 functions = set()
 
 current_name = ""
-with open('nontrivial_func_impls.c', 'r') as f:
-    replay_func_impls_str = f.read()
+replay_func_impls_str = '\n\n'.join([open(f).read() for f in glob('../src/libtrace/replay/*.c')])
 for line in replay_func_impls_str.split("\n"):
     if line.split('//')[0].rstrip().endswith(":") and line.startswith("gl"):
         if len(current_name) != 0:

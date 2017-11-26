@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import glapi.glxml
 from glapi.glapi import *
+from glob import glob
 
 gl = glapi.glxml.GL(False)
 
@@ -225,7 +226,7 @@ static uint64_t get_real_%s(uint64_t fake) {
 ''' % (n, n, ns, t, n, n, n, n, n))
 output.write('#pragma GCC diagnostic pop\n')
 
-nontrivial_str = open("nontrivial_func_impls.c").read()
+nontrivial_str = '\n\n'.join([open(f).read() for f in glob('../src/libtrace/replay/*.c')])
 nontrivial = {}
 
 current_name = ""
