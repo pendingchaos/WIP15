@@ -83,14 +83,12 @@ void replay_%s(trace_command_t* cmd_) {
 }
 #pragma GCC diagnostic pop''' % (name, name))
 
-input_fname = sys.argv[1] #'../src/libtrace/replay/nontrivial_func_impls.c'
-output_fname = sys.argv[2] #'../src/libtrace/replay_gl2.c'
+input_fname = sys.argv[1]
+output_fname = sys.argv[2]
 output = open(output_fname, 'w')
 writer = FileWriter(output, output_fname);
 
 writer.write_lines('#include "libtrace/replay.h"')
-#writer.write_lines('''#include "libtrace/replay.h"
-##pragma GCC diagnostic ignored "-Wunused-variable"''')
 
 lines = open(input_fname).read().split('\n')
 lines = zip([i+1 for i in range(len(lines))], lines)
