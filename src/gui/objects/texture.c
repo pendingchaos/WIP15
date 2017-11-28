@@ -149,10 +149,12 @@ static void get_texture_info(const trc_gl_texture_rev_t* rev,
     size_t img_count = rev->images->size / sizeof(trc_gl_texture_image_t);
     const trc_gl_texture_image_t* images = trc_map_data(rev->images, TRC_MAP_READ);
     for (size_t i = 0; i < img_count; i++) {
-        if (images[i].width > dims[0]) dims[0] = images[i].width;
-        if (images[i].height > dims[1]) dims[1] = images[i].height;
-        if (images[i].depth > dims[2]) dims[2] = images[i].depth;
         if (images[i].level+1 > *mipmaps) *mipmaps = images[i].level + 1;
+        if (images[i].level == rev->base_level) {
+            dims[0] = images[i].width;
+            dims[1] = images[i].height;
+            dims[2] = images[i].depth;
+        }
     }
     trc_unmap_data(images);
     

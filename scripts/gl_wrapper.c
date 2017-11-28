@@ -346,10 +346,11 @@ static func_t get_func(func_t* f, const char* name) {
     return *f = get_func_real(name);
 }
 
-void* dlopen(const char* filename, int flags) {
+__attribute__((visibility("default"))) void* dlopen(const char* filename, int flags) {
     if (!filename)
         return actual_dlopen(filename, flags);
     
+    //TODO: Improve this comparison?
     if (strcmp(filename, "libGL.so") == 0 ||
         strcmp(filename, "libGL.so.1") == 0)
         return actual_dlopen(NULL, flags);

@@ -1075,6 +1075,8 @@ void trc_add_error(trace_command_t* command, const char* format, ...) {
 }
 
 static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_requirements_t* req) {
+    if (!ctx) return true;
+    
     //TODO: This is usually for glX functions, so test for glX version support?
     if (req->version == glnone) return true;
     

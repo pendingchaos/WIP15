@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <gtk/gtk.h>
 
+#define VISIBLE __attribute__((visibility("default")))
+
 const glapi_group_t* find_group(const char* name);
 const char* get_enum_str(const char* group_name, uint val);
 const char* static_format(const char* format, ...);

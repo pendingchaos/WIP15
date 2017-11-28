@@ -137,7 +137,7 @@ static void update_gui_for_revision() {
     }
 }
 
-void command_select_callback(GObject* obj, gpointer user_data) {
+VISIBLE void command_select_callback(GObject* obj, gpointer user_data) {
     GtkTreePath* path;
     gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
     if (!path) return;
@@ -222,12 +222,12 @@ static void cleanup() {
     if (state.icon_theme) g_object_unref(state.icon_theme);
 }
 
-void quit_callback(GObject* obj, gpointer user_data) {
+VISIBLE void quit_callback(GObject* obj, gpointer user_data) {
     cleanup();
     gtk_main_quit();
 }
 
-void about_callback(GObject* obj, gpointer user_data) {
+VISIBLE void about_callback(GObject* obj, gpointer user_data) {
     gtk_show_about_dialog(GTK_WINDOW(state.main_window),
                           "program-name", "WIP15 Inspector",
                           "version", "0.0.0",
@@ -294,7 +294,7 @@ static void create_new_trace(const char* args, const char* program, const char* 
     free(lib_path);
 }
 
-void new_callback(GObject* obj, gpointer user_data) {
+VISIBLE void new_callback(GObject* obj, gpointer user_data) {
     GtkDialog* dialog = GTK_DIALOG(
     gtk_dialog_new_with_buttons("New Trace",
                                 GTK_WINDOW(state.main_window),
@@ -351,14 +351,14 @@ void new_callback(GObject* obj, gpointer user_data) {
     gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
-void open_callback(GObject* obj, gpointer user_data) {
+VISIBLE void open_callback(GObject* obj, gpointer user_data) {
     char* filename = run_file_dialog("Open Trace", "Open", GTK_FILE_CHOOSER_ACTION_OPEN);
     if (!filename) return;
     open_trace(filename);
     g_free(filename);
 }
 
-void vertex_data_callback(GObject* obj, gpointer user_data) {
+VISIBLE void vertex_data_callback(GObject* obj, gpointer user_data) {
     open_vertex_data_tab();
 }
 

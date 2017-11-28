@@ -1811,7 +1811,7 @@ static const trc_gl_texture_image_t* find_image(size_t num_images,
                                                 const trc_gl_texture_image_t* images,
                                                 uint face, uint level) {
     for (size_t i = 0; i < num_images; i++) {
-        if (images[i].face==face || images[i].level==level)
+        if (images[i].face==face && images[i].level==level)
             return &images[i];
     }
     return NULL;
@@ -2978,6 +2978,18 @@ glXGetVisualFromFBConfigSGIX: //Display* p_dpy, GLXFBConfigSGIX p_config
     ;
 
 glXGetClientString: //Display* p_dpy, int p_name
+    ;
+
+glXGetCurrentContext:
+    ;
+
+glXGetCurrentDisplay:
+    ;
+
+glXGetCurrentDrawable:
+    ;
+
+glXGetCurrentReadDrawable:
     ;
 
 glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct

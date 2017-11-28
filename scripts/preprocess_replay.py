@@ -43,7 +43,7 @@ def generate_replay_wrapper(writer, name, impl, impl_line, impl_fname):
     writer.write_lines('''#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-void replay_%s(trace_command_t* cmd_) {
+__attribute__((visibility("default"))) void replay_%s(trace_command_t* cmd_) {
     cmd = cmd_;''' % name)
     
     if not name.startswith('glX') and not name.startswith('wip15'):

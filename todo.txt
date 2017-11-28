@@ -32,6 +32,7 @@ Bugs:
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
         both in replay and tracing
     vertex attribute indices are not being remapped with glVertexAttrib*n*?
+    With the test program, the back buffer and texture 2 show up as blank in the gui
 
 handle negative array sizes in the tracing code
 

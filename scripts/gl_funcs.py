@@ -2,7 +2,7 @@ P = Param
 
 class glXGetProcAddressFunc(Func):
     def gen_wrapper(self):
-        res = '__GLXextFuncPtr %s(const char* name) {\n' % self.name
+        res = '__attribute__((visibility("default"))) __GLXextFuncPtr %s(const char* name) {\n' % self.name
         res += '    func_decl_%s();\n' % self.name
         res += '    gl_start_call(%d);\n' % self.func_id
         res += '    gl_write_str(name);\n'
@@ -16,7 +16,7 @@ class glXGetProcAddressFunc(Func):
 
 class wip15DrawableSize(Func):
     def gen_wrapper(self):
-        return '''void wip15DrawableSize(GLsizei width, GLsizei height) {
+        return '''__attribute__((visibility("default"))) void wip15DrawableSize(GLsizei width, GLsizei height) {
     func_decl_wip15DrawableSize();
     gl_start_call(%d);
     gl_write_sleb128(width);
@@ -28,7 +28,7 @@ class wip15DrawableSize(Func):
 
 class wip15TestFB(Func):
     def gen_wrapper(self):
-        return '''void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth) {
+        return '''__attribute__((visibility("default"))) void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth) {
     func_decl_wip15TestFB();
     gl_start_call(%d);
     gl_write_str(name);
@@ -40,7 +40,7 @@ class wip15TestFB(Func):
 
 class wip15BeginTest(Func):
     def gen_wrapper(self):
-        return '''void wip15BeginTest(const GLchar* name) {
+        return '''__attribute__((visibility("default"))) void wip15BeginTest(const GLchar* name) {
     func_decl_wip15BeginTest();
     gl_start_call(%d);
     gl_write_str(name);
@@ -49,7 +49,7 @@ class wip15BeginTest(Func):
 
 class wip15EndTest(Func):
     def gen_wrapper(self):
-        return '''void wip15EndTest() {
+        return '''__attribute__((visibility("default"))) void wip15EndTest() {
     func_decl_wip15EndTest();
     gl_start_call(%d);
     gl_end_call();
@@ -57,7 +57,7 @@ class wip15EndTest(Func):
 
 class wip15PrintTestResults(Func):
     def gen_wrapper(self):
-        return '''void wip15PrintTestResults() {
+        return '''__attribute__((visibility("default"))) void wip15PrintTestResults() {
     func_decl_wip15PrintTestResults();
     gl_start_call(%d);
     gl_end_call();
@@ -65,7 +65,7 @@ class wip15PrintTestResults(Func):
 
 class wip15ExpectPropertyi64(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertyi64(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLint64 val) {
+        return '''__attribute__((visibility("default"))) void wip15ExpectPropertyi64(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLint64 val) {
     func_decl_wip15ExpectPropertyi64();
     gl_start_call(%d);
     gl_write_uleb128(objType);
@@ -78,7 +78,7 @@ class wip15ExpectPropertyi64(Func):
 
 class wip15ExpectPropertyd(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertyd(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLdouble val) {
+        return '''__attribute__((visibility("default"))) void wip15ExpectPropertyd(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLdouble val) {
     func_decl_wip15ExpectPropertyd();
     gl_start_call(%d);
     gl_write_uleb128(objType);
@@ -91,7 +91,7 @@ class wip15ExpectPropertyd(Func):
 
 class wip15ExpectPropertybv(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectPropertybv(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLuint64 size, const GLvoid* data) {
+        return '''__attribute__((visibility("default"))) void wip15ExpectPropertybv(GLenum objType, GLuint64 objName, const GLchar* name, GLuint64 index, GLuint64 size, const GLvoid* data) {
     func_decl_wip15ExpectPropertybv();
     gl_start_call(%d);
     gl_write_uleb128(objType);
@@ -105,7 +105,7 @@ class wip15ExpectPropertybv(Func):
 
 class wip15ExpectAttachment(Func):
     def gen_wrapper(self):
-        return '''void wip15ExpectAttachment(const GLchar* attachment) {
+        return '''__attribute__((visibility("default"))) void wip15ExpectAttachment(const GLchar* attachment) {
     func_decl_wip15ExpectAttachment();
     gl_start_call(%d);
     gl_write_str(attachment);
