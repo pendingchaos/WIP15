@@ -112,7 +112,7 @@ clean:
 	rm -f bin/gui
 	rm -f bin/trace
 	rm -f bin/test
-	rm -f bin/gl.so
+	rm -f bin/libgl.so
 	rm -f bin/tests
 	rm -f bin/replaytrace
 	rm -f $(obj)
