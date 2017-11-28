@@ -159,7 +159,7 @@ class Func(object):
         params = [p.gen_param_code() for p in self.params]
         ret = self.rettype.gen_type_code() if self.rettype else 'void'
         
-        res = '%s %s(%s) {\n' % (ret, self.name, ', '.join(params))
+        res = '__attribute__((visibility("default"))) %s %s(%s) {\n' % (ret, self.name, ', '.join(params))
         res += '    func_decl_%s();\n' % self.name
         
         res += '    if (!gl_%s)\n' % self.name

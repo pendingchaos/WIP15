@@ -3,7 +3,7 @@ USE_ZLIB = $(shell pkg-config zlib --exists && echo 1 || echo 0)
 USE_ZSTD = 0
 USE_GTKSOURCEVIEW = $(shell pkg-config gtksourceview-3.0 --exists && echo 1 || echo 0)
 
-CFLAGS = -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
+CFLAGS = -fvisibility=hidden -Wall -std=c99 `sdl2-config --cflags` `pkg-config gtk+-3.0 --cflags` -D_DEFAULT_SOURCE -D_GNU_SOURCE -Isrc -fPIC -g -fno-strict-aliasing
 
 COMP_LIBS =
 ifeq ($(USE_LZ4), 1)

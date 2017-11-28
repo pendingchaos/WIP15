@@ -562,6 +562,7 @@ typedef enum trc_trace_program_arg_t {
     TrcLibGL //const char*
 } trc_trace_program_arg_t;
 
+#pragma GCC visibility push(default)
 //Traces
 bool trace_program(int* exitcode, size_t count, ...);
 trace_t* load_trace(const char* filename);
@@ -661,4 +662,5 @@ typedef struct trc_read_chunked_data_t {
 trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data);
 trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_data_t info);
 void trc_read_chunked_data(trc_read_chunked_data_t info);
+#pragma GCC visibility pop
 #endif
