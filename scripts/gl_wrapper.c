@@ -347,15 +347,12 @@ static func_t get_func(func_t* f, const char* name) {
 }
 
 __attribute__((visibility("default"))) void* dlopen(const char* filename, int flags) {
-    if (!filename)
-        return actual_dlopen(filename, flags);
-    
-    //TODO: Improve this comparison?
-    if (strcmp(filename, "libGL.so") == 0 ||
-        strcmp(filename, "libGL.so.1") == 0)
+    void* res = actual_dlopen(filename, flags);
+    if (res == lib_gl) {
+        dlclose(res);
         return actual_dlopen(NULL, flags);
-    
-    return actual_dlopen(filename, flags);
+    }
+    return res;
 }
 
 static bool set_config_value_int(config_t* config, const char* name, int value) {
