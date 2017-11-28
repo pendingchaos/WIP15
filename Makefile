@@ -28,7 +28,7 @@ CFLAGS += -DGTKSOURCEVIEW_ENABLED `pkg-config gtksourceview-3.0 --cflags`
 endif
 
 gui_src = $(shell find src/gui/ -type f -name '*.c')
-libtrace_src = $(wildcard src/libtrace/*.c)
+libtrace_src = $(wildcard src/libtrace/*.c) $(wildcard src/libtrace/replay/*.c) src/libtrace/replay.c
 tests_src = $(wildcard src/testing/tests/*.c)
 src = $(shell find src/ -type f -name '*.c') src/libgl.c
 
@@ -36,7 +36,7 @@ base_gui_obj = $(gui_src:.c=.o)
 gui_obj = $(join $(dir $(base_gui_obj)), $(addprefix ., $(notdir $(base_gui_obj)))) src/shared/.glapi.o src/shared/.types.o
 
 base_libtrace_obj = $(libtrace_src:.c=.o)
-libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj)))) src/shared/.types.o src/shared/.utils.o src/libtrace/.replay_gl.o src/shared/.glapi.o
+libtrace_obj = $(join $(dir $(base_libtrace_obj)), $(addprefix ., $(notdir $(base_libtrace_obj)))) src/shared/.types.o src/shared/.utils.o src/shared/.glapi.o
 
 base_tests_obj = $(tests_src:.c=.o)
 tests_obj = $(join $(dir $(base_tests_obj)), $(addprefix ., $(notdir $(base_tests_obj))))
@@ -51,14 +51,17 @@ all: bin/libtrace.so bin/libgl.so bin/trace bin/gui bin/replaytrace bin/test bin
 
 -include $(dep)
 
-.%.d: %.c src/libtrace/libtrace_glstate.h src/shared/glcorearb.h
+.%.d: %.c src/libtrace/libtrace_glstate.h src/shared/glcorearb.h src/libtrace/replay.h
 	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
-.%.o: %.c src/libtrace/libtrace_glstate.h src/shared/glcorearb.h
-	$(CC) -c $< $(CFLAGS) -o $@
+.%.o: %.c scripts/compile_file.py scripts/preprocess_replay.py src/libtrace/libtrace_glstate.h src/shared/glcorearb.h src/libtrace/replay.h
+	python scripts/compile_file.py $(CC) $< $@ $(CFLAGS)
 
-src/libtrace/.replay_gl.o: src/libtrace/replay_gl.c
-	$(CC) -c $< $(CFLAGS) -o $@
+src/libtrace/replay.h: scripts/generate_replay2.py scripts/glapi/* scripts/gl_funcs.py scripts/generated_gl_funcs.py
+	cd scripts; python generate_replay2.py
+
+src/libtrace/replay.c: scripts/generate_replay2.py scripts/glapi/* scripts/gl_funcs.py scripts/generated_gl_funcs.py
+	cd scripts; python generate_replay2.py
 
 scripts/generated_gl_funcs.py: scripts/generate_gl_funcs.py
 	cd scripts; python generate_gl_funcs.py
@@ -68,9 +71,6 @@ src/libgl.c: scripts/generate_gl_wrapper.py scripts/gl_funcs.py scripts/generate
 
 src/shared/glapi.c: scripts/generate_glapi.py scripts/generated_gl_funcs.py scripts/gl_funcs.py
 	cd scripts; python generate_glapi.py
-
-src/libtrace/replay_gl.c: src/libtrace/replay/*.c scripts/generate_replay.py scripts/glapi/* scripts/gl_funcs.py
-	cd scripts; python generate_replay.py
 
 src/libtrace/libtrace_glstate.h: scripts/generate_libtrace_glstate.py
 	cd scripts; python generate_libtrace_glstate.py
@@ -105,7 +105,8 @@ clean:
 	rm -f src/libgl.c
 	rm -f src/shared/glcorearb.h
 	rm -f src/libtrace/libtrace_glstate.h
-	rm -f src/libtrace/replay_gl.c
+	rm -f src/libtrace/replay.h
+	rm -f src/libtrace/replay.c
 	rm -f src/shared/glapi.c
 	rm -f bin/libtrace.so
 	rm -f bin/gui

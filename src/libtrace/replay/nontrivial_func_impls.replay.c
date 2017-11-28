@@ -634,7 +634,7 @@ static void init_context() {
     if (cfg.version >= 430) {
         F(glEnable)(GL_DEBUG_OUTPUT);
         F(glEnable)(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        F(glDebugMessageCallback)(debug_callback, ctx);
+        F(glDebugMessageCallback)(replay_debug_callback, ctx);
         F(glDebugMessageControl)(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
     }
 }
@@ -4690,9 +4690,6 @@ glGetActiveAttrib: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsize
 glGetBooleanv: //GLenum p_pname, GLboolean* p_data
     ;
 
-glGetDoublev: //GLenum p_pname, GLdouble* p_data
-    ;
-
 glGetFloatv: //GLenum p_pname, GLfloat* p_data
     ;
 
@@ -5759,14 +5756,6 @@ glGetInternalformativ: //GLenum p_target, GLenum p_internalformat, GLenum p_pnam
 glGetInternalformati64v: //GLenum p_target, GLenum p_internalformat, GLenum p_pname, GLsizei p_bufSize, GLint64* p_params
     GLint64* params = replay_alloc(p_bufSize*sizeof(GLint64));
     real(p_target, p_internalformat, p_pname, p_bufSize, params);
-
-glGetBufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    GLint i;
-    real(p_target, p_pname, &i);
-
-glGetBufferPointerv: //GLenum p_target, GLenum p_pname, void ** p_params
-    GLvoid* p;
-    real(p_target, p_pname, &p);
 
 glGenSamplers: //GLsizei p_count, GLuint* p_samplers
     GLuint* samplers = replay_alloc(p_count*sizeof(GLuint));

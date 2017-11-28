@@ -1074,11 +1074,6 @@ void trc_add_error(trace_command_t* command, const char* format, ...) {
     trc_add_attachment(command, attach);
 }
 
-typedef void (*replay_func_t)(trace_command_t*);
-
-void init_replay_gl(trc_replay_context_t* ctx);
-void deinit_replay_gl(trc_replay_context_t* ctx);
-
 static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_requirements_t* req) {
     //TODO: This is usually for glX functions, so test for glX version support?
     if (req->version == glnone) return true;
@@ -1176,6 +1171,11 @@ static bool validate_command(trc_replay_context_t* ctx, trace_command_t* cmd, gl
     
     return true;
 }
+
+typedef void (*replay_func_t)(trace_command_t*);
+
+void init_replay_gl(trc_replay_context_t* ctx);
+void deinit_replay_gl(trc_replay_context_t* ctx);
 
 void trc_run_inspection(trace_t* trace) {
     replay_func_t* funcs = malloc(trace->func_name_count * sizeof(replay_func_t));

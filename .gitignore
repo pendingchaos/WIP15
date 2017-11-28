@@ -10,7 +10,8 @@
 /bin/ui.glade~
 /src/shared/glapi.c
 /src/shared/glcorearb.h
-/src/libtrace/replay_gl.c
+/src/libtrace/replay.c
+/src/libtrace/replay.h
 /src/libgl.c
 /src/libtrace/libtrace_glstate.h
 *.pyc
