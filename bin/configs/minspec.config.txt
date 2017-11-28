@@ -1,0 +1,44 @@
+# Configuration where limits are set to their minimum allowed values
+# Supports OpenGL 3.2 to OpenGL 4.6
+
+@3.2+
+max_xfb_buffers: 4
+max_clip_distances: 8
+max_draw_buffers: 8
+max_vertex_attribs: 16
+max_color_attachments: 8
+max_sample_mask_words: 1
+
+@3.2, 3.3
+max_vertex_streams: 1
+max_patch_vertices: 0
+@4.0+
+max_vertex_streams: 4
+max_patch_vertices: 32
+
+@3.2-4.0
+max_renderbuffer_size: 1024
+max_texture_size: 1024
+max_viewports: 1
+@4.1+
+max_renderbuffer_size: 16384
+max_texture_size: 16384
+max_viewports: 16
+
+@3.2, 3.3
+max_ubo_bindings: 36
+max_ssbo_bindings: 0
+max_combined_texture_units: 48
+@4.0-4.2
+max_ubo_bindings: 60
+max_ssbo_bindings: 0
+max_combined_texture_units: 80
+@4.3+
+max_ubo_bindings: 84
+max_ssbo_bindings: 8
+max_combined_texture_units: 96
+
+@3.2-4.1
+max_atomic_counter_buffer_bindings: 0
+@4.2+
+max_atomic_counter_buffer_bindings: 1
