@@ -368,12 +368,26 @@ static gboolean tick_callback(GtkWidget* _0, GdkFrameClock* _1, gpointer trace) 
     return countdown ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
 }
 
+static void load_css() {
+    const char* css = ".object_button {padding: 0px;}";
+    
+    GdkScreen* screen = gdk_screen_get_default();
+    GtkCssProvider* provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider, css, -1, NULL);
+    guint priority = GTK_STYLE_PROVIDER_PRIORITY_APPLICATION;
+    gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider), priority);
+    
+    g_object_unref(provider);
+}
+
 int run_gui(const char* trace, int argc, char** argv) {
     memset(&state, 0, sizeof(state));
     state.revision = -1;
     
     gtk_init(&argc, &argv);
     state.gtk_was_init = true;
+    
+    load_css();
     
     //Load icons
     state.icon_theme = gtk_icon_theme_new();

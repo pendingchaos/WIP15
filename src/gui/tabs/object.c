@@ -63,6 +63,7 @@ static void object_tab_update(gui_tab_t* gtab) {
         sprintf(rev_text, "%ld", state.revision);
         gtk_entry_set_text(GTK_ENTRY(otab->revision_entry), rev_text);
     }
+    otab->revision = revision;
     
     const trc_obj_rev_head_t* rev = NULL;
     if (revision >= 0) rev = trc_obj_get_rev(otab->obj, revision);
@@ -94,11 +95,11 @@ static void revision_checkbox_callback(GtkToggleButton* togglebutton, object_tab
     update_tab(tab->tab);
 }
 
-static void revision_entry_callback(GtkEntry* entry, object_tab_t* tab) {
+static void revision_entry_callback(GtkEditable* editable, object_tab_t* tab) {
     update_tab(tab->tab);
 }
 
-gui_tab_t* open_object_tab(trc_obj_t* obj) {
+gui_tab_t* open_object_tab(trc_obj_t* obj, int64_t revision) {
     object_tab_t* tab = malloc(sizeof(object_tab_t));
     tab->tab = NULL;
     tab->obj = obj;
@@ -119,11 +120,19 @@ gui_tab_t* open_object_tab(trc_obj_t* obj) {
     
     tab->revision_checkbox = gtk_check_button_new_with_label("Custom Revision");
     tab->revision_entry = gtk_entry_new();
-    gtk_widget_set_sensitive(tab->revision_entry, false);
     gtk_entry_set_input_purpose(GTK_ENTRY(tab->revision_entry), GTK_INPUT_PURPOSE_DIGITS);
     
+    if (revision>0 && revision!=state.revision) {
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tab->revision_checkbox), TRUE);
+        char revision_text[32];
+        snprintf(revision_text, sizeof(revision_text)-1, "%ld", revision);
+        gtk_entry_set_text(GTK_ENTRY(tab->revision_entry), revision_text);
+    } else {
+        gtk_widget_set_sensitive(tab->revision_entry, false);
+    }
+    
     g_signal_connect(tab->revision_checkbox, "toggled", G_CALLBACK(revision_checkbox_callback), tab);
-    g_signal_connect(tab->revision_entry, "activate", G_CALLBACK(revision_entry_callback), tab);
+    g_signal_connect(tab->revision_entry, "changed", G_CALLBACK(revision_entry_callback), tab);
     
     tab->revision_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(tab->revision_box), tab->revision_checkbox, false, false, 0);

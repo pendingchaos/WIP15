@@ -114,7 +114,7 @@ static void row_activated(GtkTreeView* tree_view, GtkTreePath* path,
         gtk_tree_model_get_iter(model, &iter, selected->data);
         trc_obj_t* obj;
         gtk_tree_model_get(model, &iter, 2, &obj, -1);
-        if (obj) open_object_tab(obj);
+        if (obj) open_object_tab(obj, -1);
     }
     
     g_list_free_full(selected, (GDestroyNotify)gtk_tree_path_free);

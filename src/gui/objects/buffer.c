@@ -59,7 +59,7 @@ static void init(object_tab_t* tab) {
     g_signal_connect(data->data_type, "changed", G_CALLBACK(changed_callback), tab);
     add_custom_to_info_box(tab->info_box, "Data Type", GTK_WIDGET(data->data_type));
     
-    data->data_view = create_tree_view(1, "");
+    data->data_view = create_tree_view(1, 0, "");
     gtk_tree_view_set_headers_visible(data->data_view, false);
     data->data_store = GTK_TREE_STORE(gtk_tree_view_get_model(data->data_view));
     

@@ -3,6 +3,7 @@
 #include "widgets/image_viewer.h"
 #include "widgets/info_box.h"
 #include "widgets/object_notebook.h"
+#include "widgets/object_button.h"
 #include "libtrace/libtrace.h"
 #include "shared/glapi.h"
 
@@ -10,6 +11,8 @@
 #include <gtk/gtk.h>
 
 #define VISIBLE __attribute__((visibility("default")))
+
+typedef struct object_tab_t object_tab_t;
 
 const glapi_group_t* find_group(const char* name);
 const char* get_enum_str(const char* group_name, uint val);
@@ -30,6 +33,8 @@ GtkSpinButton* create_integral_spin_button(int64_t min, int64_t max, void* callb
 GtkWidget* create_button(const char* label, void* callback, void* data);
 GtkWidget* create_dim_label(const char* text);
 GtkWidget* create_box(bool vertical, size_t count, ...);
-GtkTreeView* create_tree_view(size_t column_count, ...);
+GtkTreeView* create_tree_view(size_t column_count, size_t extra_count, ...);
 GtkWidget* create_scrolled_window(GtkWidget* widget);
+
+void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column);
 #endif

@@ -5,6 +5,7 @@
 
 typedef struct vao_data_t {
     GtkTreeStore* attributes;
+    object_button_t* element_buffer;
 } vao_data_t;
 
 static void init(object_tab_t* tab) {
@@ -12,15 +13,18 @@ static void init(object_tab_t* tab) {
     tab->data = data;
     add_obj_common_to_info_box(tab->info_box);
     
-    add_to_info_box(tab->info_box, "Element Buffer");
+    data->element_buffer = create_object_button();
+    add_custom_to_info_box(tab->info_box, "Element Buffer", data->element_buffer->widget);
     
     add_custom_to_info_box(tab->info_box, "Attributes", NULL);
     
     GtkTreeView* view = create_tree_view(
-        10, "Index", "Enabled", "Size", "Stride", "Offset",
-        "Type", "Normalized", "Integer", "Divisor", "Buffer");
+        10, 1, "Index", "Enabled", "Size", "Stride", "Offset",
+        "Type", "Normalized", "Integer", "Divisor", "Buffer", G_TYPE_POINTER);
     data->attributes = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    
+    init_object_column(view, tab, 9, 10);
 }
 
 static void deinit(object_tab_t* tab) {
@@ -33,8 +37,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     
     if (!set_obj_common_at_info_box(tab->info_box, rev_head, revision)) return;
     
-    const char* buffer_str = static_format_obj(rev->element_buffer.obj, revision);
-    set_at_info_box(tab->info_box, "Element Buffer", buffer_str);
+    update_object_button(data->element_buffer, rev->element_buffer.obj, revision);
     
     const trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
     gtk_tree_store_clear(data->attributes);
@@ -67,6 +70,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
                            7, attr->integer ? "True" : "False",
                            8, divisor_str,
                            9, buffer_str,
+                           10, attr->buffer.obj,
                            -1);
     }
     trc_unmap_data(attribs);

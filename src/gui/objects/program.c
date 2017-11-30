@@ -29,28 +29,30 @@ static void init(object_tab_t* tab) {
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Attached Shaders", NULL);
     
-    GtkTreeView* view = create_tree_view(2, "Shader", "Revision");
+    GtkTreeView* view = create_tree_view(2, 1, "Shader", "Revision", G_TYPE_POINTER);
     data->attached_shaders = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    init_object_column(view, tab, 0, 2);
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Linked Shaders", NULL);
     
-    view = create_tree_view(2, "Shader", "Revision");
+    view = create_tree_view(2, 1, "Shader", "Revision", G_TYPE_POINTER);
     data->linked_shaders = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    init_object_column(view, tab, 0, 2);
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Uniforms", NULL);
     
-    view = create_tree_view(3, "Name", "Location", "Value");
+    view = create_tree_view(3, 0, "Name", "Location", "Value");
     data->uniforms = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Uniform Blocks", NULL);
     
-    view = create_tree_view(2, "Index", "Binding");
+    view = create_tree_view(2, 0, "Index", "Binding");
     data->uniform_blocks = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
 }
@@ -153,7 +155,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         GtkTreeIter row;
         gtk_tree_store_append(data->attached_shaders, &row, NULL);
         gtk_tree_store_set(data->attached_shaders, &row, 1, rev_str,
-                           0, static_format_obj(shaders[i].shader.obj, revision), -1);
+                           0, static_format_obj(shaders[i].shader.obj, revision),
+                           2, shaders[i].shader.obj, -1);
     }
     trc_unmap_data(shaders);
     
@@ -166,7 +169,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         GtkTreeIter row;
         gtk_tree_store_append(data->linked_shaders, &row, NULL);
         gtk_tree_store_set(data->linked_shaders, &row, 1, rev_str,
-                           0, static_format_obj(linked[i].shader, revision), -1);
+                           0, static_format_obj(linked[i].shader, revision),
+                           2, linked[i].shader, -1);
     }
     trc_unmap_data(linked);
     

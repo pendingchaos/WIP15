@@ -16,20 +16,20 @@ static void init(object_tab_t* tab) {
     add_to_info_box(tab->info_box, "Type");
     
     add_separator_to_info_box(tab->info_box);
-    add_custom_to_info_box(tab->info_box, "Info Log", NULL);
-    
-    data->info_log = GTK_TEXT_VIEW(gtk_text_view_new());
-    gtk_text_view_set_editable(data->info_log, false);
-    gtk_widget_set_vexpand(GTK_WIDGET(data->info_log), true);
-    add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->info_log)));
-    
-    add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Source", NULL);
     
     data->source = GTK_TEXT_VIEW(gtk_text_view_new());
     gtk_text_view_set_editable(data->source, false);
     gtk_widget_set_vexpand(GTK_WIDGET(data->source), true);
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->source)));
+    
+    add_separator_to_info_box(tab->info_box);
+    add_custom_to_info_box(tab->info_box, "Info Log", NULL);
+    
+    data->info_log = GTK_TEXT_VIEW(gtk_text_view_new());
+    gtk_text_view_set_editable(data->info_log, false);
+    gtk_widget_set_vexpand(GTK_WIDGET(data->info_log), true);
+    add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->info_log)));
 }
 
 static void deinit(object_tab_t* tab) {

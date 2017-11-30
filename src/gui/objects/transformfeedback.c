@@ -18,9 +18,11 @@ static void init(object_tab_t* tab) {
     add_custom_to_info_box(tab->info_box, "Buffers", NULL);
     
     GtkTreeView* view = create_tree_view(
-        4, "Index", "Buffer", "Offset", "Size");
+        4, 1, "Index", "Buffer", "Offset", "Size", G_TYPE_POINTER);
     data->buffers = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    
+    init_object_column(view, tab, 1, 4);
 }
 
 static void deinit(object_tab_t* tab) {
@@ -62,7 +64,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         gtk_tree_store_set(data->buffers, &row,
                            0, static_format("%zu", i),
                            1, static_format_obj(binding.buf.obj, revision),
-                           2, off, 3, size, -1);
+                           2, off, 3, size, 4, binding.buf.obj, -1);
     }
     trc_unmap_data(bufs);
 }

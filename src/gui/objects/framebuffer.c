@@ -15,7 +15,7 @@ static void init(object_tab_t* tab) {
     tab->data = data;
     add_obj_common_to_info_box(tab->info_box);
     
-    data->draw_buffers_view = create_tree_view(1, "");
+    data->draw_buffers_view = create_tree_view(1, 0, "");
     gtk_tree_view_set_headers_visible(data->draw_buffers_view, false);
     gtk_widget_set_vexpand(GTK_WIDGET(data->draw_buffers_view), false);
     data->draw_buffers_store = GTK_TREE_STORE(gtk_tree_view_get_model(data->draw_buffers_view));
@@ -28,9 +28,11 @@ static void init(object_tab_t* tab) {
     add_custom_to_info_box(tab->info_box, "Attachments", NULL);
     
     GtkTreeView* view = create_tree_view(
-        6, "Attachment", "Type", "Object", "Level", "Layer", "Face");
+        6, 1, "Attachment", "Type", "Object", "Level", "Layer", "Face", G_TYPE_POINTER);
     data->attachments = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
+    
+    init_object_column(view, tab, 2, 6);
 }
 
 static void deinit(object_tab_t* tab) {
@@ -59,11 +61,10 @@ static void update(object_tab_t* tab, trc_obj_rev_head_t* rev_head, uint64_t rev
     gtk_tree_store_clear(data->attachments);
     for (size_t i = 0; i < count; i++) {
         trc_gl_framebuffer_attachment_t* a = &attachments[i];
-        const char* id;
-        if (a->has_renderbuffer)
-            id = static_format_obj(a->renderbuffer.obj, revision);
-        else
-            id = static_format_obj(a->texture.obj, revision);
+        trc_obj_t* obj;
+        if (a->has_renderbuffer) obj = a->renderbuffer.obj;
+        else obj = a->texture.obj;
+        const char* id = static_format_obj(obj, revision);
         
         char level[16] = {0};
         char layer[16] = {0};
@@ -84,7 +85,7 @@ static void update(object_tab_t* tab, trc_obj_rev_head_t* rev_head, uint64_t rev
         gtk_tree_store_set(data->attachments, &row,
                            0, get_enum_str("Attachment", a->attachment),
                            1, a->has_renderbuffer?"Renderbuffer":"Texture",
-                           2, id, 3, level, 4, layer, 5, face, -1);
+                           2, id, 3, level, 4, layer, 5, face, 6, obj, -1);
     }
     trc_unmap_data(attachments);
 }

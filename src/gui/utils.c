@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "utils.h"
+#include "tabs/object.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -320,19 +321,36 @@ GtkWidget* create_box(bool vertical, size_t count, ...) {
     return res;
 }
 
-GtkTreeView* create_tree_view(size_t column_count, ...) {
+GtkTreeView* create_tree_view(size_t column_count, size_t extra_count, ...) {
     GtkTreeView* view = GTK_TREE_VIEW(gtk_tree_view_new());
     va_list list;
-    va_start(list, column_count);
+    va_start(list, extra_count);
     for (size_t i = 0; i < column_count; i++) {
         GtkTreeViewColumn* column = gtk_tree_view_column_new();
         gtk_tree_view_column_set_title(column, va_arg(list, const char*));
         gtk_tree_view_column_set_resizable(column, true);
         gtk_tree_view_append_column(view, column);
     }
-    va_end(list);
     gtk_widget_set_vexpand(GTK_WIDGET(view), true);
-    init_treeview(view, column_count);
+    
+    GType types[column_count+extra_count];
+    for (size_t i = 0; i < column_count; i++)
+        types[i] = G_TYPE_STRING;
+    for (size_t i = 0; i < extra_count; i++)
+        types[column_count+i] = va_arg(list, GType);
+    GtkTreeStore* store = gtk_tree_store_newv(column_count+extra_count, types);
+    gtk_tree_view_set_model(view, GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    
+    GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
+    for (size_t i = 0; i < column_count; i++) {
+        GtkTreeViewColumn* column = gtk_tree_view_get_column(view, i);
+        gtk_tree_view_column_pack_start(column, renderer, FALSE);
+        gtk_tree_view_column_set_attributes(column, renderer, "text", i, NULL);
+    }
+    
+    va_end(list);
+    
     return view;
 }
 
@@ -340,4 +358,151 @@ GtkWidget* create_scrolled_window(GtkWidget* widget) {
     GtkWidget* scrolled_window = gtk_scrolled_window_new(NULL, NULL);
     gtk_container_add(GTK_CONTAINER(scrolled_window), widget);
     return scrolled_window;
+}
+
+typedef struct object_column_data_t {
+    object_tab_t* tab;
+    int column;
+    int data_column;
+    GtkStyleContext* style_context;
+    GtkCellRenderer* renderer;
+} object_column_data_t;
+
+static gboolean object_column_handle_event(
+    GtkWidget* widget, GdkEvent* event, object_column_data_t* data) {
+    GtkTreeView* tree_view = GTK_TREE_VIEW(widget);
+    switch (event->type) {
+    case GDK_BUTTON_PRESS: {
+        GdkEventButton* bevent = (GdkEventButton*)event;
+        if (bevent->button != 1) return FALSE;
+        
+        GtkTreePath* path;
+        GtkTreeViewColumn* column;
+        gboolean res = gtk_tree_view_get_path_at_pos(
+            tree_view, bevent->x, bevent->y, &path, &column, NULL, NULL);
+        if (!res) return FALSE;
+        
+        if (gtk_tree_view_get_column(tree_view, data->column) != column) {
+            gtk_tree_path_free(path);
+            return FALSE;
+        }
+        
+        GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
+        GtkTreeIter iter;
+        if (!gtk_tree_model_get_iter(model, &iter, path)) {
+            gtk_tree_path_free(path);
+            return FALSE;
+        }
+        
+        trc_obj_t* obj;
+        gtk_tree_model_get(model, &iter, data->data_column, &obj, -1);
+        open_object_tab(obj, data->tab->revision);
+        
+        gtk_tree_path_free(path);
+        return TRUE;
+    }
+    case GDK_MOTION_NOTIFY:
+    case GDK_LEAVE_NOTIFY: {
+        bool inside = false;
+        if (event->type == GDK_MOTION_NOTIFY) {
+            GdkEventMotion* mevent = (GdkEventMotion*)event;
+            
+            GtkTreePath* path;
+            GtkTreeViewColumn* column;
+            gboolean res = gtk_tree_view_get_path_at_pos(
+                tree_view, mevent->x, mevent->y, &path, &column, NULL, NULL);
+            if (res) {
+                GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
+                GtkTreeIter iter;
+                if (gtk_tree_model_get_iter(model, &iter, path)) {
+                    gchar* contents;
+                    gtk_tree_model_get(model, &iter, data->column, &contents, -1);
+                    inside = contents[0] != 0;
+                    g_free(contents);
+                    
+                    inside = inside && gtk_tree_view_get_column(tree_view, data->column)==column;
+                }
+                gtk_tree_path_free(path);
+            }
+        }
+        
+        GdkDisplay *display = gtk_widget_get_display(widget);
+        GdkCursor *cursor = NULL;
+        if (inside) cursor = gdk_cursor_new_from_name(display, "pointer");
+        gdk_window_set_cursor(gtk_widget_get_window(widget), cursor);
+        gdk_display_flush(display);
+        if (cursor) g_object_unref(cursor);
+        
+        return FALSE;
+    }
+    default: {
+        return FALSE;
+    }
+    }
+}
+
+static void deinit_object_column(gpointer data, GClosure* closure) {
+    g_object_unref(((object_column_data_t*)data)->style_context);
+    free(data);
+}
+
+static void update_object_column_renderer(GtkStyleContext* ctx, object_column_data_t* data) {
+    GdkRGBA* color;
+    PangoFontDescription* font_desc;
+    gtk_style_context_get(ctx, gtk_style_context_get_state(ctx), "color", &color, "font", &font_desc, NULL);
+    
+    //TODO: Font weight
+    g_object_set(data->renderer, "foreground-rgba", color, NULL);
+    g_object_set(data->renderer, "font-desc", font_desc, NULL);
+    //TODO: Get these from the style context
+    g_object_set(data->renderer, "strikethrough", FALSE, NULL);
+    g_object_set(data->renderer, "underline", PANGO_UNDERLINE_SINGLE, NULL);
+    
+    gdk_rgba_free(color);
+}
+
+static void object_column_state_flags_changed(GtkWidget* widget, GtkStateFlags flags, object_column_data_t* data) {
+    gtk_style_context_set_state(data->style_context, gtk_widget_get_state_flags(widget)|GTK_STATE_FLAG_LINK);
+    update_object_column_renderer(data->style_context, data);
+}
+
+void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column) {
+    object_column_data_t* data = malloc(sizeof(object_column_data_t));
+    data->tab = tab;
+    data->column = column;
+    data->data_column = data_column;
+    
+    gint events = GDK_BUTTON_PRESS_MASK;
+    events |= GDK_LEAVE_NOTIFY_MASK;
+    events |= GDK_POINTER_MOTION_MASK;
+    gtk_widget_add_events(GTK_WIDGET(view), events);
+    g_signal_connect_data(
+        view, "event", G_CALLBACK(object_column_handle_event), data, deinit_object_column, 0);
+    
+    //Create a new renderer
+    GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
+    data->renderer = renderer;
+    
+    GtkStyleContext* ctx = gtk_style_context_new();
+    data->style_context = ctx;
+    
+    GtkWidgetPath* path = gtk_widget_path_new();
+    gtk_widget_path_append_type(path, GTK_TYPE_LABEL);
+    gtk_style_context_set_path(ctx, path);
+    gtk_widget_path_unref(path);
+    gtk_style_context_add_class(ctx, "link");
+    
+    //TODO: Should this be here?
+    gtk_style_context_set_parent(ctx, gtk_widget_get_style_context(GTK_WIDGET(view)));
+    
+    //Add the new renderer
+    GtkTreeViewColumn* view_column = gtk_tree_view_get_column(view, column);
+    gtk_tree_view_column_clear(view_column);
+    gtk_tree_view_column_pack_start(view_column, renderer, FALSE);
+    gtk_tree_view_column_set_attributes(view_column, renderer, "text", column, NULL);
+    
+    //Update the renderer
+    g_signal_connect(view, "state-flags-changed", G_CALLBACK(object_column_state_flags_changed), data);
+    object_column_state_flags_changed(GTK_WIDGET(view), 0, data);
+    g_signal_connect(ctx, "changed", G_CALLBACK(update_object_column_renderer), data);
 }

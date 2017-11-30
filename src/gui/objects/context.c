@@ -100,7 +100,7 @@ static void init(object_tab_t* tab) {
     
     add_custom_to_info_box(tab->info_box, "Open Buffer", box);
     
-    data->view = create_tree_view(2, "Name", "Value");
+    data->view = create_tree_view(2, 0, "Name", "Value");
     gtk_tree_view_set_search_column(data->view, 0);
     data->store = GTK_TREE_STORE(gtk_tree_view_get_model(data->view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->view)));

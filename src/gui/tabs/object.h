@@ -13,6 +13,7 @@ typedef struct object_tab_t {
     trc_obj_t* obj;
     trc_obj_type_t type;
     void* data;
+    int64_t revision; //updated in the update callback
     object_notebook_t* obj_notebook;
     info_box_t* info_box;
 } object_tab_t;
@@ -24,5 +25,5 @@ extern object_tab_callback_t object_tab_init_callbacks[];
 extern object_tab_callback_t object_tab_deinit_callbacks[];
 extern object_tab_update_callback_t object_tab_update_callbacks[];
 
-gui_tab_t* open_object_tab(trc_obj_t* obj);
+gui_tab_t* open_object_tab(trc_obj_t* obj, int64_t revision);
 #endif
