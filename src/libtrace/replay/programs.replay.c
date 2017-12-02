@@ -822,6 +822,10 @@ glActiveShaderProgram: //GLuint p_pipeline, GLuint p_program
     trc_set_obj_ref(&newrev.active_program, p_program_rev->head.obj);
     set_program_pipeline(&newrev);
 
+glGetProgramPipelineiv: //GLuint p_pipeline, GLenum p_pname, GLint* p_params
+    if (!p_pipeline_rev) ERROR2(, "Invalid program pipeline name");
+    if (!p_pipeline_rev->has_object) ERROR2(, "Program pipeline name has no object");
+
 glGetAttribLocation: //GLuint p_program, const GLchar* p_name
     if (!p_program_rev) ERROR("Invalid program name");
     real(p_program_rev->real, p_name);
@@ -886,6 +890,36 @@ glGetActiveSubroutineUniformName: //GLuint p_program, GLenum p_shadertype, GLuin
 
 glGetSubroutineUniformLocation: //GLuint p_program, GLenum p_shadertype, const GLchar* p_name
     if (!p_program_rev) ERROR("Invalid program name");
+
+glGetActiveUniformBlockiv: //GLuint p_program, GLuint p_uniformBlockIndex, GLenum p_pname, GLint* p_params
+    if (!p_program_rev) ERROR("Invalid program name");
+    
+    if (p_pname == GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES) {
+        GLint count;
+        real(p_program_rev->real, p_uniformBlockIndex, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &count);
+        
+        GLint* vals = malloc(sizeof(GLint)*count);
+        real(p_program_rev->real, p_uniformBlockIndex, p_pname, vals);
+        free(vals);
+    } else {
+        GLint v;
+        real(p_program_rev->real, p_uniformBlockIndex, p_pname, &v);
+    }
+
+glGetActiveUniformBlockName: //GLuint p_program, GLuint p_uniformBlockIndex, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_uniformBlockName
+    if (!p_program_rev) ERROR("Invalid program name");
+    GLchar buf[64];
+    real(p_program_rev->real, p_uniformBlockIndex, 64, NULL, buf);
+
+glGetActiveUniformName: //GLuint p_program, GLuint p_uniformIndex, GLsizei p_bufSize, GLsizei* p_length, GLchar* p_uniformName
+    if (!p_program_rev) ERROR("Invalid program name");
+    GLchar buf[64];
+    real(p_program_rev->real, p_uniformIndex, 64, NULL, buf);
+
+glGetActiveUniformsiv: //GLuint p_program, GLsizei p_uniformCount, const GLuint* p_uniformIndices, GLenum p_pname, GLint* p_params
+    if (!p_program_rev) ERROR("Invalid program name");
+    GLint* params = replay_alloc(p_uniformCount*sizeof(GLint));
+    real(p_program_rev->real, p_uniformCount, p_uniformIndices, p_pname, params);
 
 glIsProgram: //GLuint p_program
     ;

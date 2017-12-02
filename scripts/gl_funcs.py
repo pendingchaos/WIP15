@@ -647,6 +647,7 @@ Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLProgram, 'program'), P(tGLsizei, 'count'), P(tString, 'varyings', 'count'), P(tGLenum, 'bufferMode')])
 #TODO: Handle when bufSize == 0
 Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tGLsizei, 'size', 1), P(tGLenum, 'type', 1), P(tMutableString, 'name')])
+Func((3, 0), 'glBeginConditionalRender', [P(tGLQuery, 'id'), P(tGLenum, 'mode')], None)
 Func((3, 0), 'glVertexAttribIPointer', [P(tGLuint, 'index'), P(tGLint, 'size'), P(tGLenum, 'type', None, 'VertexAttribType'), P(tGLsizei, 'stride'), P(tPointer, 'pointer')])
 #Func((3, 0), 'glGetVertexAttribIiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
 #Func((3, 0), 'glGetVertexAttribIuiv', [P(tGLuint, 'index'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
@@ -695,7 +696,7 @@ Func((3, 1), 'glGetActiveUniformsiv', [P(tGLProgram, 'program'), P(tGLsizei, 'un
 #TODO: Handle when bufSize == 0 for glGetActiveUniformName and glGetActiveUniformBlockName
 Func((3, 1), 'glGetActiveUniformName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformIndex'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tOptional(tMutableString), 'uniformName')])
 Func((3, 1), 'glGetUniformBlockIndex', [P(tGLProgram, 'program'), P(tString, 'uniformBlockName')], tGLuint)
-#Func((3, 1), 'glGetActiveUniformBlockiv', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')])
+Func((3, 1), 'glGetActiveUniformBlockiv', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLenum, 'pname'), P(tMutablePointer, 'params')]) #TODO: Finish this
 Func((3, 1), 'glGetActiveUniformBlockName', [P(tGLProgram, 'program'), P(tGLuint, 'uniformBlockIndex'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'uniformBlockName')])
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 

@@ -73,4 +73,13 @@ trc_obj_t* get_active_program();
 //Implemented in buffers.replay.c
 trc_obj_t* get_bound_buffer(GLenum target);
 void update_buffer_from_gl(trc_obj_t* obj, size_t offset, ptrdiff_t size);
+
+//Implemented in framebuffers.replay.c
+trc_obj_t* get_bound_framebuffer(GLenum target);
+
+//Implemented in contexts.replay.c
+void update_fb0_buffers(bool backcolor, bool frontcolor, bool depth, bool stencil);
+
+//Implemented in misc_objects.replay.c
+trc_obj_t** get_tf_buffer_list(size_t* count); 
 #endif
