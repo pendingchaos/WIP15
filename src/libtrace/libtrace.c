@@ -1412,10 +1412,10 @@ static void framebuffer_destructor(const trc_gl_framebuffer_rev_t* rev) {
 
 static void vertex_array_destructor(const trc_gl_vao_rev_t* rev) {
     size_t count = rev->attribs->size / sizeof(trc_gl_vao_attrib_t);
-    trc_gl_vao_attrib_t* attribs = trc_map_data(rev->attribs, TRC_MAP_READ);
+    trc_gl_vao_buffer_t* buffers = trc_map_data(rev->buffers, TRC_MAP_READ);
     for (size_t i = 0; i < count; i++)
-        trc_del_obj_ref(attribs[i].buffer);
-    trc_unmap_data(attribs);
+        trc_del_obj_ref(buffers[i].buffer);
+    trc_unmap_data(buffers);
 }
 
 static void program_pipeline_destructor(const trc_gl_program_pipeline_rev_t* rev) {

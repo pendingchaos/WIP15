@@ -42,3 +42,6 @@ max_combined_texture_units: 96
 max_atomic_counter_buffer_bindings: 0
 @4.2+
 max_atomic_counter_buffer_bindings: 1
+
+@4.5+
+max_vertex_attrib_bindings: 16

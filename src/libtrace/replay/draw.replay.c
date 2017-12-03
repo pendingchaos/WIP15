@@ -111,7 +111,7 @@ static void validate_samplers(const trc_gl_program_rev_t* rev) {
 static bool begin_draw(GLenum primitive, uint flags) {
     const trc_gl_context_rev_t* state = trc_get_context(ctx->trace);
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(state->bound_vao.obj, -1);
-    if (!vao) ERROR2(false, "No VAO bound");
+    if (!vao) ERROR2(false, "No vertex array object bound");
     trc_obj_t* vertex_program_obj = get_active_program_for_stage(GL_VERTEX_SHADER);
     const trc_gl_program_rev_t* vertex_program = trc_obj_get_rev(vertex_program_obj, -1);
     if (!vertex_program) ERROR2(false, "No vertex program active");
@@ -160,16 +160,19 @@ static bool begin_draw(GLenum primitive, uint flags) {
     F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
     
     trc_gl_vao_attrib_t* vao_attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
+    trc_gl_vao_buffer_t* vao_buffers = trc_map_data(vao->buffers, TRC_MAP_READ);
     
     for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
         trc_gl_vao_attrib_t* a = &vao_attribs[i];
         if (!a->enabled) continue;
-        const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(a->buffer.obj, -1);
+        const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(vao_buffers[a->buffer_index].buffer.obj, -1);
         if (buf->mapped) {
             trc_unmap_data(vao_attribs);
             ERROR2(false, "Buffer for vertex attribute %zu is mapped", i);
         }
     }
+    
+    uint glver = trc_gl_state_get_ver(ctx->trace);
     
     size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size;
     prog_vertex_attrib_count /= sizeof(trc_gl_program_vertex_attrib_t);
@@ -192,17 +195,25 @@ static bool begin_draw(GLenum primitive, uint flags) {
             continue;
         }
         
+        trc_gl_vao_buffer_t* b = &vao_buffers[a->buffer_index];
+        
         F(glEnableVertexAttribArray)(real_loc);
         
-        F(glBindBuffer)(GL_ARRAY_BUFFER, ((trc_gl_buffer_rev_t*)trc_obj_get_rev(a->buffer.obj, -1))->real);
-        if (a->integer)
-            F(glVertexAttribIPointer)(real_loc, a->size, a->type, a->stride, (const void*)(uintptr_t)a->offset);
-        else
-            F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, a->stride, (const void*)(uintptr_t)a->offset);
+        GLuint real_buf = ((trc_gl_buffer_rev_t*)trc_obj_get_rev(b->buffer.obj, -1))->real;
+        F(glBindBuffer)(GL_ARRAY_BUFFER, real_buf);
         
-        if (trc_gl_state_get_ver(ctx->trace) > 330)
-            F(glVertexAttribDivisor)(real_loc, a->divisor);
+        if (a->integer) {
+            F(glVertexAttribIPointer)(real_loc, a->size, a->type, b->stride,
+                                      (const void*)(uintptr_t)a->offset+b->offset);
+        } else {
+            F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, b->stride,
+                                     (const void*)(uintptr_t)a->offset+b->offset);
+        }
+        
+        if (glver > 330)
+            F(glVertexAttribDivisor)(real_loc, b->divisor);
     }
+    trc_unmap_data(vao_buffers);
     trc_unmap_data(vao_attribs);
     trc_unmap_data(prog_vertex_attribs);
     

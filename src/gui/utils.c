@@ -396,7 +396,7 @@ static gboolean object_column_handle_event(
         
         trc_obj_t* obj;
         gtk_tree_model_get(model, &iter, data->data_column, &obj, -1);
-        open_object_tab(obj, data->tab->revision);
+        if (obj) open_object_tab(obj, data->tab->revision);
         
         gtk_tree_path_free(path);
         return TRUE;

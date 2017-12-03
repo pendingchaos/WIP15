@@ -4,22 +4,34 @@ static void gen_vertex_arrays(size_t count, const GLuint* real, const GLuint* fa
     trc_gl_vao_rev_t rev;
     rev.has_object = create;
     rev.element_buffer.obj = NULL;
+    
     int attrib_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0);
     rev.attribs = trc_create_data(ctx->trace, attrib_count*sizeof(trc_gl_vao_attrib_t), NULL, TRC_DATA_NO_ZERO);
     trc_gl_vao_attrib_t* attribs = trc_map_data(rev.attribs, TRC_MAP_REPLACE);
     memset(attribs, 0, attrib_count*sizeof(trc_gl_vao_attrib_t)); //fill in padding to fix uninitialized memory errors during compession
-    for (size_t j = 0; j < attrib_count; j++) {
-        attribs[j].enabled = false;
-        attribs[j].normalized = false;
-        attribs[j].integer = false;
-        attribs[j].size = 4;
-        attribs[j].stride = 0;
-        attribs[j].offset = 0;
-        attribs[j].type = GL_FLOAT;
-        attribs[j].divisor = 0;
-        attribs[j].buffer = (trc_obj_ref_t){NULL};
+    for (size_t i = 0; i < attrib_count; i++) {
+        attribs[i].enabled = false;
+        attribs[i].normalized = false;
+        attribs[i].integer = false;
+        attribs[i].size = 4;
+        attribs[i].offset = 0;
+        attribs[i].type = GL_FLOAT;
+        attribs[i].buffer_index = 0;
     }
     trc_unmap_data(attribs);
+    
+    int binding_count = trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIB_BINDINGS, 0);
+    rev.buffers = trc_create_data(ctx->trace, binding_count*sizeof(trc_gl_vao_buffer_t), NULL, TRC_DATA_NO_ZERO);
+    trc_gl_vao_buffer_t* buffers = trc_map_data(rev.buffers, TRC_MAP_REPLACE);
+    memset(buffers, 0, binding_count*sizeof(trc_gl_vao_buffer_t)); //fill in padding to fix uninitialized memory errors during compession
+    for (size_t i = 0; i < binding_count; i++) {
+        buffers[i].offset = 0;
+        buffers[i].stride = 0;
+        buffers[i].divisor = 0;
+        buffers[i].buffer = (trc_obj_ref_t){NULL};
+    }
+    trc_unmap_data(buffers);
+    
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->priv_ns, TrcVAO, fake[i], &rev);
@@ -153,84 +165,125 @@ glBindVertexArray: //GLuint p_array
     }
     trc_gl_state_set_bound_vao(ctx->trace, rev?rev->head.obj:NULL);
 
-//TODO: There is some duplicate code among glVertexAttrib*Pointer and gl*VertexAttribArray
+static void vertex_attrib_ptr(bool allow_bgra, GLuint index, bool normalized, bool integer,
+                              GLint size, GLenum type, uint64_t pointer, GLsizei stride) {
+    if (!trc_gl_state_get_bound_vao(ctx->trace))
+        ERROR2(, "No vertex array object is bound");
+    if (index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR2(, "Index is out-of-bounds");
+    if (not_one_of(size, 1, 2, 3, 4, -1) && (allow_bgra?size!=GL_BGRA:true))
+        ERROR2(, "Invalid size");
+    if (stride < 0) //Maximum stride?
+        ERROR2(, "Invalid stride");
+    if (size==GL_BGRA && not_one_of(type, GL_UNSIGNED_BYTE, GL_INT_2_10_10_10_REV, GL_UNSIGNED_INT_2_10_10_10_REV, -1))
+        ERROR2(, "Invalid size and type combination");
+    if (type==GL_INT_2_10_10_10_REV && size!=4 && size!=GL_BGRA)
+        ERROR2(, "Invalid size and type combination");
+    if (type==GL_UNSIGNED_INT_2_10_10_10_REV && size!=4 && size!=GL_BGRA)
+        ERROR2(, "Invalid size and type combination");
+    if (type==GL_UNSIGNED_INT_10F_11F_11F_REV && size!=3)
+        ERROR2(, "Invalid size and type combination");
+    if (size==GL_BGRA && !normalized)
+        ERROR2(, "Attributes of size GL_BGRA must be normalized");
+    if (!trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER) && pointer)
+        ERROR2(, "No buffer bound when pointer is not NULL");
+    
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
+    
+    trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+    trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_MODIFY);
+    trc_gl_vao_attrib_t* a = &attribs[index];
+    a->normalized = normalized;
+    a->integer = false;
+    a->size = size;
+    a->offset = 0;
+    a->type = type;
+    a->buffer_index = index;
+    trc_unmap_data(attribs);
+    rev.attribs = newattribs;
+    
+    trc_data_t* newbuffers = trc_copy_data(ctx->trace, rev.buffers);
+    trc_gl_vao_buffer_t* buffers = trc_map_data(newbuffers, TRC_MAP_MODIFY);
+    trc_gl_vao_buffer_t* b = &buffers[index];
+    b->offset = pointer;
+    if (!stride) {
+        switch (type) {
+        case GL_BYTE:
+        case GL_UNSIGNED_BYTE: b->stride = size; break;
+        case GL_HALF_FLOAT:
+        case GL_SHORT:
+        case GL_UNSIGNED_SHORT: b->stride = size * 2; break;
+        case GL_FLOAT:
+        case GL_FIXED:
+        case GL_INT:
+        case GL_UNSIGNED_INT: b->stride = size * 4; break;
+        case GL_DOUBLE: b->stride = size * 8; break;
+        case GL_INT_2_10_10_10_REV:
+        case GL_UNSIGNED_INT_2_10_10_10_REV:
+        case GL_UNSIGNED_INT_10F_11F_11F_REV: b->stride = 4; break;
+        }
+    } else {
+        b->stride = stride;
+    }
+    trc_set_obj_ref(&b->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
+    trc_unmap_data(buffers);
+    rev.buffers = newbuffers;
+    
+    set_vao(&rev);
+}
+
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
-    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
-    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
-        trc_gl_vao_attrib_t* a = &attribs[p_index];
-        a->normalized = p_normalized;
-        a->integer = false;
-        a->size = p_size;
-        a->stride = p_stride;
-        a->offset = p_pointer;
-        a->type = p_type;
-        trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
-        trc_unmap_data(attribs);
-        rev.attribs = newattribs;
-        set_vao(&rev);
-    }
+    vertex_attrib_ptr(true, p_index, p_normalized, false, p_size, p_type, p_pointer, p_stride);
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
-    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
-    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
-        trc_gl_vao_attrib_t* a = &attribs[p_index];
-        a->integer = true;
-        a->size = p_size;
-        a->stride = p_stride;
-        a->offset = p_pointer;
-        a->type = p_type;
-        trc_set_obj_ref(&a->buffer, trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER));
-        trc_unmap_data(attribs);
-        rev.attribs = newattribs;
-        set_vao(&rev);
-    }
+    vertex_attrib_ptr(false, p_index, false, true, p_size, p_type, p_pointer, p_stride);
 
 glEnableVertexAttribArray: //GLuint p_index
-    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    if (!trc_gl_state_get_bound_vao(ctx->trace))
+        ERROR("No vertex array object is bound");
+    if (p_index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR("Index is out-of-bounds");
+    
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
-    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
-        trc_gl_vao_attrib_t* a = &attribs[p_index];
-        a->enabled = true;
-        trc_unmap_data(attribs);
-        rev.attribs = newattribs;
-        set_vao(&rev);
-    }
+    trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+    trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_MODIFY);
+    trc_gl_vao_attrib_t* a = &attribs[p_index];
+    a->enabled = true;
+    trc_unmap_data(attribs);
+    rev.attribs = newattribs;
+    set_vao(&rev);
 
 glDisableVertexAttribArray: //GLuint p_index
-    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    if (!trc_gl_state_get_bound_vao(ctx->trace))
+        ERROR("No vertex array object is bound");
+    if (p_index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR("Index is out-of-bounds");
+    
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
-    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
-        trc_gl_vao_attrib_t* a = &attribs[p_index];
-        a->enabled = false;
-        trc_unmap_data(attribs);
-        rev.attribs = newattribs;
-        set_vao(&rev);
-    }
+    trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
+    trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_MODIFY);
+    trc_gl_vao_attrib_t* a = &attribs[p_index];
+    a->enabled = false;
+    trc_unmap_data(attribs);
+    rev.attribs = newattribs;
+    set_vao(&rev);
 
 glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
-    if (!trc_gl_state_get_bound_vao(ctx->trace)) RETURN;
+    if (!trc_gl_state_get_bound_vao(ctx->trace))
+        ERROR("No vertex array object is bound");
+    if (p_index >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIBS, 0))
+        ERROR("Index is out-of-bounds");
+    
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
-    if (p_index < rev.attribs->size/sizeof(trc_gl_vao_attrib_t)) {
-        trc_data_t* newattribs = trc_copy_data(ctx->trace, rev.attribs);
-        trc_gl_vao_attrib_t* attribs = trc_map_data(newattribs, TRC_MAP_READ);
-        trc_gl_vao_attrib_t* a = &attribs[p_index];
-        a->divisor = p_divisor;
-        trc_unmap_data(attribs);
-        rev.attribs = newattribs;
-        set_vao(&rev);
-    }
+    trc_data_t* newbuffers = trc_copy_data(ctx->trace, rev.buffers);
+    trc_gl_vao_buffer_t* buffers = trc_map_data(newbuffers, TRC_MAP_MODIFY);
+    trc_gl_vao_buffer_t* b = &buffers[p_index];
+    b->divisor = p_divisor;
+    trc_unmap_data(buffers);
+    rev.buffers = newbuffers;
+    set_vao(&rev);
 
 glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
     vertex_attrib(1, GL_FLOAT, false, false, GL_FLOAT);

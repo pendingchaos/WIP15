@@ -15,6 +15,7 @@ typedef struct type_info_t {
 
 typedef struct attrib_list_state_t {
     trc_gl_vao_attrib_t attrib;
+    trc_gl_vao_buffer_t buffer;
     size_t attrib_index;
     const trc_gl_context_rev_t* ctx_rev;
     const trc_gl_buffer_rev_t* buf_rev;
@@ -32,7 +33,7 @@ typedef struct index_list_state_t {
 
 void begin_attrib_list(attrib_list_state_t* s, size_t attrib_index,
                        const trc_gl_context_rev_t* ctx_rev,
-                       trc_gl_vao_attrib_t attrib);
+                       trc_gl_vao_attrib_t attrib, trc_gl_vao_buffer_t buffer);
 const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index);
 void end_attrib_list(attrib_list_state_t* s);
 

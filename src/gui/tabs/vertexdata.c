@@ -137,6 +137,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
     
     size_t attrib_count = vao->attribs->size / sizeof(trc_gl_vao_attrib_t);
     const trc_gl_vao_attrib_t* attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
+    const trc_gl_vao_buffer_t* buffers = trc_map_data(vao->buffers, TRC_MAP_READ);
     
     //Primitive-mode setup
     index_list_state_t il_state;
@@ -158,7 +159,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
         gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
         
         attrib_list_state_t al_state;
-        begin_attrib_list(&al_state, i, ctx, *attrib);
+        begin_attrib_list(&al_state, i, ctx, *attrib, buffers[attrib->buffer_index]);
         int column = tab->attrib_columns[i];
         for (size_t j = 0; j < count; j++) {
             const char* value;
@@ -191,6 +192,7 @@ static void fill_in_data_view(vertex_data_tab_t* tab,
         end_index_list(&il_state);
     }
     
+    trc_unmap_data(buffers);
     trc_unmap_data(attribs);
 }
 

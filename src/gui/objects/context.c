@@ -618,6 +618,8 @@ static void fill_context_value_tree(
                rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
     value_ints(state, "GL_MAX_VERTEX_ATTRIBS",
                rev->state_int_GL_MAX_VERTEX_ATTRIBS);
+    value_ints(state, "GL_MAX_VERTEX_ATTRIB_BINDINGS",
+               rev->state_int_GL_MAX_VERTEX_ATTRIB_BINDINGS);
     value_ints(state, "GL_MAX_COLOR_ATTACHMENTS",
                rev->state_int_GL_MAX_COLOR_ATTACHMENTS);
     value_ints(state, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS",

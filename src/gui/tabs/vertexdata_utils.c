@@ -83,12 +83,13 @@ static void parse_vertex_attrib(uint glver, double* dest, const uint8_t* src,
 
 void begin_attrib_list(attrib_list_state_t* s, size_t attrib_index,
                        const trc_gl_context_rev_t* ctx_rev,
-                       trc_gl_vao_attrib_t attrib) {
+                       trc_gl_vao_attrib_t attrib, trc_gl_vao_buffer_t buffer) {
     s->attrib = attrib;
+    s->buffer = buffer;
     s->attrib_index = attrib_index;
     s->ctx_rev = ctx_rev;
-    if (attrib.buffer.obj) {
-        s->buf_rev = trc_obj_get_rev(attrib.buffer.obj, state.revision);
+    if (buffer.buffer.obj) {
+        s->buf_rev = trc_obj_get_rev(buffer.buffer.obj, state.revision);
         s->data = malloc(s->buf_rev->data.size);
         trc_read_chunked_data_t rinfo;
         rinfo.data = s->buf_rev->data;
@@ -104,12 +105,11 @@ void begin_attrib_list(attrib_list_state_t* s, size_t attrib_index,
 
 const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index) {
     if (s->data) {
-        if (s->attrib.divisor)
-            index = instance / s->attrib.divisor;
+        if (s->buffer.divisor)
+            index = instance / s->buffer.divisor;
         
         size_t size = get_attrib_size(s->attrib.type, s->attrib.size);
-        size_t stride = s->attrib.stride ? s->attrib.stride : size;
-        size_t offset = index*stride + s->attrib.offset;
+        size_t offset = index*s->buffer.stride + s->attrib.offset + s->buffer.offset;
         if (offset+size > s->buf_rev->data.size) return NULL;
         
         double vals[4];

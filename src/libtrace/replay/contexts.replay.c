@@ -147,6 +147,7 @@ static void init_context() {
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, cfg.max_draw_buffers);
     trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, cfg.max_viewports);
     trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, cfg.max_vertex_attribs);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_BINDINGS, cfg.max_vertex_attrib_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, cfg.max_color_attachments);
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, cfg.max_combined_texture_units);
     trc_gl_state_state_int_init1(trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, cfg.max_xfb_buffers);
@@ -373,6 +374,7 @@ static void test_host_config(const trc_replay_config_t* host, const trc_replay_c
         {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
         {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
         {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
+        {"max_vertex_attrib_bindings", offsetof(trc_replay_config_t, max_vertex_attrib_bindings)},
         {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
         {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
         {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
@@ -414,6 +416,7 @@ static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* 
             {"max_draw_buffers", &cfg->max_draw_buffers},
             {"max_viewports", &cfg->max_viewports},
             {"max_vertex_attribs", &cfg->max_vertex_attribs},
+            {"max_vertex_attrib_bindings", &cfg->max_vertex_attrib_bindings},
             {"max_color_attachments", &cfg->max_color_attachments},
             {"max_combined_texture_units", &cfg->max_combined_texture_units},
             {"max_patch_vertices", &cfg->max_patch_vertices},
