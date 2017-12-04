@@ -644,10 +644,6 @@ void trc_set_obj_ref(trc_obj_ref_t* ref, trc_obj_t* obj);
 trc_obj_t* trc_get_current_gl_context(trace_t* trace, uint64_t revision);
 void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj);
 
-#define WIP15_STATE_GEN_FUNC_DECL
-#include "libtrace_glstate.h"
-#undef WIP15_STATE_GEN_FUNC_DECL
-
 //Data
 typedef struct trc_compressed_data_t {
     trc_compression_t compression;

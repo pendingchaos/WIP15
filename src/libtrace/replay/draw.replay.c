@@ -15,9 +15,9 @@ static bool tf_draw_validation(GLenum primitive) {
     
     //Find any buffers that can be accessed by the program(s) that are also transform feedback buffers
     //TODO: Find out if the binding is actually referenced in the shader
-    #define T(max, type) do {int count = trc_gl_state_get_state_int(ctx->trace, max, 0);\
+    #define T(max, type) do {int count = gls_get_state_int(max, 0);\
     for (size_t i = 0; i < count; i++) {\
-        trc_obj_t* buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, type, i).buf.obj;\
+        trc_obj_t* buf = gls_get_bound_buffer_indexed(type, i).buf.obj;\
         if (is_tf_buffer(buf_count, bufs, buf))\
             trc_add_warning(cmd, "A transform feedback buffer is bound to "#type"[%u]", i);\
     }} while (0)
@@ -34,7 +34,7 @@ static bool tf_draw_validation(GLenum primitive) {
         F(glGetProgramiv)(geom_program_rev->real, GL_GEOMETRY_OUTPUT_TYPE, &test_primitive);
     }
     
-    switch (trc_gl_state_get_tf_primitive(ctx->trace)) {
+    switch (gls_get_tf_primitive()) {
     case GL_POINTS:
         if (test_primitive != GL_POINTS)
             ERROR2(false, "Primitive not compatible with transform feedback primitive");
@@ -75,7 +75,7 @@ static GLenum get_sampler_target(trc_gl_uniform_dtype_t dtype) {
 
 //TODO: Validate images
 static void validate_samplers(const trc_gl_program_rev_t* rev) {
-    size_t units = trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0);
+    size_t units = gls_get_state_int(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0);
     
     size_t uniform_count = rev->uniforms->size / sizeof(trc_gl_uniform_t);
     const trc_gl_uniform_t* uniforms = trc_map_data(rev->uniforms, TRC_MAP_READ);
@@ -88,8 +88,8 @@ static void validate_samplers(const trc_gl_program_rev_t* rev) {
             memcpy(&unit, uniform_data+uniform->data_offset, sizeof(uint));
             
             if (unit < units) {
-                trc_obj_t* tex = trc_gl_state_get_bound_textures(ctx->trace, target, unit);
-                trc_obj_t* sampler = trc_gl_state_get_bound_samplers(ctx->trace, unit);
+                trc_obj_t* tex = gls_get_bound_textures(target, unit);
+                trc_obj_t* sampler = gls_get_bound_samplers(unit);
                 const char* err = validate_texture_completeness(tex, sampler);
                 if (err) {
                     trc_add_error(cmd, "Uniform at location %u uses an incomplete texture: %s",
@@ -140,7 +140,7 @@ static bool begin_draw(GLenum primitive, uint flags) {
         ERROR2(false, "No tesselation control shader is active");
     
     if (flags & DRAW_INDIRECT) {
-        trc_obj_t* buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_DRAW_INDIRECT_BUFFER);
+        trc_obj_t* buf = gls_get_bound_buffer(GL_DRAW_INDIRECT_BUFFER);
         if (!buf)
             ERROR2(false, "No buffer is bound at GL_DRAW_INDIRECT_BUFFER");
         const trc_gl_buffer_rev_t* buf_rev = trc_obj_get_rev(buf, -1);
@@ -172,7 +172,7 @@ static bool begin_draw(GLenum primitive, uint flags) {
         }
     }
     
-    uint glver = trc_gl_state_get_ver(ctx->trace);
+    uint glver = gls_get_ver();
     
     size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size;
     prog_vertex_attrib_count /= sizeof(trc_gl_program_vertex_attrib_t);
@@ -258,7 +258,7 @@ static void update_buffers(trc_obj_t* fb, GLbitfield mask, bool use_color_writem
         bool color = mask & GL_COLOR_BUFFER_BIT;
         bool writemask[4];
         for (size_t j = 0; j < 4; j++)
-            writemask[j] = trc_gl_state_get_state_bool(ctx->trace, GL_COLOR_WRITEMASK, j);
+            writemask[j] = gls_get_state_bool(GL_COLOR_WRITEMASK, j);
         if (use_color_writemask)
             color = color && (writemask[0]||writemask[1]||writemask[2]||writemask[3]);
         
@@ -277,7 +277,7 @@ static void update_buffers(trc_obj_t* fb, GLbitfield mask, bool use_color_writem
             for (size_t i = 0; i < rev->draw_buffers->size/sizeof(GLenum); i++) {
                 bool writemask[4];
                 for (size_t j = 0; j < 4; j++)
-                    writemask[j] = trc_gl_state_get_state_bool(ctx->trace, GL_COLOR_WRITEMASK, i*4+j);
+                    writemask[j] = gls_get_state_bool(GL_COLOR_WRITEMASK, i*4+j);
                 if (use_color_writemask && (writemask[0]||writemask[1]||writemask[2]||writemask[3]))
                     updates[update_count++] = draw_buffers[i];
             }
@@ -307,23 +307,23 @@ static void update_buffers(trc_obj_t* fb, GLbitfield mask, bool use_color_writem
 
 static void end_draw() {
     //Update framebuffer
-    bool depth = trc_gl_state_get_state_bool(ctx->trace, GL_DEPTH_WRITEMASK, 0);
-    bool stencil = trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_WRITEMASK, 0) != 0;
-    stencil = stencil || trc_gl_state_get_state_int(ctx->trace, GL_STENCIL_BACK_WRITEMASK, 0)!=0;
+    bool depth = gls_get_state_bool(GL_DEPTH_WRITEMASK, 0);
+    bool stencil = gls_get_state_int(GL_STENCIL_WRITEMASK, 0) != 0;
+    stencil = stencil || gls_get_state_int(GL_STENCIL_BACK_WRITEMASK, 0)!=0;
     
     GLbitfield mask = GL_COLOR_BUFFER_BIT;
     if (depth) mask |= GL_DEPTH_BUFFER_BIT;
     if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
     //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
-    //update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), mask);
+    //update_buffers(gls_get_draw_framebuffer(), mask);
     
     //TODO: Update shader storage buffers, images and atomic counters
     
     //Update transform feedback buffers
-    size_t xfb_buffer_count = trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER);
+    size_t xfb_buffer_count = gls_get_bound_buffer_indexed_size(GL_TRANSFORM_FEEDBACK_BUFFER);
     for (size_t i = 0; i < xfb_buffer_count; i++) {
         trc_gl_buffer_binding_point_t binding =
-            trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i);
+            gls_get_bound_buffer_indexed(GL_TRANSFORM_FEEDBACK_BUFFER, i);
         if (!binding.buf.obj) continue;
         update_buffer_from_gl(binding.buf.obj, binding.offset, binding.size);
     }
@@ -442,10 +442,10 @@ glDrawRangeElementsBaseVertex: //GLenum p_mode, GLuint p_start, GLuint p_end, GL
 
 glClear: //GLbitfield p_mask
     real(p_mask);
-    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask, true);
+    update_buffers(gls_get_draw_framebuffer(), p_mask, true);
 
 #define PARTIAL_VALIDATE_CLEAR_BUFFER do {\
-int max_draw_buffers = trc_gl_state_get_state_int(ctx->trace, GL_MAX_DRAW_BUFFERS, 0);\
+int max_draw_buffers = gls_get_state_int(GL_MAX_DRAW_BUFFERS, 0);\
 if (p_drawbuffer<0 || (p_drawbuffer==0&&p_buffer!=GL_COLOR) || p_drawbuffer>=max_draw_buffers)\
     ERROR("Invalid buffer");\
 } while (0)
@@ -486,7 +486,7 @@ glClearBufferfi: //GLenum p_buffer, GLint p_drawbuffer, GLfloat p_depth, GLint p
 glBlitFramebuffer: //GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
     real(p_srcX0, p_srcY0, p_srcX1, p_srcY1, p_dstX0, p_dstY0, p_dstX1, p_dstY1, p_mask, p_filter);
     VALIDATE_BLIT_FRAMEBUFFER
-    update_buffers(trc_gl_state_get_draw_framebuffer(ctx->trace), p_mask, false); //TODO: Use GL_COLOR_WRITEMASK here?
+    update_buffers(gls_get_draw_framebuffer(), p_mask, false); //TODO: Use GL_COLOR_WRITEMASK here?
 
 glBlitNamedFramebuffer: //GLuint p_readFramebuffer, GLuint p_drawFramebuffer, GLint p_srcX0, GLint p_srcY0, GLint p_srcX1, GLint p_srcY1, GLint p_dstX0, GLint p_dstY0, GLint p_dstX1, GLint p_dstY1, GLbitfield p_mask, GLenum p_filter
     if (!p_readFramebuffer_rev || !p_drawFramebuffer_rev) ERROR("Invalid framebuffer name");

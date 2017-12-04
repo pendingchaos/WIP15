@@ -33,13 +33,13 @@ static inline uint ceil_log2(uint val) {
 }
 
 static inline void conv_from_signed_norm_array_i64(size_t count, double* dest, const int64_t* src, size_t bits) {
-    uint ver = trc_gl_state_get_ver(ctx->trace);
+    uint ver = gls_get_ver();
     for (size_t i = 0; i < count; i++)
         dest[i] = conv_from_signed_norm(ver, src[i], bits);
 }
 
 static inline void conv_from_signed_norm_array_i32(size_t count, double* dest, const int32_t* src, size_t bits) {
-    uint ver = trc_gl_state_get_ver(ctx->trace);
+    uint ver = gls_get_ver();
     for (size_t i = 0; i < count; i++)
         dest[i] = conv_from_signed_norm(ver, src[i], bits);
 }
@@ -62,7 +62,7 @@ static inline void delete_obj(uint64_t fake, trc_obj_type_t type) {
 }
 
 static inline const trc_gl_transform_feedback_rev_t* get_current_tf() {
-    return trc_obj_get_rev(trc_gl_state_get_current_tf(ctx->trace), -1);
+    return trc_obj_get_rev(gls_get_current_tf(), -1);
 }
 
 //Implemented in programs.replay.c

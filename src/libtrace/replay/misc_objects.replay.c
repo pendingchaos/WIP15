@@ -3,7 +3,7 @@
 static void gen_transform_feedbacks(size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_transform_feedback_rev_t rev;
     rev.has_object = create;
-    size_t size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0);
+    size_t size = gls_get_state_int(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0);
     size *= sizeof(trc_gl_buffer_binding_point_t);
     rev.bindings = trc_create_data(ctx->trace, size, NULL, 0);
     rev.active = false;
@@ -28,12 +28,12 @@ static void gen_queries(size_t count, const GLuint* real, const GLuint* fake, bo
 }
 
 trc_obj_t** get_tf_buffer_list(size_t* count) {
-    size_t max = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0) + 1;
+    size_t max = gls_get_state_int(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, 0) + 1;
     trc_obj_t** bufs = replay_alloc(max*sizeof(trc_obj_t*));
     *count = 0;
     
     for (uint i = 0; i < max-1; i++) {
-        trc_obj_t* buf = trc_gl_state_get_bound_buffer_indexed(ctx->trace, GL_TRANSFORM_FEEDBACK_BUFFER, i).buf.obj;
+        trc_obj_t* buf = gls_get_bound_buffer_indexed(GL_TRANSFORM_FEEDBACK_BUFFER, i).buf.obj;
         if (buf) bufs[(*count)++] = buf;
     }
     
@@ -93,9 +93,9 @@ static void update_query(GLenum target, GLuint fake_id, GLuint id) {
 }
 
 static bool begin_query(GLenum target, GLuint index, GLuint id) {
-    if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
+    if (index >= gls_get_bound_queries_size(target))
         ERROR2(false, "Index is greater than maximum");
-    if (trc_gl_state_get_bound_queries(ctx->trace, target, index))
+    if (gls_get_bound_queries(target, index))
         ERROR2(false, "Query is already active at target");
     
     const trc_gl_query_rev_t* rev = get_query(id);
@@ -110,22 +110,22 @@ static bool begin_query(GLenum target, GLuint index, GLuint id) {
     newrev.active_index = index;
     set_query(&newrev);
     
-    trc_gl_state_set_bound_queries(ctx->trace, target, index, newrev.head.obj);
+    gls_set_bound_queries(target, index, newrev.head.obj);
     
     return true;
 }
 
 static bool end_query(GLenum target, GLuint index) {
-    if (index >= trc_gl_state_get_bound_queries_size(ctx->trace, target))
+    if (index >= gls_get_bound_queries_size(target))
         ERROR2(false, "Index is greater than maximum");
-    trc_obj_t* query = trc_gl_state_get_bound_queries(ctx->trace, target, index);
+    trc_obj_t* query = gls_get_bound_queries(target, index);
     if (!query) ERROR2(false, "No query active at target");
     
     trc_gl_query_rev_t newrev = *(const trc_gl_query_rev_t*)trc_obj_get_rev(query, -1);
     newrev.active_index = -1;
     set_query(&newrev);
     
-    trc_gl_state_set_bound_queries(ctx->trace, target, index, NULL);
+    gls_set_bound_queries(target, index, NULL);
     return true;
 }
 
@@ -171,7 +171,7 @@ glBindTransformFeedback: //GLenum p_target, GLuint p_id
     ctx_rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = rev->bindings;
     trc_set_context(ctx->trace, &ctx_rev);
     
-    trc_gl_state_set_current_tf(ctx->trace, rev->head.obj);
+    gls_set_current_tf(rev->head.obj);
 
 glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
     GLuint* tf = replay_alloc(p_n*sizeof(GLuint));
@@ -187,8 +187,8 @@ glDeleteTransformFeedbacks: //GLsizei p_n, const GLuint* p_ids
                 trc_add_error(cmd, "Transform feedback object at index %zu is active", i);
                 continue;
             }
-            if (trc_gl_state_get_current_tf(ctx->trace) == tf->head.obj)
-                trc_gl_state_set_current_tf(ctx->trace, get_transform_feedback(0)->head.obj);
+            if (gls_get_current_tf() == tf->head.obj)
+                gls_set_current_tf(get_transform_feedback(0)->head.obj);
             delete_obj(p_ids[i], TrcTransformFeedback);
         }
     }
@@ -209,7 +209,7 @@ glBeginTransformFeedback: //GLenum p_primitiveMode
     rev.active = true;
     rev.active_not_paused = true;
     set_transform_feedback(&rev);
-    trc_gl_state_set_tf_primitive(ctx->trace, p_primitiveMode);
+    gls_set_tf_primitive(p_primitiveMode);
     on_activate_tf();
 
 glEndTransformFeedback: //
@@ -285,8 +285,8 @@ glQueryCounter: //GLuint p_id, GLenum p_target
         GL_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED, GL_ANY_SAMPLES_PASSED_CONSERVATIVE,
         GL_PRIMITIVES_GENERATED, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, GL_TIME_ELAPSED};
     for (size_t i = 0; i < 6; i++) {
-        for (size_t j = 0; j < trc_gl_state_get_bound_queries_size(ctx->trace, targets[j]); j++) {
-            if (trc_gl_state_get_bound_queries(ctx->trace, targets[j], i) == rev->head.obj)
+        for (size_t j = 0; j < gls_get_bound_queries_size(targets[j]); j++) {
+            if (gls_get_bound_queries(targets[j], i) == rev->head.obj)
                 ERROR("Query is used by a glBeginQuery/glEndQuery block");
         }
     }

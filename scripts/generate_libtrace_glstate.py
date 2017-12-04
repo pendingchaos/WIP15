@@ -468,15 +468,17 @@ while len(lines):
     properties.append(Property(map, chunked, array, base, name, map_keys))
 
 for prop in properties:
-    sig = prop.public_type + ' trc_gl_state_get_%s(trace_t* trace' % prop.name
-    if prop.map:
-        sig += ', uint key'
-    if prop.array:
-        sig += ', size_t index'
+    sig = prop.public_type + ' gls_get_%s(' % prop.name
+    if prop.map and prop.array:
+        sig += 'uint key, size_t index'
+    elif prop.map:
+        sig += 'uint key'
+    elif prop.array:
+        sig += 'size_t index'
     sig += ')'
     prop.get_func_sig = sig
     
-    sig = 'void trc_gl_state_set_%s(trace_t* trace, ' % prop.name
+    sig = 'void gls_set_%s(' % prop.name
     if prop.map:
         sig += 'uint key, '
     if prop.array:
@@ -485,28 +487,28 @@ for prop in properties:
     prop.set_func_sig = sig
     
     if prop.array:
-        sig = 'size_t trc_gl_state_get_%s_size(trace_t* trace' % prop.name
+        sig = 'size_t gls_get_%s_size(' % prop.name
         if prop.map:
-            sig += ', uint key'
+            sig += 'uint key'
         sig += ')'
         prop.size_func_sig = sig
         
-        sig = 'void trc_gl_state_%s_init(trace_t* trace' % prop.name
+        sig = 'void gls_%s_init(' % prop.name
         if prop.map:
-            sig += ', uint key'
-        sig += ', size_t count, const %s* data)' % prop.c_type
+            sig += 'uint key, '
+        sig += 'size_t count, const %s* data)' % prop.c_type
         prop.init_func_sig = sig
         
-        sig = 'void trc_gl_state_%s_init1(trace_t* trace' % prop.name
+        sig = 'void gls_%s_init1(' % prop.name
         if prop.map:
-            sig += ', uint key'
-        sig += ', %s value)' % prop.c_type
+            sig += 'uint key, '
+        sig += '%s value)' % prop.c_type
         prop.init1_func_sig = sig
     else:
-        sig = 'void trc_gl_state_%s_init(trace_t* trace' % prop.name
+        sig = 'void gls_%s_init(' % prop.name
         if prop.map:
-            sig += ', uint key'
-        sig += ', %s data)' % prop.c_type
+            sig += 'uint key, '
+        sig += '%s data)' % prop.c_type
         prop.init_func_sig = sig
 
 output = open('../src/libtrace/libtrace_glstate.h', 'w')
@@ -556,7 +558,6 @@ print('#endif')
 print('')
 
 print('''#ifdef WIP15_STATE_GEN_IMPL
-#include "shared/glcorearb.h"
 #include <assert.h>
 ''')
 print('')
@@ -568,15 +569,15 @@ for prop in properties:
         print('    switch (key) {')
         for key in prop.map_keys:
             if prop.array:
-                print('    case %s: arr = trc_get_context(trace)->%s_%s; break;' % (key, prop.name, key))
+                print('    case %s: arr = trc_get_context(ctx->trace)->%s_%s; break;' % (key, prop.name, key))
             else:
-                print('    case %s: return %s;' % (key, prop.get_code.format(src='&trc_get_context(trace)->%s_%s'%(prop.name, key))))
+                print('    case %s: return %s;' % (key, prop.get_code.format(src='&trc_get_context(ctx->trace)->%s_%s'%(prop.name, key))))
         print('    default: assert(false); return %s;' % (prop.some_public_value))
         print('    }')
     elif prop.array:
-        print('    %s arr = trc_get_context(trace)->%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name))
+        print('    %s arr = trc_get_context(ctx->trace)->%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name))
     else:
-        print('    return %s;' % prop.get_code.format(src='&trc_get_context(trace)->%s'%prop.name))
+        print('    return %s;' % prop.get_code.format(src='&trc_get_context(ctx->trace)->%s'%prop.name))
     if prop.array and prop.chunked:
         print('    %s res;' % prop.c_type)
         print('    trc_read_chunked_data_t rinfo = {.data=arr, .start=sizeof(%s)*index, .size=sizeof(%s), .dest=&res};' % (prop.c_type, prop.c_type))
@@ -592,7 +593,7 @@ for prop in properties:
 
 for prop in properties:
     print(prop.set_func_sig + ' {')
-    print('    trc_gl_context_rev_t state = *trc_get_context(trace);')
+    print('    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);')
     if prop.map:
         if prop.array:
             print('    %s* arr = NULL;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*'))
@@ -615,16 +616,16 @@ for prop in properties:
         print('    %s' % (prop.set_code.format(dest='&curval', src='&val')))
         print('    trc_chunked_data_mod_t mod = {.next=NULL, .start=index*sizeof(%s), .size=sizeof(%s), &curval};' % (prop.c_type, prop.c_type))
         print('    trc_modify_chunked_data_t minfo = {.base=*arr, .mods=&mod};')
-        print('    *arr = trc_modify_chunked_data(trace, minfo);')
+        print('    *arr = trc_modify_chunked_data(ctx->trace, minfo);')
     elif prop.array:
         print('    void* olddata = trc_map_data(*arr, TRC_MAP_READ);')
-        print('    trc_data_t* newdata = trc_create_data(trace, (*arr)->size, olddata, 0);')
+        print('    trc_data_t* newdata = trc_create_data(ctx->trace, (*arr)->size, olddata, 0);')
         print('    trc_unmap_data(olddata);')
         print('    %s* data = trc_map_data(newdata, TRC_MAP_MODIFY);' % prop.c_type)
         print('    %s' % (prop.set_code.format(dest='&data[index]', src='&val')))
         print('    trc_unmap_data(data);')
         print('    *arr = newdata;')
-    print('    trc_set_context(trace, &state);')
+    print('    trc_set_context(ctx->trace, &state);')
     print('}')
     print('')
 
@@ -636,21 +637,21 @@ for prop in properties:
         print('    switch (key) {')
         for key in prop.map_keys:
             if prop.chunked:
-                print('    case %s: return trc_get_context(trace)->%s_%s.size / sizeof(%s);' % (key, prop.name, key, prop.c_type))
+                print('    case %s: return trc_get_context(ctx->trace)->%s_%s.size / sizeof(%s);' % (key, prop.name, key, prop.c_type))
             else:
-                print('    case %s: return trc_get_context(trace)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type))
+                print('    case %s: return trc_get_context(ctx->trace)->%s_%s->size / sizeof(%s);' % (key, prop.name, key, prop.c_type))
         print('    default: assert(false); return 0;')
         print('    }')
     else:
         if prop.chunked:
-            print('    return trc_get_context(trace)->%s.size / sizeof(%s);' % (prop.name, prop.c_type))
+            print('    return trc_get_context(ctx->trace)->%s.size / sizeof(%s);' % (prop.name, prop.c_type))
         else:
-            print('    return trc_get_context(trace)->%s->size / sizeof(%s);' % (prop.name, prop.c_type))
+            print('    return trc_get_context(ctx->trace)->%s->size / sizeof(%s);' % (prop.name, prop.c_type))
     print('}')
     print('')
     
     print(prop.init_func_sig + ' {')
-    print('    trc_gl_context_rev_t state = *trc_get_context(trace);')
+    print('    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);')
     if prop.map:
         print('    %s* arr = NULL;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*'))
         print('    switch (key) {')
@@ -660,18 +661,18 @@ for prop in properties:
     else:
         print('    %s* arr = &state.%s;' % ('trc_chunked_data_t' if prop.chunked else 'trc_data_t*', prop.name))
     if prop.chunked:
-        print('    *arr = trc_create_chunked_data(trace, count*sizeof(%s), data);' % prop.c_type)
+        print('    *arr = trc_create_chunked_data(ctx->trace, count*sizeof(%s), data);' % prop.c_type)
     else:
-        print('    *arr = trc_create_data(trace, count*sizeof(%s), data, 0);' % prop.c_type)
-    print('    trc_set_context(trace, &state);')
+        print('    *arr = trc_create_data(ctx->trace, count*sizeof(%s), data, 0);' % prop.c_type)
+    print('    trc_set_context(ctx->trace, &state);')
     print('}')
     print('')
     
     print(prop.init1_func_sig + ' {')
     if prop.map:
-        print('    trc_gl_state_%s_init(trace, key, 1, &value);' % prop.name)
+        print('    gls_%s_init(key, 1, &value);' % prop.name)
     else:
-        print('    trc_gl_state_%s_init(trace, 1, &value);' % prop.name)
+        print('    gls_%s_init(1, &value);' % prop.name)
     print('}')
     print('')
 
@@ -679,7 +680,7 @@ for prop in properties:
     if prop.array: continue
     
     print(prop.init_func_sig + ' {')
-    print('    trc_gl_context_rev_t state = *trc_get_context(trace);')
+    print('    trc_gl_context_rev_t state = *trc_get_context(ctx->trace);')
     if prop.map:
         print('    switch (key) {')
         for key in prop.map_keys:
@@ -687,7 +688,7 @@ for prop in properties:
         print('    }')
     else:
         print('    state.%s = data;' % prop.name)
-    print('    trc_set_context(trace, &state);')
+    print('    trc_set_context(ctx->trace, &state);')
     print('}')
     print('')
 

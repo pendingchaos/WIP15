@@ -133,7 +133,7 @@ static bool renderbuffer_storage(const trc_gl_renderbuffer_rev_t* rb, bool dsa, 
                                  GLsizei width, GLsizei height, GLsizei samples) {
     if (!rb) ERROR2(false, dsa?"Invalid renderbuffer name":"No renderbuffer bound");
     if (!rb->has_object) ERROR2(false, "Renderbuffer name has no obejct");
-    int maxsize = trc_gl_state_get_state_int(ctx->trace, GL_MAX_RENDERBUFFER_SIZE, 0);
+    int maxsize = gls_get_state_int(GL_MAX_RENDERBUFFER_SIZE, 0);
     if (width<0 || height<0 || width>maxsize || height>maxsize)
         ERROR2(false, "Invalid dimensions");
     //TODO: test if samples if valid
@@ -170,10 +170,10 @@ glDeleteFramebuffers: //GLsizei p_n, const GLuint* p_framebuffers
     GLuint* fbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         trc_obj_t* fb = trc_lookup_name(ctx->priv_ns, TrcFramebuffer, p_framebuffers[i], -1);
-        if (fb && fb==trc_gl_state_get_read_framebuffer(ctx->trace))
-            trc_gl_state_set_read_framebuffer(ctx->trace, NULL);
-        if (fb && fb==trc_gl_state_get_draw_framebuffer(ctx->trace))
-            trc_gl_state_set_draw_framebuffer(ctx->trace, NULL);
+        if (fb && fb==gls_get_read_framebuffer())
+            gls_set_read_framebuffer(NULL);
+        if (fb && fb==gls_get_draw_framebuffer())
+            gls_set_draw_framebuffer(NULL);
         if (!(fbs[i] = get_real_framebuffer(p_framebuffers[i])) && p_framebuffers[i]) {
             trc_add_warning(cmd, "Invalid framebuffer name");
         } else {
@@ -200,8 +200,8 @@ glBindFramebuffer: //GLenum p_target, GLuint p_framebuffer
     case GL_DRAW_FRAMEBUFFER: read = false; break;
     }
     
-    if (read) trc_gl_state_set_read_framebuffer(ctx->trace, rev?rev->head.obj:NULL);
-    if (draw) trc_gl_state_set_draw_framebuffer(ctx->trace, rev?rev->head.obj:NULL);
+    if (read) gls_set_read_framebuffer(rev?rev->head.obj:NULL);
+    if (draw) gls_set_draw_framebuffer(rev?rev->head.obj:NULL);
 
 glGenRenderbuffers: //GLsizei p_n, GLuint* p_renderbuffers
     if (p_n < 0) ERROR("Invalid renderbuffer name count");
@@ -219,8 +219,8 @@ glDeleteRenderbuffers: //GLsizei p_n, const GLuint* p_renderbuffers
     GLuint* rbs = replay_alloc(p_n*sizeof(GLuint));
     for (size_t i = 0; i < p_n; ++i) {
         trc_obj_t* rb = trc_lookup_name(ctx->ns, TrcRenderbuffer, p_renderbuffers[i], -1);
-        if (p_renderbuffers[i] && rb==trc_gl_state_get_bound_renderbuffer(ctx->trace))
-            trc_gl_state_set_bound_renderbuffer(ctx->trace, NULL);
+        if (p_renderbuffers[i] && rb==gls_get_bound_renderbuffer())
+            gls_set_bound_renderbuffer(NULL);
         //TODO: Detach from bound framebuffers
         //TODO: What to do with renderbuffers attached to non-bound framebuffers?
         if (!(rbs[i] = get_real_renderbuffer(p_renderbuffers[i])) && p_renderbuffers[i])
@@ -239,14 +239,14 @@ glBindRenderbuffer: //GLenum p_target, GLuint p_renderbuffer
         newrev.has_object = true;
         set_renderbuffer(&newrev);
     }
-    trc_gl_state_set_bound_renderbuffer(ctx->trace, rev?rev->head.obj:NULL);
+    gls_set_bound_renderbuffer(rev?rev->head.obj:NULL);
 
 glGetFramebufferAttachmentParameteriv: //GLenum p_target, GLenum p_attachment, GLenum p_pname, GLint* p_params
     GLint params;
     real(p_target, p_attachment, p_pname, &params);
 
 glGetRenderbufferParameteriv: //GLenum p_target, GLenum p_pname, GLint* p_params
-    const trc_gl_renderbuffer_rev_t* rev = trc_obj_get_rev(trc_gl_state_get_bound_renderbuffer(ctx->trace), -1);
+    const trc_gl_renderbuffer_rev_t* rev = trc_obj_get_rev(gls_get_bound_renderbuffer(), -1);
     if (!rev) ERROR("No renderbuffer bound");
     if (!rev->has_object) ERROR("Renderbuffer name has no object");
 
@@ -300,7 +300,7 @@ glFramebufferTexture3D: //GLenum p_target, GLenum p_attachment, GLenum p_textarg
         real(p_target, p_attachment, p_textarget, p_texture?p_texture_rev->real:0, p_level, p_zoffset);
 
 glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    trc_obj_t* rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    trc_obj_t* rb = gls_get_bound_renderbuffer();
     const trc_gl_renderbuffer_rev_t* rb_rev = trc_obj_get_rev(rb, -1);
     if (renderbuffer_storage(rb_rev, false, p_internalformat, p_width, p_height, 1)) {
         real(p_target, p_internalformat, p_width, p_height);
@@ -314,7 +314,7 @@ glNamedRenderbufferStorage: //GLuint p_renderbuffer, GLenum p_internalformat, GL
     }
 
 glRenderbufferStorageMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
-    trc_obj_t* rb = trc_gl_state_get_bound_renderbuffer(ctx->trace);
+    trc_obj_t* rb = gls_get_bound_renderbuffer();
     const trc_gl_renderbuffer_rev_t* rb_rev = trc_obj_get_rev(rb, -1);
     if (renderbuffer_storage(rb_rev, false, p_internalformat, p_width, p_height, p_samples)) {
         real(p_target, p_samples, p_internalformat, p_width, p_height);

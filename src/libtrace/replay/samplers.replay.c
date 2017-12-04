@@ -41,9 +41,9 @@ glDeleteSamplers: //GLsizei p_count, const GLuint* p_samplers
             trc_add_warning(cmd, "Invalid sampler name");
         } else {
             trc_obj_t* obj = get_sampler(p_samplers[i])->head.obj;
-            for (size_t i = 0; i < trc_gl_state_get_bound_samplers_size(ctx->trace); i++) {
-                if (trc_gl_state_get_bound_samplers(ctx->trace, i) == obj)
-                    trc_gl_state_set_bound_samplers(ctx->trace, i, NULL);
+            for (size_t i = 0; i < gls_get_bound_samplers_size(); i++) {
+                if (gls_get_bound_samplers(i) == obj)
+                    gls_set_bound_samplers(i, NULL);
             }
             
             delete_obj(p_samplers[i], TrcSampler);
@@ -56,17 +56,17 @@ glBindSampler: //GLuint p_unit, GLuint p_sampler
     const trc_gl_sampler_rev_t* rev = get_sampler(p_sampler);
     if (!rev && p_sampler) ERROR("Invalid sampler name");
     real(p_unit, p_sampler?rev->real:0);
-    trc_gl_state_set_bound_samplers(ctx->trace, p_unit, rev?rev->head.obj:NULL);
+    gls_set_bound_samplers(p_unit, rev?rev->head.obj:NULL);
 
 glBindSamplers: //GLuint p_first, GLsizei p_count, const GLuint* p_samplers
-    if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
+    if (p_first+p_count>gls_get_state_int(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
         ERROR("Invalid range");
     GLuint* real_samplers = replay_alloc(p_count*sizeof(GLuint));
     for (size_t i = 0; i < p_count; i++) {
         const trc_gl_sampler_rev_t* rev = get_sampler(p_samplers[i]);
         if (!rev) ERROR("Invalid sampler name at index %zu", i);
         real_samplers[i] = rev->real;
-        trc_gl_state_set_bound_samplers(ctx->trace, p_first+i, rev?rev->head.obj:NULL);
+        gls_set_bound_samplers(p_first+i, rev?rev->head.obj:NULL);
     }
     real(p_first, p_count, real_samplers);
 

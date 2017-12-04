@@ -112,62 +112,62 @@ static void init_context() {
     
     int w, h;
     SDL_GL_GetDrawableSize(ctx->window, &w, &h);
-    trc_gl_state_set_drawable_width(trace, w);
-    trc_gl_state_set_drawable_height(trace, h);
-    trc_gl_state_bound_buffer_init(trace, GL_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_ELEMENT_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_ATOMIC_COUNTER_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_COPY_READ_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_COPY_WRITE_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_DISPATCH_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_DRAW_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_PIXEL_PACK_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_PIXEL_UNPACK_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_QUERY_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_SHADER_STORAGE_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_TEXTURE_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_TRANSFORM_FEEDBACK_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_buffer_init(trace, GL_UNIFORM_BUFFER, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_program_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_pipeline_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_vao_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_bound_renderbuffer_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_read_framebuffer_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_draw_framebuffer_init(trace, (trc_obj_ref_t){NULL});
-    trc_gl_state_set_active_texture_unit(trace, 0);
+    gls_set_drawable_width(w);
+    gls_set_drawable_height(h);
+    gls_bound_buffer_init(GL_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_ELEMENT_ARRAY_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_ATOMIC_COUNTER_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_COPY_READ_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_COPY_WRITE_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_DISPATCH_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_DRAW_INDIRECT_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_PIXEL_PACK_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_PIXEL_UNPACK_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_QUERY_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_SHADER_STORAGE_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_TEXTURE_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_TRANSFORM_FEEDBACK_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_buffer_init(GL_UNIFORM_BUFFER, (trc_obj_ref_t){NULL});
+    gls_bound_program_init((trc_obj_ref_t){NULL});
+    gls_bound_pipeline_init((trc_obj_ref_t){NULL});
+    gls_bound_vao_init((trc_obj_ref_t){NULL});
+    gls_bound_renderbuffer_init((trc_obj_ref_t){NULL});
+    gls_read_framebuffer_init((trc_obj_ref_t){NULL});
+    gls_draw_framebuffer_init((trc_obj_ref_t){NULL});
+    gls_set_active_texture_unit(0);
     
-    trc_gl_state_bound_queries_init(trace, GL_SAMPLES_PASSED, 1, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED, 1, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_ANY_SAMPLES_PASSED_CONSERVATIVE, 1, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_PRIMITIVES_GENERATED, cfg.max_vertex_streams, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, cfg.max_vertex_streams, NULL);
-    trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, 1, NULL);
+    gls_bound_queries_init(GL_SAMPLES_PASSED, 1, NULL);
+    gls_bound_queries_init(GL_ANY_SAMPLES_PASSED, 1, NULL);
+    gls_bound_queries_init(GL_ANY_SAMPLES_PASSED_CONSERVATIVE, 1, NULL);
+    gls_bound_queries_init(GL_PRIMITIVES_GENERATED, cfg.max_vertex_streams, NULL);
+    gls_bound_queries_init(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, cfg.max_vertex_streams, NULL);
+    gls_bound_queries_init(GL_TIME_ELAPSED, 1, NULL);
     
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_STREAMS, cfg.max_vertex_streams);
-    trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, cfg.max_clip_distances);
-    trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, cfg.max_draw_buffers);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, cfg.max_viewports);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, cfg.max_vertex_attribs);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_STRIDE, cfg.max_vertex_attrib_stride);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, cfg.max_vertex_attrib_relative_offset);
-    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_BINDINGS, cfg.max_vertex_attrib_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, cfg.max_color_attachments);
-    trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, cfg.max_combined_texture_units);
-    trc_gl_state_state_int_init1(trace, GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, cfg.max_xfb_buffers);
-    trc_gl_state_state_int_init1(trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, cfg.max_ubo_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_PATCH_VERTICES, cfg.max_patch_vertices);
-    trc_gl_state_state_int_init1(trace, GL_MAX_RENDERBUFFER_SIZE, cfg.max_renderbuffer_size);
-    trc_gl_state_state_int_init1(trace, GL_MAX_TEXTURE_SIZE, cfg.max_texture_size);
-    trc_gl_state_state_int_init1(trace, GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, cfg.max_atomic_counter_buffer_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, cfg.max_ssbo_bindings);
-    trc_gl_state_state_int_init1(trace, GL_MAX_SAMPLE_MASK_WORDS, cfg.max_sample_mask_words);
-    trc_gl_state_state_int_init1(trace, GL_MAJOR_VERSION, cfg.version/100);
-    trc_gl_state_state_int_init1(trace, GL_MINOR_VERSION, cfg.version%100/10);
-    trc_gl_state_set_ver(trace, cfg.version);
+    gls_state_int_init1(GL_MAX_VERTEX_STREAMS, cfg.max_vertex_streams);
+    gls_state_int_init1(GL_MAX_CLIP_DISTANCES, cfg.max_clip_distances);
+    gls_state_int_init1(GL_MAX_DRAW_BUFFERS, cfg.max_draw_buffers);
+    gls_state_int_init1(GL_MAX_VIEWPORTS, cfg.max_viewports);
+    gls_state_int_init1(GL_MAX_VERTEX_ATTRIBS, cfg.max_vertex_attribs);
+    gls_state_int_init1(GL_MAX_VERTEX_ATTRIB_STRIDE, cfg.max_vertex_attrib_stride);
+    gls_state_int_init1(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, cfg.max_vertex_attrib_relative_offset);
+    gls_state_int_init1(GL_MAX_VERTEX_ATTRIB_BINDINGS, cfg.max_vertex_attrib_bindings);
+    gls_state_int_init1(GL_MAX_COLOR_ATTACHMENTS, cfg.max_color_attachments);
+    gls_state_int_init1(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, cfg.max_combined_texture_units);
+    gls_state_int_init1(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, cfg.max_xfb_buffers);
+    gls_state_int_init1(GL_MAX_UNIFORM_BUFFER_BINDINGS, cfg.max_ubo_bindings);
+    gls_state_int_init1(GL_MAX_PATCH_VERTICES, cfg.max_patch_vertices);
+    gls_state_int_init1(GL_MAX_RENDERBUFFER_SIZE, cfg.max_renderbuffer_size);
+    gls_state_int_init1(GL_MAX_TEXTURE_SIZE, cfg.max_texture_size);
+    gls_state_int_init1(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, cfg.max_atomic_counter_buffer_bindings);
+    gls_state_int_init1(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, cfg.max_ssbo_bindings);
+    gls_state_int_init1(GL_MAX_SAMPLE_MASK_WORDS, cfg.max_sample_mask_words);
+    gls_state_int_init1(GL_MAJOR_VERSION, cfg.version/100);
+    gls_state_int_init1(GL_MINOR_VERSION, cfg.version%100/10);
+    gls_set_ver(cfg.version);
     
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_UNIFORM_BUFFER, cfg.max_ubo_bindings, NULL);
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_ATOMIC_COUNTER_BUFFER, cfg.max_atomic_counter_buffer_bindings, NULL);
-    trc_gl_state_bound_buffer_indexed_init(trace, GL_SHADER_STORAGE_BUFFER, cfg.max_ssbo_bindings, NULL);
+    gls_bound_buffer_indexed_init(GL_UNIFORM_BUFFER, cfg.max_ubo_bindings, NULL);
+    gls_bound_buffer_indexed_init(GL_ATOMIC_COUNTER_BUFFER, cfg.max_atomic_counter_buffer_bindings, NULL);
+    gls_bound_buffer_indexed_init(GL_SHADER_STORAGE_BUFFER, cfg.max_ssbo_bindings, NULL);
     
     trc_gl_context_rev_t rev = *trc_get_context(trace);
     
@@ -184,173 +184,173 @@ static void init_context() {
     rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER = default_tf.bindings;
     trc_set_context(trace, &rev);
     
-    trc_gl_state_set_tf_primitive(trace, 0);
+    gls_set_tf_primitive(0);
     
-    trc_gl_state_default_tf_init(trace, (trc_obj_ref_t){default_tf_obj});
-    trc_grab_obj(default_tf_obj); //trc_gl_state_default_tf_init does not increase the reference count
-    trc_gl_state_current_tf_init(trace, (trc_obj_ref_t){default_tf_obj});
-    trc_grab_obj(default_tf_obj); //trc_gl_state_current_tf_init does not increase the reference count
+    gls_default_tf_init((trc_obj_ref_t){default_tf_obj});
+    trc_grab_obj(default_tf_obj); //gls_default_tf_init does not increase the reference count
+    gls_current_tf_init((trc_obj_ref_t){default_tf_obj});
+    trc_grab_obj(default_tf_obj); //gls_current_tf_init does not increase the reference count
     
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_3D, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_1D_ARRAY, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_ARRAY, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_RECTANGLE, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_CUBE_MAP_ARRAY, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_BUFFER, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE, cfg.max_combined_texture_units, NULL);
-    trc_gl_state_bound_textures_init(trace, GL_TEXTURE_2D_MULTISAMPLE_ARRAY, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_1D, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_2D, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_3D, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_1D_ARRAY, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_2D_ARRAY, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_RECTANGLE, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_CUBE_MAP, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_CUBE_MAP_ARRAY, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_BUFFER, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_2D_MULTISAMPLE, cfg.max_combined_texture_units, NULL);
+    gls_bound_textures_init(GL_TEXTURE_2D_MULTISAMPLE_ARRAY, cfg.max_combined_texture_units, NULL);
     
-    trc_gl_state_bound_samplers_init(trace, cfg.max_combined_texture_units, NULL);
+    gls_bound_samplers_init(cfg.max_combined_texture_units, NULL);
     
-    trc_gl_state_enabled_init(trace, GL_BLEND, cfg.max_draw_buffers, NULL);
-    trc_gl_state_enabled_init(trace, GL_CLIP_DISTANCE0, cfg.max_clip_distances, NULL);
-    trc_gl_state_enabled_init1(trace, GL_COLOR_LOGIC_OP, false);
-    trc_gl_state_enabled_init1(trace, GL_CULL_FACE, false);
-    trc_gl_state_enabled_init1(trace, GL_DEBUG_OUTPUT, false);
-    trc_gl_state_enabled_init1(trace, GL_DEBUG_OUTPUT_SYNCHRONOUS, false);
-    trc_gl_state_enabled_init1(trace, GL_DEPTH_CLAMP, false);
-    trc_gl_state_enabled_init1(trace, GL_DEPTH_TEST, false);
-    trc_gl_state_enabled_init1(trace, GL_DITHER, true);
-    trc_gl_state_enabled_init1(trace, GL_FRAMEBUFFER_SRGB, false);
-    trc_gl_state_enabled_init1(trace, GL_LINE_SMOOTH, false);
-    trc_gl_state_enabled_init1(trace, GL_MULTISAMPLE, false);
-    trc_gl_state_enabled_init1(trace, GL_POLYGON_OFFSET_FILL, false);
-    trc_gl_state_enabled_init1(trace, GL_POLYGON_OFFSET_LINE, false);
-    trc_gl_state_enabled_init1(trace, GL_POLYGON_OFFSET_POINT, false);
-    trc_gl_state_enabled_init1(trace, GL_POLYGON_SMOOTH, false);
-    trc_gl_state_enabled_init1(trace, GL_PRIMITIVE_RESTART, false);
-    trc_gl_state_enabled_init1(trace, GL_PRIMITIVE_RESTART_FIXED_INDEX, false);
-    trc_gl_state_enabled_init1(trace, GL_RASTERIZER_DISCARD, false);
-    trc_gl_state_enabled_init1(trace, GL_SAMPLE_ALPHA_TO_COVERAGE, false);
-    trc_gl_state_enabled_init1(trace, GL_SAMPLE_ALPHA_TO_ONE, false);
-    trc_gl_state_enabled_init1(trace, GL_SAMPLE_COVERAGE, false);
-    trc_gl_state_enabled_init1(trace, GL_SAMPLE_SHADING, false);
-    trc_gl_state_enabled_init1(trace, GL_SAMPLE_MASK, false);
-    trc_gl_state_enabled_init(trace, GL_SCISSOR_TEST, cfg.max_viewports, NULL);
-    trc_gl_state_enabled_init1(trace, GL_STENCIL_TEST, false);
-    trc_gl_state_enabled_init1(trace, GL_TEXTURE_CUBE_MAP_SEAMLESS, false);
-    trc_gl_state_enabled_init1(trace, GL_PROGRAM_POINT_SIZE, false);
+    gls_enabled_init(GL_BLEND, cfg.max_draw_buffers, NULL);
+    gls_enabled_init(GL_CLIP_DISTANCE0, cfg.max_clip_distances, NULL);
+    gls_enabled_init1(GL_COLOR_LOGIC_OP, false);
+    gls_enabled_init1(GL_CULL_FACE, false);
+    gls_enabled_init1(GL_DEBUG_OUTPUT, false);
+    gls_enabled_init1(GL_DEBUG_OUTPUT_SYNCHRONOUS, false);
+    gls_enabled_init1(GL_DEPTH_CLAMP, false);
+    gls_enabled_init1(GL_DEPTH_TEST, false);
+    gls_enabled_init1(GL_DITHER, true);
+    gls_enabled_init1(GL_FRAMEBUFFER_SRGB, false);
+    gls_enabled_init1(GL_LINE_SMOOTH, false);
+    gls_enabled_init1(GL_MULTISAMPLE, false);
+    gls_enabled_init1(GL_POLYGON_OFFSET_FILL, false);
+    gls_enabled_init1(GL_POLYGON_OFFSET_LINE, false);
+    gls_enabled_init1(GL_POLYGON_OFFSET_POINT, false);
+    gls_enabled_init1(GL_POLYGON_SMOOTH, false);
+    gls_enabled_init1(GL_PRIMITIVE_RESTART, false);
+    gls_enabled_init1(GL_PRIMITIVE_RESTART_FIXED_INDEX, false);
+    gls_enabled_init1(GL_RASTERIZER_DISCARD, false);
+    gls_enabled_init1(GL_SAMPLE_ALPHA_TO_COVERAGE, false);
+    gls_enabled_init1(GL_SAMPLE_ALPHA_TO_ONE, false);
+    gls_enabled_init1(GL_SAMPLE_COVERAGE, false);
+    gls_enabled_init1(GL_SAMPLE_SHADING, false);
+    gls_enabled_init1(GL_SAMPLE_MASK, false);
+    gls_enabled_init(GL_SCISSOR_TEST, cfg.max_viewports, NULL);
+    gls_enabled_init1(GL_STENCIL_TEST, false);
+    gls_enabled_init1(GL_TEXTURE_CUBE_MAP_SEAMLESS, false);
+    gls_enabled_init1(GL_PROGRAM_POINT_SIZE, false);
     
-    trc_gl_state_state_bool_init1(trace, GL_DEPTH_WRITEMASK, GL_TRUE);
+    gls_state_bool_init1(GL_DEPTH_WRITEMASK, GL_TRUE);
     bool color_mask[cfg.max_draw_buffers*4];
     for (size_t i = 0; i < cfg.max_draw_buffers*4; i++) color_mask[i] = GL_TRUE;
-    trc_gl_state_state_bool_init(trace, GL_COLOR_WRITEMASK, cfg.max_draw_buffers*4, color_mask);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_WRITEMASK, 0xffffffff);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_WRITEMASK, 0xffffffff);
+    gls_state_bool_init(GL_COLOR_WRITEMASK, cfg.max_draw_buffers*4, color_mask);
+    gls_state_int_init1(GL_STENCIL_WRITEMASK, 0xffffffff);
+    gls_state_int_init1(GL_STENCIL_BACK_WRITEMASK, 0xffffffff);
     
-    trc_gl_state_state_bool_init1(trace, GL_PACK_SWAP_BYTES, GL_FALSE);
-    trc_gl_state_state_bool_init1(trace, GL_PACK_LSB_FIRST, GL_FALSE);
-    trc_gl_state_state_bool_init1(trace, GL_UNPACK_SWAP_BYTES, GL_FALSE);
-    trc_gl_state_state_bool_init1(trace, GL_UNPACK_LSB_FIRST, GL_FALSE);
+    gls_state_bool_init1(GL_PACK_SWAP_BYTES, GL_FALSE);
+    gls_state_bool_init1(GL_PACK_LSB_FIRST, GL_FALSE);
+    gls_state_bool_init1(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+    gls_state_bool_init1(GL_UNPACK_LSB_FIRST, GL_FALSE);
     
-    trc_gl_state_state_int_init1(trace, GL_PACK_ROW_LENGTH, 0);
-    trc_gl_state_state_int_init1(trace, GL_PACK_IMAGE_HEIGHT, 0);
-    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_ROWS, 0);
-    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_PIXELS, 0);
-    trc_gl_state_state_int_init1(trace, GL_PACK_SKIP_IMAGES, 0);
-    trc_gl_state_state_int_init1(trace, GL_PACK_ALIGNMENT, 4);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_ROW_LENGTH, 0);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_IMAGE_HEIGHT, 0);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_ROWS, 0);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_PIXELS, 0);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_SKIP_IMAGES, 0);
-    trc_gl_state_state_int_init1(trace, GL_UNPACK_ALIGNMENT, 4);
+    gls_state_int_init1(GL_PACK_ROW_LENGTH, 0);
+    gls_state_int_init1(GL_PACK_IMAGE_HEIGHT, 0);
+    gls_state_int_init1(GL_PACK_SKIP_ROWS, 0);
+    gls_state_int_init1(GL_PACK_SKIP_PIXELS, 0);
+    gls_state_int_init1(GL_PACK_SKIP_IMAGES, 0);
+    gls_state_int_init1(GL_PACK_ALIGNMENT, 4);
+    gls_state_int_init1(GL_UNPACK_ROW_LENGTH, 0);
+    gls_state_int_init1(GL_UNPACK_IMAGE_HEIGHT, 0);
+    gls_state_int_init1(GL_UNPACK_SKIP_ROWS, 0);
+    gls_state_int_init1(GL_UNPACK_SKIP_PIXELS, 0);
+    gls_state_int_init1(GL_UNPACK_SKIP_IMAGES, 0);
+    gls_state_int_init1(GL_UNPACK_ALIGNMENT, 4);
     
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_CLEAR_VALUE, 0);
-    trc_gl_state_state_float_init1(trace, GL_DEPTH_CLEAR_VALUE, 0);
+    gls_state_int_init1(GL_STENCIL_CLEAR_VALUE, 0);
+    gls_state_float_init1(GL_DEPTH_CLEAR_VALUE, 0);
     float color_clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    trc_gl_state_state_float_init(trace, GL_COLOR_CLEAR_VALUE, 4, color_clear);
+    gls_state_float_init(GL_COLOR_CLEAR_VALUE, 4, color_clear);
     
-    trc_gl_state_state_float_init1(trace, GL_POINT_SIZE, 1.0f);
-    trc_gl_state_state_float_init1(trace, GL_LINE_WIDTH, 1.0f);
+    gls_state_float_init1(GL_POINT_SIZE, 1.0f);
+    gls_state_float_init1(GL_LINE_WIDTH, 1.0f);
     
-    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_UNITS, 0.0f);
-    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_FACTOR, 0.0f);
-    trc_gl_state_state_float_init1(trace, GL_POLYGON_OFFSET_CLAMP, 0.0f);
+    gls_state_float_init1(GL_POLYGON_OFFSET_UNITS, 0.0f);
+    gls_state_float_init1(GL_POLYGON_OFFSET_FACTOR, 0.0f);
+    gls_state_float_init1(GL_POLYGON_OFFSET_CLAMP, 0.0f);
     
-    trc_gl_state_state_float_init1(trace, GL_SAMPLE_COVERAGE_VALUE, 1.0f);
-    trc_gl_state_state_bool_init1(trace, GL_SAMPLE_COVERAGE_INVERT, false);
+    gls_state_float_init1(GL_SAMPLE_COVERAGE_VALUE, 1.0f);
+    gls_state_bool_init1(GL_SAMPLE_COVERAGE_INVERT, false);
     
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_FUNC, GL_ALWAYS);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_REF, 0);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_VALUE_MASK, 0xffffffff);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_FUNC, GL_ALWAYS);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_REF, 0);
-    trc_gl_state_state_int_init1(trace, GL_STENCIL_BACK_VALUE_MASK, 0xffffffff);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_FAIL, GL_KEEP);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_PASS_DEPTH_PASS, GL_KEEP);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_PASS_DEPTH_FAIL, GL_KEEP);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_FAIL, GL_KEEP);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_PASS, GL_KEEP);
-    trc_gl_state_state_enum_init1(trace, GL_STENCIL_BACK_PASS_DEPTH_FAIL, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_FUNC, GL_ALWAYS);
+    gls_state_int_init1(GL_STENCIL_REF, 0);
+    gls_state_int_init1(GL_STENCIL_VALUE_MASK, 0xffffffff);
+    gls_state_enum_init1(GL_STENCIL_BACK_FUNC, GL_ALWAYS);
+    gls_state_int_init1(GL_STENCIL_BACK_REF, 0);
+    gls_state_int_init1(GL_STENCIL_BACK_VALUE_MASK, 0xffffffff);
+    gls_state_enum_init1(GL_STENCIL_FAIL, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_PASS_DEPTH_PASS, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_PASS_DEPTH_FAIL, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_BACK_FAIL, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_BACK_PASS_DEPTH_PASS, GL_KEEP);
+    gls_state_enum_init1(GL_STENCIL_BACK_PASS_DEPTH_FAIL, GL_KEEP);
     
     GLenum blenddata[cfg.max_draw_buffers];
     for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_ONE;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_RGB, cfg.max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_SRC_ALPHA, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_SRC_RGB, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_SRC_ALPHA, cfg.max_draw_buffers, blenddata);
     
     for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_ZERO;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_RGB, cfg.max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_DST_ALPHA, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_DST_RGB, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_DST_ALPHA, cfg.max_draw_buffers, blenddata);
     
     float blend_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    trc_gl_state_state_float_init(trace, GL_BLEND_COLOR, 4, blend_color);
+    gls_state_float_init(GL_BLEND_COLOR, 4, blend_color);
     
     for (size_t i = 0; i < cfg.max_draw_buffers; i++) blenddata[i] = GL_FUNC_ADD;
-    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_RGB, cfg.max_draw_buffers, blenddata);
-    trc_gl_state_state_enum_init(trace, GL_BLEND_EQUATION_ALPHA, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_EQUATION_RGB, cfg.max_draw_buffers, blenddata);
+    gls_state_enum_init(GL_BLEND_EQUATION_ALPHA, cfg.max_draw_buffers, blenddata);
     
-    trc_gl_state_set_hints(trace, GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_DONT_CARE);
-    trc_gl_state_set_hints(trace, GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    trc_gl_state_set_hints(trace, GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
-    trc_gl_state_set_hints(trace, GL_TEXTURE_COMPRESSION_HINT, GL_DONT_CARE);
+    gls_set_hints(GL_FRAGMENT_SHADER_DERIVATIVE_HINT, GL_DONT_CARE);
+    gls_set_hints(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    gls_set_hints(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
+    gls_set_hints(GL_TEXTURE_COMPRESSION_HINT, GL_DONT_CARE);
     
     float zerof[cfg.max_viewports*4];
     for (size_t i = 0; i < cfg.max_viewports*4; i++) zerof[i] = 0.0f;
-    trc_gl_state_state_float_init(trace, GL_VIEWPORT, cfg.max_viewports*4, zerof);
-    trc_gl_state_state_int_init(trace, GL_SCISSOR_BOX, cfg.max_viewports*4, NULL);
+    gls_state_float_init(GL_VIEWPORT, cfg.max_viewports*4, zerof);
+    gls_state_int_init(GL_SCISSOR_BOX, cfg.max_viewports*4, NULL);
     float depth_range[cfg.max_viewports*2];
     for (int i = 0; i < cfg.max_viewports*2; i++) depth_range[i] = (float[]){0.0f, 1.0f}[i%2];
-    trc_gl_state_state_float_init(trace, GL_DEPTH_RANGE, cfg.max_viewports*2, depth_range);
+    gls_state_float_init(GL_DEPTH_RANGE, cfg.max_viewports*2, depth_range);
     
-    trc_gl_state_state_enum_init1(trace, GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
-    trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
-    trc_gl_state_state_int_init1(trace, GL_PRIMITIVE_RESTART_INDEX, 0);
-    trc_gl_state_state_enum_init1(trace, GL_POLYGON_MODE, GL_FILL);
-    trc_gl_state_state_enum_init1(trace, GL_CULL_FACE_MODE, GL_BACK);
-    trc_gl_state_state_enum_init1(trace, GL_FRONT_FACE, GL_CCW);
-    trc_gl_state_state_enum_init1(trace, GL_DEPTH_FUNC, GL_LESS);
-    trc_gl_state_state_enum_init1(trace, GL_LOGIC_OP_MODE, GL_COPY);
-    trc_gl_state_state_enum_init1(trace, GL_CLIP_ORIGIN, GL_LOWER_LEFT);
-    trc_gl_state_state_enum_init1(trace, GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
-    trc_gl_state_state_float_init1(trace, GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
-    trc_gl_state_state_enum_init1(trace, GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
-    trc_gl_state_state_float_init1(trace, GL_MIN_SAMPLE_SHADING_VALUE, 0.0f);
+    gls_state_enum_init1(GL_PROVOKING_VERTEX, GL_LAST_VERTEX_CONVENTION);
+    gls_state_enum_init1(GL_LOGIC_OP_MODE, GL_COPY);
+    gls_state_int_init1(GL_PRIMITIVE_RESTART_INDEX, 0);
+    gls_state_enum_init1(GL_POLYGON_MODE, GL_FILL);
+    gls_state_enum_init1(GL_CULL_FACE_MODE, GL_BACK);
+    gls_state_enum_init1(GL_FRONT_FACE, GL_CCW);
+    gls_state_enum_init1(GL_DEPTH_FUNC, GL_LESS);
+    gls_state_enum_init1(GL_LOGIC_OP_MODE, GL_COPY);
+    gls_state_enum_init1(GL_CLIP_ORIGIN, GL_LOWER_LEFT);
+    gls_state_enum_init1(GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
+    gls_state_float_init1(GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
+    gls_state_enum_init1(GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
+    gls_state_float_init1(GL_MIN_SAMPLE_SHADING_VALUE, 0.0f);
     
-    trc_gl_state_state_int_init1(trace, GL_PATCH_VERTICES, 3);
+    gls_state_int_init1(GL_PATCH_VERTICES, 3);
     float one4[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_OUTER_LEVEL, 4, one4);
-    trc_gl_state_state_float_init(trace, GL_PATCH_DEFAULT_INNER_LEVEL, 2, one4);
+    gls_state_float_init(GL_PATCH_DEFAULT_OUTER_LEVEL, 4, one4);
+    gls_state_float_init(GL_PATCH_DEFAULT_INNER_LEVEL, 2, one4);
     
     double* va = malloc(cfg.max_vertex_attribs*4*sizeof(double));
     for (size_t i = 0; i < cfg.max_vertex_attribs*4; i++) va[i] = i%4==3 ? 1 : 0;
-    trc_gl_state_state_double_init(trace, GL_CURRENT_VERTEX_ATTRIB, cfg.max_vertex_attribs*4, va);
+    gls_state_double_init(GL_CURRENT_VERTEX_ATTRIB, cfg.max_vertex_attribs*4, va);
     free(va);
     
     GLenum draw_buffers[1] = {GL_BACK};
-    trc_gl_state_state_enum_init(trace, GL_DRAW_BUFFER, 1, draw_buffers);
+    gls_state_enum_init(GL_DRAW_BUFFER, 1, draw_buffers);
     
     int sample_mask_value[cfg.max_sample_mask_words];
     memset(sample_mask_value, 0xff, cfg.max_sample_mask_words*sizeof(int));
-    trc_gl_state_state_int_init(trace, GL_SAMPLE_MASK_VALUE, cfg.max_sample_mask_words, sample_mask_value);
+    gls_state_int_init(GL_SAMPLE_MASK_VALUE, cfg.max_sample_mask_words, sample_mask_value);
     
     uint draw_vao;
     F(glGenVertexArrays)(1, &draw_vao);
     F(glBindVertexArray)(draw_vao);
-    trc_gl_state_set_draw_vao(trace, draw_vao);
+    gls_set_draw_vao(draw_vao);
     
     rev = *trc_get_context(trace);
     create_context_buffers(&rev);
@@ -501,14 +501,14 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
             int32_t width = ((int32_t*)extra->data)[0];
             int32_t height = ((int32_t*)extra->data)[1];
             if (width>=0 && height>=0) { //TODO: Move this into init_context()
-                trc_gl_state_set_drawable_width(ctx->trace, width);
-                trc_gl_state_set_drawable_height(ctx->trace, height);
+                gls_set_drawable_width(width);
+                gls_set_drawable_height(height);
                 SDL_SetWindowSize(ctx->window, width, height);
-                for (size_t i = 0; i < trc_gl_state_get_state_int(ctx->trace, GL_MAX_VIEWPORTS, 0); i++) {
-                    trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, i*4+2, width);
-                    trc_gl_state_set_state_float(ctx->trace, GL_VIEWPORT, i*4+3, height);
-                    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, i*4+2, width);
-                    trc_gl_state_set_state_int(ctx->trace, GL_SCISSOR_BOX, i*4+3, height);
+                for (size_t i = 0; i < gls_get_state_int(GL_MAX_VIEWPORTS, 0); i++) {
+                    gls_set_state_float(GL_VIEWPORT, i*4+2, width);
+                    gls_set_state_float(GL_VIEWPORT, i*4+3, height);
+                    gls_set_state_int(GL_SCISSOR_BOX, i*4+2, width);
+                    gls_set_state_int(GL_SCISSOR_BOX, i*4+3, height);
                     if (i == 0) {
                         F(glViewport)(0, 0, width, height);
                         F(glScissor)(0, 0, width, height);

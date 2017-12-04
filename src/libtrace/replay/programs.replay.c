@@ -16,10 +16,10 @@ bool program_has_stage(trc_obj_t* program, GLenum stage) {
 }
 
 trc_obj_t* get_active_program_for_stage(GLenum stage) {
-    trc_obj_t* program = trc_gl_state_get_bound_program(ctx->trace);
+    trc_obj_t* program = gls_get_bound_program();
     if (program) return program_has_stage(program, stage) ? program : NULL;
     
-    trc_obj_t* pipeline = trc_gl_state_get_bound_pipeline(ctx->trace);
+    trc_obj_t* pipeline = gls_get_bound_pipeline();
     if (!pipeline) return NULL;
     
     const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
@@ -38,9 +38,9 @@ trc_obj_t* get_active_program_for_stage(GLenum stage) {
 }
 
 trc_obj_t* get_active_program() {
-    trc_obj_t* program = trc_gl_state_get_bound_program(ctx->trace);
+    trc_obj_t* program = gls_get_bound_program();
     if (program) return program;
-    trc_obj_t* pipeline = trc_gl_state_get_bound_pipeline(ctx->trace);
+    trc_obj_t* pipeline = gls_get_bound_pipeline();
     if (!pipeline) return NULL;
     const trc_gl_program_pipeline_rev_t* rev = trc_obj_get_rev(pipeline, -1); 
     return rev->active_program.obj;
@@ -230,7 +230,7 @@ glUniformBlockBinding: //GLuint p_program, GLuint p_uniformBlockIndex, GLuint p_
     const trc_gl_program_rev_t* rev_ptr = get_program(p_program);
     if (!rev_ptr) ERROR("Invalid program name");
     trc_gl_program_rev_t rev = *rev_ptr;
-    if (p_uniformBlockBinding >= trc_gl_state_get_state_int(ctx->trace, GL_MAX_UNIFORM_BUFFER_BINDINGS, 0))
+    if (p_uniformBlockBinding >= gls_get_state_int(GL_MAX_UNIFORM_BUFFER_BINDINGS, 0))
         ERROR("Invalid binding");
     uint uniform_block_count = rev.uniform_blocks->size / sizeof(trc_gl_program_uniform_block_t);
     trc_gl_program_uniform_block_t* blocks = trc_map_data(rev.uniform_blocks, TRC_MAP_READ);
@@ -406,8 +406,8 @@ static trc_data_t* get_program_uniform_blocks(GLuint real_program) {
 
 static void get_program_subroutines(GLuint real_program, trc_data_t** datas) {
     //TODO: Check for extensions
-    bool compute_supported = trc_gl_state_get_ver(ctx->trace) >= 430;
-    bool tesselation_supported = trc_gl_state_get_ver(ctx->trace) >= 400;
+    bool compute_supported = gls_get_ver() >= 430;
+    bool tesselation_supported = gls_get_ver() >= 400;
     
     size_t subroutine_count[6] = {0};
     uint* subroutines[6] = {0};
@@ -438,8 +438,8 @@ static void get_program_subroutines(GLuint real_program, trc_data_t** datas) {
 
 static void get_program_subroutine_uniforms(GLuint real_program, trc_data_t** datas) {
     //TODO: Check for extensions
-    bool compute_supported = trc_gl_state_get_ver(ctx->trace) >= 430;
-    bool tesselation_supported = trc_gl_state_get_ver(ctx->trace) >= 400;
+    bool compute_supported = gls_get_ver() >= 430;
+    bool tesselation_supported = gls_get_ver() >= 400;
     
     //"_uniform" not included to keep names short
     size_t subroutine_count[6] = {0};
@@ -662,7 +662,7 @@ glLinkProgram: //GLuint p_program
     if (!program) ERROR("Invalid program name");
     
     //TODO: Also test if it is part of the current program pipeline?
-    if (get_current_tf()->active_not_paused && program==trc_gl_state_get_bound_program(ctx->trace))
+    if (get_current_tf()->active_not_paused && program==gls_get_bound_program())
         ERROR("The bound program cannot be modified while transform feedback is active and unpaused");
     
     trc_gl_program_rev_t rev = *(const trc_gl_program_rev_t*)trc_obj_get_rev(program, -1);
@@ -689,7 +689,7 @@ glLinkProgram: //GLuint p_program
     }
     rev.vertex_attribs = get_program_vertex_attribs(rev.real);
     rev.uniform_blocks = get_program_uniform_blocks(rev.real);
-    if (trc_gl_state_get_ver(ctx->trace) >= 400) { //TODO: Check for the extension
+    if (gls_get_ver() >= 400) { //TODO: Check for the extension
         get_program_subroutines(rev.real, rev.subroutines);
         get_program_subroutine_uniforms(rev.real, rev.subroutine_uniforms);
     }
@@ -736,7 +736,7 @@ glUseProgram: //GLuint p_program
     if (get_current_tf()->active_not_paused)
         ERROR("The program binding cannot be modified while transform feedback is active and unpaused");
     
-    trc_gl_state_set_bound_program(ctx->trace, program_rev?program_rev->head.obj:NULL);
+    gls_set_bound_program(program_rev?program_rev->head.obj:NULL);
     
     real(program_rev?program_rev->real:0);
 
@@ -765,8 +765,8 @@ glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
             trc_add_warning(cmd, "Invalid program pipeline name");
         } else {
             trc_obj_t* obj = get_program_pipeline(p_pipelines[i])->head.obj;
-            if (trc_gl_state_get_bound_pipeline(ctx->trace) == obj)
-                trc_gl_state_set_bound_pipeline(ctx->trace, NULL);
+            if (gls_get_bound_pipeline() == obj)
+                gls_set_bound_pipeline(NULL);
             delete_obj(p_pipelines[i], TrcProgramPipeline);
         }
     }
@@ -782,7 +782,7 @@ glBindProgramPipeline: //GLuint p_pipeline
         newrev.has_object = true;
         set_program_pipeline(&newrev);
     }
-    trc_gl_state_set_bound_pipeline(ctx->trace, p_pipeline_rev->head.obj);
+    gls_set_bound_pipeline(p_pipeline_rev->head.obj);
     real(p_pipeline?p_pipeline_rev->real:0);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
@@ -790,7 +790,7 @@ glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (p_program && !p_program_rev) ERROR("Invalid program name");
     if (get_current_tf()->active_not_paused &&
-        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace)) {
+        p_pipeline_rev->head.obj==gls_get_bound_pipeline()) {
         ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     }
     real(p_pipeline_rev->real, p_stages, p_program?p_program_rev->real:0);
@@ -814,7 +814,7 @@ glActiveShaderProgram: //GLuint p_pipeline, GLuint p_program
     if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (!p_program_rev) ERROR("Invalid program name");
     if (get_current_tf()->active_not_paused &&
-        p_pipeline_rev->head.obj==trc_gl_state_get_bound_pipeline(ctx->trace)) {
+        p_pipeline_rev->head.obj==gls_get_bound_pipeline()) {
         ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     }
     real(p_pipeline_rev->real, p_program_rev->real);

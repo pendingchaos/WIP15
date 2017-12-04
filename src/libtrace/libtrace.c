@@ -1295,10 +1295,6 @@ void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj) {
     trc_set_obj_ref(&rev->context, obj);
 }
 
-#define WIP15_STATE_GEN_IMPL
-#include "libtrace_glstate.h"
-#undef WIP15_STATE_GEN_IMPL
-
 static size_t obj_sizes[Trc_ObjMax] = {
     [TrcBuffer] = sizeof(trc_gl_buffer_rev_t),
     [TrcSampler] = sizeof(trc_gl_sampler_rev_t),

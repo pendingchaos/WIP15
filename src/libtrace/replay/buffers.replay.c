@@ -18,13 +18,13 @@ static void gen_buffers(size_t count, const GLuint* real, const GLuint* fake, bo
 
 trc_obj_t* get_bound_buffer(GLenum target) {
     if (target == GL_ELEMENT_ARRAY_BUFFER) {
-        trc_obj_t* vao = trc_gl_state_get_bound_vao(ctx->trace);
+        trc_obj_t* vao = gls_get_bound_vao();
         if (vao) {
             const trc_gl_vao_rev_t* rev = trc_obj_get_rev(vao, -1);
             return rev->element_buffer.obj;
         }
     }
-    return trc_gl_state_get_bound_buffer(ctx->trace, target);
+    return gls_get_bound_buffer(target);
 }
 
 void update_buffer_from_gl(trc_obj_t* obj, size_t offset, ptrdiff_t size_) {
@@ -279,23 +279,23 @@ static void bind_buffer(GLenum target, GLuint buffer) {
         set_buffer(&newrev);
     }
     if (target == GL_ELEMENT_ARRAY_BUFFER) {
-        trc_obj_t* vao = trc_gl_state_get_bound_vao(ctx->trace);
+        trc_obj_t* vao = gls_get_bound_vao();
         if (vao) {
             trc_gl_vao_rev_t vao_rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(vao, -1);
             trc_set_obj_ref(&vao_rev.element_buffer, rev?rev->head.obj:NULL);
             set_vao(&vao_rev);
         } else {
-            trc_gl_state_set_bound_buffer(ctx->trace, target, rev?rev->head.obj:NULL);
+            gls_set_bound_buffer(target, rev?rev->head.obj:NULL);
         }
     } else {
-        trc_gl_state_set_bound_buffer(ctx->trace, target, rev?rev->head.obj:NULL);
+        gls_set_bound_buffer(target, rev?rev->head.obj:NULL);
     }
 }
 
 static void bind_buffer_indexed_ranged(GLenum target, GLuint index, GLuint buffer, uint64_t offset, uint64_t size) {
     const trc_gl_buffer_rev_t* rev = get_buffer(buffer);
     if (target == GL_TRANSFORM_FEEDBACK_BUFFER)
-        rev = on_change_tf_binding(trc_gl_state_get_bound_buffer_indexed(ctx->trace, target, index).buf.obj, rev?rev->head.obj:NULL);
+        rev = on_change_tf_binding(gls_get_bound_buffer_indexed(target, index).buf.obj, rev?rev->head.obj:NULL);
     if (rev && !rev->has_object) {
         trc_gl_buffer_rev_t newrev = *rev;
         newrev.has_object = true;
@@ -305,11 +305,10 @@ static void bind_buffer_indexed_ranged(GLenum target, GLuint index, GLuint buffe
     point.buf.obj = rev ? rev->head.obj : NULL;
     point.offset = offset;
     point.size = size;
-    trc_gl_state_set_bound_buffer_indexed(ctx->trace, target, index, point);
+    gls_set_bound_buffer_indexed(target, index, point);
     if (target == GL_TRANSFORM_FEEDBACK_BUFFER) {
         trc_gl_context_rev_t ctx_rev = *trc_get_context(ctx->trace);
-        trc_gl_transform_feedback_rev_t tf_rev = *(trc_gl_transform_feedback_rev_t*)
-            trc_obj_get_rev(trc_gl_state_get_current_tf(ctx->trace), -1);
+        trc_gl_transform_feedback_rev_t tf_rev = *get_current_tf();
         tf_rev.bindings = ctx_rev.bound_buffer_indexed_GL_TRANSFORM_FEEDBACK_BUFFER;
         set_transform_feedback(&tf_rev);
     }
@@ -347,7 +346,7 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
                 GL_SHADER_STORAGE_BUFFER, GL_TEXTURE_BUFFER, GL_TRANSFORM_FEEDBACK_BUFFER,
                 GL_UNIFORM_BUFFER};
             for (size_t j = 0; j < 13; j++) {
-                if (trc_gl_state_get_bound_buffer(ctx->trace, targets[j]) == obj)
+                if (gls_get_bound_buffer(targets[j]) == obj)
                     bind_buffer(targets[j], 0);
             }
             
@@ -355,9 +354,9 @@ glDeleteBuffers: //GLsizei p_n, const GLuint* p_buffers
                 GL_TRANSFORM_FEEDBACK_BUFFER, GL_UNIFORM_BUFFER,
                 GL_SHADER_STORAGE_BUFFER, GL_ATOMIC_COUNTER_BUFFER};
             for (size_t j = 0; j < 4; j++) {
-                size_t count = trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, indexed_targets[j]);
+                size_t count = gls_get_bound_buffer_indexed_size(indexed_targets[j]);
                 for (size_t k = 0; k < count; k++) {
-                    if (trc_gl_state_get_bound_buffer_indexed(ctx->trace, indexed_targets[j], k).buf.obj == obj)
+                    if (gls_get_bound_buffer_indexed(indexed_targets[j], k).buf.obj == obj)
                         bind_buffer_indexed(indexed_targets[j], k, 0);
                 }
             }
@@ -376,7 +375,7 @@ glBindBuffer: //GLenum p_target, GLuint p_buffer
 glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
-    if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
+    if (p_index >= gls_get_bound_buffer_indexed_size(p_target))
         ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = get_buffer(p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");
@@ -387,7 +386,7 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
 glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size
     if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
-    if (p_index >= trc_gl_state_get_bound_buffer_indexed_size(ctx->trace, p_target))
+    if (p_index >= gls_get_bound_buffer_indexed_size(p_target))
         ERROR("Invalid index");
     const trc_gl_buffer_rev_t* rev = get_buffer(p_buffer);
     if (!rev && p_buffer) ERROR("Invalid buffer name");

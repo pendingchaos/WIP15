@@ -243,7 +243,7 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
     
-    int max_size = trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0);
+    int max_size = gls_get_state_int(GL_MAX_TEXTURE_SIZE, 0);
     if (level<0 || level>ceil_log2(max_size)) ERROR2(false, "Invalid level");
     for (int i = 0; i < dim; i++)
         if (size[i]<0 || size[i]>max_size) ERROR2(false, "Invalid %s", (const char*[]){"width", "height", "depth/layers"}[i]);
@@ -283,7 +283,7 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
         ERROR2(false, "Invalid format + internal format combination");
     
-    trc_obj_t* pu_buf = trc_gl_state_get_bound_buffer(ctx->trace, GL_PIXEL_UNPACK_BUFFER);
+    trc_obj_t* pu_buf = gls_get_bound_buffer(GL_PIXEL_UNPACK_BUFFER);
     const trc_gl_buffer_rev_t* pu_buf_rev = trc_obj_get_rev(pu_buf, -1);
     if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
     //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
@@ -292,8 +292,8 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
 }
 
 const trc_gl_texture_rev_t* get_bound_tex(uint target) {
-    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    return trc_obj_get_rev(trc_gl_state_get_bound_textures(ctx->trace, target, unit), -1);
+    uint unit = gls_get_active_texture_unit(ctx->trace);
+    return trc_obj_get_rev(gls_get_bound_textures(target, unit), -1);
 }
 
 static void save_init_packing_config(GLint temp[9]) {
@@ -847,7 +847,7 @@ static void get_tex_level_parameter(GLenum target, GLint level, GLenum pname,
     if (!tex->has_object) ERROR2(, "Texture name has no object");
     
     if (level < 0) ERROR2(, "The specified level is negative\n");
-    if (level > ceil_log2(trc_gl_state_get_state_int(ctx->trace, GL_MAX_TEXTURE_SIZE, 0)))
+    if (level > ceil_log2(gls_get_state_int(GL_MAX_TEXTURE_SIZE, 0)))
         ERROR2(, "The specified level is greater than ceil(log2(GL_MAX_TEXTURE_SIZE))");
     if (target==GL_TEXTURE_BUFFER && level!=0)
         ERROR2(, "The level must be zero when the target is GL_TEXTURE_BUFFER");
@@ -890,9 +890,9 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
                 GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_BUFFER, GL_TEXTURE_2D_MULTISAMPLE,
                 GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
             for (size_t j = 0; j < 11; j++) {
-                for (size_t k = 0; k < trc_gl_state_get_bound_textures_size(ctx->trace, targets[j]); k++) {
-                    if (trc_gl_state_get_bound_textures(ctx->trace, targets[j], k) == obj)
-                        trc_gl_state_set_bound_textures(ctx->trace, targets[j], k, NULL);
+                for (size_t k = 0; k < gls_get_bound_textures_size(targets[j]); k++) {
+                    if (gls_get_bound_textures(targets[j], k) == obj)
+                        gls_set_bound_textures(targets[j], k, NULL);
                 }
             }
             
@@ -903,9 +903,9 @@ glDeleteTextures: //GLsizei p_n, const GLuint* p_textures
     real(p_n, textures);
 
 glActiveTexture: //GLenum p_texture
-    if (p_texture<GL_TEXTURE0 || p_texture-GL_TEXTURE0>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
+    if (p_texture<GL_TEXTURE0 || p_texture-GL_TEXTURE0>=gls_get_state_int(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
         ERROR("No such texture unit");
-    trc_gl_state_set_active_texture_unit(ctx->trace, p_texture-GL_TEXTURE0);
+    gls_set_active_texture_unit(p_texture-GL_TEXTURE0);
     real(p_texture);
 
 glBindTexture: //GLenum p_target, GLuint p_texture
@@ -926,17 +926,17 @@ glBindTexture: //GLenum p_target, GLuint p_texture
     } else if (rev && rev->type!=p_target) {
         ERROR("Invalid target for texture object");
     }
-    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    trc_gl_state_set_bound_textures(ctx->trace, p_target, unit, rev?rev->head.obj:NULL);
+    uint unit = gls_get_active_texture_unit(ctx->trace);
+    gls_set_bound_textures(p_target, unit, rev?rev->head.obj:NULL);
 
 glBindTextureUnit: //GLuint p_unit, GLuint p_texture
-    if (p_unit>=trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
+    if (p_unit>=gls_get_state_int(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0))
         ERROR("Invalid unit");
     if (!p_texture_rev) ERROR("Invalid texture name");
     if (!p_texture_rev->has_object) ERROR("Texture name has no object");
     real(p_unit, p_texture_rev->real);
     if (p_texture) {
-        trc_gl_state_set_bound_textures(ctx->trace, p_texture_rev->type, p_unit, p_texture_rev->head.obj);
+        gls_set_bound_textures(p_texture_rev->type, p_unit, p_texture_rev->head.obj);
     } else {
         GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
                             GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
@@ -944,11 +944,11 @@ glBindTextureUnit: //GLuint p_unit, GLuint p_texture
                             GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
                             GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
         for (size_t i = 0; i < sizeof(targets)/sizeof(targets[0]); i++)
-            trc_gl_state_set_bound_textures(ctx->trace, targets[i], p_unit, NULL);
+            gls_set_bound_textures(targets[i], p_unit, NULL);
     }
 
 glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
-    if (p_first+p_count>trc_gl_state_get_state_int(ctx->trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
+    if (p_first+p_count>gls_get_state_int(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0) || p_count<0)
         ERROR("Invalid range");
     GLuint* real_tex = replay_alloc(p_count*sizeof(GLuint));
     //TODO: This probably creates a new trc_data_t for each texture
@@ -959,7 +959,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
         real_tex[i] = rev->real;
         
         if (p_textures[i]) {
-            trc_gl_state_set_bound_textures(ctx->trace, rev->type, i, trc_lookup_name(ctx->ns, TrcTexture, p_textures[i], -1));
+            gls_set_bound_textures(rev->type, i, trc_lookup_name(ctx->ns, TrcTexture, p_textures[i], -1));
         } else {
             GLenum targets[] = {GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
                                 GL_TEXTURE_1D_ARRAY, GL_TEXTURE_2D_ARRAY,
@@ -967,7 +967,7 @@ glBindTextures: //GLuint p_first, GLsizei p_count, const GLuint* p_textures
                                 GL_TEXTURE_CUBE_MAP, GL_TEXTURE_CUBE_MAP_ARRAY,
                                 GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
             for (size_t j = 0; j < sizeof(targets)/sizeof(targets[0]); j++)
-                trc_gl_state_set_bound_textures(ctx->trace, targets[j], i, NULL);
+                gls_set_bound_textures(targets[j], i, NULL);
         }
     }
     real(p_first, p_count, real_tex);
@@ -1084,8 +1084,8 @@ glTextureBufferRange: //GLuint p_texture, GLenum p_internalformat, GLuint p_buff
 glGenerateMipmap: //GLenum p_target
     real(p_target);
     
-    uint unit = trc_gl_state_get_active_texture_unit(ctx->trace);
-    trc_obj_t* tex = trc_gl_state_get_bound_textures(ctx->trace, p_target, unit);
+    uint unit = gls_get_active_texture_unit(ctx->trace);
+    trc_obj_t* tex = gls_get_bound_textures(p_target, unit);
     if (!tex) ERROR("No texture bound");
     
     GLint base;
