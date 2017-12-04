@@ -143,10 +143,13 @@ static void init_context() {
     trc_gl_state_bound_queries_init(trace, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, cfg.max_vertex_streams, NULL);
     trc_gl_state_bound_queries_init(trace, GL_TIME_ELAPSED, 1, NULL);
     
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_STREAMS, cfg.max_vertex_streams);
     trc_gl_state_state_int_init1(trace, GL_MAX_CLIP_DISTANCES, cfg.max_clip_distances);
     trc_gl_state_state_int_init1(trace, GL_MAX_DRAW_BUFFERS, cfg.max_draw_buffers);
     trc_gl_state_state_int_init1(trace, GL_MAX_VIEWPORTS, cfg.max_viewports);
     trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIBS, cfg.max_vertex_attribs);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_STRIDE, cfg.max_vertex_attrib_stride);
+    trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, cfg.max_vertex_attrib_relative_offset);
     trc_gl_state_state_int_init1(trace, GL_MAX_VERTEX_ATTRIB_BINDINGS, cfg.max_vertex_attrib_bindings);
     trc_gl_state_state_int_init1(trace, GL_MAX_COLOR_ATTACHMENTS, cfg.max_color_attachments);
     trc_gl_state_state_int_init1(trace, GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, cfg.max_combined_texture_units);
@@ -374,6 +377,8 @@ static void test_host_config(const trc_replay_config_t* host, const trc_replay_c
         {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
         {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
         {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
+        {"max_vertex_attrib_stride", offsetof(trc_replay_config_t, max_vertex_attrib_stride)},
+        {"max_vertex_attrib_relative_offset", offsetof(trc_replay_config_t, max_vertex_attrib_relative_offset)},
         {"max_vertex_attrib_bindings", offsetof(trc_replay_config_t, max_vertex_attrib_bindings)},
         {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
         {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
@@ -416,6 +421,8 @@ static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* 
             {"max_draw_buffers", &cfg->max_draw_buffers},
             {"max_viewports", &cfg->max_viewports},
             {"max_vertex_attribs", &cfg->max_vertex_attribs},
+            {"max_vertex_attrib_stride", &cfg->max_vertex_attrib_stride},
+            {"max_vertex_attrib_relative_offset", &cfg->max_vertex_attrib_relative_offset},
             {"max_vertex_attrib_bindings", &cfg->max_vertex_attrib_bindings},
             {"max_color_attachments", &cfg->max_color_attachments},
             {"max_combined_texture_units", &cfg->max_combined_texture_units},

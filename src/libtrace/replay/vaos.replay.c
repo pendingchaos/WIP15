@@ -187,6 +187,9 @@ static void vertex_attrib_ptr(bool allow_bgra, GLuint index, bool normalized, bo
         ERROR2(, "Attributes of size GL_BGRA must be normalized");
     if (!trc_gl_state_get_bound_buffer(ctx->trace, GL_ARRAY_BUFFER) && pointer)
         ERROR2(, "No buffer bound when pointer is not NULL");
+    uint ver = trc_gl_state_get_ver(ctx->trace);
+    if (ver>=440 && stride>trc_gl_state_get_state_int(ctx->trace, GL_MAX_VERTEX_ATTRIB_STRIDE, 0))
+        ERROR2(, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE");
     
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(trc_gl_state_get_bound_vao(ctx->trace), -1);
     

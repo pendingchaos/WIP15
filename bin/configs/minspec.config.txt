@@ -11,7 +11,6 @@ max_sample_mask_words: 1
 
 @3.2, 3.3
 max_vertex_streams: 1
-max_patch_vertices: 0
 @4.0+
 max_vertex_streams: 4
 max_patch_vertices: 32
@@ -27,21 +26,19 @@ max_viewports: 16
 
 @3.2, 3.3
 max_ubo_bindings: 36
-max_ssbo_bindings: 0
 max_combined_texture_units: 48
 @4.0-4.2
 max_ubo_bindings: 60
-max_ssbo_bindings: 0
 max_combined_texture_units: 80
 @4.3+
 max_ubo_bindings: 84
 max_ssbo_bindings: 8
 max_combined_texture_units: 96
+max_vertex_attrib_bindings: 16
+max_vertex_attrib_relative_offset: 2047
 
-@3.2-4.1
-max_atomic_counter_buffer_bindings: 0
+@4.4+
+max_vertex_attrib_stride: 2048
+
 @4.2+
 max_atomic_counter_buffer_bindings: 1
-
-@4.5+
-max_vertex_attrib_bindings: 16

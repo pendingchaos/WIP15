@@ -602,32 +602,43 @@ static void fill_context_value_tree(
           get_enum_str("HintMode", rev->hints_GL_TEXTURE_COMPRESSION_HINT));
     end_category(state);
     
+    uint ver = rev->ver;
+    
     begin_category(state, "Capabilities");
-    value_ints(state, "GL_MAX_CLIP_DISTANCES", rev->state_int_GL_MAX_CLIP_DISTANCES);
-    value_ints(state, "GL_MAX_TEXTURE_SIZE", rev->state_int_GL_MAX_TEXTURE_SIZE);
     value_ints(state, "GL_MAJOR_VERSION", rev->state_int_GL_MAJOR_VERSION);
     value_ints(state, "GL_MINOR_VERSION", rev->state_int_GL_MINOR_VERSION);
-    value_ints(state, "GL_MAX_VIEWPORTS", rev->state_int_GL_MAX_VIEWPORTS);
+    if (ver >= 400) value_ints(state, "GL_MAX_VERTEX_STREAMS", rev->state_int_GL_MAX_VERTEX_STREAMS);
+    value_ints(state, "GL_MAX_CLIP_DISTANCES", rev->state_int_GL_MAX_CLIP_DISTANCES);
+    value_ints(state, "GL_MAX_TEXTURE_SIZE", rev->state_int_GL_MAX_TEXTURE_SIZE);
+    if (ver >= 410) value_ints(state, "GL_MAX_VIEWPORTS", rev->state_int_GL_MAX_VIEWPORTS);
     value_ints(state, "GL_MAX_RENDERBUFFER_SIZE", rev->state_int_GL_MAX_RENDERBUFFER_SIZE);
     value_ints(state, "GL_MAX_DRAW_BUFFERS", rev->state_int_GL_MAX_DRAW_BUFFERS);
     value_ints(state, "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS",
                rev->state_int_GL_MAX_TRANSFORM_FEEDBACK_BUFFERS);
-    value_ints(state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS",
-               rev->state_int_GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
-    value_ints(state, "GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS",
-               rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
+    if (ver >= 420) value_ints(state, "GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS",
+                               rev->state_int_GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
+    if (ver >= 430) value_ints(state, "GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS",
+                               rev->state_int_GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
     value_ints(state, "GL_MAX_VERTEX_ATTRIBS",
                rev->state_int_GL_MAX_VERTEX_ATTRIBS);
-    value_ints(state, "GL_MAX_VERTEX_ATTRIB_BINDINGS",
-               rev->state_int_GL_MAX_VERTEX_ATTRIB_BINDINGS);
+    value_ints(state, "GL_MAX_VERTEX_ATTRIB_STRIDE",
+               rev->state_int_GL_MAX_VERTEX_ATTRIB_STRIDE);
+    value_ints(state, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET",
+               rev->state_int_GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET);
+    if (ver >= 430) value_ints(state, "GL_MAX_VERTEX_ATTRIB_BINDINGS",
+                               rev->state_int_GL_MAX_VERTEX_ATTRIB_BINDINGS);
+    if (ver >= 440) value_ints(state, "GL_MAX_VERTEX_ATTRIB_STRIDE",
+                               rev->state_int_GL_MAX_VERTEX_ATTRIB_STRIDE);
+    if (ver >= 430) value_ints(state, "GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET",
+                               rev->state_int_GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET);
     value_ints(state, "GL_MAX_COLOR_ATTACHMENTS",
                rev->state_int_GL_MAX_COLOR_ATTACHMENTS);
     value_ints(state, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS",
                rev->state_int_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
     value_ints(state, "GL_MAX_UNIFORM_BUFFER_BINDINGS",
                rev->state_int_GL_MAX_UNIFORM_BUFFER_BINDINGS);
-    value_ints(state, "GL_MAX_PATCH_VERTICES",
-               rev->state_int_GL_MAX_PATCH_VERTICES);
+    if (ver >= 400) value_ints(state, "GL_MAX_PATCH_VERTICES",
+                               rev->state_int_GL_MAX_PATCH_VERTICES);
     value_ints(state, "GL_MAX_SAMPLE_MASK_WORDS",
                rev->state_int_GL_MAX_SAMPLE_MASK_WORDS);
     end_category(state);

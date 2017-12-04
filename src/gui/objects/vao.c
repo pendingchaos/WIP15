@@ -20,7 +20,7 @@ static void init(object_tab_t* tab) {
     add_custom_to_info_box(tab->info_box, "Attributes", NULL);
     
     GtkTreeView* view = create_tree_view(
-        8, 0, "Index", "Enabled", "Size", "Offset",
+        8, 0, "Index", "Enabled", "Size", "Relative Offset",
         "Type", "Normalized", "Integer", "Binding");
     data->attributes = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
