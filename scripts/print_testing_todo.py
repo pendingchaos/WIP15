@@ -27,6 +27,6 @@ for f in sorted(functions):
     if f in done_functions:
         done += 1
     else:
-        print('TODO:', f)
+        print('%s %s' % ('TODO:', f))
 
 print('%.0f%c functions tested' % (math.floor(done/float(total)*100), '%'))

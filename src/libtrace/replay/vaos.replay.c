@@ -171,6 +171,8 @@ static void vertex_attrib_ptr(bool allow_bgra, GLuint index, bool normalized, bo
         ERROR2(, "No vertex array object is bound");
     if (index >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR2(, "Index is out-of-bounds");
+    if (gls_get_ver()>=430 && index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
+        ERROR2(, "Index is out-of-bounds");
     if (not_one_of(size, 1, 2, 3, 4, -1) && (allow_bgra?size!=GL_BGRA:true))
         ERROR2(, "Invalid size");
     if (stride < 0) //Maximum stride?
@@ -278,6 +280,8 @@ glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
         ERROR("No vertex array object is bound");
     if (p_index >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR("Index is out-of-bounds");
+    if (gls_get_ver()>=430 && p_index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
+        ERROR2(, "Index is out-of-bounds");
     
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
     trc_data_t* newbuffers = trc_copy_data(ctx->trace, rev.buffers);

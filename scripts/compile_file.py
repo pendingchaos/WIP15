@@ -13,7 +13,7 @@ args = sys.argv[4:]
 
 if input_fname.endswith('.replay.c'):
     input_fname = os.path.abspath(input_fname)
-    result = tempfile.mktemp('.c')
+    result = os.path.abspath(output_fname) + '.c'
     
     old_cwd = os.getcwd()
     os.chdir(os.path.split(sys.argv[0])[0])
@@ -21,7 +21,5 @@ if input_fname.endswith('.replay.c'):
     os.chdir(old_cwd)
     
     subprocess.call([compiler, '-c', result, '-o', output_fname] + args)
-    
-    os.remove(result)
 else:
     subprocess.call([compiler, '-c', input_fname, '-o', output_fname] + args)
