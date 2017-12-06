@@ -33,6 +33,8 @@ static void uniform_testd(const char* name, size_t count, ...) {
     va_end(list);
 }
 
+//============================== Float Uniforms ==============================
+
 BEGIN_TEST(float_0)
     UNIFORM_SETUP("uniform float u;\n", "vec4(u)");
     glUniform1f(glGetUniformLocation(program, "u"), 1.0f);
@@ -90,6 +92,8 @@ BEGIN_TEST(float_vec2_1)
     uniform_testd("u0", 1, 1.0);
     uniform_testd("u1", 2, 2.0, 3.0);
 END_TEST(float_vec2_1)
+
+//============================= Integer Uniforms =============================
 
 BEGIN_TEST(int_0)
     UNIFORM_SETUP("uniform int u;\n", "vec4(u)");
@@ -149,6 +153,8 @@ BEGIN_TEST(int_ivec2_1)
     uniform_testd("u1", 2, 2.0, 3.0);
 END_TEST(int_ivec2_1)
 
+//========================= Unsigned Integer Uniforms =========================
+
 BEGIN_TEST(uint_0)
     UNIFORM_SETUP("uniform uint u;\n", "vec4(u)");
     glUniform1ui(glGetUniformLocation(program, "u"), 1);
@@ -206,3 +212,165 @@ BEGIN_TEST(uint_uvec2_1)
     uniform_testd("u0", 1, 1.0);
     uniform_testd("u1", 2, 2.0, 3.0);
 END_TEST(uint_uvec2_1)
+
+//=========================== Float Array Uniforms ===========================
+
+BEGIN_TEST(float_arr_0)
+    UNIFORM_SETUP("uniform float u[2];\n", "vec4(u[0], u[1], 0.0, 0.0)");
+    glUniform1fv(glGetUniformLocation(program, "u"), 2, (float[]){1.0f, 2.0f});
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(float_arr_0)
+
+BEGIN_TEST(float_arr_1)
+    UNIFORM_SETUP("uniform float u[2]=float[](1.0, 2.0);\n", "vec4(u[0], u[1], 0.0, 0.0)");
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(float_arr_1)
+
+BEGIN_TEST(vec2_arr_0)
+    UNIFORM_SETUP("uniform vec2 u[2];\n", "vec4(u[0], u[1])");
+    glUniform2fv(glGetUniformLocation(program, "u"), 2, (float[]){1.0f, 2.0f, 3.0f, 4.0f});
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(vec2_arr_0)
+
+BEGIN_TEST(vec2_arr_1)
+    UNIFORM_SETUP("uniform vec2 u[2]=vec2[](vec2(1.0, 2.0), vec2(3.0, 4.0));\n", "vec4(u[0], u[1])");
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(vec2_arr_1)
+
+BEGIN_TEST(vec3_arr_0)
+    UNIFORM_SETUP("uniform vec3 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform3fv(glGetUniformLocation(program, "u"), 2, (float[]){1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(vec3_arr_0)
+
+BEGIN_TEST(vec3_arr_1)
+    UNIFORM_SETUP("uniform vec3 u[2]=vec3[](vec3(1.0, 2.0, 3.0), vec3(4.0, 5.0, 6.0));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(vec3_arr_1)
+
+BEGIN_TEST(vec4_arr_0)
+    UNIFORM_SETUP("uniform vec4 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform4fv(glGetUniformLocation(program, "u"), 2, (float[]){1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f});
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(vec4_arr_0)
+
+BEGIN_TEST(vec4_arr_1)
+    UNIFORM_SETUP("uniform vec4 u[2]=vec4[](vec4(1.0, 2.0, 3.0, 4.0), vec4(5.0, 6.0, 7.0, 8.0));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(vec4_arr_1)
+
+//========================== Integer Array Uniforms ==========================
+
+BEGIN_TEST(int_arr_0)
+    UNIFORM_SETUP("uniform int u[2];\n", "vec4(u[0], u[1], 0, 0)");
+    glUniform1iv(glGetUniformLocation(program, "u"), 2, (GLint[]){1, 2});
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(int_arr_0)
+
+BEGIN_TEST(int_arr_1)
+    UNIFORM_SETUP("uniform int u[2]=int[](1, 2);\n", "vec4(u[0], u[1], 0, 0)");
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(int_arr_1)
+
+BEGIN_TEST(ivec2_arr_0)
+    UNIFORM_SETUP("uniform ivec2 u[2];\n", "vec4(u[0], u[1])");
+    glUniform2iv(glGetUniformLocation(program, "u"), 2, (GLint[]){1, 2, 3, 4});
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(ivec2_arr_0)
+
+BEGIN_TEST(ivec2_arr_1)
+    UNIFORM_SETUP("uniform ivec2 u[2]=ivec2[](ivec2(1, 2), ivec2(3, 4));\n", "vec4(u[0], u[1])");
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(ivec2_arr_1)
+
+BEGIN_TEST(ivec3_arr_0)
+    UNIFORM_SETUP("uniform ivec3 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform3iv(glGetUniformLocation(program, "u"), 2, (GLint[]){1, 2, 3, 4, 5, 6});
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(ivec3_arr_0)
+
+BEGIN_TEST(ivec3_arr_1)
+    UNIFORM_SETUP("uniform ivec3 u[2]=ivec3[](ivec3(1, 2, 3), ivec3(4, 5, 6));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(ivec3_arr_1)
+
+BEGIN_TEST(ivec4_arr_0)
+    UNIFORM_SETUP("uniform ivec4 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform4iv(glGetUniformLocation(program, "u"), 2, (GLint[]){1, 2, 3, 4, 5, 6, 7, 8});
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(ivec4_arr_0)
+
+BEGIN_TEST(ivec4_arr_1)
+    UNIFORM_SETUP("uniform ivec4 u[2]=ivec4[](ivec4(1, 2, 3, 4), ivec4(5, 6, 7, 8));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(ivec4_arr_1)
+
+//====================== Unsigned Integer Array Uniforms ======================
+
+BEGIN_TEST(uint_arr_0)
+    UNIFORM_SETUP("uniform uint u[2];\n", "vec4(u[0], u[1], 0, 0)");
+    glUniform1uiv(glGetUniformLocation(program, "u"), 2, (GLuint[]){1, 2});
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(uint_arr_0)
+
+BEGIN_TEST(uint_arr_1)
+    UNIFORM_SETUP("uniform uint u[2]=uint[](1, 2);\n", "vec4(u[0], u[1], 0, 0)");
+    uniform_testd("u[0]", 1, 1.0);
+    uniform_testd("u[1]", 1, 2.0);
+END_TEST(uint_arr_1)
+
+BEGIN_TEST(uvec2_arr_0)
+    UNIFORM_SETUP("uniform uvec2 u[2];\n", "vec4(u[0], u[1])");
+    glUniform2uiv(glGetUniformLocation(program, "u"), 2, (GLuint[]){1, 2, 3, 4});
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(uvec2_arr_0)
+
+BEGIN_TEST(uvec2_arr_1)
+    UNIFORM_SETUP("uniform uvec2 u[2]=uvec2[](uvec2(1, 2), uvec2(3, 4));\n", "vec4(u[0], u[1])");
+    uniform_testd("u[0]", 2, 1.0, 2.0);
+    uniform_testd("u[1]", 2, 3.0, 4.0);
+END_TEST(uvec2_arr_1)
+
+BEGIN_TEST(uvec3_arr_0)
+    UNIFORM_SETUP("uniform uvec3 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform3uiv(glGetUniformLocation(program, "u"), 2, (GLuint[]){1, 2, 3, 4, 5, 6});
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(uvec3_arr_0)
+
+BEGIN_TEST(uvec3_arr_1)
+    UNIFORM_SETUP("uniform uvec3 u[2]=uvec3[](uvec3(1, 2, 3), uvec3(4, 5, 6));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 3, 1.0, 2.0, 3.0);
+    uniform_testd("u[1]", 3, 4.0, 5.0, 6.0);
+END_TEST(uvec3_arr_1)
+
+BEGIN_TEST(uvec4_arr_0)
+    UNIFORM_SETUP("uniform uvec4 u[2];\n", "vec4(u[0].xy, u[1].xy)");
+    glUniform4uiv(glGetUniformLocation(program, "u"), 2, (GLuint[]){1, 2, 3, 4, 5, 6, 7, 8});
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(uvec4_arr_0)
+
+BEGIN_TEST(uvec4_arr_1)
+    UNIFORM_SETUP("uniform uvec4 u[2]=uvec4[](uvec4(1, 2, 3, 4), uvec4(5, 6, 7, 8));\n", "vec4(u[0].xy, u[1].xy)");
+    uniform_testd("u[0]", 4, 1.0, 2.0, 3.0, 4.0);
+    uniform_testd("u[1]", 4, 5.0, 6.0, 7.0, 8.0);
+END_TEST(uvec4_arr_1)

@@ -349,7 +349,7 @@ static func_t get_func(func_t* f, const char* name) {
 __attribute__((visibility("default"))) void* dlopen(const char* filename, int flags) {
     void* res = actual_dlopen(filename, flags);
     if (res == lib_gl) {
-        dlclose(res);
+        dlclose(res); //decrement reference count
         return actual_dlopen(NULL, flags);
     }
     return res;
@@ -897,11 +897,15 @@ static bool add_uniform_variable(uniform_state_t* state, src_uniform_info_t info
     if (info.array) {
         cur->type = UniformType_Array;
         for (size_t j = 0; j < info.size; j++) {
-            uniform_t* element = get_child(cur, NULL, str_null(), j);
-            element->dtype = info.dtype;
             str_t name = str_fmt(NULL, "%s[%zu]", info.name, j);
-            element->location = F(glGetUniformLocation)(state->program, name.data);
+            GLint location = F(glGetUniformLocation)(state->program, name.data);
             str_del(name);
+            if (location < 0) continue;
+            
+            uniform_t* element = get_child(cur, NULL, str_null(), j);
+            element->type = UniformType_Variable;
+            element->dtype = info.dtype;
+            element->location = location;
         }
     } else {
         cur->type = UniformType_Variable;
@@ -925,8 +929,9 @@ static size_t get_uniforms_spec_count(uniform_t* uniform) {
     case UniformType_Struct:
     case UniformType_Array: {
         size_t count = 1;
-        for (uniform_t* child = uniform->first_child; child; child = child->next)
+        for (uniform_t* child = uniform->first_child; child; child = child->next) {
             count += get_uniforms_spec_count(child);
+        }
         return count;
     }
     case UniformType_Unspecified: {

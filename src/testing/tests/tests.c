@@ -63,32 +63,6 @@ void assert_attachment(const char* message) {
     wip15ExpectAttachment(message);
 }
 
-static void test_fb(const char* name) {
-    int drawable_width, drawable_height;
-    SDL_GL_GetDrawableSize(window, &drawable_width, &drawable_height);
-    
-    wip15DrawableSize(drawable_width, drawable_height);
-    
-    glFinish();
-    
-    GLint last_buf;
-    glGetIntegerv(GL_READ_BUFFER, &last_buf);
-    
-    glReadBuffer(GL_BACK);
-    void* back = malloc(drawable_width*drawable_height*4);
-    glReadPixels(0, 0, drawable_width, drawable_height, GL_RGBA, GL_UNSIGNED_BYTE, back);
-    
-    void* depth = malloc(drawable_width*drawable_height*4);
-    glReadPixels(0, 0, drawable_width, drawable_height, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, depth);
-    
-    glReadBuffer(last_buf);
-    
-    wip15TestFB(name, back, depth);
-    
-    free(back);
-    free(depth);
-}
-
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
     int pos = SDL_WINDOWPOS_UNDEFINED;
@@ -100,6 +74,8 @@ int main(int argc, char** argv) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     for (test_t* test = tests; test; test=test->next) {
         SDL_GLContext context = SDL_GL_CreateContext(window);
+        
+        SDL_GL_SetSwapInterval(0);
         
         wip15BeginTest = SDL_GL_GetProcAddress("wip15BeginTest");
         if (!wip15BeginTest) goto fp_fail;
@@ -125,7 +101,6 @@ int main(int argc, char** argv) {
         test->func();
         
         SDL_GL_SwapWindow(window);
-        test_fb("glXSwapBuffers");
         
         wip15EndTest();
         

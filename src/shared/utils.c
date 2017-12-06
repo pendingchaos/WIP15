@@ -121,7 +121,7 @@ str_t str_fmt(void* parent, const char* format, ...) {
     size_t len = vsnprintf(NULL, 0, format, list2);
     
     str_t res = str_new(parent, len, NULL);
-    vsnprintf(res.data, res.length, format, list);
+    vsnprintf(res.data, res.length+1, format, list);
     
     va_end(list);
     

@@ -46,6 +46,7 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
     trc_unmap_data(uniforms);
     ERROR2(-1, "Failed to find uniform based on location");
     success1: ;
+    int real_location = uniform.real_loc;
     
     int count = array ? trc_get_int(&cmd->args[arg_pos++])[0] : 1;
     if (count < 0) {
@@ -132,7 +133,7 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
                 }
             }
         }
-        if (count > 1) uniform = uniforms[uniform.next];
+        if (i != count-1) uniform = uniforms[uniform.next];
     }
     
     trc_unmap_data(data_base);
@@ -140,7 +141,7 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
     
     set_program(&newrev);
     
-    return uniform.real_loc;
+    return real_location;
 }
 
 static void validate_get_uniform() {

@@ -63,13 +63,13 @@ dep = $(obj:.o=.d)
 
 .PHONY: bin
 bin: all clean-bin
-	ln -sr $(BUILD_DIR)libgl.so bin/libgl.so
-	ln -sr $(BUILD_DIR)libtrace.so bin/libtrace.so
-	ln -sr $(BUILD_DIR)gui bin/gui
-	ln -sr $(BUILD_DIR)replaytrace bin/replaytrace
-	ln -sr $(BUILD_DIR)trace bin/trace
-	ln -sr $(BUILD_DIR)test bin/test
-	ln -sr $(BUILD_DIR)tests bin/tests
+	@ln -sr $(BUILD_DIR)libgl.so bin/libgl.so
+	@ln -sr $(BUILD_DIR)libtrace.so bin/libtrace.so
+	@ln -sr $(BUILD_DIR)gui bin/gui
+	@ln -sr $(BUILD_DIR)replaytrace bin/replaytrace
+	@ln -sr $(BUILD_DIR)trace bin/trace
+	@ln -sr $(BUILD_DIR)test bin/test
+	@ln -sr $(BUILD_DIR)tests bin/tests
 
 .PHONY: all
 all: $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so $(BUILD_DIR)trace $(BUILD_DIR)gui\
@@ -77,19 +77,19 @@ all: $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so $(BUILD_DIR)trace $(BUILD_DIR)
 
 .PHONY: clean-bin
 clean-bin:
-	rm -f bin/libgl.so bin/libtrace.so bin/gui bin/replaytrace bin/trace bin/test bin/tests
+	@rm -f bin/libgl.so bin/libtrace.so bin/gui bin/replaytrace bin/trace bin/test bin/tests
 
 .PHONY: clean
 clean: clean-bin
-	rm -f scripts/generated_gl_funcs.py
-	rm -f src/libgl.c
-	rm -f src/shared/glcorearb.h
-	rm -f src/libtrace/libtrace_glstate.h
-	rm -f src/libtrace/replay.h
-	rm -f src/libtrace/replay.c
-	rm -f src/shared/glapi.c
-	rm -rf build/
-	rm -rf coverage
+	@rm -f scripts/generated_gl_funcs.py
+	@rm -f src/libgl.c
+	@rm -f src/shared/glcorearb.h
+	@rm -f src/libtrace/libtrace_glstate.h
+	@rm -f src/libtrace/replay.h
+	@rm -f src/libtrace/replay.c
+	@rm -f src/shared/glapi.c
+	@rm -rf build/
+	@rm -rf coverage
 
 .PHONY: test-coverage
 test-coverage:
