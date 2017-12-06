@@ -420,25 +420,6 @@ typedef struct trc_gl_shader_rev_t {
     trc_data_t* info_log; //null-terminated ascii
 } trc_gl_shader_rev_t;
 
-/*typedef struct trc_gl_vao_attrib_t {
-    bool enabled;
-    bool normalized;
-    bool integer;
-    uint size;
-    uint stride;
-    uint64_t offset;
-    uint type;
-    uint divisor;
-    trc_obj_ref_t buffer;
-} trc_gl_vao_attrib_t;
-
-typedef struct trc_gl_vao_rev_t {
-    TRC_GL_OBJ_HEAD
-    bool has_object;
-    trc_data_t* attribs; //array of trc_gl_vao_attrib_t
-    trc_obj_ref_t element_buffer;
-} trc_gl_vao_rev_t;*/
-
 typedef struct trc_gl_vao_buffer_t {
     uint64_t offset;
     uint stride;

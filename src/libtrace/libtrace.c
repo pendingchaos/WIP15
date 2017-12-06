@@ -1676,7 +1676,7 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
     uint8_t* data = trc_map_data(res.chunks, TRC_MAP_MODIFY);
     for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next)
         memcpy(data+mod->start, mod->data, mod->size);
-    trc_unmap_freeze_data(trace, res.chunks);
+    trc_unmap_data(data);
     
     return res;
 }

@@ -9,7 +9,10 @@ static inline bool not_one_of(int val, ...) {
     while (true) {
         int v = va_arg(list, int);
         if (v == -1) break;
-        if (v == val) return false;
+        if (v == val) {
+            va_end(list);
+            return false;
+        }
     }
     va_end(list);
     return true;

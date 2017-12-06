@@ -112,6 +112,21 @@ static bool copy_buffer_data(bool dsa, trc_obj_t* read, trc_obj_t* write, GLintp
         trc_add_warning(cmd, "Write buffer should not be modified as it is a transform feedback one while transform feedback is active and unpaused");
     if (write_off+size > write_rev->data.size) ERROR2(false, "Invalid size and write offset");
     
+    if (read == write) {
+        GLintptr read_end = read_off + size;
+        GLintptr write_end = write_off + size;
+        bool overlap = read_off>=write_off && read_off<=write_end;
+        overlap = overlap || (read_end>=write_off && read_end<=write_end);
+        overlap = overlap || (write_off>=read_off && write_off<=read_end);
+        overlap = overlap || (write_end>=read_off && write_end<=read_end);
+        if (overlap) ERROR2(false, "Overlapping read and write ranges");
+    }
+    
+    if (read_rev->mapped && !(read_rev->map_access&GL_MAP_PERSISTENT_BIT))
+        ERROR2(false, "Reading from a buffer that is mapped without GL_MAP_PERSISTENT_BIT set");
+    if (write_rev->mapped && !(write_rev->map_access&GL_MAP_PERSISTENT_BIT))
+        ERROR2(false, "Writing to a buffer that is mapped without GL_MAP_PERSISTENT_BIT set");
+    
     trc_gl_buffer_rev_t res = *write_rev;
     
     //TODO: It should be possible to share chunks here

@@ -205,3 +205,68 @@ BEGIN_TEST(glMapBufferRange_4)
     
     //TODO: Test access bits against buffer storage flags
 END_TEST(glMapBufferRange_4)
+
+/* void glCopyBufferSubData(GLenum readTarget,
+                            GLenum writeTarget,
+                            GLintptr readOffset,
+                            GLintptr writeOffset,
+                            GLsizeiptr size);*/
+BEGIN_TEST(glCopyBufferSubData_0)
+    glBufferData(GL_ARRAY_BUFFER, 5, "World", GL_STATIC_DRAW);
+    
+    GLuint buf2;
+    glGenBuffers(1, &buf2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
+    
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, 5);
+    assert_properties(GL_BUFFER, buf, "data", 5, "Hello", NULL);
+    
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 2, 3);
+    assert_properties(GL_BUFFER, buf, "data", 5, "HeHel", NULL);
+    
+    glCopyBufferSubData(GL_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 3, 2);
+    assert_properties(GL_BUFFER, buf, "data", 5, "HeHHe", NULL);
+END_TEST(glCopyBufferSubData_0)
+
+BEGIN_TEST(glCopyBufferSubData_1)
+    glBufferData(GL_ARRAY_BUFFER, 5, "World", GL_STATIC_DRAW);
+    
+    glCopyBufferSubData(GL_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER, 0, 0, 5);
+    assert_attachment("No buffer bound to write target");
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, 5);
+    assert_attachment("No buffer bound to read target");
+    
+    GLuint buf2;
+    glGenBuffers(1, &buf2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
+    
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, -1, 0, 5);
+    assert_attachment("The read offset, write offset or size is negative");
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, -1, 5);
+    assert_attachment("The read offset, write offset or size is negative");
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, -1);
+    assert_attachment("The read offset, write offset or size is negative");
+    
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 1, 0, 5);
+    assert_attachment("Invalid size and read offset");
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 1, 5);
+    assert_attachment("Invalid size and write offset");
+    
+    glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY);
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, 5);
+    assert_attachment("Reading from a buffer that is mapped without GL_MAP_PERSISTENT_BIT set");
+    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+    
+    glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, 5);
+    assert_attachment("Writing to a buffer that is mapped without GL_MAP_PERSISTENT_BIT set");
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf);
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 0, 5);
+    assert_attachment("Overlapping read and write ranges");
+    glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 2, 3);
+    assert_attachment("Overlapping read and write ranges");
+END_TEST(glCopyBufferSubData_1)
