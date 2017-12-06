@@ -22,14 +22,9 @@ for fname, func in func_dict.items():
 replay_func_impls_str = '\n\n'.join([open(f).read() for f in glob('../src/libtrace/replay/*.c')])
 implemented = set()
 
-current_name = ""
 for line in replay_func_impls_str.split("\n"):
-    if line.split('//')[0].rstrip().endswith(":") and (line.startswith("gl") or line.startswith("wip15")):
-        if len(current_name) != 0:
-            implemented.add(current_name)
-        current_name = line.split('//')[0].rstrip()[:-1]
-if current_name != "":
-    implemented.add(current_name)
+    if line.split('//')[0].rstrip().endswith(":") and not (line.startswith(' ') or line.startswith('\t')):
+        implemented.add(line.split('//')[0].rstrip()[:-1])
 
 versions = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (2, 1), (3, 0), (3, 1),
             (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), None]
