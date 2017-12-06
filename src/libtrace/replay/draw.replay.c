@@ -166,7 +166,7 @@ static bool begin_draw(GLenum primitive, uint flags) {
         trc_gl_vao_attrib_t* a = &vao_attribs[i];
         if (!a->enabled) continue;
         const trc_gl_buffer_rev_t* buf = trc_obj_get_rev(vao_buffers[a->buffer_index].buffer.obj, -1);
-        if (buf->mapped) {
+        if (buf && buf->mapped) {
             trc_unmap_data(vao_attribs);
             ERROR2(false, "Buffer for vertex attribute %zu is mapped", i);
         }
@@ -196,6 +196,7 @@ static bool begin_draw(GLenum primitive, uint flags) {
         }
         
         trc_gl_vao_buffer_t* b = &vao_buffers[a->buffer_index];
+        //if (!b->buffer) continue; //TODO: Error?
         
         F(glEnableVertexAttribArray)(real_loc);
         
