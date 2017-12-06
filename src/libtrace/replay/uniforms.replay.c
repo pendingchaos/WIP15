@@ -152,6 +152,8 @@ static void validate_get_uniform() {
     GLint status;
     F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
     if (!status) ERROR2(, "Program not successfully linked.");
+    //TODO: Location validation
+    //TODO: Validation for glGetnUniform*
 }
 
 glUniform1f: //GLint p_location, GLfloat p_v0
