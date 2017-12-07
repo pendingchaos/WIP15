@@ -146,12 +146,86 @@ static const internal_format_info_t internal_formats[] = {
     {GL_COMPRESSED_RG11_EAC, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32},
     {GL_COMPRESSED_SIGNED_RG11_EAC, GL_RG, FmtDType_Compressed, TrcImageFormat_RedGreen_F32}};
 
-static internal_format_info_t get_internal_format_info(GLenum internal_format) {
+internal_format_info_t get_internal_format_info(GLenum internal_format) {
     for (size_t i = 0; i < sizeof(internal_formats)/sizeof(internal_formats[0]); i++) {
         if (internal_formats[i].internal_format == internal_format)
             return internal_formats[i];
     }
     assert(false);
+}
+
+int get_internal_format_size(GLenum internal_format) {
+    internal_format_info_t info = get_internal_format_info(internal_format);
+    size_t count = 0;
+    switch (info.base) {
+    case GL_DEPTH_COMPONENT:
+    case GL_STENCIL_INDEX:
+    case GL_RED: count = 1; break;
+    case GL_DEPTH_STENCIL:
+    case GL_RG: count = 2; break;
+    case GL_RGB: count = 3; break;
+    case GL_RGBA: count = 4; break;
+    default: return -1;
+    }
+    
+    switch (info.dtype) {
+    case FmtDType_U8_Norm: return count;
+    case FmtDType_I8_Norm: return count;
+    case FmtDType_U16_Norm: return count * 2;
+    case FmtDType_I16_Norm: return count * 2;
+    case FmtDType_U24_Norm: return count * 3;
+    case FmtDType_U32_Norm: return count * 4;
+    case FmtDType_U8: return count;
+    case FmtDType_I8: return count;
+    case FmtDType_U16: return count * 2;
+    case FmtDType_I16: return count * 2;
+    case FmtDType_U32: return count * 4;
+    case FmtDType_I32: return count * 4;
+    case FmtDType_F16: return count * 2;
+    case FmtDType_F32: return count * 4;
+    case FmtDType_D24_S8: return 4;
+    //TODO: These formats?
+    case FmtDType_D32F_S8: return 5;
+    case FmtDType_S1: return ceil_div(count, 8);
+    case FmtDType_S4: return ceil_div(count*4, 8);
+    case FmtDType_S8: return ceil_div(count*8, 8);
+    case FmtDType_S16: return ceil_div(count*16, 8);
+    //End These formats TODO
+    case FmtDType_F11_F11_F10: return 4;
+    case FmtDType_9E5F: return 4;
+    case FmtDType_U3_U3_U2_Norm: return 1;
+    case FmtDType_U2_Norm: return ceil_div(count*2, 8);
+    case FmtDType_U4_Norm: return ceil_div(count*4, 8);
+    case FmtDType_U5_Norm: return ceil_div(count*5, 8);
+    case FmtDType_U10_Norm: return ceil_div(count*10, 8);
+    case FmtDType_U12_Norm: return ceil_div(count*12, 8);
+    case FmtDType_U5_U6_U5_Norm: return 2;
+    case FmtDType_U5_U5_U5_U1_Norm: return 2;
+    case FmtDType_U10_U10_U10_U2: return 4;
+    case FmtDType_U10_U10_U10_U2_Norm: return 4;
+    case FmtDType_U8_Srgb: return 3;
+    case FmtDType_Unspecified:
+    case FmtDType_Compressed: return -1;
+    }
+    return -1;
+}
+
+const char* validate_format_combination(GLenum format, GLenum type, GLenum internal) {
+    //TODO: Is this complete?
+    if (!not_one_of(type, GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV, -1) && format!=GL_RGB)
+        return "Invalid format + type combination";
+    if (!not_one_of(type, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
+        GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV, -1) && format!=GL_RGBA && format!=GL_BGRA)
+        return "Invalid format + type combination";
+    if (format==GL_DEPTH_COMPONENT && not_one_of(internal, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        return "Invalid format + internal format combination";
+    if (format!=GL_DEPTH_COMPONENT && !not_one_of(internal, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
+        return "Invalid format + internal format combination";
+    if (format==GL_STENCIL_INDEX && internal!=GL_STENCIL_INDEX)
+        return "Invalid format + internal format combination";
+    if (format!=GL_STENCIL_INDEX && internal==GL_STENCIL_INDEX)
+        return "Invalid format + internal format combination";
+    return NULL;
 }
 
 static void gen_textures(size_t count, const GLuint* real, const GLuint* fake, bool create, GLenum target) {
@@ -269,19 +343,8 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     }
     if (border != 0) ERROR2(false, "Border must be 0");
     
-    if (!not_one_of(type, GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV, GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV, -1) && format!=GL_RGB)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (!not_one_of(type, GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_INT_8_8_8_8,
-        GL_UNSIGNED_INT_8_8_8_8_REV, GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV, -1) && format!=GL_RGBA && format!=GL_BGRA)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format==GL_DEPTH_COMPONENT && not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format!=GL_DEPTH_COMPONENT && !not_one_of(internal_format, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32, -1))
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format==GL_STENCIL_INDEX && internal_format!=GL_STENCIL_INDEX)
-        ERROR2(false, "Invalid format + internal format combination");
-    if (format!=GL_STENCIL_INDEX && internal_format==GL_STENCIL_INDEX)
-        ERROR2(false, "Invalid format + internal format combination");
+    const char* err = validate_format_combination(format, type, internal_format);
+    if (err) ERROR2(false, err);
     
     trc_obj_t* pu_buf = gls_get_bound_buffer(GL_PIXEL_UNPACK_BUFFER);
     const trc_gl_buffer_rev_t* pu_buf_rev = trc_obj_get_rev(pu_buf, -1);
@@ -412,14 +475,16 @@ void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     set_texture_image(tex, level, face, internal_format, width, height, depth, image_format, data);
 }
 
+static uint get_face_from_target(GLenum target) {
+    if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
+        return target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    return 0;
+}
+
 static void update_bound_tex_image(uint target, uint level) {
     const trc_gl_texture_rev_t* rev = get_bound_tex(target);
     if (!rev) ERROR2(, "No texture bound to target");
-    
-    uint face = 0;
-    if (target>=GL_TEXTURE_CUBE_MAP_POSITIVE_X && target<=GL_TEXTURE_CUBE_MAP_NEGATIVE_Z)
-        face = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-    update_tex_image(rev, level, face);
+    update_tex_image(rev, level, get_face_from_target(target));
 }
 
 static bool tex_buffer(GLuint tex_or_target, bool dsa, GLenum internalformat,
@@ -679,6 +744,7 @@ static const char* validate_mipmap_completeness(const trc_gl_texture_rev_t* tex,
     uint faces = tex->type == GL_TEXTURE_CUBE_MAP ? 6 : 1;
     for (size_t face = 0; face < faces; face++) {
         const trc_gl_texture_image_t* base_img = find_image(num_images, images, face, tex->base_level);
+        if (!base_img) return "The texture has a missing base image";
         uint dims[3] = {base_img->width, base_img->height, base_img->depth};
         
         uint max_size = dims[0];
@@ -690,8 +756,7 @@ static const char* validate_mipmap_completeness(const trc_gl_texture_rev_t* tex,
         uint internal_format = 0;
         for (uint i = tex->base_level; i<=q; i++) {
             const trc_gl_texture_image_t* img = find_image(num_images, images, face, i);
-            if (!img)
-                return "The texture is missing at least one image";
+            if (!img) return "The texture is missing at least one image";
             
             if (internal_format == 0)
                 internal_format = img->internal_format;
@@ -720,6 +785,7 @@ static const char* validate_cube_completeness(const trc_gl_texture_rev_t* tex, s
         uint internal_format = 0;
         for (size_t i = 0; i < 6; i++) {
             const trc_gl_texture_image_t* img = find_image(num_images, images, i, tex->base_level);
+            if (!img) return "The texture has a missing base image";
             if (img->width != img->height)
                 return "The texture has a non-square cubemap face";
             if (found_image) {
@@ -989,6 +1055,12 @@ glTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_wi
         update_bound_tex_image(p_target, p_level);
     }
 
+glTextureSubImage1D: //GLuint p_texture, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLenum p_type, const void* p_pixels
+    if (tex_image(true, p_texture, p_level, 0, 0, p_format, p_type, true, 1, p_width, p_xoffset)) {
+        real(p_texture_rev->real, p_level, p_xoffset, p_width, p_format, p_type, p_pixels);
+        update_tex_image(p_texture_rev, p_level, 0);
+    }
+
 glCompressedTexSubImage1D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLsizei p_width, GLenum p_format, GLsizei p_imageSize, const void* p_data
     real(p_target, p_level, p_xoffset, p_width, p_format, p_imageSize, p_data);
     update_bound_tex_image(p_target, p_level);
@@ -1007,6 +1079,12 @@ glTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoff
     if (tex_image(false, p_target, p_level, 0, 0, p_format, p_type, true, 2, p_width, p_height, p_xoffset, p_yoffset)) {
         real(p_target, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, p_pixels);
         update_bound_tex_image(p_target, p_level);
+    }
+
+glTextureSubImage2D: //GLuint p_texture, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLenum p_type, const void* p_pixels
+    if (tex_image(true, p_texture, p_level, 0, 0, p_format, p_type, true, 2, p_width, p_height, p_xoffset, p_yoffset)) {
+        real(p_texture_rev->real, p_level, p_xoffset, p_yoffset, p_width, p_height, p_format, p_type, p_pixels);
+        update_tex_image(p_texture_rev, p_level, 0);
     }
 
 glCompressedTexSubImage2D: //GLenum p_target, GLint p_level, GLint p_xoffset, GLint p_yoffset, GLsizei p_width, GLsizei p_height, GLenum p_format, GLsizei p_imageSize, const void* p_data
@@ -1081,27 +1159,55 @@ glTextureBufferRange: //GLuint p_texture, GLenum p_internalformat, GLuint p_buff
     if (tex_buffer(p_texture, true, p_internalformat, p_buffer, p_offset, p_size))
         real(p_texture_rev->real, p_internalformat, p_buffer?p_buffer_rev->real:0, p_offset, p_size);
 
-glGenerateMipmap: //GLenum p_target
-    real(p_target);
+//TODO: Get the images during tracing?
+static void generate_texture_mipmaps(bool dsa, GLenum target, const trc_gl_texture_rev_t* tex) {
+    size_t num_images = tex->images->size / sizeof(trc_gl_texture_image_t);
+    const trc_gl_texture_image_t* images = trc_map_data(tex->images, TRC_MAP_READ);
     
+    bool cubemap = tex->type == GL_TEXTURE_CUBE_MAP_ARRAY;
+    cubemap = cubemap || tex->type == GL_TEXTURE_CUBE_MAP;
+    
+    if (cubemap) {
+        const char* err = validate_cube_completeness(tex, num_images, images);
+        if (err) {
+            trc_unmap_data(images);
+            ERROR2(, "Texture is not cube complete: %s", err);
+        }
+    }
+    
+    if (dsa)
+        F(glGenerateTextureMipmap)(tex->real);
+    else
+        F(glGenerateMipmap)(target);
+    
+    trc_gl_texture_image_t base = *find_image(num_images, images, 0, tex->base_level);
+    
+    trc_unmap_data(images);
+    
+    uint max_size = base.width;
+    if (base.height > max_size) max_size = base.height;
+    if (base.depth > max_size) max_size = base.depth;
+    uint p = tex->base_level + floor_log2(max_size);
+    uint q = p<tex->max_level ? p : tex->max_level;
+    
+    for (uint i = tex->base_level; i<=q; i++) {
+        for (uint j = 0; j < (cubemap?6:1); j++) {
+            update_tex_image(tex, i, j);
+            tex = trc_obj_get_rev(tex->head.obj, -1);
+        }
+    }
+}
+
+glGenerateMipmap: //GLenum p_target
     uint unit = gls_get_active_texture_unit(ctx->trace);
     trc_obj_t* tex = gls_get_bound_textures(p_target, unit);
-    if (!tex) ERROR("No texture bound");
-    
-    GLint base;
-    F(glGetTexParameteriv)(p_target, GL_TEXTURE_BASE_LEVEL, &base);
-    GLint w, h, d;
-    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_WIDTH, &w);
-    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_HEIGHT, &h);
-    F(glGetTexLevelParameteriv)(p_target, base, GL_TEXTURE_DEPTH, &d);
-    uint level = base;
-    while (w || h || d) {
-        if (level != base) update_bound_tex_image(p_target, level);
-        w /= 2;
-        h /= 2;
-        d /= 2;
-        level++;
-    }
+    if (!tex) ERROR("No texture boundto target");
+    generate_texture_mipmaps(false, p_target, trc_obj_get_rev(tex, -1));
+
+glGenerateTextureMipmap: //GLuint p_texture
+    if (!p_texture_rev) ERROR("Invalid texture name");
+    if (!p_texture_rev->has_object) ERROR("Texture name has no object");
+    generate_texture_mipmaps(true, 0, p_texture_rev);
 
 glTexParameterf: //GLenum p_target, GLenum p_pname, GLfloat p_param
     GLdouble double_param = p_param;
@@ -1178,9 +1284,6 @@ glTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, const GLuint* p_para
     if (!texture_param_double(true, p_texture, p_pname, arg_params->count, double_params))
         real(p_texture_rev->real, p_pname, p_params);
 
-glIsTexture: //GLuint p_texture
-    ;
-
 glGetTexLevelParameterfv: //GLenum p_target, GLint p_level, GLenum p_pname, GLfloat* p_params
     get_tex_level_parameter(p_target, p_level, p_pname, false, get_bound_tex(p_target));
 
@@ -1216,3 +1319,6 @@ glGetTextureParameterIiv: //GLuint p_texture, GLenum p_pname, GLint* p_params
 
 glGetTextureParameterIuiv: //GLuint p_texture, GLenum p_pname, GLuint* p_params
     get_tex_parameter(p_pname, true, p_texture_rev);
+
+glIsTexture: //GLuint p_texture
+    ;

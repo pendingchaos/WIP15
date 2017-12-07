@@ -35,6 +35,12 @@ static inline uint ceil_log2(uint val) {
     return res;
 }
 
+static inline int ceil_div(int a, int b) {
+    return a/b + !!(a%b);
+    if (a%b != 0) return a/b + 1;
+    else return a / b;
+}
+
 static inline void conv_from_signed_norm_array_i64(size_t count, double* dest, const int64_t* src, size_t bits) {
     uint ver = gls_get_ver();
     for (size_t i = 0; i < count; i++)

@@ -98,15 +98,16 @@ static inline const trc_gl_%s_rev_t* get_%s(uint64_t fake) {
     return trc_get_obj(ctx->%s, %s, fake);
 }
 
-static inline void set_%s(const trc_gl_%s_rev_t* rev) {
+static inline const trc_gl_%s_rev_t* set_%s(const trc_gl_%s_rev_t* rev) {
     trc_obj_set_rev(rev->head.obj, rev);
+    return trc_obj_get_rev(rev->head.obj, -1);
 }
 
 static inline uint64_t get_real_%s(uint64_t fake) {
     const trc_gl_%s_rev_t* rev = get_%s(fake);
     return rev ? rev->real : 0;
 }
-''' % (n, n, ns, t, n, n, n, n, n))
+''' % (n, n, ns, t, n, n, n, n, n, n))
 output.write('#pragma GCC diagnostic pop\n\n')
 
 for name in list(func_dict.keys()):

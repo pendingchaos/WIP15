@@ -52,4 +52,8 @@ bool sample_param_double(trc_gl_sample_params_t* params, GLenum param, uint32_t 
 const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj);
 const trc_gl_texture_rev_t* get_bound_tex(uint target);
 void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face);
+internal_format_info_t get_internal_format_info(GLenum internal_format);
+//This can't handle a lot of cases
+int get_internal_format_size(GLenum internal_format);
+const char* validate_format_combination(GLenum format, GLenum type, GLenum internal);
 #endif

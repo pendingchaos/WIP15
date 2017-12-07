@@ -1,4 +1,5 @@
 #include "libtrace/replay/utils.h"
+#include "libtrace/replay/textures.h"
 
 static void gen_buffers(size_t count, const GLuint* real, const GLuint* fake, bool create) {
     trc_gl_buffer_rev_t rev;
@@ -199,7 +200,7 @@ static void map_buffer_range(bool dsa, GLuint fake, GLintptr offset, GLsizeiptr 
     set_buffer(&newrev);
 }
 
-static void unmap_buffer(bool dsa, GLuint target_or_buf) {
+static void unmap_buffer(bool dsa, uint target_or_buf) {
     const trc_gl_buffer_rev_t* rev;
     if (dsa) rev = get_buffer(target_or_buf);
     else rev = trc_obj_get_rev(get_bound_buffer(target_or_buf), -1);
@@ -248,7 +249,7 @@ static void unmap_buffer(bool dsa, GLuint target_or_buf) {
     set_buffer(&newrev);
 }
 
-static bool flush_mapped_buffer_range(bool dsa, GLenum target_or_buf, GLintptr offset, GLsizeiptr length) {
+static bool flush_mapped_buffer_range(bool dsa, uint target_or_buf, GLintptr offset, GLsizeiptr length) {
     const trc_gl_buffer_rev_t* rev;
     if (dsa) rev = get_buffer(target_or_buf);
     else rev = trc_obj_get_rev(get_bound_buffer(target_or_buf), -1);
@@ -506,6 +507,57 @@ glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, voi
 glGetNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, void* p_data
     get_buffer_sub_data(true, trc_lookup_name(ctx->ns, TrcBuffer, p_buffer, -1), p_offset, p_size);
 
+static void clear_buffer_data(bool sub, bool dsa, uint target_or_buf, GLenum internalformat,
+                              GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void* data) {
+    const trc_gl_buffer_rev_t* rev;
+    if (dsa) rev = get_buffer(target_or_buf);
+    else rev = trc_obj_get_rev(get_bound_buffer(target_or_buf), -1);
+    if (!rev) ERROR2(, "No buffer bound to target");
+    if (!rev->has_object) ERROR2(, "Buffer name has no object");
+    
+    if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
+        ERROR2(, "Buffer is mapped without persistent access");
+    
+    int internal_format_size = get_internal_format_size(internalformat);
+    assert(internal_format_size >= 0); //the internal format should always be sized
+    
+    if (sub) {
+        if (offset < 0) ERROR2(, "Offset is negative");
+        if (size < 0) ERROR2(, "Size is negative");
+        if (offset+size > rev->data.size)
+            ERROR2(, "The specified range is too large for the buffer");
+        
+        if (offset%internal_format_size != 0)
+            ERROR2(, "The offset must be a multiple of the internal format's size");
+        if (size%internal_format_size != 0)
+            ERROR2(, "The size must be a multiple of the internal format's size");
+    } else {
+        offset = 0;
+        size = rev->data.size;
+        if (size%internal_format_size != 0)
+            ERROR2(, "The buffer's size is not a multiple of the internal format's size");
+    }
+    
+    if (dsa) {
+        F(glClearNamedBufferSubData)(rev->real, internalformat, offset, size, format, type, data);
+    } else {
+        F(glClearBufferSubData)(target_or_buf, internalformat, offset, size, format, type, data);
+    }
+    
+    update_buffer_from_gl(rev->head.obj, offset, size);
+}
+
+glClearBufferSubData: //GLenum p_target, GLenum p_internalformat, GLintptr p_offset, GLsizeiptr p_size, GLenum format, GLenum type, const void* data
+    clear_buffer_data(true, false, p_target, p_internalformat, p_offset, p_size, p_format, p_type, p_data);
+
+glClearNamedBufferSubData: //GLuint p_buffer, GLenum p_internalformat, GLintptr p_offset, GLsizeiptr p_size, GLenum format, GLenum type, const void* data
+    clear_buffer_data(true, true, p_buffer, p_internalformat, p_offset, p_size, p_format, p_type, p_data);
+
+glClearBufferData: //GLenum p_target, GLenum p_internalformat, GLenum format, GLenum type, const void* data
+    clear_buffer_data(false, false, p_target, p_internalformat, 0, 0, p_format, p_type, p_data);
+
+glClearNamedBufferData: //GLuint p_buffer, GLenum p_internalformat, GLenum format, GLenum type, const void* data
+    clear_buffer_data(false, true, p_buffer, p_internalformat, 0, 0, p_format, p_type, p_data);
+
 glIsBuffer: //GLuint p_buffer
     ;
-
