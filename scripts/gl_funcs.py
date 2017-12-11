@@ -644,6 +644,8 @@ Func((2, 1), 'glUniformMatrix4x3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'
 
 #Func((3, 0), 'glGetBooleani_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
 #Func((3, 1), 'glGetIntegeri_v', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tMutablePointer, 'data')])
+Func((3, 1), 'glBindBufferRange', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLBuf, 'buffer'), P(tGLintptr, 'offset'), P(tGLsizeiptr, 'size')], None)
+Func((3, 1), 'glBindBufferBase', [P(tGLenum, 'target'), P(tGLuint, 'index'), P(tGLBuf, 'buffer')], None)
 Func((3, 0), 'glTransformFeedbackVaryings', [P(tGLProgram, 'program'), P(tGLsizei, 'count'), P(tString, 'varyings', 'count'), P(tGLenum, 'bufferMode')])
 #TODO: Handle when bufSize == 0
 Func((3, 0), 'glGetTransformFeedbackVarying', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tGLsizei, 'size', 1), P(tGLenum, 'type', 1), P(tMutableString, 'name')])
@@ -964,8 +966,10 @@ Func((4, 3), 'glGetPointerv', [P(tGLenum, 'pname'), P(tMutablePointer, 'params',
 #Func((4, 4), 'glClearTexImage', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 #Func((4, 4), 'glClearTexSubImage', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tPointer, 'data')])
 Func((1, 5), 'glBindBuffer', [P(tGLenum, 'target', None, BufferTarget), P(tGLBuf, 'buffer')])
-#Func((4, 4), 'glBindBuffersBase', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers')])
-#Func((4, 4), 'glBindBuffersRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tPointer, 'buffers'), P(tPointer, 'offsets'), P(tPointer, 'sizes')])
+#TODO: Handle when buffers is NULL
+Func((4, 4), 'glBindBuffersBase', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLBuf, 'buffers', 'count')])
+#TODO: Handle when buffers is NULL
+Func((4, 4), 'glBindBuffersRange', [P(tGLenum, 'target', None, BufferTarget), P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLBuf, 'buffers', 'count'), P(tGLintptr, 'offsets', 'count'), P(tGLintptr, 'sizes', 'count')])
 Func((4, 4), 'glBindTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLTex, 'textures', 'count')])
 Func((4, 4), 'glBindSamplers', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLSampler, 'samplers', 'count')])
 Func((4, 4), 'glBindImageTextures', [P(tGLuint, 'first'), P(tGLsizei, 'count'), P(tGLTex, 'textures', 'count')])

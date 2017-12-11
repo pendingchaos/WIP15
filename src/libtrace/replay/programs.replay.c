@@ -1,5 +1,22 @@
 #include "libtrace/replay/utils.h"
 
+static void gen_program_pipelines(size_t count, const GLuint* real, const GLuint* fake, bool create) {
+    trc_gl_program_pipeline_rev_t rev;
+    rev.has_object = create;
+    rev.active_program = (trc_obj_ref_t){NULL};
+    rev.vertex_program = (trc_obj_ref_t){NULL};
+    rev.fragment_program = (trc_obj_ref_t){NULL};
+    rev.geometry_program = (trc_obj_ref_t){NULL};
+    rev.tess_control_program = (trc_obj_ref_t){NULL};
+    rev.tess_eval_program = (trc_obj_ref_t){NULL};
+    rev.compute_program = (trc_obj_ref_t){NULL};
+    
+    for (size_t i = 0; i < count; ++i) {
+        rev.real = real[i];
+        trc_create_named_obj(ctx->priv_ns, TrcProgramPipeline, fake[i], &rev);
+    }
+}
+
 bool program_has_stage(trc_obj_t* program, GLenum stage) {
     const trc_gl_program_rev_t* rev = trc_obj_get_rev(program, -1);
     const trc_gl_program_linked_shader_t* linked = trc_map_data(rev->linked, TRC_MAP_READ);
@@ -743,20 +760,12 @@ glUseProgram: //GLuint p_program
 glGenProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
     real(p_n, pipelines);
-    
-    trc_gl_program_pipeline_rev_t rev;
-    for (size_t i = 0; i < p_n; ++i) {
-        rev.real = pipelines[i];
-        rev.has_object = false;
-        rev.active_program = (trc_obj_ref_t){NULL};
-        rev.vertex_program = (trc_obj_ref_t){NULL};
-        rev.fragment_program = (trc_obj_ref_t){NULL};
-        rev.geometry_program = (trc_obj_ref_t){NULL};
-        rev.tess_control_program = (trc_obj_ref_t){NULL};
-        rev.tess_eval_program = (trc_obj_ref_t){NULL};
-        rev.compute_program = (trc_obj_ref_t){NULL};
-        trc_create_named_obj(ctx->priv_ns, TrcProgramPipeline, p_pipelines[i], &rev);
-    }
+    gen_program_pipelines(p_n, pipelines, p_pipelines, false);
+
+glCreateProgramPipelines: //GLsizei p_n, GLuint* p_pipelines
+    GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));
+    real(p_n, pipelines);
+    gen_program_pipelines(p_n, pipelines, p_pipelines, true);
 
 glDeleteProgramPipelines: //GLsizei p_n, const GLuint* p_pipelines
     GLuint* pipelines = replay_alloc(p_n*sizeof(GLuint));

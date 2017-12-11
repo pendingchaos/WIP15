@@ -345,10 +345,21 @@ glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
     buffers[p_index].divisor = p_divisor;
     trc_unmap_data(buffers);
 
+glVertexBindingDivisor: //GLuint p_bindingindex, GLuint p_divisor
+    if (!gls_get_bound_vao())
+        ERROR("No vertex array object is bound");
+    if (p_bindingindex>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
+        ERROR("Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
+    
+    trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
+    trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
+    buffers[p_bindingindex].divisor = p_divisor;
+    trc_unmap_data(buffers);
+
 glVertexArrayBindingDivisor: //GLuint p_vaobj, GLuint p_bindingindex, GLuint p_divisor
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    if (gls_get_ver()>=430 && p_bindingindex>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
+    if (p_bindingindex>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
         ERROR("Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
     
     trc_gl_vao_rev_t rev = *p_vaobj_rev;

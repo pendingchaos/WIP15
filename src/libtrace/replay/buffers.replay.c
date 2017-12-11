@@ -334,6 +334,46 @@ static void bind_buffer_indexed(GLenum target, GLuint index, GLuint buffer) {
     bind_buffer_indexed_ranged(target, index, buffer, 0, 0);
 }
 
+static void clear_buffer_data(bool sub, bool dsa, uint target_or_buf, GLenum internalformat,
+                              GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void* data) {
+    const trc_gl_buffer_rev_t* rev;
+    if (dsa) rev = get_buffer(target_or_buf);
+    else rev = trc_obj_get_rev(get_bound_buffer(target_or_buf), -1);
+    if (!rev) ERROR2(, "No buffer bound to target");
+    if (!rev->has_object) ERROR2(, "Buffer name has no object");
+    
+    if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
+        ERROR2(, "Buffer is mapped without persistent access");
+    
+    int internal_format_size = get_internal_format_size(internalformat);
+    assert(internal_format_size >= 0); //the internal format should always be sized
+    
+    if (sub) {
+        if (offset < 0) ERROR2(, "Offset is negative");
+        if (size < 0) ERROR2(, "Size is negative");
+        if (offset+size > rev->data.size)
+            ERROR2(, "The specified range is too large for the buffer");
+        
+        if (offset%internal_format_size != 0)
+            ERROR2(, "The offset must be a multiple of the internal format's size");
+        if (size%internal_format_size != 0)
+            ERROR2(, "The size must be a multiple of the internal format's size");
+    } else {
+        offset = 0;
+        size = rev->data.size;
+        if (size%internal_format_size != 0)
+            ERROR2(, "The buffer's size is not a multiple of the internal format's size");
+    }
+    
+    if (dsa) {
+        F(glClearNamedBufferSubData)(rev->real, internalformat, offset, size, format, type, data);
+    } else {
+        F(glClearBufferSubData)(target_or_buf, internalformat, offset, size, format, type, data);
+    }
+    
+    update_buffer_from_gl(rev->head.obj, offset, size);
+}
+
 glGenBuffers: //GLsizei p_n, GLuint* p_buffers
     if (p_n < 0) ERROR("Invalid buffer name count");
     GLuint* buffers = replay_alloc(p_n*sizeof(GLuint));
@@ -392,10 +432,9 @@ glBindBufferBase: //GLenum p_target, GLuint p_index, GLuint p_buffer
     if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     if (p_index >= gls_get_bound_buffer_indexed_size(p_target))
-        ERROR("Invalid index");
-    const trc_gl_buffer_rev_t* rev = get_buffer(p_buffer);
-    if (!rev && p_buffer) ERROR("Invalid buffer name");
-    real(p_target, p_index, p_buffer?rev->real:0);
+        ERROR("Invalid binding point index");
+    if (!p_buffer_rev && p_buffer) ERROR("Invalid buffer name");
+    real(p_target, p_index, p_buffer?p_buffer_rev->real:0);
     bind_buffer(p_target, p_buffer);
     bind_buffer_indexed(p_target, p_index, p_buffer);
 
@@ -403,16 +442,46 @@ glBindBufferRange: //GLenum p_target, GLuint p_index, GLuint p_buffer, GLintptr 
     if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
         ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
     if (p_index >= gls_get_bound_buffer_indexed_size(p_target))
-        ERROR("Invalid index");
-    const trc_gl_buffer_rev_t* rev = get_buffer(p_buffer);
-    if (!rev && p_buffer) ERROR("Invalid buffer name");
-    if (rev && (p_size<=0 || p_offset+p_size>rev->data.size))
+        ERROR("Invalid binding point index");
+    if (!p_buffer_rev && p_buffer) ERROR("Invalid buffer name");
+    if (p_buffer_rev && (p_size<=0 || p_offset+p_size>p_buffer_rev->data.size))
         ERROR("Invalid range");
     //TODO: Check alignment of offset
-    real(p_target, p_index, p_buffer?rev->real:0, p_offset, p_size);
+    real(p_target, p_index, p_buffer?p_buffer_rev->real:0, p_offset, p_size);
     
     bind_buffer(p_target, p_buffer);
     bind_buffer_indexed_ranged(p_target, p_index, p_buffer, p_offset, p_size);
+
+glBindBuffersBase: //GLenum p_target, GLuint p_first, GLsizei p_count, const GLuint* buffers
+    if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
+        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
+    if (p_count < 0) ERROR("Invalid count");
+    if (p_first+p_count >= gls_get_bound_buffer_indexed_size(p_target))
+        ERROR("Invalid binding point range");
+    for (GLsizei i = 0; i < p_count; i++) {
+        if (p_buffers_rev[i] && p_buffers[i]) ERROR("Invalid buffer name at index %d", i);
+    }
+    for (GLsizei i = 0; i < p_count; i++) {
+        bind_buffer_indexed(p_target, p_first+i, p_buffers[i]);
+        F(glBindBufferBase)(p_target, p_first+i, p_buffers[i]?p_buffers_rev[i]->real:0);
+    }
+
+glBindBuffersRange: //GLenum p_target, GLuint p_first, GLsizei p_count, const GLuint* buffers, const GLintptr* offsets, const GLintptr* sizes
+    if (get_current_tf()->active_not_paused && p_target==GL_TRANSFORM_FEEDBACK_BUFFER)
+        ERROR("Cannot modify GL_TRANSFORM_FEEDBACK_BUFFER when transform feedback is active and not paused");
+    if (p_count < 0) ERROR("Invalid count");
+    if (p_first+p_count >= gls_get_bound_buffer_indexed_size(p_target))
+        ERROR("Invalid binding point range");
+    //TODO: Check alignment of offset
+    for (GLsizei i = 0; i < p_count; i++) {
+        if (p_buffers_rev[i] && p_buffers[i]) ERROR("Invalid buffer name at index %d", i);
+        if (p_buffers_rev[i] && (p_sizes[i]<=0 || p_offsets[i]+p_sizes[i]>p_buffers_rev[i]->data.size))
+            ERROR("Invalid range at index %d", i);
+    }
+    for (GLsizei i = 0; i < p_count; i++) {
+        bind_buffer_indexed(p_target, i, p_buffers[i]);
+        F(glBindBufferRange)(p_target, p_first+i, p_buffers[i]?p_buffers_rev[i]->real:0, p_offsets[i], p_sizes[i]);
+    }
 
 glBufferData: //GLenum p_target, GLsizeiptr p_size, const void* p_data, GLenum p_usage
     void* data = cmd->args[2].type==Type_Ptr ? NULL : trc_map_data(cmd->args[2].data, TRC_MAP_READ);
@@ -506,46 +575,6 @@ glGetBufferSubData: //GLenum p_target, GLintptr p_offset, GLsizeiptr p_size, voi
 
 glGetNamedBufferSubData: //GLuint p_buffer, GLintptr p_offset, GLsizeiptr p_size, void* p_data
     get_buffer_sub_data(true, trc_lookup_name(ctx->ns, TrcBuffer, p_buffer, -1), p_offset, p_size);
-
-static void clear_buffer_data(bool sub, bool dsa, uint target_or_buf, GLenum internalformat,
-                              GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void* data) {
-    const trc_gl_buffer_rev_t* rev;
-    if (dsa) rev = get_buffer(target_or_buf);
-    else rev = trc_obj_get_rev(get_bound_buffer(target_or_buf), -1);
-    if (!rev) ERROR2(, "No buffer bound to target");
-    if (!rev->has_object) ERROR2(, "Buffer name has no object");
-    
-    if (rev->mapped && !(rev->map_access&GL_MAP_PERSISTENT_BIT))
-        ERROR2(, "Buffer is mapped without persistent access");
-    
-    int internal_format_size = get_internal_format_size(internalformat);
-    assert(internal_format_size >= 0); //the internal format should always be sized
-    
-    if (sub) {
-        if (offset < 0) ERROR2(, "Offset is negative");
-        if (size < 0) ERROR2(, "Size is negative");
-        if (offset+size > rev->data.size)
-            ERROR2(, "The specified range is too large for the buffer");
-        
-        if (offset%internal_format_size != 0)
-            ERROR2(, "The offset must be a multiple of the internal format's size");
-        if (size%internal_format_size != 0)
-            ERROR2(, "The size must be a multiple of the internal format's size");
-    } else {
-        offset = 0;
-        size = rev->data.size;
-        if (size%internal_format_size != 0)
-            ERROR2(, "The buffer's size is not a multiple of the internal format's size");
-    }
-    
-    if (dsa) {
-        F(glClearNamedBufferSubData)(rev->real, internalformat, offset, size, format, type, data);
-    } else {
-        F(glClearBufferSubData)(target_or_buf, internalformat, offset, size, format, type, data);
-    }
-    
-    update_buffer_from_gl(rev->head.obj, offset, size);
-}
 
 glClearBufferSubData: //GLenum p_target, GLenum p_internalformat, GLintptr p_offset, GLsizeiptr p_size, GLenum format, GLenum type, const void* data
     clear_buffer_data(true, false, p_target, p_internalformat, p_offset, p_size, p_format, p_type, p_data);
