@@ -196,11 +196,10 @@ static bool begin_draw(GLenum primitive, uint flags) {
         }
         
         trc_gl_vao_buffer_t* b = &vao_buffers[a->buffer_index];
-        //if (!b->buffer) continue; //TODO: Error?
         
         F(glEnableVertexAttribArray)(real_loc);
         
-        GLuint real_buf = ((trc_gl_buffer_rev_t*)trc_obj_get_rev(b->buffer.obj, -1))->real;
+        GLuint real_buf = b->buffer.obj ? ((trc_gl_buffer_rev_t*)trc_obj_get_rev(b->buffer.obj, -1))->real : 0;
         F(glBindBuffer)(GL_ARRAY_BUFFER, real_buf);
         
         if (a->integer) {
@@ -209,6 +208,20 @@ static bool begin_draw(GLenum primitive, uint flags) {
         } else {
             F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, b->stride,
                                      (const void*)(uintptr_t)a->offset+b->offset);
+        }
+        
+        if (!b->buffer.obj) {
+            double* cur_vertex_attrib = trc_map_data(state->current_vertex_attrib, TRC_MAP_READ);
+            uint* types = trc_map_data(state->current_vertex_attrib_types, TRC_MAP_READ);
+            double* vals = &cur_vertex_attrib[i*4];
+            switch (types[i]) {
+            case GL_FLOAT: F(glVertexAttrib4dv)(real_loc, vals); break;
+            case GL_DOUBLE: F(glVertexAttribL4dv)(real_loc, vals); break;
+            case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
+            case GL_INT: F(glVertexAttribI4i)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
+            }
+            trc_unmap_data(types);
+            trc_unmap_data(cur_vertex_attrib);
         }
         
         if (glver > 330)

@@ -129,8 +129,7 @@ const char* get_attrib(attrib_list_state_t* s, size_t instance, size_t index) {
             return NULL;
         }
     } else {
-        trc_data_t* cur_attrib =
-            s->ctx_rev->state_double_GL_CURRENT_VERTEX_ATTRIB;
+        trc_data_t* cur_attrib = s->ctx_rev->current_vertex_attrib;
         double* src = trc_map_data(cur_attrib, TRC_MAP_READ);
         src += s->attrib_index * 4;
         const char* res = static_format("[%g, %g, %g, %g]", src[0], src[1], src[2], src[3]);

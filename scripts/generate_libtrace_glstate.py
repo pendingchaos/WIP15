@@ -368,8 +368,8 @@ map array float state_float
     GL_PATCH_DEFAULT_INNER_LEVEL
     GL_PATCH_DEFAULT_OUTER_LEVEL
 
-map array double state_double
-    GL_CURRENT_VERTEX_ATTRIB
+array double current_vertex_attrib
+array enum current_vertex_attrib_types
 
 map array char state_ascii_string
 //    GL_VENDOR

@@ -1,8 +1,7 @@
 #include "../gui.h"
 #include "../utils.h"
 
-#include "../gui.h"
-#include "../utils.h"
+#include "shared/glcorearb.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -322,13 +321,21 @@ static void vertex_array_state(value_tree_state_t* state, const trc_gl_context_r
     begin_category(state, "Vertex Array");
     value_obj(state, "GL_VERTEX_ARRAY_BINDING", rev->bound_vao, revision);
     begin_category(state, "GL_CURRENT_VERTEX_ATTRIB");
-    double* cur_vertex_attrib = trc_map_data(rev->state_double_GL_CURRENT_VERTEX_ATTRIB,
-                                             TRC_MAP_READ);
-    size_t count = rev->state_double_GL_CURRENT_VERTEX_ATTRIB->size / sizeof(double);
+    double* cur_vertex_attrib = trc_map_data(rev->current_vertex_attrib, TRC_MAP_READ);
+    uint* types = trc_map_data(rev->current_vertex_attrib_types, TRC_MAP_READ);
+    size_t count = rev->current_vertex_attrib->size / sizeof(double);
     for (uint i = 0; i < count; i+=4) {
         double* v = &cur_vertex_attrib[i];
-        value(state, static_format("%u", i/4), "[%g, %g, %g, %g]", v[0], v[1], v[2], v[3]);
+        const char* type = "";
+        switch (types[i/4]) {
+        case GL_FLOAT: type = "vec4"; break;
+        case GL_DOUBLE: type = "dvec4"; break;
+        case GL_INT: type = "ivec4"; break;
+        case GL_UNSIGNED_INT: type = "uvec4"; break;
+        }
+        value(state, static_format("%u", i/4), "%s(%g, %g, %g, %g)", type, v[0], v[1], v[2], v[3]);
     }
+    trc_unmap_data(types);
     trc_unmap_data(cur_vertex_attrib);
     end_category(state);
     end_category(state);

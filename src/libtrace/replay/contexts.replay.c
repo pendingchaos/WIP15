@@ -337,8 +337,13 @@ static void init_context() {
     
     double* va = malloc(cfg.max_vertex_attribs*4*sizeof(double));
     for (size_t i = 0; i < cfg.max_vertex_attribs*4; i++) va[i] = i%4==3 ? 1 : 0;
-    gls_state_double_init(GL_CURRENT_VERTEX_ATTRIB, cfg.max_vertex_attribs*4, va);
+    gls_current_vertex_attrib_init(cfg.max_vertex_attribs*4, va);
     free(va);
+    
+    uint* types = malloc(cfg.max_vertex_attribs*sizeof(uint));
+    for (int i = 0; i < cfg.max_vertex_attribs; i++) types[i] = GL_FLOAT;
+    gls_current_vertex_attrib_types_init(cfg.max_vertex_attribs, types);
+    free(types);
     
     GLenum draw_buffers[1] = {GL_BACK};
     gls_state_enum_init(GL_DRAW_BUFFER, 1, draw_buffers);

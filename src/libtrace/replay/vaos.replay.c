@@ -89,16 +89,18 @@ static void vertex_attrib(uint comp, GLenum type, bool array, bool normalized, G
             case GL_INT: val = conv_from_signed_norm(ver, val, 32); break;
             }
         }
-        gls_set_state_double(GL_CURRENT_VERTEX_ATTRIB, index*4+i, val);
+        gls_set_current_vertex_attrib(index*4+i, val);
     }
     for (; i < 3; i++)
-        gls_set_state_double(GL_CURRENT_VERTEX_ATTRIB, index*4+i, 0);
+        gls_set_current_vertex_attrib(index*4+i, 0);
     for (; i < 4; i++)
-        gls_set_state_double(GL_CURRENT_VERTEX_ATTRIB, index*4+i, 1);
+        gls_set_current_vertex_attrib(index*4+i, 1);
+    
+    gls_set_current_vertex_attrib_types(index, internal);
     
     double vals[4];
     for (i = 0; i < 4; i++)
-        vals[i] = gls_get_state_double(GL_CURRENT_VERTEX_ATTRIB, index*4+i);
+        vals[i] = gls_get_current_vertex_attrib(index*4+i);
     
     switch (internal) {
     case GL_FLOAT: F(glVertexAttrib4dv)(index, vals); break;
@@ -125,7 +127,8 @@ static void vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean
     }
     for (uint i = comp; i < 4; i++) res[i] = i==3 ? 1.0 : 0.0;
     for (uint i = 0; i < 4; i++)
-        gls_set_state_double(GL_CURRENT_VERTEX_ATTRIB, index*4+i, res[i]);
+        gls_set_current_vertex_attrib(index*4+i, (float)res[i]);
+    gls_set_current_vertex_attrib_types(index, GL_FLOAT);
     
     F(glVertexAttrib4dv(index, res));
 }
