@@ -31,7 +31,6 @@ Bugs:
     ensure that packed and shared layout for UBOs work
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
         both in replay and tracing
-    vertex attribute indices are not being remapped with glVertexAttrib*n*
 
 handle negative array sizes in the tracing code
 
