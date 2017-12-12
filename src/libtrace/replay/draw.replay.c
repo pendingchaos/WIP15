@@ -315,8 +315,7 @@ static void end_draw() {
     GLbitfield mask = GL_COLOR_BUFFER_BIT;
     if (depth) mask |= GL_DEPTH_BUFFER_BIT;
     if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
-    //TODO: Only update color buffers that could have been written to using GL_COLOR_WRITEMASK
-    //update_buffers(gls_get_draw_framebuffer(), mask);
+    update_buffers(gls_get_draw_framebuffer(), mask, true);
     
     //TODO: Update shader storage buffers, images and atomic counters
     
