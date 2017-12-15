@@ -125,6 +125,12 @@ bool trace_program(int* exitcode, size_t count, ...) {
         free(output_abs);
         free(config_abs);
         
+        size_t arg_count = 0;
+        for (; arguments[arg_count]; arg_count++) ;
+        char** new_arguments = calloc(arg_count+1, sizeof(char*));
+        memcpy(new_arguments, arguments, arg_count*sizeof(char*));
+        new_arguments[0] = get_abs_path(arguments[0]);
+        
         if (cwd) {
             chdir(cwd);
         } else {
@@ -139,7 +145,8 @@ bool trace_program(int* exitcode, size_t count, ...) {
             free(dir);
         }
         
-        execv(arguments[0], (char*const*)arguments);
+        execv(new_arguments[0], (char*const*)new_arguments);
+        assert(false);
     } else {
         int wstatus;
         waitpid(pid, &wstatus, 0);
