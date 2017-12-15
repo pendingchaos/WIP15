@@ -79,14 +79,19 @@ static int uniform(bool dsa, bool array, uint dimx, uint dimy, GLenum type, uint
         is_array = uniforms[uniform.parent].dtype.base == TrcUniformBaseType_Array;
     if (!is_array && count>1) {
         trc_unmap_data(uniforms);
-        ERROR2(-1, "cound is greater than one but the uniform is not an array");
+        ERROR2(-1, "count is greater than one but the uniform is not an array");
+    }
+    
+    if (uniform.dtype.dim[0]!=dimx || uniform.dtype.dim[1]!=dimy) {
+        trc_unmap_data(uniforms);
+        ERROR2(-1, "Mismatching dimensions");
     }
     
     size_t array_size = 1;
     for (uint u = uniform_index; uniforms[u].next!=0xffffffff; u = uniforms[u].next) array_size++;
-    if (count!=array_size || uniform.dtype.dim[0]!=dimx || uniform.dtype.dim[1]!=dimy) {
+    if (count > array_size) {
         trc_unmap_data(uniforms);
-        return -1;
+        ERROR2(-1, "count is greater than the array's size");
     }
     
     trc_gl_program_rev_t newrev = *rev;
