@@ -21,7 +21,7 @@
 #define QUEUE_CAPACITY 1024
 //milliseconds since last accessed until a container can be compressed
 #define COMPRESS_CONTAINER_THRESHOLD 2000
-//milliseconds since last accessed util a independent data can be compessed
+//milliseconds since last accessed until a independent data can be compessed
 //anything that makes any signifigant performance changes always comes with great memory usage
 //so it's zero
 #define COMPRESS_DATA_THRESHOLD 0

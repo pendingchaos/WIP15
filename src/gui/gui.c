@@ -57,6 +57,7 @@ static void fill_trace_view() {
             sprintf(rev_str, "%lu", cmd->revision);
             
             gtk_tree_store_set(store, &cmd_row, 0, pixbuf, 1, rev_str, 2, cmd_str, -1);
+            gtk_tree_store_set(store, &cmd_row, 3, (uint64_t)i, 4, (uint64_t)j, -1);
         }
         
         char frame_str[32] = {0};
@@ -137,9 +138,9 @@ static void update_gui_for_revision() {
     }
 }
 
-VISIBLE void command_select_callback(GObject* obj, gpointer user_data) {
+VISIBLE void command_select_callback(GtkTreeView* view, gpointer user_data) {
     GtkTreePath* path;
-    gtk_tree_view_get_cursor(GTK_TREE_VIEW(obj), &path, NULL);
+    gtk_tree_view_get_cursor(view, &path, NULL);
     if (!path) return;
     
     GObject* cmd_view = gtk_builder_get_object(state.builder, "selected_command_attachments");
@@ -149,10 +150,16 @@ VISIBLE void command_select_callback(GObject* obj, gpointer user_data) {
     if (!state.trace) return;
     
     if (gtk_tree_path_get_depth(path) == 2) {
-        gint* indices = gtk_tree_path_get_indices(path);
+        GtkTreeModel* model = gtk_tree_view_get_model(view);
         
-        trace_frame_t* frame = state.trace->frames + indices[0];
-        trace_command_t* cmd = frame->commands + indices[1];
+        GtkTreeIter iter;
+        gtk_tree_model_get_iter(model, &iter, path);
+        
+        uint64_t frame_index, cmd_index;
+        gtk_tree_model_get(model, &iter, 3, &frame_index, -1);
+        gtk_tree_model_get(model, &iter, 4, &cmd_index, -1);
+        
+        trace_command_t* cmd = &(state.trace->frames[frame_index].commands[cmd_index]);
         state.revision = cmd->revision;
         state.selected_cmd = cmd;
         
@@ -410,7 +417,8 @@ int run_gui(const char* trace, int argc, char** argv) {
     
     //Initialize the command list view
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
-    GtkTreeStore* store = gtk_tree_store_new(3, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeStore* store = gtk_tree_store_new(
+        5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT64, G_TYPE_UINT64);
     gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
     
     GtkCellRenderer* renderer = gtk_cell_renderer_pixbuf_new();

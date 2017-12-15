@@ -62,10 +62,14 @@ static void deinit(object_tab_t* tab) {
 }
 
 static void fill_uniform_tree(const trc_gl_uniform_t* uniforms, const uint8_t* uniform_data,
-                              size_t uniform_, GtkTreeStore* store, GtkTreeIter* parent) {
+                              size_t uniform_, GtkTreeStore* store, GtkTreeIter* parent, int index) {
     const trc_gl_uniform_t* uniform = &uniforms[uniform_];
     
-    char* name = trc_map_data(uniform->name, TRC_MAP_READ);
+    char* name = index<0 ? trc_map_data(uniform->name, TRC_MAP_READ) : NULL;
+    if (index >= 0) {
+        name = malloc(16);
+        sprintf(name, "[%d]", index);
+    }
     
     if (uniform->dtype.base==TrcUniformBaseType_Struct ||
         uniform->dtype.base==TrcUniformBaseType_Array) {
@@ -73,15 +77,16 @@ static void fill_uniform_tree(const trc_gl_uniform_t* uniforms, const uint8_t* u
         gtk_tree_store_append(store, &row, parent);
         gtk_tree_store_set(store, &row, 0, name, -1);
         
-        for (uint child = uniform->first_child; child!=0xffffffff; child = uniforms[child].next)
-            fill_uniform_tree(uniforms, uniform_data, child, store, &row);
-        
-        trc_unmap_data(name);
+        size_t counter = 0;
+        for (uint child = uniform->first_child; child!=0xffffffff; child = uniforms[child].next) {
+            int new_index = uniform->dtype.base==TrcUniformBaseType_Array ? counter : -1;
+            fill_uniform_tree(uniforms, uniform_data, child, store, &row, new_index);
+            counter++;
+        }
     } else if (uniform->dtype.base==TrcUniformBaseType_AtomicCounter) {
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, parent);
         gtk_tree_store_set(store, &row, 0, name, -1);
-        trc_unmap_data(name);
     } else {
         const uint8_t* val = uniform_data + uniform->data_offset;
         
@@ -127,8 +132,10 @@ static void fill_uniform_tree(const trc_gl_uniform_t* uniforms, const uint8_t* u
         GtkTreeIter row;
         gtk_tree_store_append(store, &row, parent);
         gtk_tree_store_set(store, &row, 0, name, 1, location_str, 2, value_str, -1);
-        trc_unmap_data(name);
     }
+    
+    if (index < 0) trc_unmap_data(name);
+    else free(name);
 }
 
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
@@ -195,7 +202,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     const uint8_t* uniform_data = trc_map_data(rev->uniform_data, TRC_MAP_READ);
     gtk_tree_store_clear(data->uniforms);
     for (size_t i = 0; i < rev->root_uniform_count; i++)
-        fill_uniform_tree(uniforms, uniform_data, i, data->uniforms, NULL);
+        fill_uniform_tree(uniforms, uniform_data, i, data->uniforms, NULL, -1);
     trc_unmap_data(uniform_data);
     trc_unmap_data(uniforms);
 }

@@ -21,6 +21,7 @@ static void gen_vertex_arrays(size_t count, const GLuint* real, const GLuint* fa
     trc_unmap_data(attribs);
     
     int binding_count = gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0);
+    if (gls_get_ver() < 430) binding_count = attrib_count;
     rev.buffers = trc_create_data(ctx->trace, binding_count*sizeof(trc_gl_vao_buffer_t), NULL, TRC_DATA_NO_ZERO);
     trc_gl_vao_buffer_t* buffers = trc_map_data(rev.buffers, TRC_MAP_REPLACE);
     memset(buffers, 0, binding_count*sizeof(trc_gl_vao_buffer_t)); //fill in padding to fix uninitialized memory errors during compession
