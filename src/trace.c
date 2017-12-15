@@ -91,7 +91,7 @@ static void run(int cmdc, char** cmd) {
     }
     
     int exitcode;
-    bool success = trace_program(&exitcode, 5,
+    bool success = trace_program(&exitcode, 6,
         TrcProgramArguments, cmd,
         TrcOutputFilename, output_path,
         TrcConfigFilename, config,

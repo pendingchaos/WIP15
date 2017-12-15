@@ -129,7 +129,7 @@ bool trace_program(int* exitcode, size_t count, ...) {
             chdir(cwd);
         } else {
             char* dir = get_abs_path(arguments[0]);
-            for (int i = strlen(arguments[0])-1; i>=0; i--) {
+            for (int i = strlen(dir)-1; i>=0; i--) {
                 if (dir[i] == '/') {
                     dir[i] = 0;
                     break;
