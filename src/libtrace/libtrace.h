@@ -566,7 +566,8 @@ typedef enum trc_trace_program_arg_t {
     TrcOutputFilename, //const char*
     TrcConfigFilename, //const char*
     TrcCompression, //int, 0-100, default 60
-    TrcLibGL //const char*
+    TrcLibGL, //const char*
+    TrcCurrentWorkingDirectory //const char*
 } trc_trace_program_arg_t;
 
 #pragma GCC visibility push(default)

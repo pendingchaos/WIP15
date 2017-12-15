@@ -8,6 +8,7 @@
 
 static char* config = NULL;
 static char* output = NULL;
+static char* cwd = NULL;
 static char* compress = NULL;
 
 typedef enum long_only_option_t {
@@ -17,6 +18,7 @@ typedef enum long_only_option_t {
 static struct option options[] = {
     {"config", optional_argument, NULL, LongOnlyOption_Config},
     {"output", required_argument, NULL, 'o'},
+    {"cwd", optional_argument, NULL, 'd'},
     {"compress", required_argument, NULL, 'c'}
 };
 
@@ -24,7 +26,7 @@ static struct option options[] = {
 static void handle_options(int argc, char** argv) {
     int option_index = 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "o:c", options, &option_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "o:cd", options, &option_index)) != -1) {
         switch (c) {
         case LongOnlyOption_Config:
             free(config);
@@ -40,6 +42,11 @@ static void handle_options(int argc, char** argv) {
             free(compress);
             compress = malloc(strlen(optarg)+1);
             strcpy(compress, optarg);
+            break;
+        case 'd':
+            free(cwd);
+            cwd = malloc(strlen(optarg)+1);
+            strcpy(cwd, optarg);
             break;
         }
     }
@@ -58,6 +65,8 @@ static void handle_options(int argc, char** argv) {
         compress = malloc(strlen("60")+1);
         strcpy(compress, "60");
     }
+    
+    if (!cwd) cwd = get_current_dir_name();
     
     char* end;
     strtol(compress, &end, 10);
@@ -87,13 +96,15 @@ static void run(int cmdc, char** cmd) {
         TrcOutputFilename, output_path,
         TrcConfigFilename, config,
         TrcCompression, atoi(compress),
-        TrcLibGL, lib_path);
+        TrcLibGL, lib_path,
+        TrcCurrentWorkingDirectory, cwd);
     if (success && exitcode!=EXIT_SUCCESS) {
         fprintf(stderr, "Process returned %d\n", exitcode);
     } else if (!success) {
         fprintf(stderr, "Failed to start process\n");
     }
     
+    free(cwd);
     free(output_path);
     free(lib_path);
 }
@@ -105,6 +116,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "    --output=<output>  or -o <output> | Defaults to output.trace\n");
         fprintf(stderr, "    --limits=<limits>  or -l <limits> | Defaults to limits/this.limits.txt\n");
         fprintf(stderr, "    --compress=<0-100> or -c <0-100 > | Defaults to 60\n");
+        fprintf(stderr, "    --cwd=<dir>  or -d <dir>          | Defaults to the current working directory\n");
         return EXIT_FAILURE;
     }
     

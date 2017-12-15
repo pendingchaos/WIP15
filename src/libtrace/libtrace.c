@@ -62,12 +62,21 @@ static const char *trace_error_desc = "";
 
 void* _trc_compress_thread(void* userdata);
 
+char* get_abs_path(const char* path) {
+    #ifdef _GNU_SOURCE
+    return canonicalize_file_name(path);
+    #else
+    return realpath(path, NULL);
+    #endif
+}
+
 bool trace_program(int* exitcode, size_t count, ...) {
     const char** arguments = NULL;
     const char* output_filename = NULL;
     const char* config = NULL;
     int compression = 60;
     const char* lib_path = NULL;
+    const char* cwd = NULL;
     
     va_list list;
     va_start(list, count);
@@ -88,6 +97,9 @@ bool trace_program(int* exitcode, size_t count, ...) {
         case TrcLibGL:
             lib_path = va_arg(list, const char*);
             break;
+        case TrcCurrentWorkingDirectory:
+            cwd = va_arg(list, const char*);
+            break;
         }
     }
     va_end(list);
@@ -99,13 +111,33 @@ bool trace_program(int* exitcode, size_t count, ...) {
     //TODO: More error checking?
     pid_t pid;
     if (!(pid=fork())) {
-        setenv("WIP15_CONFIG", config, 1);
-        setenv("WIP15_OUTPUT", output_filename, 1);
+        char* config_abs = get_abs_path(config);
+        char* output_abs = get_abs_path(output_filename);
+        char* lib_abs = get_abs_path(lib_path);
+        setenv("WIP15_CONFIG", config_abs, 1);
+        setenv("WIP15_OUTPUT", output_abs, 1);
         char buf[16];
         sprintf(buf, "%d", compression);
         setenv("WIP15_COMPRESSION_LEVEL", buf, 1);
-        setenv("SDL_OPEN_LIBRARY", lib_path, 1);
-        setenv("LD_PRELOAD", lib_path, 1);
+        setenv("SDL_OPEN_LIBRARY", lib_abs, 1);
+        setenv("LD_PRELOAD", lib_abs, 1);
+        free(lib_abs);
+        free(output_abs);
+        free(config_abs);
+        
+        if (cwd) {
+            chdir(cwd);
+        } else {
+            char* dir = get_abs_path(arguments[0]);
+            for (int i = strlen(arguments[0])-1; i>=0; i--) {
+                if (dir[i] == '/') {
+                    dir[i] = 0;
+                    break;
+                }
+            }
+            chdir(dir);
+            free(dir);
+        }
         
         execv(arguments[0], (char*const*)arguments);
     } else {
