@@ -25,7 +25,7 @@ static struct option options[] = {
 };
 
 //TODO: This also tries to parse options after the command
-static void handle_options(int argc, char** argv) {
+static void handle_options(char* self_dir, int argc, char** argv) {
     int option_index = 0;
     int c = -1;
     while ((c=getopt_long(argc, argv, "o:c:d:e", options, &option_index)) != -1) {
@@ -57,8 +57,10 @@ static void handle_options(int argc, char** argv) {
     }
     
     if (!config) {
-        config = malloc(strlen("configs/this.config.txt")+1);
-        strcpy(config, "configs/this.config.txt");
+        const char* this_cfg = "/configs/this.config.txt";
+        config = calloc(strlen(self_dir)+strlen(this_cfg)+1, 1);
+        strcpy(config, self_dir);
+        strcat(config, this_cfg);
     }
     
     if (!output) {
@@ -81,12 +83,11 @@ static void handle_options(int argc, char** argv) {
     }
 }
 
-static void run(int cmdc, char** cmd) {
-    char* lib_path = realpath("libgl.so", NULL);
-    if (lib_path == NULL) {
-        fprintf(stderr, "Unable to find libgl.so.\n");
-        exit(EXIT_FAILURE);
-    }
+static void run(char* self_dir, int cmdc, char** cmd) {
+    const char* lib_gl = "/libgl.so";
+    char* lib_path = calloc(strlen(self_dir)+strlen(lib_gl)+1, 1);
+    strcpy(lib_path, self_dir);
+    strcat(lib_path, lib_gl);
     
     fclose(fopen(output, "wb"));
     char* output_path = realpath(output, NULL);
@@ -119,16 +120,25 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Usage: %s <arguments> <command>\n", argv[0]);
         fprintf(stderr, "Arguments\n");
         fprintf(stderr, "    --output=<output>  or -o <output> | Defaults to output.trace\n");
-        fprintf(stderr, "    --limits=<limits>  or -l <limits> | Defaults to limits/this.limits.txt\n");
-        fprintf(stderr, "    --compress=<0-100> or -c <0-100 > | Defaults to 60\n");
+        fprintf(stderr, "    --config=<config>                 | Defaults to configs/this.config.txt\n");
+        fprintf(stderr, "    --compress=<0-100> or -c <0-100>  | Defaults to 60\n");
         fprintf(stderr, "    --cwd=<dir>  or -d <dir>          | Defaults to the current working directory\n");
-        fprintf(stderr, "    --cwdexec  or -e       >          | Sets the current working directory to that of the traced executable\n");
+        fprintf(stderr, "    --cwdexec  or -e                  | Sets the current working directory to that of the traced executable\n");
         return EXIT_FAILURE;
     }
     
-    handle_options(argc, argv);
-    run(argc-optind, argv+optind);
+    char* self_dir = realpath(argv[0], NULL);
+    for (int i = strlen(self_dir)-1; i>=0; i--) {
+        if (self_dir[i] == '/') {
+            self_dir[i] = 0;
+            break;
+        }
+    }
     
+    handle_options(self_dir, argc, argv);
+    run(self_dir, argc-optind, argv+optind);
+    
+    free(self_dir);
     free(config);
     free(compress);
     free(output);

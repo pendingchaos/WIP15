@@ -63,13 +63,13 @@ dep = $(obj:.o=.d)
 
 .PHONY: bin
 bin: all clean-bin
-	@ln -sr $(BUILD_DIR)libgl.so bin/libgl.so
-	@ln -sr $(BUILD_DIR)libtrace.so bin/libtrace.so
-	@ln -sr $(BUILD_DIR)gui bin/gui
-	@ln -sr $(BUILD_DIR)replaytrace bin/replaytrace
-	@ln -sr $(BUILD_DIR)trace bin/trace
-	@ln -sr $(BUILD_DIR)test bin/test
-	@ln -sr $(BUILD_DIR)tests bin/tests
+	@cp $(BUILD_DIR)libgl.so bin/libgl.so
+	@cp $(BUILD_DIR)libtrace.so bin/libtrace.so
+	@cp $(BUILD_DIR)gui bin/gui
+	@cp $(BUILD_DIR)replaytrace bin/replaytrace
+	@cp $(BUILD_DIR)trace bin/trace
+	@cp $(BUILD_DIR)test bin/test
+	@cp $(BUILD_DIR)tests bin/tests
 
 .PHONY: all
 all: $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so $(BUILD_DIR)trace $(BUILD_DIR)gui\
@@ -147,13 +147,13 @@ $(BUILD_DIR)libtrace.so: $(libtrace_obj)
 	$(CC) $^ -o $@ -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
 $(BUILD_DIR)gui: $(gui_obj) $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so
-	$(CC) -L$(BUILD_DIR) -ltrace -lm -lepoxy $(gui_obj) -o $@ -g `pkg-config gtk+-3.0 --libs` $(GTK_SOURCEVIEW_LIBS) -rdynamic $(CFLAGS)
+	$(CC) -L$(BUILD_DIR) -Wl,-rpath,'$$ORIGIN' -ltrace -lm -lepoxy $(gui_obj) -o $@ -g `pkg-config gtk+-3.0 --libs` $(GTK_SOURCEVIEW_LIBS) -rdynamic $(CFLAGS)
 
 $(BUILD_DIR)replaytrace: $(BUILD_DIR)src/replaytrace.o $(BUILD_DIR)libtrace.so
-	$(CC) -L$(BUILD_DIR) -ltrace $(BUILD_DIR)src/replaytrace.o -o $@ -g -rdynamic $(CFLAGS)
+	$(CC) -L$(BUILD_DIR) -Wl,-rpath,'$$ORIGIN' -ltrace $(BUILD_DIR)src/replaytrace.o -o $@ -g -rdynamic $(CFLAGS)
 
 $(BUILD_DIR)trace: $(BUILD_DIR)src/trace.o $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so
-	$(CC) -L$(BUILD_DIR) -ltrace $(BUILD_DIR)src/trace.o -o $@ -g $(CFLAGS)
+	$(CC) -L$(BUILD_DIR) -Wl,-rpath,'$$ORIGIN' -ltrace $(BUILD_DIR)src/trace.o -o $@ -g $(CFLAGS)
 
 $(BUILD_DIR)test: $(BUILD_DIR)src/test.o
 	$(CC) $^ -o $@ -g $(CFLAGS) -lSDL2 -lGL
