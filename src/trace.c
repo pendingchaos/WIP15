@@ -10,23 +10,25 @@ static char* config = NULL;
 static char* output = NULL;
 static char* cwd = NULL;
 static char* compress = NULL;
+static bool cwdexec = false;
 
 typedef enum long_only_option_t {
     LongOnlyOption_Config = 256
 } long_only_option_t;
 
 static struct option options[] = {
-    {"config", optional_argument, NULL, LongOnlyOption_Config},
+    {"config", required_argument, NULL, LongOnlyOption_Config},
     {"output", required_argument, NULL, 'o'},
-    {"cwd", optional_argument, NULL, 'd'},
-    {"compress", required_argument, NULL, 'c'}
+    {"cwd", required_argument, NULL, 'd'},
+    {"compress", required_argument, NULL, 'c'},
+    {"cwdexec", no_argument, NULL, 'e'}
 };
 
 //TODO: This also tries to parse options after the command
 static void handle_options(int argc, char** argv) {
     int option_index = 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "o:cd", options, &option_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "o:c:d:e", options, &option_index)) != -1) {
         switch (c) {
         case LongOnlyOption_Config:
             free(config);
@@ -47,6 +49,9 @@ static void handle_options(int argc, char** argv) {
             free(cwd);
             cwd = malloc(strlen(optarg)+1);
             strcpy(cwd, optarg);
+            break;
+        case 'e':
+            cwdexec = true;
             break;
         }
     }
@@ -97,7 +102,7 @@ static void run(int cmdc, char** cmd) {
         TrcConfigFilename, config,
         TrcCompression, atoi(compress),
         TrcLibGL, lib_path,
-        TrcCurrentWorkingDirectory, cwd);
+        TrcCurrentWorkingDirectory, cwdexec?NULL:cwd);
     if (success && exitcode!=EXIT_SUCCESS) {
         fprintf(stderr, "Process returned %d\n", exitcode);
     } else if (!success) {
@@ -117,6 +122,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "    --limits=<limits>  or -l <limits> | Defaults to limits/this.limits.txt\n");
         fprintf(stderr, "    --compress=<0-100> or -c <0-100 > | Defaults to 60\n");
         fprintf(stderr, "    --cwd=<dir>  or -d <dir>          | Defaults to the current working directory\n");
+        fprintf(stderr, "    --cwdexec  or -e       >          | Sets the current working directory to that of the traced executable\n");
         return EXIT_FAILURE;
     }
     
