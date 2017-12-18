@@ -1280,6 +1280,9 @@ void trc_run_inspection(trace_t* trace) {
                 funcs[cmd->func_index](cmd);
             cmd->revision = trace->inspection.cur_revision++;
         }
+        char title[256];
+        sprintf(title, "Frame %zu/%zu", i, trace->frame_count-1);
+        SDL_SetWindowTitle(ctx.window, title);
     }
     
     free(glapi_funcs);
