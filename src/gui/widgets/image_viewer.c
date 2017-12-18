@@ -258,7 +258,7 @@ static void update_textures(image_viewer_t* viewer) {
         case TrcImageFormat_RedGreen_I32: I(GL_RG32I, GL_RG, GL_INT); break;
         case TrcImageFormat_RGB_I32: I(GL_RGB32I, GL_RGB, GL_INT); break;
         case TrcImageFormat_RGBA_I32: I(GL_RGBA32I, GL_RGBA, GL_INT); break;
-        case TrcImageFormat_Red_F32: I(GL_R32F, GL_RG, GL_FLOAT); break;
+        case TrcImageFormat_Red_F32: I(GL_R32F, GL_RED, GL_FLOAT); break;
         case TrcImageFormat_RedGreen_F32: I(GL_RG32F, GL_RG, GL_FLOAT); break;
         case TrcImageFormat_RGB_F32: I(GL_RGB32F, GL_RGB, GL_FLOAT); break;
         case TrcImageFormat_RGBA_F32: I(GL_RGBA32F, GL_RGBA, GL_FLOAT); break;

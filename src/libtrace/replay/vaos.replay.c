@@ -194,17 +194,18 @@ static void vertex_attrib_ptr(GLuint index, bool normalized, bool integer,
     trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
     buffers[index].offset = pointer;
     if (!stride) {
+        int size2 = size==GL_BGRA ? 4 : size;
         switch (type) {
         case GL_BYTE:
-        case GL_UNSIGNED_BYTE: buffers[index].stride = size; break;
+        case GL_UNSIGNED_BYTE: buffers[index].stride = size2; break;
         case GL_HALF_FLOAT:
         case GL_SHORT:
-        case GL_UNSIGNED_SHORT: buffers[index].stride = size * 2; break;
+        case GL_UNSIGNED_SHORT: buffers[index].stride = size2 * 2; break;
         case GL_FLOAT:
         case GL_FIXED:
         case GL_INT:
-        case GL_UNSIGNED_INT: buffers[index].stride = size * 4; break;
-        case GL_DOUBLE: buffers[index].stride = size * 8; break;
+        case GL_UNSIGNED_INT: buffers[index].stride = size2 * 4; break;
+        case GL_DOUBLE: buffers[index].stride = size2 * 8; break;
         case GL_INT_2_10_10_10_REV:
         case GL_UNSIGNED_INT_2_10_10_10_REV:
         case GL_UNSIGNED_INT_10F_11F_11F_REV: buffers[index].stride = 4; break;

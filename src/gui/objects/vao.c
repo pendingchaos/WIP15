@@ -1,5 +1,6 @@
 #include "../gui.h"
 #include "../utils.h"
+#include "../../shared/glcorearb.h"
 
 #include <stdlib.h>
 
@@ -67,7 +68,7 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         gtk_tree_store_set(data->attributes, &row,
                            0, index_str,
                            1, attr->enabled ? "True" : "False",
-                           2, size_str,
+                           2, attr->size==GL_BGRA?"GL_BGRA":size_str,
                            3, offset_str,
                            4, type_str,
                            5, attr->normalized ? "True" : "False",

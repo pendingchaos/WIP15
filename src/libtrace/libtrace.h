@@ -432,7 +432,7 @@ typedef struct trc_gl_vao_attrib_t {
     bool normalized;
     bool integer;
     //TODO: bool doubles;
-    uint size;
+    uint size; //1, 2, 3, 4 or GL_BGRA
     uint64_t offset;
     uint type;
     uint buffer_index;

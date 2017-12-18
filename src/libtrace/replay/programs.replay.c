@@ -674,6 +674,71 @@ static bool init_uniforms(trc_gl_program_rev_t* rev) {
     return true;
 }
 
+static void handle_link_program_extras(trc_gl_program_rev_t* rev) {
+    if (!init_uniforms(rev)) {
+        trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
+        rev->root_uniform_count = 0;
+        rev->uniforms = empty_data;
+        rev->uniform_data = empty_data;
+        ERROR2(, "Failed to initialize uniform storage");
+    }
+    rev->vertex_attribs = get_program_vertex_attribs(rev->real);
+    rev->uniform_blocks = get_program_uniform_blocks(rev->real);
+    if (gls_get_ver() >= 400) { //TODO: Check for the extension
+        get_program_subroutines(rev->real, rev->subroutines);
+        get_program_subroutine_uniforms(rev->real, rev->subroutine_uniforms);
+    }
+}
+
+glCreateShaderProgramv: //GLenum p_type, GLsizei p_count, const char** p_strings
+    if (p_count < 0) ERROR("Count is negative");
+    GLuint real_program = real(p_type, p_count, p_strings);
+    GLuint fake = trc_get_uint(&cmd->ret)[0];
+    
+    trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
+    
+    //Create shader object
+    size_t res_sources_size = 0;
+    char* res_sources = NULL;
+    for (GLsizei i = 0; i < p_count; i++) {
+        res_sources = realloc(res_sources, res_sources_size+strlen(p_strings[i])+1);
+        memset(res_sources+res_sources_size, 0, strlen(p_strings[i])+1);
+        strcpy(res_sources+res_sources_size, p_strings[i]);
+        res_sources_size += strlen(p_strings[i]) + 1;
+    }
+    trc_gl_shader_rev_t shader;
+    shader.real = 0;
+    shader.sources = trc_create_data_no_copy(ctx->trace, res_sources_size, res_sources, 0);
+    shader.info_log = trc_create_data(ctx->trace, 1, "", 0);
+    shader.type = p_type;
+    trc_obj_t* shader_obj = trc_create_obj(ctx->trace, false, TrcShader, &shader);
+    
+    //Create program object
+    trc_gl_program_rev_t rev;
+    rev.real = real_program;
+    
+    GLint len;
+    F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
+    rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
+    char* info_log = trc_map_data(rev.info_log, TRC_MAP_REPLACE);
+    F(glGetProgramInfoLog)(rev.real, len+1, NULL, info_log);
+    trc_unmap_data(info_log);
+    
+    GLint status;
+    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
+    if (!status) ERROR("Failed to link program");
+    
+    handle_link_program_extras(&rev);
+    rev.shaders = empty_data;
+    trc_gl_program_linked_shader_t linked =
+        {.shader=shader_obj, .shader_revision=ctx->trace->inspection.cur_revision};
+    rev.linked = trc_create_data(ctx->trace, sizeof(linked), &linked, 0);
+    rev.binary_retrievable_hint = -1;
+    rev.has_been_linked = true;
+    rev.separable = true;
+    
+    trc_create_named_obj(ctx->ns, TrcProgram, fake, &rev);
+
 glLinkProgram: //GLuint p_program
     trc_obj_t* program = trc_lookup_name(ctx->ns, TrcProgram, p_program, -1);
     if (!program) ERROR("Invalid program name");
@@ -686,10 +751,6 @@ glLinkProgram: //GLuint p_program
     
     real(rev.real);
     
-    GLint status;
-    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Failed to link program");
-    
     GLint len;
     F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
@@ -697,19 +758,11 @@ glLinkProgram: //GLuint p_program
     F(glGetProgramInfoLog)(rev.real, len+1, NULL, info_log);
     trc_unmap_data(info_log);
     
-    if (!init_uniforms(&rev)) {
-        trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
-        rev.root_uniform_count = 0;
-        rev.uniforms = empty_data;
-        rev.uniform_data = empty_data;
-        ERROR("Failed to initialize uniform storage");
-    }
-    rev.vertex_attribs = get_program_vertex_attribs(rev.real);
-    rev.uniform_blocks = get_program_uniform_blocks(rev.real);
-    if (gls_get_ver() >= 400) { //TODO: Check for the extension
-        get_program_subroutines(rev.real, rev.subroutines);
-        get_program_subroutine_uniforms(rev.real, rev.subroutine_uniforms);
-    }
+    GLint status;
+    F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
+    if (!status) ERROR("Failed to link program");
+    
+    handle_link_program_extras(&rev);
     
     size_t linked_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
     trc_gl_program_linked_shader_t* linked = calloc(linked_count, sizeof(trc_gl_program_shader_t));
@@ -789,20 +842,24 @@ glBindProgramPipeline: //GLuint p_pipeline
     if (p_pipeline_rev && !p_pipeline_rev->has_object) {
         trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
         newrev.has_object = true;
-        set_program_pipeline(&newrev);
+        p_pipeline_rev = set_program_pipeline(&newrev);
     }
-    gls_set_bound_pipeline(p_pipeline_rev->head.obj);
+    gls_set_bound_pipeline(p_pipeline?p_pipeline_rev->head.obj:NULL);
     real(p_pipeline?p_pipeline_rev->real:0);
 
 glUseProgramStages: //GLuint p_pipeline, GLbitfield p_stages, GLuint p_program
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
-    if (!p_pipeline_rev->has_object) ERROR("Program pipeline name has no object");
     if (p_program && !p_program_rev) ERROR("Invalid program name");
     if (get_current_tf()->active_not_paused &&
         p_pipeline_rev->head.obj==gls_get_bound_pipeline()) {
         ERROR("The bound program pipeline object cannot be modified while transform feedback is active and unpaused");
     }
     real(p_pipeline_rev->real, p_stages, p_program?p_program_rev->real:0);
+    if (p_pipeline_rev && !p_pipeline_rev->has_object) {
+        trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
+        newrev.has_object = true;
+        p_pipeline_rev = set_program_pipeline(&newrev);
+    }
     trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
     if (p_stages & GL_VERTEX_SHADER_BIT)
         trc_set_obj_ref(&newrev.vertex_program, p_program?p_program_rev->head.obj:NULL);

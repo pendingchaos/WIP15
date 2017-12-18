@@ -639,7 +639,7 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
         if (err) ERROR2(true, err);
         sample_param_double(&newrev.sample_params, param, count, val);
         set_texture(&newrev);
-        return true;
+        return false;
     }
     case GL_DEPTH_STENCIL_TEXTURE_MODE:
     case GL_TEXTURE_BASE_LEVEL:
@@ -672,12 +672,12 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
     case GL_TEXTURE_SWIZZLE_G:
     case GL_TEXTURE_SWIZZLE_B:
     case GL_TEXTURE_SWIZZLE_A:
-        if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA)
+        if (not_one_of(val[0], GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_ONE, GL_ZERO, -1))
             ERROR2(true, "Invalid swizzle");
         break;
     case GL_TEXTURE_SWIZZLE_RGBA:
         for (uint i = 0; i < 4; i++) {
-            if (val[0]!=GL_RED && val[0]!=GL_GREEN && val[0]!=GL_BLUE && val[0]!=GL_ALPHA)
+            if (not_one_of(val[i], GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_ONE, GL_ZERO, -1))
                 ERROR2(true, "Invalid swizzle");
         }
         break;
@@ -1175,12 +1175,12 @@ static void generate_texture_mipmaps(bool dsa, GLenum target, const trc_gl_textu
         }
     }
     
-    if (dsa)
-        F(glGenerateTextureMipmap)(tex->real);
-    else
-        F(glGenerateMipmap)(target);
+    const trc_gl_texture_image_t* base_ptr = find_image(num_images, images, 0, tex->base_level);
+    if (!base_ptr) ERROR2(, "Texture has no base image");
+    trc_gl_texture_image_t base = *base_ptr;
     
-    trc_gl_texture_image_t base = *find_image(num_images, images, 0, tex->base_level);
+    if (!dsa) F(glGenerateMipmap)(target);
+    else F(glGenerateTextureMipmap)(tex->real);
     
     trc_unmap_data(images);
     

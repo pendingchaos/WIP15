@@ -711,7 +711,7 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         components = 4;
         break;
     }
-
+    
     size_t final_size = 0;
     switch (type) {
     case GL_UNSIGNED_BYTE:
@@ -1141,6 +1141,10 @@ static void write_uniforms_extra(uniform_t* uniforms) {
 }
 
 static void link_program_extras(GLuint program) {
+    GLint status;
+    F(glGetProgramiv)(program, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE) return;
+    
     GLint count;
     F(glGetProgramiv)(program, GL_ACTIVE_UNIFORMS, &count);
     GLint maxNameLen;

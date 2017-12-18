@@ -167,6 +167,10 @@ class tShdrSrc(Type):
     def gen_replay_finalize_code(self, dest, src, array_count=None):
         return ''
 
+PixelFormat2 = g('GL_RED', 'GL_RG', 'GL_RGB', 'GL_BGR', 'GL_RGBA', 'GL_BGRA', 'GL_RED_INTEGER',
+                 'GL_RG_INTEGER', 'GL_RGB_INTEGER', 'GL_BGR_INTEGER', 'GL_RGBA_INTEGER',
+                 'GL_BGRA_INTEGER', ('GL_STENCIL_INDEX', 4, 4), 'GL_DEPTH_COMPONENT', 'GL_DEPTH_STENCIL')
+
 BufferTarget = g(('GL_ARRAY_BUFFER', 1, 5), ('GL_ATOMIC_COUNTER_BUFFER', 4, 2), ('GL_COPY_READ_BUFFER', 3, 1),
                  ('GL_COPY_WRITE_BUFFER', 3, 1), ('GL_DISPATCH_INDIRECT_BUFFER', 4, 3), ('GL_DRAW_INDIRECT_BUFFER', 4, 0),
                  ('GL_ELEMENT_ARRAY_BUFFER', 1, 5), ('GL_PIXEL_PACK_BUFFER', 2, 1), ('GL_PIXEL_UNPACK_BUFFER', 2, 1),
@@ -202,6 +206,16 @@ Group('InternalFormat').add('GL_DEPTH_COMPONENT', 0x1902, (1, 0))\
                        .add('GL_RG', 0x8227, (3, 0))\
                        .add('GL_RGB', 0x1907, (1, 0))\
                        .add('GL_RGBA', 0x1908, (1, 0))\
+                       .add('GL_DEPTH_COMPONENT16', 0x81A5, (1, 4))\
+                       .add('GL_DEPTH_COMPONENT24', 0x81A7, (1, 4))\
+                       .add('GL_DEPTH_COMPONENT32', 0x81A7, (1, 4))\
+                       .add('GL_DEPTH_COMPONENT32F', 0x8CAC, (3, 0))\
+                       .add('GL_DEPTH24_STENCIL8', 0x88F0, (3, 0))\
+                       .add('GL_DEPTH32F_STENCIL8', 0x8CAD, (3, 0))\
+                       .add('GL_STENCIL_INDEX1', 0x8D46, (4, 4))\
+                       .add('GL_STENCIL_INDEX4', 0x8D47, (4, 4))\
+                       .add('GL_STENCIL_INDEX8', 0x8D48, (4, 4))\
+                       .add('GL_STENCIL_INDEX16', 0x8D49, (4, 4))\
                        .add('GL_R8', 0x8229, (3, 0))\
                        .add('GL_R8_SNORM', 0x8F94, (3, 1))\
                        .add('GL_R16', 0x822A, (3, 0))\
@@ -401,7 +415,7 @@ Group('QueryType').add('GL_TIMESTAMP', 0x8E28, (3, 3))\
 Attachment = Group('Attachment').add('GL_DEPTH_ATTACHMENT', 0x8D00, (3, 0))\
                                 .add('GL_STENCIL_ATTACHMENT', 0x8D20, (3, 0))\
                                 .add('GL_DEPTH_STENCIL_ATTACHMENT', 0x821A, (3, 0))
-for i in range(1024): Attachment.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+for i in range(32): Attachment.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
 
 Group('VertexAttribType').add('GL_BYTE', 0x1400, (2, 0))\
                          .add('GL_UNSIGNED_BYTE', 0x1401, (2, 0))\
@@ -436,12 +450,12 @@ Func((1, 0), 'glTexParameteriv', [P(tGLenum, 'target', None, 'TextureTarget'),
 
 Func((1, 0), 'glTexImage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(tGLint, 'level'),
                               P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
-                              P(tGLint, 'border'), P(tGLenum, 'format', None, 'PixelFormat'),
+                              P(tGLint, 'border'), P(tGLenum, 'format', None, PixelFormat2),
                               P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
 Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
-                      P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLenum, 'format', None, 'PixelFormat'),
+                      P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLenum, 'format', None, PixelFormat2),
                       P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])
 
 #Func((1, 0), 'glReadPixels', [P(tGLint, 'x'), P(tGLint, 'y'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLenum, 'format'), P(tGLenum, 'type'), P(tMutablePointer, 'pixels')])
@@ -479,12 +493,12 @@ Func((4, 5), 'glGetTextureLevelParameteriv', [P(tGLTex, 'texture'), P(tGLint, 'l
 
 Func((1, 1), 'glTexSubImage1D', [P(tGLenum, 'target', None, 'TexSubImage1DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLsizei, 'width'),
-                                 P(tGLenum, 'format', None, 'PixelFormat'),
+                                 P(tGLenum, 'format', None, PixelFormat2),
                                  P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
 Func((1, 1), 'glTexSubImage2D', [P(tGLenum, 'target', None, 'TexSubImage2DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLsizei, 'width'),
-                                 P(tGLsizei, 'height'), P(tGLenum, 'format', None, 'PixelFormat'),
+                                 P(tGLsizei, 'height'), P(tGLenum, 'format', None, PixelFormat2),
                                  P(tGLenum, 'type', None, 'PixelType'),  P(tTexImageData(2), 'pixels')])
 
 Func((1, 1), 'glDeleteTextures', [P(tGLsizei, 'n'), P(tGLTex, 'textures', 'n')])
@@ -497,13 +511,13 @@ Func((1, 2), 'glDrawRangeElements', [P(tGLenum, 'mode', None, 'PrimitiveType'), 
 Func((1, 2), 'glTexImage3D', [P(tGLenum, 'target', None, 'TexImage3DTarget'), P(tGLint, 'level'),
                               P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
                               P(tGLsizei, 'height'), P(tGLsizei, 'depth'), P(tGLint, 'border'),
-                              P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                              P(tGLenum, 'format', None, PixelFormat2), P(tGLenum, 'type', None, 'PixelType'),
                               P(tTexImageData(3), 'pixels')])
 
 Func((1, 2), 'glTexSubImage3D', [P(tGLenum, 'target', None, 'TexSubImage3DTarget'), P(tGLint, 'level'),
                                  P(tGLint, 'xoffset'), P(tGLint, 'yoffset'), P(tGLint, 'zoffset'),
                                  P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
-                                 P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                                 P(tGLenum, 'format', None, PixelFormat2), P(tGLenum, 'type', None, 'PixelType'),
                                  P(tTexImageData(3), 'pixels')])
 
 Func((1, 1), 'glCopyTexImage1D', [P(tGLenum, 'target', None, 'CopyTexImage1DTarget'), P(tGLint, 'level'),
@@ -548,13 +562,14 @@ Func((1, 5), 'glGetBufferParameteriv', [P(tGLenum, 'target', None, BufferTarget)
 Func((3, 2), 'glGetBufferParameteri64v', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tGLint64, 'params', 1)])
 Func((1, 5), 'glGetBufferPointerv', [P(tGLenum, 'target', None, BufferTarget), P(tGLenum, 'pname'), P(tMutablePointer, 'params', 1)])
 DrawBuffersBuffer = g('GL_NONE', 'GL_FRONT_LEFT', 'GL_FRONT_RIGHT', 'GL_BACK_LEFT', 'GL_BACK_RIGHT', name='DrawBuffersBuffer')
-for i in range(1024): DrawBuffersBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+for i in range(32): DrawBuffersBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
 Func((2, 0), 'glDrawBuffers', [P(tGLsizei, 'n'), P(tGLenum, 'bufs', 'n', DrawBuffersBuffer)])
 
 DrawBufferBuffer = g('GL_NONE', 'GL_FRONT_LEFT', 'GL_FRONT_RIGHT', 'GL_BACK_LEFT', 'GL_BACK_RIGHT',
                      'GL_FRONT', 'GL_BACK', 'GL_LEFT', 'GL_RIGHT', 'GL_FRONT_AND_BACK', name='DrawBufferBuffer')
-for i in range(1024): DrawBufferBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
+for i in range(32): DrawBufferBuffer.add('GL_COLOR_ATTACHMENT%d'%i, 0x8CE0+i, (3, 0))
 Func((1, 0), 'glDrawBuffer', [P(tGLenum, 'buf', None, DrawBufferBuffer)])
+Func((1, 0), 'glReadBuffer', [P(tGLenum, 'src', None, DrawBufferBuffer)], None)
 Func((2, 0), 'glAttachShader', [P(tGLProgram, 'program'), P(tGLShader, 'shader')], None)
 Func((2, 0), 'glBindAttribLocation', [P(tGLProgram, 'program'), P(tGLuint, 'index'), P(tString, 'name')], None)
 Func((2, 0), 'glCompileShader', [P(tGLShader, 'shader')], None)
@@ -832,7 +847,7 @@ Func((4, 1), 'glUseProgramStages', [P(tGLProgramPipeline, 'pipeline'), P(tGLbitf
 Func((4, 1), 'glActiveShaderProgram', [P(tGLProgramPipeline, 'pipeline'), P(tGLProgram, 'program')], None)
 Func((4, 1), 'glProgramParameteri', [P(tGLProgram, 'program'), P(tGLenum, 'pname', None, g('GL_PROGRAM_BINARY_RETRIEVABLE_HINT', 'GL_PROGRAM_SEPARABLE')),
                                      P(tGLint, 'value', None, 'Boolean')])
-Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLProgram)
+Func((4, 1), 'glCreateShaderProgramv', [P(tGLenum, 'type', None, 'ShaderType'), P(tGLsizei, 'count'), P(tString, 'strings', 'count')], tGLProgram).trace_extras_code = 'link_program_extras(result);'
 Func((2, 0), 'glCreateShader', [P(tGLenum, 'type', None, 'ShaderType')], tGLShader)
 Func((4, 1), 'glDeleteProgramPipelines', [P(tGLsizei, 'n'), P(tGLProgramPipeline, 'pipelines', 'n')])
 Func((4, 1), 'glGenProgramPipelines', [P(tGLsizei, 'n'), P(tGLProgramPipeline, 'pipelines', 'n')])
@@ -1014,17 +1029,17 @@ Func((4, 5), 'glGetNamedRenderbufferParameteriv', [P(tGLRenderbuffer, 'renderbuf
 Func((4, 5), 'glCreateTextures', [P(tGLenum, 'target'), P(tGLsizei, 'n'), P(tGLTex, 'textures', 'n')])
 
 Func((4, 5), 'glTextureSubImage1D', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
-                                     P(tGLsizei, 'width'), P(tGLenum, 'format', None, 'PixelFormat'),
+                                     P(tGLsizei, 'width'), P(tGLenum, 'format', None, PixelFormat2),
                                      P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
 Func((4, 5), 'glTextureSubImage2D', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'),
                                      P(tGLint, 'yoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'),
-                                     P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                                     P(tGLenum, 'format', None, PixelFormat2), P(tGLenum, 'type', None, 'PixelType'),
                                      P(tTexImageData(2), 'pixels')])
 
 Func((4, 5), 'glTextureSubImage3D', [P(tGLTex, 'texture'), P(tGLint, 'level'), P(tGLint, 'xoffset'), P(tGLint, 'yoffset'),
                                      P(tGLint, 'zoffset'), P(tGLsizei, 'width'), P(tGLsizei, 'height'), P(tGLsizei, 'depth'),
-                                     P(tGLenum, 'format', None, 'PixelFormat'), P(tGLenum, 'type', None, 'PixelType'),
+                                     P(tGLenum, 'format', None, PixelFormat2), P(tGLenum, 'type', None, 'PixelType'),
                                      P(tTexImageData(3), 'pixels')])
 
 Func((4, 5), 'glTextureParameterf', [P(tGLTex, 'texture'), P(tGLenum, 'pname', None, 'TextureParameterName'), Param(tGLfloat, 'param')])

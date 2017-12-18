@@ -113,8 +113,8 @@ static bool begin_draw(GLenum primitive, uint flags) {
     const trc_gl_vao_rev_t* vao = trc_obj_get_rev(state->bound_vao.obj, -1);
     if (!vao) ERROR2(false, "No vertex array object bound");
     trc_obj_t* vertex_program_obj = get_active_program_for_stage(GL_VERTEX_SHADER);
+    if (!vertex_program_obj) ERROR2(false, "No vertex program active");
     const trc_gl_program_rev_t* vertex_program = trc_obj_get_rev(vertex_program_obj, -1);
-    if (!vertex_program) ERROR2(false, "No vertex program active");
     
     //Validate samplers
     trc_obj_t* programs[5] = {vertex_program_obj, NULL, NULL, NULL, NULL};
