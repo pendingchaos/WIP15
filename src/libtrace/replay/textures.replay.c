@@ -356,6 +356,14 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
 
 const trc_gl_texture_rev_t* get_bound_tex(uint target) {
     uint unit = gls_get_active_texture_unit(ctx->trace);
+    switch (target) {
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z: target = GL_TEXTURE_CUBE_MAP; break;
+    }
     return trc_obj_get_rev(gls_get_bound_textures(target, unit), -1);
 }
 
@@ -411,14 +419,19 @@ void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     F(glGetIntegerv)(prevget, &prev);
     F(glBindTexture)(tex->type, tex->real);
     
+    uint target = tex->type;
+    if (target==GL_TEXTURE_CUBE_MAP) target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
+    
     GLint width, height, depth, internal_format;
-    F(glGetTexLevelParameteriv)(tex->type, level, GL_TEXTURE_WIDTH, &width);
-    F(glGetTexLevelParameteriv)(tex->type, level, GL_TEXTURE_HEIGHT, &height);
-    F(glGetTexLevelParameteriv)(tex->type, level, GL_TEXTURE_DEPTH, &depth);
-    F(glGetTexLevelParameteriv)(tex->type, level, GL_TEXTURE_INTERNAL_FORMAT, &internal_format);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_WIDTH, &width);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_HEIGHT, &height);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_DEPTH, &depth);
+    F(glGetTexLevelParameteriv)(target, level, GL_TEXTURE_INTERNAL_FORMAT, &internal_format);
     if (!width) width = 1;
     if (!height) height = 1;
     if (!depth) depth = 1;
+    
+    if (!internal_format) ERROR2(, "Internal error - internal format is zero");
     
     trc_image_format_t image_format = get_internal_format_info(internal_format).trc_image_format;
     
@@ -458,9 +471,6 @@ void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     
     size_t data_size = width * height * depth * pixel_size;
     void* data_buf = malloc(data_size);
-    
-    uint target = tex->type;
-    if (target==GL_TEXTURE_CUBE_MAP) target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
     
     GLint temp[9];
     save_init_packing_config(temp);

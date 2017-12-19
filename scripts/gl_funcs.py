@@ -608,6 +608,7 @@ Func((2, 0), 'glUniform4iv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGL
 Func((2, 0), 'glUniformMatrix2fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '4*count')])
 Func((2, 0), 'glUniformMatrix3fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '9*count')])
 Func((2, 0), 'glUniformMatrix4fv', [P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLfloat, 'value', '16*count')])
+Func((2, 0), 'glValidateProgram', [P(tGLProgram, 'program')], None)
 Func((2, 0), 'glVertexAttrib1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 1)])
 Func((2, 0), 'glVertexAttrib1fv', [P(tGLuint, 'index'), P(tGLfloat, 'v', 1)])
 Func((2, 0), 'glVertexAttrib1sv', [P(tGLuint, 'index'), P(tGLshort, 'v', 1)])
@@ -931,6 +932,7 @@ Func((4, 1), 'glProgramUniformMatrix2x4dv', [P(tGLProgram, 'program'), P(tGLint,
 Func((4, 1), 'glProgramUniformMatrix4x2dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*8')])
 Func((4, 1), 'glProgramUniformMatrix3x4dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
 Func((4, 1), 'glProgramUniformMatrix4x3dv', [P(tGLProgram, 'program'), P(tGLint, 'location'), P(tGLsizei, 'count'), P(tGLboolean, 'transpose', None, 'Boolean'), P(tGLdouble, 'value', 'count*12')])
+Func((4, 1), 'glValidateProgramPipeline', [P(tGLProgramPipeline, 'pipeline')], None)
 #TODO: Handle when bufSize == 0
 Func((4, 1), 'glGetProgramPipelineInfoLog', [P(tGLProgramPipeline, 'pipeline'), P(tGLsizei, 'bufSize'), P(tOptional(tGLsizei), 'length', 1), P(tMutableString, 'infoLog')])
 Func((4, 1), 'glVertexAttribL1dv', [P(tGLuint, 'index'), P(tGLdouble, 'v', 4)])

@@ -89,11 +89,15 @@ static void validate_samplers(const trc_gl_program_rev_t* rev) {
             
             if (unit < units) {
                 trc_obj_t* tex = gls_get_bound_textures(target, unit);
-                trc_obj_t* sampler = gls_get_bound_samplers(unit);
-                const char* err = validate_texture_completeness(tex, sampler);
-                if (err) {
-                    trc_add_error(cmd, "Uniform at location %u uses an incomplete texture: %s",
-                                  uniform->fake_loc, err);
+                if (!tex) {
+                    trc_add_warning(cmd, "Uniform at location %u points to an empty texture unit", uniform->fake_loc);
+                } else {
+                    trc_obj_t* sampler = gls_get_bound_samplers(unit);
+                    const char* err = validate_texture_completeness(tex, sampler);
+                    if (err) {
+                        trc_add_error(cmd, "Uniform at location %u uses an incomplete texture: %s",
+                                      uniform->fake_loc, err);
+                    }
                 }
             } else {
                 trc_add_error(cmd, "Uniform at location %u is set to an invalid texture unit",

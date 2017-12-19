@@ -779,26 +779,41 @@ glLinkProgram: //GLuint p_program
     
     set_program(&rev);
 
+//TODO: Don't rely on the GL implementation to do the validation
 glValidateProgram: //GLuint p_program
-    GLuint real_program = get_real_program(p_program);
-    if (!real_program) ERROR("Invalid program name");
+    if (!p_program_rev) ERROR("Invalid program name");
     
-    real(real_program);
+    real(p_program_rev->real);
     
-    trc_gl_program_rev_t rev = *get_program(p_program);
+    trc_gl_program_rev_t rev = *p_program_rev;
     
     GLint len;
-    F(glGetProgramiv)(real_program, GL_INFO_LOG_LENGTH, &len);
+    F(glGetProgramiv)(p_program_rev->real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
     char* info_log = trc_map_data(rev.info_log, TRC_MAP_REPLACE);
-    F(glGetProgramInfoLog)(real_program, len, NULL, info_log);
+    F(glGetProgramInfoLog)(p_program_rev->real, len, NULL, info_log);
     trc_unmap_data(info_log);
     
     set_program(&rev);
     
     GLint status;
-    F(glGetProgramiv)(real_program, GL_LINK_STATUS, &status);
+    F(glGetProgramiv)(p_program_rev->real, GL_VALIDATE_STATUS, &status);
     if (!status) ERROR("Program validation failed");
+
+glValidateProgramPipeline: //GLuint p_pipeline
+    if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
+    
+    real(p_pipeline_rev->real);
+    
+    if (!p_pipeline_rev->has_object) {
+        trc_gl_program_pipeline_rev_t newrev = *p_pipeline_rev;
+        newrev.has_object = true;
+        p_pipeline_rev = set_program_pipeline(&newrev);
+    }
+    
+    GLint status;
+    F(glGetProgramiv)(p_pipeline_rev->real, GL_VALIDATE_STATUS, &status);
+    if (!status) ERROR("Program piepline validation failed");
 
 glUseProgram: //GLuint p_program
     const trc_gl_program_rev_t* program_rev = get_program(p_program);
