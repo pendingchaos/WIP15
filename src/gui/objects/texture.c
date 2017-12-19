@@ -65,10 +65,11 @@ static void init(object_tab_t* tab) {
         "Border Color", "Compare Mode", "Compare Function", "Depth Stencil Mode",
         "Base Level", "Max Level", "LOD Bias", "Swizzle", NULL);
     add_separator_to_info_box(tab->info_box);
+    add_to_info_box(tab->info_box, "Internal Format");
     add_multiple_to_info_box(tab->info_box, //For normal textures
         "Width", "Height", "Depth", "Layers", "Mipmap Count", "Buffer", NULL);
     add_multiple_to_info_box(tab->info_box, //For buffer textures
-        "Buffer", "Internal Format", "Offset", "Size", NULL);
+        "Buffer", "Offset", "Size", NULL);
     
     open_images_tab(data);
 }
@@ -142,8 +143,8 @@ static void update_image(const trc_gl_texture_rev_t* rev, texture_data_t* data) 
                        get_enum_str("InternalFormat", image.internal_format));
 }
 
-static void get_texture_info(const trc_gl_texture_rev_t* rev,
-                             int* dims, int* layers, int* mipmaps, bool* cubemap) {
+static void get_texture_info(const trc_gl_texture_rev_t* rev, int* dims, int* layers,
+                             int* mipmaps, bool* cubemap, const char** internal_format) {
     memset(dims, 0, sizeof(int)*3);
     *mipmaps = 0;
     size_t img_count = rev->images->size / sizeof(trc_gl_texture_image_t);
@@ -156,6 +157,21 @@ static void get_texture_info(const trc_gl_texture_rev_t* rev,
             dims[2] = images[i].depth;
         }
     }
+    
+    GLenum ifmt = (GLenum)-1;
+    for (size_t i = 0; i < img_count; i++) {
+        if (ifmt==(GLenum)-1)
+            ifmt = images[i].internal_format;
+        else if (ifmt != images[i].internal_format)
+            ifmt = (GLenum)-2;
+    }
+    if (ifmt == (GLenum)-1)
+        *internal_format = "No Images";
+    else if (ifmt == (GLenum)-2)
+        *internal_format = "Mixed";
+    else
+        *internal_format = get_enum_str("InternalFormat", ifmt);
+    
     trc_unmap_data(images);
     
     int layers_index = -1;
@@ -224,7 +240,6 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         set_visible_at_info_box(box, "Layers", false);
         set_visible_at_info_box(box, "Mipmap Count", false);
         set_visible_at_info_box(box, "Buffer", true);
-        set_visible_at_info_box(box, "Internal Format", true);
         set_visible_at_info_box(box, "Offset", true);
         set_visible_at_info_box(box, "Size", true);
         
@@ -235,15 +250,16 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         set_at_info_box(box, "Size", "%zu", rev->buffer.size);
     } else {
         set_visible_at_info_box(box, "Buffer", false);
-        set_visible_at_info_box(box, "Internal Format", false);
         set_visible_at_info_box(box, "Offset", false);
         set_visible_at_info_box(box, "Size", false);
         
         int dims[3];
         int layers, mipmaps;
         bool cubemap;
-        get_texture_info(rev, dims, &layers, &mipmaps, &cubemap);
+        const char* internal_format;
+        get_texture_info(rev, dims, &layers, &mipmaps, &cubemap, &internal_format);
         
+        set_at_info_box(box, "Internal Format", "%s", internal_format);
         set_at_info_box(box, "Width", "%zu", dims[0]);
         set_visible_at_info_box(box, "Width", dims[0]>=0);
         set_at_info_box(box, "Height", "%zu", dims[1]);

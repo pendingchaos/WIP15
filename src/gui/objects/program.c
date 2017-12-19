@@ -15,8 +15,8 @@ static void init(object_tab_t* tab) {
     program_data_t* data = malloc(sizeof(program_data_t));
     tab->data = data;
     add_obj_common_to_info_box(tab->info_box);
-    add_to_info_box(tab->info_box, "Separable");
-    add_to_info_box(tab->info_box, "Binary Retrievable Hint");
+    add_multiple_to_info_box(tab->info_box,
+        "Separable", "Binary Retreivable Hint", "Link Status", "Validation Status", NULL);
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Info Log", NULL);
@@ -29,18 +29,18 @@ static void init(object_tab_t* tab) {
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Attached Shaders", NULL);
     
-    GtkTreeView* view = create_tree_view(2, 1, "Shader", "Revision", G_TYPE_POINTER);
+    GtkTreeView* view = create_tree_view(1, 1, "Shader", G_TYPE_POINTER);
     data->attached_shaders = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
-    init_object_column(view, tab, 0, 2);
+    init_object_column(view, tab, 0, 1, -1);
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Linked Shaders", NULL);
     
-    view = create_tree_view(2, 1, "Shader", "Revision", G_TYPE_POINTER);
+    view = create_tree_view(2, 2, "Shader", "Revision", G_TYPE_POINTER, G_TYPE_UINT64);
     data->linked_shaders = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
-    init_object_column(view, tab, 0, 2);
+    init_object_column(view, tab, 0, 2, 3);
     
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Uniforms", NULL);
@@ -146,7 +146,13 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     if (!set_obj_common_at_info_box(box, rev_head, revision)) return;
     set_at_info_box(box, "Separable", "%s", rev->separable?"True":"False");
     set_at_info_box(box, "Binary Retrievable Hint", "%s",
-                    (const char*[]){"", "False", "True"}[rev->binary_retrievable_hint+1]);
+                    (const char*[]){"Unset", "False", "True"}[rev->binary_retrievable_hint+1]);
+    
+    set_at_info_box(tab->info_box, "Validation Status", "%s",
+                    (const char*[]){"Not Done", "Failed", "Succeeded"}[rev->validation_status+1]);
+    
+    set_at_info_box(tab->info_box, "Link Status", "%s",
+                    (const char*[]){"Not Done", "Failed", "Succeeded"}[rev->link_status+1]);
     
     //Info log
     const char* info_log = trc_map_data(rev->info_log, TRC_MAP_READ);
@@ -154,30 +160,29 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     trc_unmap_data(info_log);
     
     //Attached shaders
-    size_t shader_count = rev->shaders->size / sizeof(trc_gl_program_shader_t);
-    const trc_gl_program_shader_t* shaders = trc_map_data(rev->shaders, TRC_MAP_READ);
+    size_t shader_count = rev->shaders->size / sizeof(trc_obj_ref_t);
+    const trc_obj_ref_t* shaders = trc_map_data(rev->shaders, TRC_MAP_READ);
     gtk_tree_store_clear(data->attached_shaders);
     for (size_t i = 0; i < shader_count; i++) {
-        const char* rev_str = static_format("%lu", shaders[i].shader_revision);
         GtkTreeIter row;
         gtk_tree_store_append(data->attached_shaders, &row, NULL);
-        gtk_tree_store_set(data->attached_shaders, &row, 1, rev_str,
-                           0, static_format_obj(shaders[i].shader.obj, revision),
-                           2, shaders[i].shader.obj, -1);
+        gtk_tree_store_set(data->attached_shaders, &row,
+                           0, static_format_obj(shaders[i].obj, revision),
+                           1, shaders[i].obj, -1);
     }
     trc_unmap_data(shaders);
     
     //Linked shaders
-    size_t linked_count = rev->linked->size / sizeof(trc_gl_program_linked_shader_t);
-    const trc_gl_program_linked_shader_t* linked = trc_map_data(rev->linked, TRC_MAP_READ);
+    size_t linked_count = rev->linked->size / sizeof(trc_obj_t*);
+    trc_obj_t*const* linked = trc_map_data(rev->linked, TRC_MAP_READ);
     gtk_tree_store_clear(data->linked_shaders);
     for (size_t i = 0; i < linked_count; i++) {
-        const char* rev_str = static_format("%lu", linked[i].shader_revision);
+        const char* rev_str = static_format("%lu", rev->link_revision);
         GtkTreeIter row;
         gtk_tree_store_append(data->linked_shaders, &row, NULL);
         gtk_tree_store_set(data->linked_shaders, &row, 1, rev_str,
-                           0, static_format_obj(linked[i].shader, revision),
-                           2, linked[i].shader, -1);
+                           0, static_format_obj(linked[i], revision),
+                           2, linked[i], 3, rev->link_revision, -1);
     }
     trc_unmap_data(linked);
     

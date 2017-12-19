@@ -136,7 +136,7 @@ glTransformFeedbackVaryings: //GLuint p_program, GLsizei p_count, const GLchar*c
 
 glGetTransformFeedbackVarying: //GLuint p_program, GLuint p_index, GLsizei p_bufSize, GLsizei* p_length, GLsizei* p_size, GLenum* p_type, GLchar* p_name
     if (!p_program_rev) ERROR("Invalid program name");
-    if (!p_program_rev->has_been_linked) ERROR("Program has not been linked");
+    if (p_program_rev->link_revision<0) ERROR("Program has not been linked");
     GLint varying_count;
     F(glGetProgramiv)(p_program_rev->real, GL_TRANSFORM_FEEDBACK_VARYINGS, &varying_count);
     if (p_index >= varying_count) ERROR("Index is out of bounds");

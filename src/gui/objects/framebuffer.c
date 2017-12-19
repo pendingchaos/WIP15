@@ -32,7 +32,7 @@ static void init(object_tab_t* tab) {
     data->attachments = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
     
-    init_object_column(view, tab, 2, 6);
+    init_object_column(view, tab, 2, 6, -1);
 }
 
 static void deinit(object_tab_t* tab) {

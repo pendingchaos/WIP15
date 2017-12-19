@@ -304,16 +304,6 @@ typedef struct trc_gl_sync_rev_t {
     uint flags;
 } trc_gl_sync_rev_t;
 
-typedef struct trc_gl_program_shader_t {
-    trc_obj_ref_t shader;
-    uint64_t shader_revision;
-} trc_gl_program_shader_t;
-
-typedef struct trc_gl_program_linked_shader_t {
-    trc_obj_t* shader;
-    uint64_t shader_revision;
-} trc_gl_program_linked_shader_t;
-
 typedef enum trc_gl_uniform_base_dtype_t {
     TrcUniformBaseType_Float = 0,
     TrcUniformBaseType_Double = 1,
@@ -393,12 +383,15 @@ typedef struct trc_gl_program_rev_t {
     trc_data_t* subroutines[6]; //{int[]{real0, fake0, real1, fake1, ...}, ...}
     trc_data_t* subroutine_uniforms[6]; //{int[]{real0, fake0, real1, fake1, ...}, ...}
     
-    trc_data_t* shaders; //array of trc_gl_program_shader_t
-    trc_data_t* linked; //array of trc_gl_program_linked_shader_t
+    trc_data_t* shaders; //array of trc_obj_ref_t
+    trc_data_t* linked; //array of trc_obj_t*
+    int64_t link_revision;
     trc_data_t* info_log; //null-terminated ascii
     int binary_retrievable_hint; //-1=unset, 0=false, 1=true
-    bool has_been_linked;
     bool separable;
+    
+    int link_status; //-1=notdone, 0=failed, 1=succeeded
+    int validation_status; //-1=notdone, 0=failed, 1=succeeded
 } trc_gl_program_rev_t;
 
 typedef struct trc_gl_program_pipeline_rev_t {
@@ -411,6 +404,7 @@ typedef struct trc_gl_program_pipeline_rev_t {
     trc_obj_ref_t tess_control_program;
     trc_obj_ref_t tess_eval_program;
     trc_obj_ref_t compute_program;
+    bool validation_status; //-1=notdone, 0=failed, 1=succeeded
 } trc_gl_program_pipeline_rev_t;
 
 typedef struct trc_gl_shader_rev_t {

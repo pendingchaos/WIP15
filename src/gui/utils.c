@@ -364,6 +364,7 @@ typedef struct object_column_data_t {
     object_tab_t* tab;
     int column;
     int data_column;
+    int rev_column;
     GtkStyleContext* style_context;
     GtkCellRenderer* renderer;
 } object_column_data_t;
@@ -396,7 +397,12 @@ static gboolean object_column_handle_event(
         
         trc_obj_t* obj;
         gtk_tree_model_get(model, &iter, data->data_column, &obj, -1);
-        if (obj) open_object_tab(obj, data->tab->revision);
+        
+        uint64_t rev = data->tab->revision;
+        if (data->rev_column >= 0)
+            gtk_tree_model_get(model, &iter, data->rev_column, &rev, -1);
+        
+        if (obj) open_object_tab(obj, rev);
         
         gtk_tree_path_free(path);
         return TRUE;
@@ -466,11 +472,12 @@ static void object_column_state_flags_changed(GtkWidget* widget, GtkStateFlags f
     update_object_column_renderer(data->style_context, data);
 }
 
-void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column) {
+void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column, int rev_column) {
     object_column_data_t* data = malloc(sizeof(object_column_data_t));
     data->tab = tab;
     data->column = column;
     data->data_column = data_column;
+    data->rev_column = rev_column;
     
     gint events = GDK_BUTTON_PRESS_MASK;
     events |= GDK_LEAVE_NOTIFY_MASK;

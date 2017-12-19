@@ -10,6 +10,10 @@ static void init(object_tab_t* tab) {
     tab->data = data;
     add_obj_common_to_info_box(tab->info_box);
     
+    add_to_info_box(tab->info_box, "Validation Status");
+    
+    add_separator_to_info_box(tab->info_box);
+    
     const char* names[] = {"Active Program", "Vertex Program",
         "Fragment Program", "Geometry Program", "Tesselation Control Program",
         "Tesselation Evaluation Program", "Compute Program"};
@@ -27,6 +31,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
     program_pipeline_data_t* data = tab->data;
     info_box_t* box = tab->info_box;
     if (!set_obj_common_at_info_box(box, rev_head, revision)) return;
+    set_at_info_box(tab->info_box, "Validation Status", "%s",
+                    (const char*[]){"Not Done", "Failed", "Succeeded"}[rev->validation_status+1]);
     update_object_button(data->buttons[0], rev->active_program.obj, revision);
     update_object_button(data->buttons[1], rev->vertex_program.obj, revision);
     update_object_button(data->buttons[2], rev->fragment_program.obj, revision);

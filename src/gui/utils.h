@@ -36,5 +36,5 @@ GtkWidget* create_box(bool vertical, size_t count, ...);
 GtkTreeView* create_tree_view(size_t column_count, size_t extra_count, ...);
 GtkWidget* create_scrolled_window(GtkWidget* widget);
 
-void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column);
+void init_object_column(GtkTreeView* view, object_tab_t* tab, int column, int data_column, int rev_column);
 #endif

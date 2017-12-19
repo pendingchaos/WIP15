@@ -10,6 +10,7 @@ static void gen_program_pipelines(size_t count, const GLuint* real, const GLuint
     rev.tess_control_program = (trc_obj_ref_t){NULL};
     rev.tess_eval_program = (trc_obj_ref_t){NULL};
     rev.compute_program = (trc_obj_ref_t){NULL};
+    rev.validation_status = -1;
     
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
@@ -19,11 +20,11 @@ static void gen_program_pipelines(size_t count, const GLuint* real, const GLuint
 
 bool program_has_stage(trc_obj_t* program, GLenum stage) {
     const trc_gl_program_rev_t* rev = trc_obj_get_rev(program, -1);
-    const trc_gl_program_linked_shader_t* linked = trc_map_data(rev->linked, TRC_MAP_READ);
+    trc_obj_t*const* linked = trc_map_data(rev->linked, TRC_MAP_READ);
     bool found = false;
     for (size_t i = 0; i < rev->linked->size/sizeof(linked[0]); i++) {
-        trc_gl_program_linked_shader_t ls = linked[i];
-        const trc_gl_shader_rev_t* shader = trc_obj_get_rev(ls.shader, ls.shader_revision);
+        trc_obj_t* ls = linked[i];
+        const trc_gl_shader_rev_t* shader = trc_obj_get_rev(ls, rev->link_revision);
         if (shader->type != stage) continue;
         found = true;
         break;
@@ -148,8 +149,10 @@ glCreateProgram: //
     rev.linked = empty_data;
     rev.info_log = trc_create_data(ctx->trace, 1, "", 0);
     rev.binary_retrievable_hint = -1;
-    rev.has_been_linked = false;
+    rev.link_revision = -1;
     rev.separable = false;
+    rev.link_status = -1;
+    rev.validation_status = -1;
     trc_create_named_obj(ctx->ns, TrcProgram, fake, &rev);
 
 glDeleteProgram: //GLuint p_program
@@ -157,10 +160,10 @@ glDeleteProgram: //GLuint p_program
     if (!p_program_rev) ERROR("Invalid program name");
     real(p_program_rev->real);
     
-    size_t shader_count = p_program_rev->shaders->size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* shaders = trc_map_data(p_program_rev->shaders, TRC_MAP_READ);
+    size_t shader_count = p_program_rev->shaders->size / sizeof(trc_obj_ref_t);
+    trc_obj_ref_t* shaders = trc_map_data(p_program_rev->shaders, TRC_MAP_READ);
     for (size_t i = 0; i < shader_count; i++)
-        trc_del_obj_ref(shaders[i].shader);
+        trc_del_obj_ref(shaders[i]);
     trc_unmap_data(shaders);
     
     trc_gl_program_rev_t newrev = *p_program_rev;
@@ -189,21 +192,20 @@ glAttachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_rev_t old = program;
     const trc_gl_shader_rev_t* shader = p_shader_rev;
     
-    size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
+    size_t shader_count = program.shaders->size / sizeof(trc_obj_ref_t);
+    trc_obj_ref_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
     
     for (size_t i = 0; i < shader_count; i++) {
-        if (src[i].shader.obj == p_shader_rev->head.obj) ERROR("Shader is already attached");
+        if (src[i].obj == p_shader_rev->head.obj) ERROR("Shader is already attached");
     }
     
-    program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_gl_program_shader_t), NULL, TRC_DATA_NO_ZERO);
+    program.shaders = trc_create_data(ctx->trace, (shader_count+1)*sizeof(trc_obj_ref_t), NULL, TRC_DATA_NO_ZERO);
     
-    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
-    memcpy(dest, src, shader_count*sizeof(trc_gl_program_shader_t));
-    memset(&dest[shader_count], 0, sizeof(trc_gl_program_shader_t));
-    dest[shader_count].shader.obj = p_shader_rev->head.obj;
+    trc_obj_ref_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
+    memcpy(dest, src, shader_count*sizeof(trc_obj_ref_t));
+    memset(&dest[shader_count], 0, sizeof(trc_obj_ref_t));
+    dest[shader_count].obj = p_shader_rev->head.obj;
     trc_grab_obj(p_shader_rev->head.obj);
-    dest[shader_count].shader_revision = shader->head.revision;
     trc_unmap_data(src);
     trc_unmap_data(dest);
     
@@ -218,17 +220,17 @@ glDetachShader: //GLuint p_program, GLuint p_shader
     trc_gl_program_rev_t program = *p_program_rev;
     trc_gl_program_rev_t old = program;
     
-    size_t shader_count = program.shaders->size / sizeof(trc_gl_program_shader_t);
-    program.shaders = trc_create_data(ctx->trace, (shader_count-1)*sizeof(trc_gl_program_shader_t), NULL, TRC_DATA_NO_ZERO);
+    size_t shader_count = program.shaders->size / sizeof(trc_obj_ref_t);
+    program.shaders = trc_create_data(ctx->trace, (shader_count-1)*sizeof(trc_obj_ref_t), NULL, TRC_DATA_NO_ZERO);
     
-    trc_gl_program_shader_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
-    trc_gl_program_shader_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
+    trc_obj_ref_t* dest = trc_map_data(program.shaders, TRC_MAP_REPLACE);
+    trc_obj_ref_t* src = trc_map_data(old.shaders, TRC_MAP_READ);
     size_t next = 0;
     bool found = false;
     for (size_t i = 0; i < shader_count; i++) {
-        if (src[i].shader.obj == p_shader_rev->head.obj) {
+        if (src[i].obj == p_shader_rev->head.obj) {
             found = true;
-            trc_del_obj_ref(src[i].shader);
+            trc_del_obj_ref(src[i]);
             continue;
         }
         dest[next++] = src[i];
@@ -726,15 +728,16 @@ glCreateShaderProgramv: //GLenum p_type, GLsizei p_count, const char** p_strings
     
     GLint status;
     F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Failed to link program");
+    rev.link_status = status ? 1 : 0;
+    rev.validation_status = -1;
     
-    handle_link_program_extras(&rev);
+    if (rev.link_status == 0) trc_add_error(cmd, "Failed to link program");
+    else handle_link_program_extras(&rev);
+    
     rev.shaders = empty_data;
-    trc_gl_program_linked_shader_t linked =
-        {.shader=shader_obj, .shader_revision=ctx->trace->inspection.cur_revision};
-    rev.linked = trc_create_data(ctx->trace, sizeof(linked), &linked, 0);
+    rev.linked = rev.link_status==1 ? trc_create_data(ctx->trace, sizeof(trc_obj_t*), &shader_obj, 0) : empty_data;
     rev.binary_retrievable_hint = -1;
-    rev.has_been_linked = true;
+    rev.link_revision = ctx->trace->inspection.cur_revision;
     rev.separable = true;
     
     trc_create_named_obj(ctx->ns, TrcProgram, fake, &rev);
@@ -760,22 +763,24 @@ glLinkProgram: //GLuint p_program
     
     GLint status;
     F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
-    if (!status) ERROR("Failed to link program");
+    rev.link_status = status ? 1 : 0;
+    
+    if (rev.link_status == 0) {
+        set_program(&rev);
+        ERROR("Failed to link program");
+    }
     
     handle_link_program_extras(&rev);
     
-    size_t linked_count = rev.shaders->size / sizeof(trc_gl_program_shader_t);
-    trc_gl_program_linked_shader_t* linked = calloc(linked_count, sizeof(trc_gl_program_shader_t));
-    trc_gl_program_shader_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
-    for (size_t i = 0; i < linked_count; i++) {
-        linked[i].shader = shaders[i].shader.obj;
-        linked[i].shader_revision = shaders[i].shader_revision;
-    }
+    size_t linked_count = rev.shaders->size / sizeof(trc_obj_ref_t);
+    trc_obj_t** linked = calloc(linked_count, sizeof(trc_obj_t*));
+    trc_obj_ref_t* shaders = trc_map_data(rev.shaders, TRC_MAP_READ);
+    for (size_t i = 0; i < linked_count; i++)
+        linked[i] = shaders[i].obj;
     trc_unmap_data(shaders);
-    rev.linked = trc_create_data_no_copy(ctx->trace, linked_count*sizeof(trc_gl_program_linked_shader_t),
-                                         linked, 0);
+    rev.linked = trc_create_data_no_copy(ctx->trace, linked_count*sizeof(trc_obj_t*), linked, 0);
     
-    rev.has_been_linked = true;
+    rev.link_revision = ctx->trace->inspection.cur_revision;
     
     set_program(&rev);
 
@@ -794,11 +799,13 @@ glValidateProgram: //GLuint p_program
     F(glGetProgramInfoLog)(p_program_rev->real, len, NULL, info_log);
     trc_unmap_data(info_log);
     
-    set_program(&rev);
-    
     GLint status;
     F(glGetProgramiv)(p_program_rev->real, GL_VALIDATE_STATUS, &status);
-    if (!status) ERROR("Program validation failed");
+    rev.validation_status = status ? 1 : 0;
+    
+    p_program_rev = set_program(&rev);
+    
+    if (rev.validation_status == 0) ERROR("Program validation failed");
 
 glValidateProgramPipeline: //GLuint p_pipeline
     if (!p_pipeline_rev) ERROR("Invalid program pipeline name");
@@ -811,9 +818,13 @@ glValidateProgramPipeline: //GLuint p_pipeline
         p_pipeline_rev = set_program_pipeline(&newrev);
     }
     
+    trc_gl_program_pipeline_rev_t rev = *p_pipeline_rev;
     GLint status;
     F(glGetProgramiv)(p_pipeline_rev->real, GL_VALIDATE_STATUS, &status);
-    if (!status) ERROR("Program piepline validation failed");
+    rev.validation_status = status ? 1 : 0;
+    p_pipeline_rev = set_program_pipeline(&rev);
+    
+    if (rev.validation_status == 0) ERROR("Program piepline validation failed");
 
 glUseProgram: //GLuint p_program
     const trc_gl_program_rev_t* program_rev = get_program(p_program);
