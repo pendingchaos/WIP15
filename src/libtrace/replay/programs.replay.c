@@ -412,6 +412,7 @@ static trc_data_t* get_program_uniform_blocks(GLuint real_program) {
             uniform_blocks = realloc(uniform_blocks, (uniform_block_count+1)*sizeof(trc_gl_program_uniform_block_t));
             trc_gl_program_uniform_block_t block;
             memset(&block, 0, sizeof(block)); //initialize padding to zero - it might be compressed
+            block.name = trc_create_data(ctx->trace, strlen(extra.name)+1, extra.name, 0);
             block.real = real_idx;
             block.fake = extra.val;
             block.binding = 0;

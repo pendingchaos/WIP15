@@ -52,7 +52,7 @@ static void init(object_tab_t* tab) {
     add_separator_to_info_box(tab->info_box);
     add_custom_to_info_box(tab->info_box, "Uniform Blocks", NULL);
     
-    view = create_tree_view(2, 0, "Index", "Binding");
+    view = create_tree_view(3, 0, "Name", "Index", "Binding");
     data->uniform_blocks = GTK_TREE_STORE(gtk_tree_view_get_model(view));
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(view)));
 }
@@ -196,9 +196,13 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         char binding_str[64] = {0};
         snprintf(binding_str, sizeof(index_str)-1, "%u", blocks[i].binding);
         
+        const char* name = trc_map_data(blocks[i].name, TRC_MAP_READ);
+        
         GtkTreeIter row;
-        gtk_tree_store_append(data->attached_shaders, &row, NULL);
-        gtk_tree_store_set(data->attached_shaders, &row, 0, index_str, 1, binding_str, -1);
+        gtk_tree_store_append(data->uniform_blocks, &row, NULL);
+        gtk_tree_store_set(data->uniform_blocks, &row, 0, name, 1, index_str, 2, binding_str, -1);
+        
+        trc_unmap_data(name);
     }
     trc_unmap_data(blocks);
     

@@ -763,16 +763,6 @@ static void add_program_extra(const char* type, const char* name, uint32_t stage
     dw_write_le(&dw, 4, &val, 4, &stage, 4, &len, -1);
     dw_write(&dw, len, name);
     gl_add_extra(type, dw.size, data);
-    
-    /*uint8_t data[strlen(name)+12];
-    val = htole32(val);
-    stage = htole32(stage);
-    uint32_t len = htole32(strlen(name));
-    memcpy(data, &val, 4);
-    memcpy(data+4, &stage, 4);
-    memcpy(data+8, &len, 4);
-    memcpy(data+12, name, strlen(name));
-    gl_add_extra(type, strlen(name)+12, data);*/
 }
 
 //TODO: Move all this uniform code into a separate file

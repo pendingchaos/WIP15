@@ -340,7 +340,7 @@ typedef struct trc_gl_uniform_dtype_t {
 } trc_gl_uniform_dtype_t;
 
 typedef struct trc_gl_uniform_t {
-    trc_data_t* name; //Null in the case of array elements
+    trc_data_t* name; //null terminated - NULL in the case of array elements
     trc_gl_uniform_dtype_t dtype;
     uint parent; //can be 0xffffffff for root uniforms
     uint next; //next member or array element, or 0xffffffff if none
@@ -357,6 +357,7 @@ typedef struct trc_gl_uniform_t {
 } trc_gl_uniform_t;
 
 typedef struct trc_gl_program_uniform_block_t {
+    trc_data_t* name; //null terminated
     uint real; //real index
     uint fake; //fake index
     uint binding;
