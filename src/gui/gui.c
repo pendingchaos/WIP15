@@ -1,4 +1,5 @@
 #include "widgets/info_box.h"
+#include "tree_store.h"
 #include "tabs/tabs.h"
 #include "utils.h"
 #include "gui.h"
@@ -12,64 +13,8 @@ gui_state_t state;
 
 static void fill_trace_view() {
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
-    GtkTreeStore* store = GTK_TREE_STORE(gtk_tree_view_get_model(tree));
-    gtk_tree_store_clear(store);
-    
-    if (!state.trace) return;
-    
-    for (size_t i = 0; i < state.trace->frame_count; ++i) {
-        trace_frame_t* frame = state.trace->frames + i;
-        
-        GtkTreeIter frame_row;
-        gtk_tree_store_append(store, &frame_row, NULL);
-        
-        bool frame_error = false;
-        bool frame_warning = false;
-        bool frame_info = false;
-        for (size_t j = 0; j < frame->command_count; ++j) {
-            GtkTreeIter cmd_row;
-            gtk_tree_store_append(store, &cmd_row, &frame_row);
-            
-            trace_command_t* cmd = frame->commands + j;
-            char cmd_str[1024] = {0};
-            format_command(state.trace, cmd_str, cmd, 1024);
-            
-            bool error = false;
-            bool warning = false;
-            bool info = false;
-            trc_attachment_t* attachment = cmd->attachments;
-            while (attachment) {
-                error = error || attachment->type == TrcAttachType_Error;
-                warning = warning || attachment->type == TrcAttachType_Warning;
-                info = info || attachment->type == TrcAttachType_Info;
-                attachment = attachment->next;
-            }
-            frame_error = frame_error || error;
-            frame_warning = frame_warning || warning;
-            frame_info = frame_info || info;
-            
-            GdkPixbuf* pixbuf = NULL;
-            if (error) pixbuf = state.error_pixbuf;
-            else if (warning) pixbuf = state.warning_pixbuf;
-            else if (info) pixbuf = state.info_pixbuf;
-            
-            char rev_str[64] = {0};
-            sprintf(rev_str, "%lu", cmd->revision);
-            
-            gtk_tree_store_set(store, &cmd_row, 0, pixbuf, 1, rev_str, 2, cmd_str, -1);
-            gtk_tree_store_set(store, &cmd_row, 3, (uint64_t)i, 4, (uint64_t)j, -1);
-        }
-        
-        char frame_str[32] = {0};
-        snprintf(frame_str, 32, "Frame %zu", i);
-        
-        GdkPixbuf* pixbuf = NULL;
-        if (frame_error) pixbuf = state.error_pixbuf;
-        else if (frame_warning) pixbuf = state.warning_pixbuf;
-        else if (frame_info) pixbuf = state.info_pixbuf;
-        
-        gtk_tree_store_set(store, &frame_row, 0, pixbuf, 1, "", 2, frame_str, -1);
-    }
+    GuiTreeStore* store = GUI_TREE_STORE(gtk_tree_view_get_model(tree));
+    gui_tree_store_set_trace(store, state.trace);
 }
 
 void close_tab(gui_tab_t* tab) {
@@ -417,8 +362,10 @@ int run_gui(const char* trace, int argc, char** argv) {
     
     //Initialize the command list view
     GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
-    GtkTreeStore* store = gtk_tree_store_new(
-        5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT64, G_TYPE_UINT64);
+    GuiTreeStore* store = gui_tree_store_new(NULL);
+    gui_tree_store_set_error_pixbuf(store, state.error_pixbuf);
+    gui_tree_store_set_warning_pixbuf(store, state.warning_pixbuf);
+    gui_tree_store_set_info_pixbuf(store, state.info_pixbuf);
     gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
     
     GtkCellRenderer* renderer = gtk_cell_renderer_pixbuf_new();

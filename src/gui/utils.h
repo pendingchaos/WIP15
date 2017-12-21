@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef GUI_UTILS_H
+#define GUI_UTILS_H
 #include "widgets/image_viewer.h"
 #include "widgets/info_box.h"
 #include "widgets/object_notebook.h"
