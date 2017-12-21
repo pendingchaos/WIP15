@@ -455,7 +455,7 @@ static gboolean iter_nth_child(GtkTreeModel* self, GtkTreeIter* iter, GtkTreeIte
         return TRUE;
     }
     
-    g_return_val_if_fail(iter_valid(self, iter), FALSE);
+    g_return_val_if_fail(iter_valid(self, parent), FALSE);
     
     Iter pi = unpack_iter(self, parent);
     if (pi.depth != 1) return FALSE;
