@@ -209,14 +209,14 @@ static void init_context() {
     gls_enabled_init(GL_CLIP_DISTANCE0, cfg.max_clip_distances, NULL);
     gls_enabled_init1(GL_COLOR_LOGIC_OP, false);
     gls_enabled_init1(GL_CULL_FACE, false);
-    gls_enabled_init1(GL_DEBUG_OUTPUT, false);
+    gls_enabled_init1(GL_DEBUG_OUTPUT, false); //TODO: This is somes enabled depending on how the context is created
     gls_enabled_init1(GL_DEBUG_OUTPUT_SYNCHRONOUS, false);
     gls_enabled_init1(GL_DEPTH_CLAMP, false);
     gls_enabled_init1(GL_DEPTH_TEST, false);
     gls_enabled_init1(GL_DITHER, true);
     gls_enabled_init1(GL_FRAMEBUFFER_SRGB, false);
     gls_enabled_init1(GL_LINE_SMOOTH, false);
-    gls_enabled_init1(GL_MULTISAMPLE, false);
+    gls_enabled_init1(GL_MULTISAMPLE, true);
     gls_enabled_init1(GL_POLYGON_OFFSET_FILL, false);
     gls_enabled_init1(GL_POLYGON_OFFSET_LINE, false);
     gls_enabled_init1(GL_POLYGON_OFFSET_POINT, false);
@@ -260,7 +260,7 @@ static void init_context() {
     gls_state_int_init1(GL_UNPACK_ALIGNMENT, 4);
     
     gls_state_int_init1(GL_STENCIL_CLEAR_VALUE, 0);
-    gls_state_float_init1(GL_DEPTH_CLEAR_VALUE, 0);
+    gls_state_float_init1(GL_DEPTH_CLEAR_VALUE, 1);
     float color_clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     gls_state_float_init(GL_COLOR_CLEAR_VALUE, 4, color_clear);
     
@@ -326,7 +326,7 @@ static void init_context() {
     gls_state_enum_init1(GL_LOGIC_OP_MODE, GL_COPY);
     gls_state_enum_init1(GL_CLIP_ORIGIN, GL_LOWER_LEFT);
     gls_state_enum_init1(GL_CLIP_DEPTH_MODE, GL_NEGATIVE_ONE_TO_ONE);
-    gls_state_float_init1(GL_POINT_FADE_THRESHOLD_SIZE, GL_UPPER_LEFT);
+    gls_state_float_init1(GL_POINT_FADE_THRESHOLD_SIZE, 1.0);
     gls_state_enum_init1(GL_POINT_SPRITE_COORD_ORIGIN, GL_UPPER_LEFT);
     gls_state_float_init1(GL_MIN_SAMPLE_SHADING_VALUE, 0.0f);
     

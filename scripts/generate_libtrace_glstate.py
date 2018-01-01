@@ -41,10 +41,6 @@ framebuffer draw_framebuffer
 transform_feedback default_tf
 transform_feedback current_tf
 
-//use current_tf instead
-//bool tf_active
-//bool tf_paused
-//bool tf_active_not_paused
 uint tf_primitive
 
 map array query bound_queries
@@ -117,10 +113,7 @@ map array bool state_bool
     GL_SAMPLE_COVERAGE_INVERT
 //    GL_DOUBLEBUFFER
 //    GL_STEREO
-//    GL_VERTEX_ARRAY
 //    GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED
-//    GL_TRANSFORM_FEEDBACK_PAUSED
-//    GL_TRANSFORM_FEEDBACK_ACTIVE
 //    GL_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION
 
 map array int state_int

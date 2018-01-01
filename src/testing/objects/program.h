@@ -77,4 +77,4 @@ static double get_double_prop_program_uniforms_gl(uint64_t index, void* ctx, con
     }
 }
 
-REGISTER_PROPERTY_DOUBLE(program, uniforms, SWITCH_REPLAY(get_double_prop_program_uniforms, NULL), get_double_prop_program_uniforms_gl)
+REGISTER_PROPERTY_DOUBLE(program, 320, uniforms, SWITCH_REPLAY(get_double_prop_program_uniforms, NULL), get_double_prop_program_uniforms_gl)

@@ -37,18 +37,18 @@ static void* get_data_prop_buffer_data_gl(uint64_t index, void* ctx, const void*
     return bufdata;
 }
 
-PROPERTY_INT(buffer, size, GL_BUFFER_SIZE,
+PROPERTY_INT(buffer, 320, size, GL_BUFFER_SIZE,
     rev->data.size)
-PROPERTY_INT(buffer, usage, GL_BUFFER_USAGE,
+PROPERTY_INT(buffer, 320, usage, GL_BUFFER_USAGE,
     rev->data_usage)
-PROPERTY_INT(buffer, mapped, SWITCH_REPLAY(0, GL_BUFFER_MAPPED),
+PROPERTY_INT(buffer, 320, mapped, SWITCH_REPLAY(0, GL_BUFFER_MAPPED),
     rev->mapped)
-PROPERTY_INT(buffer, map_offset, SWITCH_REPLAY(0, GL_BUFFER_MAP_OFFSET),
+PROPERTY_INT(buffer, 320, map_offset, SWITCH_REPLAY(0, GL_BUFFER_MAP_OFFSET),
     rev->map_offset)
-PROPERTY_INT(buffer, map_length, SWITCH_REPLAY(0, GL_BUFFER_MAP_LENGTH),
+PROPERTY_INT(buffer, 320, map_length, SWITCH_REPLAY(0, GL_BUFFER_MAP_LENGTH),
     rev->map_length)
-PROPERTY_INT(buffer, map_access, SWITCH_REPLAY(0, GL_BUFFER_ACCESS_FLAGS),
+PROPERTY_INT(buffer, 320, map_access, SWITCH_REPLAY(0, GL_BUFFER_ACCESS_FLAGS),
     rev->map_access)
-REGISTER_PROPERTY_DATA(buffer, data, SWITCH_REPLAY(get_data_prop_buffer_data, NULL), get_data_prop_buffer_data_gl)
+REGISTER_PROPERTY_DATA(buffer, 320, data, SWITCH_REPLAY(get_data_prop_buffer_data, NULL), get_data_prop_buffer_data_gl)
 //TODO: GL_BUFFER_IMMUTABLE_STORAGE
 //TODO: GL_BUFFER_STORAGE_FLAGS

@@ -27,6 +27,14 @@ void (*wip15ExpectPropertybv)(GLenum objType, GLuint64 objName,
 void (*wip15ExpectAttachment)(const GLchar* attachment);
 
 void assert_properties(GLenum objType, GLuint64 objName, ...) {
+    static uint ver = 0;
+    if (ver == 0) {
+        GLint vers[2];
+        glGetIntegerv(GL_MAJOR_VERSION, &vers[0]);
+        glGetIntegerv(GL_MAJOR_VERSION, &vers[1]);
+        ver = vers[0]*100 + vers[1]*10;
+    }
+    
     va_list list;
     va_start(list, objName);
     while (true) {
@@ -37,6 +45,7 @@ void assert_properties(GLenum objType, GLuint64 objName, ...) {
         for (const testing_property_t* prop = get_object_type_properties(objType);
              prop; prop = prop->next) {
             if (!wildcard && strcmp(prop->name, name)!=0) continue;
+            if (prop->minver > ver) continue;
             if (prop->get_func_gl_int) {
                 int64_t val = wildcard ? prop->get_func_gl_int(0, NULL, NULL, objName) :
                                          va_arg(list, int64_t);

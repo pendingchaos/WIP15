@@ -43,6 +43,7 @@ void __attribute__((constructor)) _CONCAT4(register_test_, TEST_SUITE, _, testna
     tests = &t;\
 }
 
+//This does not work with indexed properties
 void assert_properties(GLenum objType, GLuint64 objName, ...);
 void assert_attachment(const char* message);
 

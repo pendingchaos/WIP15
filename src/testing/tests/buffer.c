@@ -206,11 +206,6 @@ BEGIN_TEST(glMapBufferRange_4)
     //TODO: Test access bits against buffer storage flags
 END_TEST(glMapBufferRange_4)
 
-/* void glCopyBufferSubData(GLenum readTarget,
-                            GLenum writeTarget,
-                            GLintptr readOffset,
-                            GLintptr writeOffset,
-                            GLsizeiptr size);*/
 BEGIN_TEST(glCopyBufferSubData_0)
     glBufferData(GL_ARRAY_BUFFER, 5, "World", GL_STATIC_DRAW);
     
