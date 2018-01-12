@@ -1,5 +1,6 @@
 #include "../gui.h"
 #include "../utils.h"
+#include "../simple_store.h"
 
 #include <stdlib.h>
 #include "shared/glcorearb.h"
@@ -24,8 +25,70 @@ typedef struct buffer_data_t {
     GtkSpinButton* data_components;
     GtkComboBox* data_type;
     GtkTreeView* data_view;
-    GtkTreeStore* data_store;
+    GtkTreeModel* data_store;
+    
+    int view_type;
+    size_t view_type_size;
+    size_t view_components;
+    size_t view_stride;
+    size_t data_size;
+    uint8_t* data;
 } buffer_data_t;
+
+static const char* format_component(int type, const void* data) {
+    switch (type) {
+    case TYPE_UINT8:
+        return static_format("%"PRIu8, *(uint8_t*)data);
+    case TYPE_INT8:
+        return static_format("%"PRId8, *(int8_t*)data);
+    case TYPE_UINT16:
+        return static_format("%"PRIu16, *(uint16_t*)data);
+    case TYPE_INT16:
+        return static_format("%"PRId16, *(int16_t*)data);
+    case TYPE_UINT32:
+        return static_format("%"PRIu32, *(uint32_t*)data);
+    case TYPE_INT32:
+        return static_format("%"PRId32, *(int32_t*)data);
+    case TYPE_UINT64:
+        return static_format("%"PRIu64, *(uint64_t*)data);
+    case TYPE_INT64:
+        return static_format("%"PRId64, *(int64_t*)data);
+    case TYPE_FLOAT16:
+        return static_format("%g", parse_f16(*(uint16_t*)data));
+    case TYPE_FLOAT32:
+        return static_format("%g", *(float*)data);
+    case TYPE_FLOAT64:
+        return static_format("%g", *(double*)data);
+    }
+    return "";
+}
+
+static void get_function(size_t index, size_t row, GValue* val, void* udata) {
+    if (index != 0) return;
+    
+    buffer_data_t* buf_data = udata;
+    
+    int type = buf_data->view_type;
+    size_t type_size = buf_data->view_type_size;
+    size_t components = buf_data->view_components;
+    const uint8_t* data = buf_data->data + buf_data->view_stride*row;
+    
+    char str[1024] = {0};
+    
+    if (components>1) cat_str(str, "[", sizeof(str));
+    
+    for (size_t i = 0; i < components; i++) {
+        size_t left = data - buf_data->data;
+        if (left+type_size > buf_data->data_size) break;
+        if (i) cat_str(str, ",", sizeof(str));
+        cat_str(str, format_component(type, data), sizeof(str));
+        data += type_size;
+    }
+    
+    if (components>1) cat_str(str, "]", sizeof(str));
+    
+    g_value_set_string(val, str);
+}
 
 static void changed_callback(void* widget, object_tab_t* tab) {
     update_tab(tab->tab);
@@ -61,51 +124,40 @@ static void init(object_tab_t* tab) {
     
     data->data_view = create_tree_view(1, 0, "");
     gtk_tree_view_set_headers_visible(data->data_view, false);
-    data->data_store = GTK_TREE_STORE(gtk_tree_view_get_model(data->data_view));
+    data->data_store = GTK_TREE_MODEL(gui_simple_store_new());
+    gtk_tree_view_set_model(data->data_view, data->data_store);
+    
+    data->view_type = 0;
+    data->view_type_size = 0;
+    data->view_components = 0;
+    data->view_stride = 0;
+    data->data_size = 0;
+    data->data = NULL;
     
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(data->data_view)));
 }
 
 static void deinit(object_tab_t* tab) {
+    free(((buffer_data_t*)tab->data)->data);
     free(tab->data);
 }
 
-static const char* format_component(int type, const void* data) {
-    switch (type) {
-    case TYPE_UINT8:
-        return static_format("%"PRIu8, *(uint8_t*)data);
-    case TYPE_INT8:
-        return static_format("%"PRId8, *(int8_t*)data);
-    case TYPE_UINT16:
-        return static_format("%"PRIu16, *(uint16_t*)data);
-    case TYPE_INT16:
-        return static_format("%"PRId16, *(int16_t*)data);
-    case TYPE_UINT32:
-        return static_format("%"PRIu32, *(uint32_t*)data);
-    case TYPE_INT32:
-        return static_format("%"PRId32, *(int32_t*)data);
-    case TYPE_UINT64:
-        return static_format("%"PRIu64, *(uint64_t*)data);
-    case TYPE_INT64:
-        return static_format("%"PRId64, *(int64_t*)data);
-    case TYPE_FLOAT16:
-        return static_format("%g", parse_f16(*(uint16_t*)data));
-    case TYPE_FLOAT32:
-        return static_format("%g", *(float*)data);
-    case TYPE_FLOAT64:
-        return static_format("%g", *(double*)data);
-    }
-    return "";
-}
-
 static void update_data_view(buffer_data_t* buf_data, const trc_gl_buffer_rev_t* rev) {
+    //Clear it (to make error handling simpler)
+    GuiSimpleStoreUpdate up;
+    up.size = 0;
+    up.column_count = 1;
+    up.get_func = &get_function;
+    up.column_types[0] = G_TYPE_STRING;
+    up.user_data = buf_data;
+    gui_simple_store_update(GUI_SIMPLE_STORE(buf_data->data_store), up);
+    
+    //Then fill it
     uint64_t offset = gtk_spin_button_get_value(buf_data->data_offset);
     uint64_t stride = gtk_spin_button_get_value(buf_data->data_stride);
     uint64_t components = gtk_spin_button_get_value(buf_data->data_components);
     gint type = gtk_combo_box_get_active(buf_data->data_type);
     if (type < 0) return;
-    
-    gtk_tree_store_clear(buf_data->data_store);
     
     size_t type_size = ((size_t[]){
         [TYPE_UINT8]=1, [TYPE_INT8]=1,
@@ -115,33 +167,22 @@ static void update_data_view(buffer_data_t* buf_data, const trc_gl_buffer_rev_t*
     if (!stride) stride = components * type_size;
     if (!stride) return; //For the unlikely scenario when components == 0
     
-    uint8_t* data_start = malloc(rev->data.size);
-    trc_read_chunked_data_t rinfo =
-        {.data=rev->data, .start=0, .size=rev->data.size, .dest=data_start};
-    trc_read_chunked_data(rinfo);
-    const uint8_t* data = data_start + offset;
-    size_t buf_size = rev->data.size;
-    while ((data-data_start)+type_size <= buf_size) {
-        char str[1024] = {0};
-        
-        if (components>1) cat_str(str, "[", sizeof(str));
-        
-        for (size_t i = 0; i < components; i++) {
-            bool at_end = (data-data_start)+type_size*i+type_size > buf_size;
-            if (at_end) break;
-            if (i) cat_str(str, ",", sizeof(str));
-            cat_str(str, format_component(type, data+i*type_size), sizeof(str));
-        }
-        data += stride;
-        
-        if (components>1) cat_str(str, "]", sizeof(str));
-        
-        GtkTreeIter row;
-        gtk_tree_store_append(buf_data->data_store, &row, NULL);
-        gtk_tree_store_set(buf_data->data_store, &row, 0, str, -1);
-    }
+    buf_data->view_type = type;
+    buf_data->view_type_size = type_size;
+    buf_data->view_components = components;
+    buf_data->view_stride = stride;
     
-    free(data_start);
+    trc_read_chunked_data_t rinfo =
+        {.data=rev->data, .start=offset, .size=rev->data.size-offset};
+    rinfo.dest = malloc(rinfo.size);
+    trc_read_chunked_data(rinfo);
+    
+    free(buf_data->data);
+    buf_data->data = rinfo.dest;
+    buf_data->data_size = rinfo.size;
+    
+    up.size = buf_data->data_size/stride + (buf_data->data_size%stride?1:0);
+    gui_simple_store_update(GUI_SIMPLE_STORE(buf_data->data_store), up);
 }
 
 static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64_t revision) {
