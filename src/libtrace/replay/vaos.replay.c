@@ -423,7 +423,7 @@ glEnableVertexAttribArray: //GLuint p_index
 glDisableVertexAttribArray: //GLuint p_index
     if (!gls_get_bound_vao())
         ERROR("No vertex array object is bound");
-    set_attrib_enabled(gls_get_bound_vao(), p_index, true);
+    set_attrib_enabled(gls_get_bound_vao(), p_index, false);
 
 glEnableVertexArrayAttrib: //GLuint p_vaobj, GLuint p_index
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
@@ -433,7 +433,7 @@ glEnableVertexArrayAttrib: //GLuint p_vaobj, GLuint p_index
 glDisableVertexArrayAttrib: //GLuint p_vaobj, GLuint p_index
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    set_attrib_enabled(p_vaobj_rev->head.obj, p_index, true);
+    set_attrib_enabled(p_vaobj_rev->head.obj, p_index, false);
 
 glBindVertexBuffer: //GLuint p_bindingindex, GLuint p_buffer, GLintptr p_offset, GLintptr p_stride
     const trc_gl_vao_rev_t* vao = (const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
@@ -602,7 +602,7 @@ glVertexAttrib4usv: //GLuint p_index, const GLushort* p_v
     vertex_attrib(4, GL_UNSIGNED_SHORT, true, false, GL_DOUBLE);
 
 glVertexAttrib4Nub: //GLuint p_index, GLubyte p_x, GLubyte p_y, GLubyte p_z, GLubyte p_w
-    vertex_attrib(4, GL_UNSIGNED_BYTE, true, true, GL_FLOAT);
+    vertex_attrib(4, GL_UNSIGNED_BYTE, false, true, GL_FLOAT);
 
 glVertexAttribI4ubv: //GLuint p_index, const GLubyte* p_v
     vertex_attrib(4, GL_UNSIGNED_SHORT, true, false, GL_UNSIGNED_INT);
