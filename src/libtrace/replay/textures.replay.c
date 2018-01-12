@@ -515,6 +515,7 @@ static bool tex_buffer(GLuint tex_or_target, bool dsa, GLenum internalformat,
     newrev.buffer.internal_format = internalformat;
     newrev.buffer.buffer = buffer;
     newrev.buffer.offset = offset;
+    //TODO: Write -1 when size<0? (to handle when the buffer's size changes)
     newrev.buffer.size = buffer ? (size<0?buffer_rev->data.size:size) : 0;
     set_texture(&newrev);
     
