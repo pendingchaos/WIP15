@@ -100,6 +100,14 @@ static bool lock_rwlock(pthread_rwlock_t* lock, bool write, bool try_lock) {
     return true;
 }
 
+//FNV hash
+static uint32_t hash(size_t count, const uint8_t* data) {
+    uint32_t hash = 2166136261;
+    for (size_t i = 0; i < count; i++)
+        hash = (hash*16777619) ^ data[i];
+    return hash;
+}
+
 static bool lock_data(trc_data_t* data, bool write, bool try_lock) {
     pthread_mutex_lock(&data_locks_mutex);
     
@@ -114,17 +122,22 @@ static bool lock_data(trc_data_t* data, bool write, bool try_lock) {
         data_locks_initialized = true;
     }
     
+    uint32_t index = hash(sizeof(trc_data_t*), (const void*)&data) % MAX_DATA_LOCKS;
+    data_lock_t* lock = NULL;
     for (size_t i = 0; i < MAX_DATA_LOCKS; i++) {
-        if (data_locks[i].data == data) {
-            bool success = lock_rwlock(&data_locks[i].lock, write, try_lock);
-            if (success) data_locks[i].ref_count++;
+        if (data_locks[index].data == NULL) {
+            lock = &data_locks[index];
+            break;
+        } else if (data_locks[index].data == data) {
+            bool success = lock_rwlock(&data_locks[index].lock, write, try_lock);
+            if (success) data_locks[index].ref_count++;
             pthread_mutex_unlock(&data_locks_mutex);
             return success;
         }
+        index = (index+1) % MAX_DATA_LOCKS;
     }
-    
-    data_lock_t* lock = next_data_lock;
     assert(lock);
+    
     bool success = lock_rwlock(&lock->lock, write, try_lock);
     if (success) {
         lock->ref_count = 1;
@@ -137,16 +150,18 @@ static bool lock_data(trc_data_t* data, bool write, bool try_lock) {
 
 static void unlock_data(trc_data_t* data) {
     pthread_mutex_lock(&data_locks_mutex);
+    uint32_t index = hash(sizeof(trc_data_t*), (const void*)&data) % MAX_DATA_LOCKS;
     for (size_t i = 0; i < MAX_DATA_LOCKS; i++) {
-        if (data_locks[i].data == data) {
-            pthread_rwlock_unlock(&data_locks[i].lock);
-            if (--data_locks[i].ref_count == 0) {
-                data_locks[i].data = NULL;
-                data_locks[i].next = next_data_lock;
-                next_data_lock = &data_locks[i];
+        if (data_locks[index].data == data) {
+            pthread_rwlock_unlock(&data_locks[index].lock);
+            if (--data_locks[index].ref_count == 0) {
+                data_locks[index].data = NULL;
+                data_locks[index].next = next_data_lock;
+                next_data_lock = &data_locks[index];
             }
             break;
         }
+        index = (index+1) % MAX_DATA_LOCKS;
     }
     pthread_mutex_unlock(&data_locks_mutex);
 }
