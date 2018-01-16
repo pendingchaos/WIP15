@@ -314,6 +314,84 @@ VISIBLE void vertex_data_callback(GObject* obj, gpointer user_data) {
     open_vertex_data_tab();
 }
 
+static bool get_command_for_revision(uint64_t revision, size_t* frame, size_t* cmd) {
+    if (!state.trace) return false;
+    
+    for (size_t frame2 = 0; frame2 < state.trace->frame_count; frame2++) {
+        for (size_t cmd2 = 0; cmd2 < state.trace->frames[frame2].command_count; cmd2++) {
+            uint64_t cmd_rev = state.trace->frames[frame2].commands[cmd2].revision;
+            if (cmd_rev < revision) continue;
+            if (cmd_rev > revision) {
+                if (frame2==0 && cmd2==0) {
+                    return false;
+                } else if (cmd2 == 0) {
+                    frame2--;
+                    cmd2 = state.trace->frames[frame2].command_count - 1;
+                } else {
+                    cmd2--;
+                }
+            }
+            *frame = frame2;
+            *cmd = cmd2;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+VISIBLE void goto_callback(GObject* obj, gpointer user_data) {
+    GtkDialog* dialog = GTK_DIALOG(
+    gtk_dialog_new_with_buttons("Goto Revision",
+                                GTK_WINDOW(state.main_window),
+                                GTK_DIALOG_DESTROY_WITH_PARENT,
+                                "OK",
+                                GTK_RESPONSE_ACCEPT,
+                                "Cancel",
+                                GTK_RESPONSE_REJECT,
+                                NULL));
+    gtk_box_set_spacing(GTK_BOX(gtk_dialog_get_content_area(dialog)), 5);
+    
+    //any number over 9007199254740992.0 (or 2^53) would have too low precision
+    GtkSpinButton* revision_button = GTK_SPIN_BUTTON(
+        gtk_spin_button_new_with_range(-1, 9007199254740992.0, 1.0));
+    gtk_spin_button_set_value(revision_button, state.revision);
+    
+    info_box_t* info_box = create_info_box();
+    
+    add_custom_to_info_box(info_box, "Revision", GTK_WIDGET(revision_button));
+    gtk_widget_set_halign(GTK_WIDGET(revision_button), GTK_ALIGN_FILL);
+    
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(dialog)), info_box->widget);
+    
+    gtk_widget_show_all(GTK_WIDGET(dialog));
+    if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
+        int64_t revision = gtk_spin_button_get_value(revision_button);
+        
+        GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
+        
+        size_t frame, cmd;
+        if (revision>=0 && get_command_for_revision(revision, &frame, &cmd)) {
+            GtkTreePath* path = gtk_tree_path_new_from_indices(frame, cmd, -1);
+            GtkTreePath* frame_path = gtk_tree_path_new_from_indices(frame, -1);
+            gtk_tree_view_expand_row(tree, frame_path, FALSE);
+            gtk_tree_view_set_cursor(tree, path, NULL, FALSE);
+            gtk_tree_path_free(frame_path);
+            gtk_tree_path_free(path);
+        } else {
+            gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tree));
+            state.revision = -1;
+            state.selected_cmd = NULL;
+            update_gui_for_revision();
+        }
+    }
+    
+    free_info_box(info_box);
+    
+    gtk_widget_destroy(GTK_WIDGET(revision_button));
+    gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
 static gboolean tick_callback(GtkWidget* _0, GdkFrameClock* _1, gpointer trace) {
     static size_t countdown = 2;
     if (!--countdown && trace) open_trace((const char*)trace);

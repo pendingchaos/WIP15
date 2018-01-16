@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.20.2 -->
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkApplicationWindow" id="main_window">
@@ -75,6 +75,15 @@
                         <property name="label" translatable="yes">Vertex Data</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="vertex_data_callback" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Goto Revision</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="goto_callback" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -216,6 +225,9 @@
           </packing>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
 </interface>
