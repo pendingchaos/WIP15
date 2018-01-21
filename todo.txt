@@ -56,6 +56,7 @@ Cube map, 1D array, 2D array, rectangle, buffer, multisample, proxy, 1D and 3D t
 Enabling or disabling state depending on OpenGL version and extensions.
 
 glDelete* should handle when objects are in use.
+    mostly, if not completely, done
 
 Control over the output trace filename and current working directory in the GUI.
 

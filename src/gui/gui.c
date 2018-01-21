@@ -7,6 +7,7 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 
 gui_state_t state;
@@ -190,7 +191,7 @@ VISIBLE void about_callback(GObject* obj, gpointer user_data) {
 }
 
 //TODO: Support escaping of arguments
-char** parse_arguments(const char* program, const char* args) {
+static char** parse_arguments(const char* program, const char* args) {
     size_t count = 0;
     for (const char* c = args; *c; c++) {
         if (*c!=' ' && *c!='\t') {
@@ -216,7 +217,32 @@ char** parse_arguments(const char* program, const char* args) {
     return program_args;
 }
 
-static void create_new_trace(const char* args, const char* program, const char* config, int compression) {
+static char* get_directory(const char* path_, size_t extra) {
+    char* path = canonicalize_file_name(path_);
+    char* dir = calloc(strlen(path)+1+extra, 1);
+    strcpy(dir, path);
+    for (ptrdiff_t i = strlen(dir)-1; i>=0; i--) {
+        if (dir[i] != '/') continue;
+        dir[i] = 0;
+        free(path);
+        return dir;
+    }
+    dir[0] = 0;
+    free(path);
+    return dir;
+}
+
+static char* get_abs_path(const char* path, bool exists, const char* cwd) {
+    char* prev = get_current_dir_name();
+    if (cwd) chdir(cwd);
+    if (!exists) fclose(fopen(path, "a"));
+    char* res = canonicalize_file_name(path);
+    chdir(prev);
+    free(prev);
+    return res;
+}
+
+static void create_new_trace(const char* args, const char* program, const char* config, int compression, const char* cwd, const char* output) {
     char* lib_path = realpath("libgl.so", NULL);
     if (!lib_path) {
         display_error_dialog("Unable to find libgl.so\n");
@@ -225,13 +251,18 @@ static void create_new_trace(const char* args, const char* program, const char* 
     
     char** program_args = parse_arguments(program, args);
     
+    char* program_dir = get_directory(program, 0);
+    char* abs_output = output[0] ? get_abs_path(output, false, program_dir) : NULL;
+    char* abs_cwd = cwd[0] ? get_abs_path(cwd, true, program_dir) : NULL;
+    
     int exitcode;
-    bool success = trace_program(&exitcode, 5,
+    bool success = trace_program(&exitcode, 6,
         TrcProgramArguments, program_args,
-        TrcOutputFilename, static_format("%s.trace", program),
+        TrcOutputFilename, output[0]?abs_output:static_format("%s.trace", program),
         TrcConfigFilename, config ? config : "configs/this.config.txt",
         TrcCompression, compression,
-        TrcLibGL, lib_path);
+        TrcLibGL, lib_path,
+        TrcCurrentWorkingDirectory, cwd[0]?abs_cwd:NULL);
     if (success && exitcode!=EXIT_SUCCESS) {
         display_error_dialog(
             static_format("Unable to execute command: Process returned %d\n", exitcode));
@@ -244,6 +275,8 @@ static void create_new_trace(const char* args, const char* program, const char* 
     for (size_t i = 0; program_args[i]; i++) free(program_args[i]);
     free(program_args);
     free(lib_path);
+    free(program_dir);
+    free(abs_output);
 }
 
 VISIBLE void new_callback(GObject* obj, gpointer user_data) {
@@ -262,19 +295,28 @@ VISIBLE void new_callback(GObject* obj, gpointer user_data) {
         gtk_file_chooser_button_new("Select a Program", GTK_FILE_CHOOSER_ACTION_OPEN);
     GtkWidget* config_button =
         gtk_file_chooser_button_new("Select a Configuration", GTK_FILE_CHOOSER_ACTION_OPEN);
+    GtkEntry* output_entry = GTK_ENTRY(gtk_entry_new()); //
+    GtkEntry* cwd_entry = GTK_ENTRY(gtk_entry_new()); //
     GtkEntry* arg_entry = GTK_ENTRY(gtk_entry_new());
     GtkRange* compression_range = GTK_RANGE(
         gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0.0, 100.0, 1.0));
     gtk_range_set_value(compression_range, 60.0);
+    
+    gtk_entry_set_placeholder_text(output_entry, "<unset>");
+    gtk_entry_set_placeholder_text(cwd_entry, "<unset>");
     
     info_box_t* info_box = create_info_box();
     
     add_custom_to_info_box(info_box, "Program", prog_button);
     add_custom_to_info_box(info_box, "Arguments", GTK_WIDGET(arg_entry));
     add_custom_to_info_box(info_box, "Configuration", config_button);
+    add_custom_to_info_box(info_box, "Output", GTK_WIDGET(output_entry));
+    add_custom_to_info_box(info_box, "Working Directory", GTK_WIDGET(cwd_entry));
     add_custom_to_info_box(info_box, "Compression", GTK_WIDGET(compression_range));
     gtk_widget_set_halign(prog_button, GTK_ALIGN_FILL);
     gtk_widget_set_halign(GTK_WIDGET(arg_entry), GTK_ALIGN_FILL);
+    gtk_widget_set_halign(GTK_WIDGET(output_entry), GTK_ALIGN_FILL);
+    gtk_widget_set_halign(GTK_WIDGET(cwd_entry), GTK_ALIGN_FILL);
     gtk_widget_set_halign(config_button, GTK_ALIGN_FILL);
     gtk_widget_set_halign(GTK_WIDGET(compression_range), GTK_ALIGN_FILL);
     
@@ -283,12 +325,14 @@ VISIBLE void new_callback(GObject* obj, gpointer user_data) {
     gtk_widget_show_all(GTK_WIDGET(dialog));
     if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
         const char* args = gtk_entry_get_text(arg_entry);
+        const char* cwd = gtk_entry_get_text(cwd_entry);
+        const char* output = gtk_entry_get_text(output_entry);
         char* program = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(prog_button));
         char* config = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(config_button));
         
         const char* real_config = config ? config : "configs/this.config.txt";
         int compression = gtk_range_get_value(compression_range);
-        create_new_trace(args, program, real_config, compression);
+        create_new_trace(args, program, real_config, compression, cwd, output);
         
         g_free(config);
         g_free(program);
