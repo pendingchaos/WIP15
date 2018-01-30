@@ -210,7 +210,7 @@ glDisable: //GLenum p_cap
     if ((p_cap&0x3000)==0x3000 && p_cap-0x3000<gls_get_state_int(GL_MAX_CLIP_DISTANCES, 0))
         gls_set_enabled(GL_CLIP_DISTANCE0, p_cap-0x3000, false);
     else
-        gls_set_enabled(p_cap, 0, true);
+        gls_set_enabled(p_cap, 0, false);
     if (p_cap!=GL_DEBUG_OUTPUT && p_cap!=GL_DEBUG_OUTPUT_SYNCHRONOUS) //These are set by the replayer
         real(p_cap);
 

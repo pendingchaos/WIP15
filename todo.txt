@@ -58,8 +58,6 @@ Enabling or disabling state depending on OpenGL version and extensions.
 glDelete* should handle when objects are in use.
     mostly, if not completely, done
 
-Control over the output trace filename and current working directory in the GUI.
-
 Add support for traces of programs using multiple threads with OpenGL contexts
 
 Reduce memory usage during replaying.
