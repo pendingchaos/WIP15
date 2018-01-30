@@ -102,13 +102,6 @@ static void vertex_attrib(uint comp, GLenum type, bool array, bool normalized, G
     double vals[4];
     for (i = 0; i < 4; i++)
         vals[i] = gls_get_current_vertex_attrib(index*4+i);
-    
-    switch (internal) {
-    case GL_FLOAT: F(glVertexAttrib4dv)(index, vals); break;
-    case GL_DOUBLE: F(glVertexAttribL4dv)(index, vals); break;
-    case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(index, vals[0], vals[1], vals[2], vals[3]); break;
-    case GL_INT: F(glVertexAttribI4i)(index, vals[0], vals[1], vals[2], vals[3]); break;
-    }
 }
 
 static void vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean normalized, GLuint val) {

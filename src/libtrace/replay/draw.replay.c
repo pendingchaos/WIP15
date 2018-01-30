@@ -196,6 +196,17 @@ static bool begin_draw(GLenum primitive, uint flags) {
         trc_gl_vao_attrib_t* a = &vao_attribs[i];
         if (!a->enabled) {
             F(glDisableVertexAttribArray)(real_loc);
+            double* cur_vertex_attrib = trc_map_data(state->current_vertex_attrib, TRC_MAP_READ);
+            uint* types = trc_map_data(state->current_vertex_attrib_types, TRC_MAP_READ);
+            double* vals = &cur_vertex_attrib[i*4];
+            switch (types[i]) {
+            case GL_FLOAT: F(glVertexAttrib4dv)(real_loc, vals); break;
+            case GL_DOUBLE: F(glVertexAttribL4dv)(real_loc, vals); break;
+            case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
+            case GL_INT: F(glVertexAttribI4i)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
+            }
+            trc_unmap_data(types);
+            trc_unmap_data(cur_vertex_attrib);
             continue;
         }
         
@@ -212,20 +223,6 @@ static bool begin_draw(GLenum primitive, uint flags) {
         } else {
             F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, b->stride,
                                      (const void*)(uintptr_t)a->offset+b->offset);
-        }
-        
-        if (!b->buffer.obj) {
-            double* cur_vertex_attrib = trc_map_data(state->current_vertex_attrib, TRC_MAP_READ);
-            uint* types = trc_map_data(state->current_vertex_attrib_types, TRC_MAP_READ);
-            double* vals = &cur_vertex_attrib[i*4];
-            switch (types[i]) {
-            case GL_FLOAT: F(glVertexAttrib4dv)(real_loc, vals); break;
-            case GL_DOUBLE: F(glVertexAttribL4dv)(real_loc, vals); break;
-            case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
-            case GL_INT: F(glVertexAttribI4i)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
-            }
-            trc_unmap_data(types);
-            trc_unmap_data(cur_vertex_attrib);
         }
         
         if (glver > 330)
