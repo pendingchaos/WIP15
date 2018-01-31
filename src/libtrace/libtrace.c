@@ -1729,16 +1729,17 @@ void trc_read_chunked_data(trc_read_chunked_data_t info) {
     trc_unmap_data(data);
 }
 #else
+#define CHUNK_SIZE 65536
+
 trc_chunked_data_t trc_create_chunked_data(trace_t* trace, size_t size, const void* data) {
-    size_t chunk_size = 65536;
-    size_t chunk_count = div_ceil(size, chunk_size);
+    size_t chunk_count = div_ceil(size, CHUNK_SIZE);
     
     trc_data_t** chunks = malloc(chunk_count*sizeof(trc_data_t*));
     for (size_t i = 0; i < chunk_count; i++) {
-        size_t csize = size - i*chunk_size;
-        if (csize > chunk_size) csize = chunk_size;
+        size_t csize = size - i*CHUNK_SIZE;
+        if (csize > CHUNK_SIZE) csize = CHUNK_SIZE;
         chunks[i] = trc_create_data(
-            trace, csize, data?((uint8_t*)data+i*chunk_size):NULL, 0);
+            trace, csize, data?((uint8_t*)data+i*CHUNK_SIZE):NULL, 0);
     }
     
     trc_chunked_data_t res;
@@ -1754,26 +1755,23 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
     res.size = info.base.size;
     res.chunks = trc_copy_data(trace, info.base.chunks);
     
-    size_t chunk_size = info.base.chunks->size/sizeof(trc_data_t*);
-    chunk_size = div_ceil(info.base.size, chunk_size);
-    
     //TODO: Handle overlapping modifications
     trc_data_t** chunks = trc_map_data(res.chunks, TRC_MAP_MODIFY);
     for (trc_chunked_data_mod_t* mod = info.mods; mod; mod = mod->next) {
-        size_t start_chunks = chunk_size ? mod->start/chunk_size : 0;
-        size_t aligned_start = start_chunks * chunk_size;
+        size_t start_chunks = CHUNK_SIZE ? mod->start/CHUNK_SIZE : 0;
+        size_t aligned_start = start_chunks * CHUNK_SIZE;
         size_t chunk_count = mod->start+mod->size - aligned_start;
-        chunk_count = div_ceil(chunk_count, chunk_size);
+        chunk_count = div_ceil(chunk_count, CHUNK_SIZE);
         
         for (size_t i = start_chunks; i < start_chunks+chunk_count; i++) {
             //offset within chunks[i] to copy to
             size_t write_off = 0;
             if (i == start_chunks)
-                write_off = mod->start - i*chunk_size;
+                write_off = mod->start - i*CHUNK_SIZE;
             
             size_t read_off = 0; //offset within mod->data to copy from
-            if (i*chunk_size > mod->start)
-                read_off = i*chunk_size - mod->start;
+            if (i*CHUNK_SIZE > mod->start)
+                read_off = i*CHUNK_SIZE - mod->start;
             
             size_t amount = chunks[i]->size - write_off; //amount of data to copy
             if (mod->size-read_off < amount) amount = mod->size - read_off;
@@ -1798,26 +1796,22 @@ trc_chunked_data_t trc_modify_chunked_data(trace_t* trace, trc_modify_chunked_da
 }
 
 void trc_read_chunked_data(trc_read_chunked_data_t info) {
-    size_t chunk_size = info.data.chunks->size/sizeof(trc_data_t*);
-    chunk_size = div_ceil(info.data.size, chunk_size);
-    if (!chunk_size) return; //zero-sized data
-    
-    size_t start_chunks = info.start / chunk_size;
-    size_t aligned_start = start_chunks * chunk_size;
+    size_t start_chunks = info.start / CHUNK_SIZE;
+    size_t aligned_start = start_chunks * CHUNK_SIZE;
     size_t chunk_count = info.start+info.size - aligned_start;
-    chunk_count = div_ceil(chunk_count, chunk_size);
+    chunk_count = div_ceil(chunk_count, CHUNK_SIZE);
     
     trc_data_t** chunks = trc_map_data(info.data.chunks, TRC_MAP_READ);
     for (size_t i = start_chunks; i < start_chunks+chunk_count; i++) {
         //offset within info.dest to write to
-        size_t write_off = i*chunk_size;
-        if (i*chunk_size < info.start) write_off = 0;
-        else write_off = i*chunk_size - info.start;
+        size_t write_off = i*CHUNK_SIZE;
+        if (i*CHUNK_SIZE < info.start) write_off = 0;
+        else write_off = i*CHUNK_SIZE - info.start;
         
         //offset within src to read from
         size_t read_off = 0;
         if (i == start_chunks)
-            read_off = info.start - i*chunk_size;
+            read_off = info.start - i*CHUNK_SIZE;
         
         //amount of data to copy
         size_t amount = chunks[i]->size - read_off;
