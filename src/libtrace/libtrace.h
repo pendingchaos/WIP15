@@ -55,7 +55,8 @@ typedef enum trc_compression_t {
 
 typedef enum trc_data_storage_type_t {
     TrcDataStorage_Independent,
-    TrcDataStorage_Container
+    TrcDataStorage_Container,
+    TrcDataStorage_Tiny
 } trc_data_storage_type_t;
 
 typedef struct trc_indep_storage_t {
@@ -240,7 +241,7 @@ typedef struct trc_gl_texture_image_t {
     uint height;
     uint depth;
     trc_image_format_t data_format;
-    trc_chunked_data_t data; //array of uint32_t, int32_t, float or float+uint32_t depending on the internal format
+    trc_chunked_data_t data;
 } trc_gl_texture_image_t;
 
 typedef struct trc_gl_texture_rev_t {
@@ -340,7 +341,7 @@ typedef struct trc_gl_uniform_dtype_t {
 } trc_gl_uniform_dtype_t;
 
 typedef struct trc_gl_uniform_t {
-    trc_data_t* name; //null terminated - NULL in the case of array elements
+    trc_data_t* name; //null terminated - empty string in the case of array elements
     trc_gl_uniform_dtype_t dtype;
     uint parent; //can be 0xffffffff for root uniforms
     uint next; //next member or array element, or 0xffffffff if none
@@ -567,6 +568,7 @@ typedef enum trc_trace_program_arg_t {
 
 #pragma GCC visibility push(default)
 //Traces
+//TODO: data handling does not work well with multiple traces loaded
 bool trace_program(int* exitcode, size_t count, ...);
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);

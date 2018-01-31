@@ -425,7 +425,16 @@ void* _trc_compress_thread(void* userdata) {
 static trc_data_t* create_data(trace_t* trace, size_t size, trc_compression_t compression,
                                size_t compressed_size, void* data, uint32_t flags, bool copy) {
     trc_data_t* res;
-    if (size <= DATA_CONTAINER_THRESHOLD) {
+    if (size < 4096) {
+        res = malloc(sizeof(trc_data_t)+size);
+        res->size = size;
+        res->storage = TrcDataStorage_Tiny;
+        
+        if (data) decompress_data_ip(compression, size, compressed_size, data, res+1);
+        else memset(res+1, 0, size);
+        
+        if (!copy) free(data);
+    } else if (size <= DATA_CONTAINER_THRESHOLD) {
         res = malloc(sizeof(trc_data_t)+sizeof(trc_data_container_t*));
         res->size = size;
         res->storage = TrcDataStorage_Container;
@@ -497,7 +506,7 @@ trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_da
 
 //void* trc_map_data(trc_data_t* data, uint32_t flags) {
 void* _trc_map_data(trc_data_t* data, uint32_t flags, int line, const char* file, const char* func) {
-    lock_data(data, flags&TRC_MAP_WRITE, false);
+    if (data->storage != TrcDataStorage_Tiny) lock_data(data, flags&TRC_MAP_WRITE, false);
     
     data_mapping_t mapping;
     mapping.data = data;
@@ -526,6 +535,11 @@ void* _trc_map_data(trc_data_t* data, uint32_t flags, int line, const char* file
                                           indep->compressed_size, indep->data);
             mapping.free_ptr = !(flags&TRC_MAP_WRITE);
         }
+        break;
+    }
+    case TrcDataStorage_Tiny: {
+        mapping.ptr = data + 1;
+        mapping.free_ptr = false;
         break;
     }
     }
@@ -571,11 +585,14 @@ void trc_unmap_data(const void* mapped_ptr) {
         indep->last_accessed = get_milliseconds();
         break;
     }
+    case TrcDataStorage_Tiny: {
+        break;
+    }
     }
     
     free(mapping->free_ptr ? mapping->ptr : NULL);
     mapping->data = NULL;
     mapping->ptr = NULL;
     
-    unlock_data(data);
+    if (data->storage != TrcDataStorage_Tiny) unlock_data(data);
 }
