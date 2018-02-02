@@ -98,10 +98,6 @@ static void vertex_attrib(uint comp, GLenum type, bool array, bool normalized, G
         gls_set_current_vertex_attrib(index*4+i, 1);
     
     gls_set_current_vertex_attrib_types(index, internal);
-    
-    double vals[4];
-    for (i = 0; i < 4; i++)
-        vals[i] = gls_get_current_vertex_attrib(index*4+i);
 }
 
 static void vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean normalized, GLuint val) {

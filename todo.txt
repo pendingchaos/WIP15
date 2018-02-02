@@ -32,6 +32,7 @@ Bugs:
     GL_PIXEL_UNPACK_BUFFER does not work with glTexImage* and glTexSubImage*
         both in replay and tracing
     drawbuffers are not remapped like with vao attributes
+    handle segfaulting processes
 
 handle negative array sizes in the tracing code
 
