@@ -27,6 +27,13 @@
 #define COMPRESS_DATA_THRESHOLD 0
 #define MAX_MAPPINGS 1024
 #define MAX_DATA_LOCKS 2048
+#define MAX_THREADS 1024
+
+typedef struct data_state_t {
+    trc_data_t* first_data;
+    pthread_mutex_t first_container_lock;
+    trc_data_container_t* first_container;
+} data_state_t;
 
 typedef struct data_mapping_t {
     trc_data_t* data;
@@ -55,13 +62,16 @@ static bool data_locks_initialized = false;
 static data_lock_t data_locks[MAX_DATA_LOCKS];
 static data_lock_t* next_data_lock = NULL;
 
-static pthread_mutex_t containers_lock = PTHREAD_MUTEX_INITIALIZER;
-static trc_data_container_t* containers = NULL;
-
 static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 static size_t queue_start = 0;
 static size_t queue_size = 0;
 static queue_entry_t queue[QUEUE_CAPACITY];
+
+static bool threads_running;
+static bool pause_threads;
+static size_t threads_paused;
+static size_t thread_count;
+static pthread_t* threads;
 
 static data_mapping_t mappings[MAX_MAPPINGS];
 
@@ -77,15 +87,6 @@ static trc_data_container_t** get_data_container(trc_data_t* data) {
 
 static trc_indep_storage_t* get_data_indep(trc_data_t* data) {
     return (trc_indep_storage_t*)(data+1);
-}
-
-void _trc_free_data_containers() {
-    for (trc_data_container_t* c = containers; c; ) {
-        trc_data_container_t* next = c->next;
-        free(c->data);
-        free(c);
-        c = next;
-    }
 }
 
 static bool lock_rwlock(pthread_rwlock_t* lock, bool write, bool try_lock) {
@@ -201,11 +202,13 @@ static void enqueue_for_compression(queue_entry_t entry) {
     }
 }
 
-static trc_data_container_t* find_container(size_t data_size) {
-    pthread_mutex_lock(&containers_lock);
+static trc_data_container_t* find_container(trace_t* trace, size_t data_size) {
+    data_state_t* state = trace->data_state;
+    
+    pthread_mutex_lock(&state->first_container_lock);
     
     trc_data_container_t* cur = NULL;
-    for (trc_data_container_t* c = containers; c; c = c->next) {
+    for (trc_data_container_t* c = state->first_container; c; c = c->next) {
         bool usable = DATA_CONTAINER_SIZE-c->data_usage >= data_size;
         if (!usable) continue;
         if (!cur) {
@@ -229,9 +232,9 @@ static trc_data_container_t* find_container(size_t data_size) {
         cur->data = calloc(1, DATA_CONTAINER_SIZE);
         
         cur->prev = NULL;
-        cur->next = containers;
-        if (containers) containers->prev = cur;
-        containers = cur;
+        cur->next = state->first_container;
+        if (state->first_container) state->first_container->prev = cur;
+        state->first_container = cur;
         
         pthread_rwlock_rdlock(&cur->lock);
         
@@ -240,7 +243,7 @@ static trc_data_container_t* find_container(size_t data_size) {
         pthread_rwlock_rdlock(&cur->lock);
     }
     
-    pthread_mutex_unlock(&containers_lock);
+    pthread_mutex_unlock(&state->first_container_lock);
     
     return cur;
 }
@@ -351,9 +354,14 @@ static void compress_data(size_t src_size, void* src, trc_compression_t* dst_com
     *dst_size = compressed_size;
 }
 
-void* _trc_compress_thread(void* userdata) {
-    trace_t* trace = userdata;
-    while (atomic_load(&trace->threads_running)) {
+void* compress_thread(void* _) {
+    while (atomic_load(&threads_running)) {
+        if (atomic_load(&pause_threads)) {
+            atomic_fetch_add(&threads_paused, 1);
+            while (atomic_load(&pause_threads)) ;
+            atomic_fetch_sub(&threads_paused, 1);
+        }
+        
         pthread_mutex_lock(&queue_mutex);
         if (!queue_size) {
             pthread_mutex_unlock(&queue_mutex);
@@ -439,7 +447,7 @@ static trc_data_t* create_data(trace_t* trace, size_t size, trc_compression_t co
         res->size = size;
         res->storage = TrcDataStorage_Container;
         
-        trc_data_container_t* container = find_container(size);
+        trc_data_container_t* container = find_container(trace, size);
         *get_data_container(res) = container;
         container->last_accessed = get_milliseconds();
         
@@ -484,9 +492,9 @@ static trc_data_t* create_data(trace_t* trace, size_t size, trc_compression_t co
             enqueue_for_compression((queue_entry_t){.data=res, .container=NULL});
     }
     
-    trc_gl_inspection_t* ti = &trace->inspection;
-    ti->data = realloc(ti->data, ++ti->data_count*sizeof(trc_data_t*));
-    ti->data[ti->data_count-1] = res;
+    data_state_t* state = trace->data_state;
+    res->next = state->first_data;
+    state->first_data = res;
     
     return res;
 }
@@ -595,4 +603,103 @@ void trc_unmap_data(const void* mapped_ptr) {
     mapping->ptr = NULL;
     
     if (data->storage != TrcDataStorage_Tiny) unlock_data(data);
+}
+
+void __attribute__((constructor)) init() {
+    thread_count = sysconf(_SC_NPROCESSORS_ONLN) * 0.375;
+    if (thread_count < 1) thread_count = 1;
+    if (thread_count > MAX_THREADS) thread_count = MAX_THREADS;
+    
+    atomic_store(&threads_running, true);
+    threads = malloc(sizeof(pthread_t)*thread_count);
+    for (size_t i = 0; i < thread_count; i++)
+        pthread_create(&threads[i], NULL, &compress_thread, NULL);
+}
+
+void __attribute__((destructor)) deinit() {
+    atomic_store(&threads_running, false);
+    for (size_t i = 0; i < thread_count; i++)
+        pthread_join(threads[i], NULL);
+    free(threads);
+}
+
+void _trc_data_init(trace_t* trace) {
+    data_state_t* state = malloc(sizeof(data_state_t));
+    state->first_data = NULL;
+    state->first_container_lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+    state->first_container = NULL;
+    trace->data_state = state;
+}
+
+static bool data_belongs_to_trace(data_state_t* state, trc_data_t* data) {
+    if (!data) return false;
+    for (trc_data_t* cur = state->first_data; cur; cur=cur->next) {
+        if (cur == data) return true;
+    }
+    return false;
+}
+
+static bool container_belongs_to_trace(data_state_t* state, trc_data_container_t* container) {
+    if (!container) return false;
+    for (trc_data_container_t* cur = state->first_container; cur; cur=cur->next) {
+        if (cur == container) return true;
+    }
+    return false;
+}
+
+void _trc_data_deinit(trace_t* trace) {
+    data_state_t* state = trace->data_state;
+    
+    //Check for mapping leaks
+    for (size_t i = 0; i < MAX_MAPPINGS; i++) {
+        data_mapping_t m = mappings[i];
+        if (data_belongs_to_trace(state, m.data)) {
+            printf("trc_data_t %p was leaked at line %d of the file '%s' (in the function '%s')\n",
+                   m.data, m.line, m.file, m.func);
+        }
+    }
+    
+    //Pause threads so they hold no references to any data objects or containers
+    atomic_store(&pause_threads, true);
+    while (atomic_load(&threads_paused) != thread_count) ;
+    
+    //Remove data objects and containers from queue
+    pthread_mutex_lock(&queue_mutex);
+    for (size_t i = 0; i < queue_size;) {
+        size_t index = (i+queue_start) % QUEUE_CAPACITY;
+        queue_entry_t e = queue[index];
+        if (data_belongs_to_trace(state, e.data) || container_belongs_to_trace(state, e.container)) {
+            //Remove entry
+            for (size_t j = i; j < queue_size-1; j++)
+                queue[(queue_start+j)%QUEUE_CAPACITY] = queue[(queue_start+j+1)%QUEUE_CAPACITY];
+            queue_size--;
+        } else {
+            i++;
+        }
+    }
+    pthread_mutex_unlock(&queue_mutex);
+    
+    //Unpause
+    atomic_store(&pause_threads, false);
+    
+    //Free data objects
+    for (trc_data_t* cur = state->first_data; cur;) {
+        trc_data_t* next = cur->next;
+        
+        if (cur->storage == TrcDataStorage_Independent)
+            free(get_data_indep(cur));
+        free(cur);
+        
+        cur = next;
+    }
+    
+    //Free container objects
+    for (trc_data_container_t* cur = state->first_container; cur;) {
+        trc_data_container_t* next = cur->next;
+        free(cur->data);
+        free(cur);
+        cur = next;
+    }
+    
+    free(state);
 }

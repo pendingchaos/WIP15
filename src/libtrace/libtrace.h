@@ -80,6 +80,7 @@ typedef struct trc_data_container_t {
 } trc_data_container_t;
 
 typedef struct trc_data_t {
+    struct trc_data_t* next;
     uint64_t size:34;
     trc_data_storage_type_t storage:2;
     uint32_t storage_data:28; //container offset for container storage
@@ -471,9 +472,6 @@ typedef struct trc_gl_inspection_t {
     size_t frame_index;
     size_t cmd_index;
     
-    size_t data_count;
-    trc_data_t** data;
-    
     size_t object_count[Trc_ObjMax];
     trc_obj_t** objects[Trc_ObjMax];
     trc_namespace_t global_namespace; //Should only have names to contexts
@@ -521,14 +519,7 @@ struct trace_t {
     trace_frame_t* frames;
     
     trc_gl_inspection_t inspection;
-    
-    pthread_mutex_t data_queue_mutex;
-    trc_data_t* data_queue_start;
-    trc_data_t* data_queue_end;
-    
-    bool threads_running;
-    size_t thread_count;
-    pthread_t* threads;
+    void* data_state;
 };
 
 typedef struct trc_replay_test_failure_t {
@@ -568,7 +559,6 @@ typedef enum trc_trace_program_arg_t {
 
 #pragma GCC visibility push(default)
 //Traces
-//TODO: data handling does not work well with multiple traces loaded
 bool trace_program(int* exitcode, size_t count, ...);
 trace_t* load_trace(const char* filename);
 void free_trace(trace_t* trace);

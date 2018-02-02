@@ -58,10 +58,6 @@ typedef struct {
 static trace_error_t trace_error = TraceError_None;
 static const char *trace_error_desc = "";
 
-#define MAX_THREADS 1024
-
-void* _trc_compress_thread(void* userdata);
-
 char* get_abs_path(const char* path) {
     #ifdef _GNU_SOURCE
     return canonicalize_file_name(path);
@@ -573,6 +569,9 @@ static bool read_val(FILE* file, trace_value_t* val, type_t* type, trace_t* trac
     return true;
 }
 
+void _trc_data_init(trace_t* trace);
+void _trc_data_deinit(trace_t* trace);
+
 trace_t *load_trace(const char* filename) {
     FILE* file = fopen(filename, "rb");
     if (!file) {
@@ -587,6 +586,8 @@ trace_t *load_trace(const char* filename) {
     trace->frames = calloc(1, sizeof(trace_frame_t));
     trace_frame_t *frame = trace->frames;
     frame->commands = NULL;
+    
+    _trc_data_init(trace);
     
     char magic[6];
     magic[5] = 0;
@@ -796,22 +797,7 @@ trace_t *load_trace(const char* filename) {
     
     fclose(file);
     
-    trace->data_queue_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-    trace->data_queue_start = NULL;
-    trace->data_queue_end = NULL;
-    
-    trace->thread_count = sysconf(_SC_NPROCESSORS_ONLN);
-    if (trace->thread_count < 1) trace->thread_count = 1;
-    if (trace->thread_count > MAX_THREADS) trace->thread_count = MAX_THREADS;
-    
-    atomic_store(&trace->threads_running, true);
-    trace->threads = malloc(sizeof(pthread_t)*trace->thread_count);
-    for (size_t i = 0; i < trace->thread_count; i++)
-        pthread_create(&trace->threads[i], NULL, &_trc_compress_thread, trace);
-    
     trace->inspection.cur_revision = 0;
-    trace->inspection.data_count = 0;
-    trace->inspection.data = NULL;
     trace->inspection.global_namespace.trace = trace;
     for (size_t i = 0; i < Trc_ObjMax; i++) {
         trace->inspection.object_count[i] = 0;
@@ -844,14 +830,12 @@ static void free_obj(trc_obj_t* obj) {
 }
 
 void _trc_free_data_containers();
+void _trc_check_for_mapping_leaks();
 
 void free_trace(trace_t* trace) {
     if (!trace) return;
     
-    atomic_store(&trace->threads_running, false);
-    for (size_t i = 0; i < trace->thread_count; i++)
-        pthread_join(trace->threads[i], NULL);
-    free(trace->threads);
+    _trc_data_deinit(trace);
     
     for (size_t i = 0; i < trace->func_name_count; ++i) free(trace->func_names[i]);
     for (size_t i = 0; i < trace->group_name_count; ++i) free(trace->group_names[i]);
@@ -881,15 +865,6 @@ void free_trace(trace_t* trace) {
         free(ti->namespaces[i]);
     free(ti->namespaces);
     free(ti->cur_ctx_revisions);
-    
-    for (size_t i = 0; i < ti->data_count; i++) {
-        trc_data_t* data = ti->data[i];
-        if (data->storage == TrcDataStorage_Independent)
-            free(((trc_indep_storage_t*)(data+1))->data);
-        free(data);
-    }
-    _trc_free_data_containers();
-    free(ti->data);
     
     free(trace);
 }
