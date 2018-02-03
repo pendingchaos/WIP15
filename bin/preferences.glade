@@ -31,10 +31,10 @@
     </columns>
     <data>
       <row>
-        <col id="0" translatable="yes">Auto Light</col>
+        <col id="0" translatable="yes">Auto (Light)</col>
       </row>
       <row>
-        <col id="0" translatable="yes">Auto Heavy</col>
+        <col id="0" translatable="yes">Auto (Heavy)</col>
       </row>
       <row>
         <col id="0" translatable="yes">Custom</col>
