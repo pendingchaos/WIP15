@@ -436,6 +436,11 @@ VISIBLE void goto_callback(GObject* obj, gpointer user_data) {
     gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+VISIBLE void prefs_callback(GObject* obj, gpointer user_data) {
+    fill_prefs_window();
+    gtk_widget_show_all(state.prefs_window);
+}
+
 static gboolean tick_callback(GtkWidget* _0, GdkFrameClock* _1, gpointer trace) {
     static size_t countdown = 2;
     if (!--countdown && trace) open_trace((const char*)trace);
@@ -454,12 +459,91 @@ static void load_css() {
     g_object_unref(provider);
 }
 
+//Preferences code
+static gint get_key_file_int(GKeyFile* f, const gchar* key, gint def) {
+    GError* err = NULL;
+    gint val = g_key_file_get_integer(f, "Prefs", key, &err);
+    if (err) {
+        val = def;
+        g_error_free(err);
+    }
+    return val;
+}
+
+static gboolean get_key_file_bool(GKeyFile* f, const gchar* key, gboolean def) {
+    GError* err = NULL;
+    gboolean val = g_key_file_get_boolean(f, "Prefs", key, &err);
+    if (err) {
+        val = def;
+        g_error_free(err);
+    }
+    return val;
+}
+
+void read_preferences() {
+    GKeyFile* f = g_key_file_new();
+    
+    gchar* filename = g_build_filename(g_get_user_config_dir(), "wip15.conf", NULL);
+    gboolean success = g_key_file_load_from_file(f, filename, 0, NULL);
+    if (success) g_message("Read preferences from '%s'", filename);
+    else g_warning("Failed to read preferences from '%s'", filename);
+    g_free(filename);
+    
+    trc_data_settings_t* s = &state.data_settings;
+    s->thread_count = get_key_file_int(f, "thread-count", -1);
+    s->zlib_enabled = get_key_file_bool(f, "zlib-enabled", true);
+    s->zstd_enabled = get_key_file_bool(f, "zstd-enabled", false);
+    s->lz4_enabled = get_key_file_bool(f, "lz4-enabled", true);
+    s->zlib_level = get_key_file_int(f, "zlib-level", 9);
+    s->lz4_acceleration = get_key_file_int(f, "lz4-acceleration", 1);
+    s->zstd_level = get_key_file_int(f, "zstd-level", 15);
+    
+    g_key_file_free(f);
+}
+
+void write_preferences() {
+    GKeyFile* f = g_key_file_new();
+    
+    trc_data_settings_t s = state.data_settings;
+    g_key_file_set_integer(f, "Prefs", "thread-count", s.thread_count);
+    g_key_file_set_boolean(f, "Prefs", "zlib-enabled", s.zlib_enabled);
+    g_key_file_set_boolean(f, "Prefs", "zstd-enabled", s.zstd_enabled);
+    g_key_file_set_boolean(f, "Prefs", "lz4-enabled", s.lz4_enabled);
+    g_key_file_set_integer(f, "Prefs", "zlib-level", s.zlib_level);
+    g_key_file_set_integer(f, "Prefs", "lz4-acceleration", s.lz4_acceleration);
+    g_key_file_set_integer(f, "Prefs", "zstd-level", s.zstd_level);
+    
+    /*gchar* dir = g_build_filename(g_get_user_config_dir(), "wip15/");
+    g_mkdir_with_parents(dir, 0777);
+    g_free(dir);*/
+    
+    gchar* filename = g_build_filename(g_get_user_config_dir(), "wip15.conf", NULL);
+    gboolean success = g_key_file_save_to_file(f, filename, NULL);
+    if (success) g_message("Written preferences to '%s'", filename);
+    else g_warning("Failed to write preferences to '%s'", filename);
+    g_free(filename);
+    
+    g_key_file_free(f);
+    
+    state.pref_file_dirty = false;
+}
+
+static gboolean write_dirty_preferences(gpointer user_data) {
+    if (state.pref_file_dirty) write_preferences();
+    return G_SOURCE_CONTINUE;
+}
+
+//main()-like function
 int run_gui(const char* trace, int argc, char** argv) {
     memset(&state, 0, sizeof(state));
     state.revision = -1;
     
     gtk_init(&argc, &argv);
     state.gtk_was_init = true;
+    
+    read_preferences();
+    write_preferences(); //Ensure a file exists
+    trc_data_init(&state.data_settings);
     
     load_css();
     
@@ -479,6 +563,7 @@ int run_gui(const char* trace, int argc, char** argv) {
     }
     
     state.builder = gtk_builder_new_from_file("ui.glade");
+    state.prefs_builder = gtk_builder_new_from_file("preferences.glade");
     
     init_treeview(gtk_builder_get_object(state.builder, "selected_command_attachments"), 1);
     
@@ -508,15 +593,23 @@ int run_gui(const char* trace, int argc, char** argv) {
     
     //Create main window
     gtk_builder_connect_signals(state.builder, NULL);
+    gtk_builder_connect_signals(state.prefs_builder, NULL);
     state.main_window = GTK_WIDGET(gtk_builder_get_object(state.builder, "main_window"));
+    state.prefs_window = GTK_WIDGET(gtk_builder_get_object(state.prefs_builder, "window"));
+    gtk_window_set_transient_for(GTK_WINDOW(state.prefs_window),
+                                 GTK_WINDOW(state.main_window));
     gtk_widget_show_all(state.main_window);
     
     //It seems best to call open_trace once the gui has started
-    //problems seem to occur otherwise (probably because of SDL)
+    //d-bus related problems seem to occur otherwise (probably because of SDL)
     gtk_widget_add_tick_callback(
         state.main_window, &tick_callback, (gpointer)trace, NULL);
     
+    g_timeout_add_seconds(15, write_dirty_preferences, NULL);
+    
     gtk_main();
+    
+    write_dirty_preferences(NULL);
     
     return EXIT_SUCCESS;
 }

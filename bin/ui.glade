@@ -86,6 +86,15 @@
                         <signal name="activate" handler="goto_callback" swapped="no"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Preferences</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="prefs_callback" swapped="no"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

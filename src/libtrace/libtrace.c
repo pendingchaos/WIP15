@@ -58,6 +58,22 @@ typedef struct {
 static trace_error_t trace_error = TraceError_None;
 static const char *trace_error_desc = "";
 
+bool trc_compression_available(trc_compression_t compression) {
+    switch (compression) {
+    case TrcCompression_None: return true;
+    #if LZ4_ENABLED
+    case TrcCompression_LZ4: return true;
+    #endif
+    #if ZLIB_ENABLED
+    case TrcCompression_Zlib: return true;
+    #endif
+    #if ZSTD_ENABLED
+    case TrcCompression_Zstd: return true;
+    #endif
+    default: return false;
+    }
+}
+
 char* get_abs_path(const char* path) {
     #ifdef _GNU_SOURCE
     return canonicalize_file_name(path);

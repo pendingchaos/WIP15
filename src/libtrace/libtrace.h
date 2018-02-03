@@ -558,6 +558,8 @@ typedef enum trc_trace_program_arg_t {
 } trc_trace_program_arg_t;
 
 #pragma GCC visibility push(default)
+bool trc_compression_available(trc_compression_t compression);
+
 //Traces
 bool trace_program(int* exitcode, size_t count, ...);
 trace_t* load_trace(const char* filename);
@@ -614,6 +616,18 @@ trc_obj_t* trc_get_current_gl_context(trace_t* trace, uint64_t revision);
 void trc_set_current_gl_context(trace_t* trace, trc_obj_t* obj);
 
 //Data
+typedef struct trc_data_settings_t {
+    int thread_count; //0 = auto heavy, -1 = auto light
+    
+    bool zlib_enabled;
+    bool zstd_enabled;
+    bool lz4_enabled;
+    
+    int zlib_level;
+    int lz4_acceleration;
+    int zstd_level;
+} trc_data_settings_t;
+
 typedef struct trc_compressed_data_t {
     trc_compression_t compression;
     size_t size;
@@ -621,6 +635,7 @@ typedef struct trc_compressed_data_t {
     void* compressed_data;
 } trc_compressed_data_t;
 
+bool trc_data_init(trc_data_settings_t* settings_);
 trc_data_t* trc_create_data(trace_t* trace, size_t size, const void* data, uint32_t flags);
 trc_data_t* trc_create_data_no_copy(trace_t* trace, size_t size, void* data, uint32_t flags);
 trc_data_t* trc_create_compressed_data_no_copy(trace_t* trace, trc_compressed_data_t data);

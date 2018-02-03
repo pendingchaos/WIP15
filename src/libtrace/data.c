@@ -67,10 +67,11 @@ static size_t queue_start = 0;
 static size_t queue_size = 0;
 static queue_entry_t queue[QUEUE_CAPACITY];
 
+static bool initialized = false;
+static trc_data_settings_t settings;
 static bool threads_running;
 static bool pause_threads;
 static size_t threads_paused;
-static size_t thread_count;
 static pthread_t* threads;
 
 static data_mapping_t mappings[MAX_MAPPINGS];
@@ -314,27 +315,31 @@ static void compress_data(size_t src_size, void* src, trc_compression_t* dst_com
     
     #if ZSTD_ENABLED
     //Try Zstandard
-    if (src_size > 2*1024*1024) { //Zstandard works best with large amounts of data
-        compressed_size = ZSTD_compress(compressed, src_size-1, src, src_size, 15);
+    if (settings.zstd_enabled && src_size>2*1024*1024) { //Zstandard works best with large amounts of data
+        compressed_size = ZSTD_compress(compressed, src_size-1, src, src_size, settings.zstd_level);
         if (!ZSTD_isError(compressed_size)) goto compression_done;
     }
     #endif
     
     #if ZLIB_ENABLED
     //Try Zlib
-    compression = TrcCompression_Zlib;
-    uLongf zlib_compressed_size = src_size - 1;
-    if (compress2(compressed, &zlib_compressed_size, src, src_size, 9) == Z_OK) {
-        compressed_size = zlib_compressed_size;
-        goto compression_done;
+    if (settings.zlib_enabled) {
+        compression = TrcCompression_Zlib;
+        uLongf zlib_compressed_size = src_size - 1;
+        if (compress2(compressed, &zlib_compressed_size, src, src_size, settings.zlib_level) == Z_OK) {
+            compressed_size = zlib_compressed_size;
+            goto compression_done;
+        }
     }
     #endif
     
     #if LZ4_ENABLED
     //Try LZ4
-    compression = TrcCompression_LZ4;
-    if ((compressed_size=LZ4_compress_default(src, compressed, src_size, src_size-1)))
-        goto compression_done;
+    if (settings.lz4_enabled) {
+        compression = TrcCompression_LZ4;
+        if ((compressed_size=LZ4_compress_fast(src, compressed, src_size, src_size-1, settings.lz4_acceleration)))
+            goto compression_done;
+    }
     #endif
     
     //Compression failed
@@ -605,25 +610,44 @@ void trc_unmap_data(const void* mapped_ptr) {
     if (data->storage != TrcDataStorage_Tiny) unlock_data(data);
 }
 
-void __attribute__((constructor)) init() {
-    thread_count = sysconf(_SC_NPROCESSORS_ONLN) * 0.375;
-    if (thread_count < 1) thread_count = 1;
-    if (thread_count > MAX_THREADS) thread_count = MAX_THREADS;
+bool trc_data_init(trc_data_settings_t* settings_) {
+    if (initialized) return true;
+    
+    settings.thread_count = -1;
+    settings.zlib_enabled = true;
+    settings.zstd_enabled = false;
+    settings.lz4_enabled = true;
+    settings.zlib_level = 9;
+    settings.lz4_acceleration = 1;
+    settings.zstd_level = 15;
+    
+    if (settings_) settings = *settings_;
+    
+    int proc_online = sysconf(_SC_NPROCESSORS_ONLN);
+    if (settings.thread_count <= 0) settings.thread_count = proc_online;
+    if (settings.thread_count == -1) settings.thread_count *= 0.375;
+    if (settings.thread_count < 1) settings.thread_count = 1;
+    if (settings.thread_count > MAX_THREADS) settings.thread_count = MAX_THREADS;
+    if (settings.thread_count > proc_online*2) settings.thread_count = proc_online;
     
     atomic_store(&threads_running, true);
-    threads = malloc(sizeof(pthread_t)*thread_count);
-    for (size_t i = 0; i < thread_count; i++)
+    threads = malloc(sizeof(pthread_t)*settings.thread_count);
+    for (size_t i = 0; i < settings.thread_count; i++)
         pthread_create(&threads[i], NULL, &compress_thread, NULL);
+    
+    return false;
 }
 
 void __attribute__((destructor)) deinit() {
     atomic_store(&threads_running, false);
-    for (size_t i = 0; i < thread_count; i++)
+    for (size_t i = 0; i < settings.thread_count; i++)
         pthread_join(threads[i], NULL);
     free(threads);
 }
 
 void _trc_data_init(trace_t* trace) {
+    if (!initialized) trc_data_init(NULL);
+    
     data_state_t* state = malloc(sizeof(data_state_t));
     state->first_data = NULL;
     state->first_container_lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
@@ -661,7 +685,7 @@ void _trc_data_deinit(trace_t* trace) {
     
     //Pause threads so they hold no references to any data objects or containers
     atomic_store(&pause_threads, true);
-    while (atomic_load(&threads_paused) != thread_count) ;
+    while (atomic_load(&threads_paused) != settings.thread_count) ;
     
     //Remove data objects and containers from queue
     pthread_mutex_lock(&queue_mutex);
