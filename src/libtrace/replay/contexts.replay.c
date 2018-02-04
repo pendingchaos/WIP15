@@ -371,35 +371,12 @@ static void init_context() {
 }
 
 static void test_host_config(const trc_replay_config_t* host, const trc_replay_config_t* trace) {
-    typedef struct cap_info_t {
-        const char* name;
-        size_t offset;
-    } cap_info_t;
-    cap_info_t caps[] = {
-        {"version", offsetof(trc_replay_config_t, version)},
-        {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
-        {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
-        {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
-        {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
-        {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
-        {"max_vertex_attrib_stride", offsetof(trc_replay_config_t, max_vertex_attrib_stride)},
-        {"max_vertex_attrib_relative_offset", offsetof(trc_replay_config_t, max_vertex_attrib_relative_offset)},
-        {"max_vertex_attrib_bindings", offsetof(trc_replay_config_t, max_vertex_attrib_bindings)},
-        {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
-        {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
-        {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
-        {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
-        {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
-        {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
-        {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
-        {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
-        {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
-    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
-    
-    for (size_t i = 0; i < cap_count; i++) {
-        const char* name = caps[i].name;
-        int host_val = *(const int*)((const uint8_t*)host+caps[i].offset);
-        int trace_val = *(const int*)((const uint8_t*)trace+caps[i].offset);
+    for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_option_t); i++) {
+        if (trc_replay_config_options[i].type != TrcReplayCfgOpt_CapInt) continue;
+        const char* name = trc_replay_config_options[i].name;
+        size_t off = trc_replay_config_options[i].offset;
+        int host_val = *(const int*)((const uint8_t*)host+off);
+        int trace_val = *(const int*)((const uint8_t*)trace+off);
         if (host_val < trace_val) {
             trc_add_warning(cmd, "Host value for capability '%s' is lower than that of trace: %d < %d",
                             name, host_val, trace_val);
@@ -413,34 +390,6 @@ static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* 
     trc_replay_config_t* cfg = &rev->trace_cfg;
     
     if (extra) {
-        typedef struct option_info_t {
-            const char* name;
-            int* ptr;
-        } option_info_t;
-        
-        //TODO: Use the array in test_host_config()
-        const option_info_t options[] = {
-            {"version", &cfg->version},
-            {"max_vertex_streams", &cfg->max_vertex_streams},
-            {"max_clip_distances", &cfg->max_clip_distances},
-            {"max_draw_buffers", &cfg->max_draw_buffers},
-            {"max_viewports", &cfg->max_viewports},
-            {"max_vertex_attribs", &cfg->max_vertex_attribs},
-            {"max_vertex_attrib_stride", &cfg->max_vertex_attrib_stride},
-            {"max_vertex_attrib_relative_offset", &cfg->max_vertex_attrib_relative_offset},
-            {"max_vertex_attrib_bindings", &cfg->max_vertex_attrib_bindings},
-            {"max_color_attachments", &cfg->max_color_attachments},
-            {"max_combined_texture_units", &cfg->max_combined_texture_units},
-            {"max_patch_vertices", &cfg->max_patch_vertices},
-            {"max_renderbuffer_size", &cfg->max_renderbuffer_size},
-            {"max_texture_size", &cfg->max_texture_size},
-            {"max_xfb_buffers", &cfg->max_xfb_buffers},
-            {"max_ubo_bindings", &cfg->max_ubo_bindings},
-            {"max_atomic_counter_buffer_bindings", &cfg->max_atomic_counter_buffer_bindings},
-            {"max_ssbo_bindings", &cfg->max_ssbo_bindings},
-            {"nvidia_xfb_object_bindings_bug", &cfg->nvidia_xfb_object_bindings_bug}};
-        size_t option_count = sizeof(options) / sizeof(options[0]);
-        
         data_reader_t dr = dr_new(extra->size, extra->data);
         
         uint32_t count;
@@ -461,9 +410,15 @@ static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* 
             if (!dr_read_le(&dr, 4, &value, -1))
                 ERROR2(, "Invalid %s extra: End of data", extra->name);
             
-            for (size_t j = 0; j < option_count; j++) {
-                if (strcmp(options[j].name, name)) continue;
-                *options[j].ptr = value;
+            for (size_t j = 0; j < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); j++) {
+                trc_replay_config_option_t* opt = &trc_replay_config_options[j];
+                if (strcmp(opt->name, name)) continue;
+                void* dest = ((uint8_t*)cfg) + opt->offset;
+                switch (opt->type) {
+                case TrcReplayCfgOpt_CapInt: *(int*)dest = value; break;
+                case TrcReplayCfgOpt_FeatureBool: *(bool*)dest = value; break;
+                case TrcReplayCfgOpt_BugBool: *(bool*)dest = value; break;
+                }
                 goto done;
             }
             trc_add_error(cmd, "Unknown target option '%s'", ctx->target_option_names[i]);

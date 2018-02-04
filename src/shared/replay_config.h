@@ -1,28 +1,66 @@
+/*
+nvidia_xfb_object_bindings_bug:
+    Bug where transform feedback objects don't store their bindings
+*/
 #ifndef REPLAY_CONFIG_DEFS
 #define REPLAY_CONFIG_DEFS
+#include <stddef.h>
+
+typedef enum trc_replay_config_option_type_t {
+    TrcReplayCfgOpt_CapInt,
+    TrcReplayCfgOpt_FeatureBool,
+    TrcReplayCfgOpt_BugBool
+} trc_replay_config_option_type_t;
+
+typedef struct trc_replay_config_option_t {
+    const char* name;
+    trc_replay_config_option_type_t type;
+    size_t offset;
+} trc_replay_config_option_t;
+
+#define _ \
+CAP_INT(version)\
+CAP_INT(max_vertex_streams)\
+CAP_INT(max_clip_distances)\
+CAP_INT(max_draw_buffers)\
+CAP_INT(max_viewports)\
+CAP_INT(max_vertex_attribs)\
+CAP_INT(max_vertex_attrib_stride)\
+CAP_INT(max_vertex_attrib_relative_offset)\
+CAP_INT(max_vertex_attrib_bindings)\
+CAP_INT(max_color_attachments)\
+CAP_INT(max_combined_texture_units)\
+CAP_INT(max_patch_vertices)\
+CAP_INT(max_renderbuffer_size)\
+CAP_INT(max_texture_size)\
+CAP_INT(max_xfb_buffers)\
+CAP_INT(max_ubo_bindings)\
+CAP_INT(max_atomic_counter_buffer_bindings)\
+CAP_INT(max_ssbo_bindings)\
+CAP_INT(max_sample_mask_words)\
+BUG_BOOL(nvidia_xfb_object_bindings_bug)
+
 typedef struct trc_replay_config_t {
-    int version;
-    int max_vertex_streams;
-    int max_clip_distances;
-    int max_draw_buffers;
-    int max_viewports;
-    int max_vertex_attribs;
-    int max_vertex_attrib_stride; //4.4+
-    int max_vertex_attrib_relative_offset; //4.3+
-    int max_vertex_attrib_bindings;
-    int max_color_attachments;
-    int max_combined_texture_units;
-    int max_patch_vertices;
-    int max_renderbuffer_size;
-    int max_texture_size;
-    int max_xfb_buffers;
-    int max_ubo_bindings;
-    int max_atomic_counter_buffer_bindings;
-    int max_ssbo_bindings;
-    int max_sample_mask_words;
-    //Bug where transform feedback objects don't store their bindings
-    int nvidia_xfb_object_bindings_bug;
+    #define CAP_INT(name) int name;
+    #define FEATURE_BOOL(name) bool name;
+    #define BUG_BOOL(name) bool name;
+    _
+    #undef CAP_INT
+    #undef FEATURE_BOOL
+    #undef BUG_BOOL
 } trc_replay_config_t;
+
+static trc_replay_config_option_t trc_replay_config_options[] = {
+    #define CAP_INT(name) {#name, TrcReplayCfgOpt_CapInt, offsetof(trc_replay_config_t, name)},
+    #define FEATURE_BOOL(name) {#name, TrcReplayCfgOpt_FeatureBool, offsetof(trc_replay_config_t, name)},
+    #define BUG_BOOL(name) {#name, TrcReplayCfgOpt_BugBool, offsetof(trc_replay_config_t, name)},
+    _
+    #undef CAP_INT
+    #undef FEATURE_BOOL
+    #undef BUG_BOOL
+};
+
+#undef _
 #endif
 
 #ifdef REPLAY_CONFIG_FUNCS

@@ -608,28 +608,6 @@ static config_t* get_current_config() {
     return &configs[ver];
 }
 
-//TODO: from test_host_config() in nontrivial_func_impls.c
-typedef struct cap_info_t {
-    const char* name;
-    size_t offset;
-} cap_info_t;
-static const cap_info_t caps[] = {
-    {"version", offsetof(trc_replay_config_t, version)},
-    {"max_vertex_streams", offsetof(trc_replay_config_t, max_vertex_streams)},
-    {"max_clip_distances", offsetof(trc_replay_config_t, max_clip_distances)},
-    {"max_draw_buffers", offsetof(trc_replay_config_t, max_draw_buffers)},
-    {"max_viewports", offsetof(trc_replay_config_t, max_viewports)},
-    {"max_vertex_attribs", offsetof(trc_replay_config_t, max_vertex_attribs)},
-    {"max_color_attachments", offsetof(trc_replay_config_t, max_color_attachments)},
-    {"max_combined_texture_units", offsetof(trc_replay_config_t, max_combined_texture_units)},
-    {"max_patch_vertices", offsetof(trc_replay_config_t, max_patch_vertices)},
-    {"max_renderbuffer_size", offsetof(trc_replay_config_t, max_renderbuffer_size)},
-    {"max_texture_size", offsetof(trc_replay_config_t, max_texture_size)},
-    {"max_xfb_buffers", offsetof(trc_replay_config_t, max_xfb_buffers)},
-    {"max_ubo_bindings", offsetof(trc_replay_config_t, max_ubo_bindings)},
-    {"max_atomic_counter_buffer_bindings", offsetof(trc_replay_config_t, max_atomic_counter_buffer_bindings)},
-    {"max_ssbo_bindings", offsetof(trc_replay_config_t, max_ssbo_bindings)}};
-
 #define REPLAY_CONFIG_FUNCS
 #define RC_F REALF
 #include "shared/replay_config.h"
@@ -642,12 +620,16 @@ static trc_replay_config_t create_replay_config() {
     
     config_t* src_cfg = get_current_config();
     
-    size_t cap_count = sizeof(caps) / sizeof(caps[0]);
-    
     for (config_entry_t* entry = src_cfg->entries; entry; entry = entry->next) {
-        for (size_t i = 0; i < cap_count; i++) {
-            if (strcmp(caps[i].name, entry->name) == 0) {
-                *(int*)(((uint8_t*)&cfg) + caps[i].offset) = entry->value;
+        for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
+            trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+            if (strcmp(opt->name, entry->name) == 0) {
+                void* dest = (uint8_t*)&cfg + opt->offset;
+                switch (opt->type) {
+                case TrcReplayCfgOpt_CapInt: *(int*)dest = entry->value; break;
+                case TrcReplayCfgOpt_FeatureBool: *(bool*)dest = entry->value; break;
+                case TrcReplayCfgOpt_BugBool: *(bool*)dest = entry->value; break;
+                }
             }
         }
     }
@@ -670,13 +652,20 @@ static void create_make_current_config_extra(GLXContext ctx) {
     trc_replay_config_t cfg = create_replay_config();
     
     data_writer_t dw = dw_new(0, NULL, true);
-    uint32_t cap_count = sizeof(caps) / sizeof(caps[0]);
-    dw_write_le(&dw, 4, &cap_count, -1);
-    for (uint32_t i = 0; i < cap_count; i++) {
-        uint32_t len = strlen(caps[i].name);
+    uint32_t opt_count = sizeof(trc_replay_config_options) / sizeof(trc_replay_config_options[0]);
+    dw_write_le(&dw, 4, &opt_count, -1);
+    for (uint32_t i = 0; i < opt_count; i++) {
+        trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+        uint32_t len = strlen(opt->name);
         dw_write_le(&dw, 4, &len, -1);
-        dw_write(&dw, len, caps[i].name);
-        int32_t val = *(int*)(((uint8_t*)&cfg)+caps[i].offset);
+        dw_write(&dw, len, opt->name);
+        int32_t val;
+        void* src = (uint8_t*)&cfg + opt->offset;
+        switch (opt->type) {
+        case TrcReplayCfgOpt_CapInt: val = *(int*)src; break;
+        case TrcReplayCfgOpt_FeatureBool: val = *(bool*)src; break;
+        case TrcReplayCfgOpt_BugBool: val = *(bool*)src; break;
+        }
         dw_write_le(&dw, 4, &val, -1);
     }
     gl_add_extra("replay/glXMakeCurrent/config", dw.size, dw.data);
