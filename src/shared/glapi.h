@@ -58,10 +58,12 @@ typedef enum {
     GLApi_Context
 } glapi_obj_type_t;
 
+//The requirements are met if the current version is one of the versions set in
+//glapi_requirements_t::version or if one of the specified extensions is supported
 typedef struct {
     glapi_version_mask_t version; //Can be glnone
     size_t extension_count;
-    const char** extensions;
+    size_t* extensions; //indices into glapi.extensions
 } glapi_requirements_t;
 
 typedef struct {
@@ -98,11 +100,18 @@ typedef struct {
 } glapi_function_t;
 
 typedef struct {
+    const char* name;
+} glapi_extension_t;
+
+typedef struct {
     size_t group_count;
     glapi_group_t** groups;
     
     size_t function_count;
     glapi_function_t** functions;
+    
+    size_t extension_count;
+    glapi_extension_t** extensions;
 } glapi_t;
 
 extern const glapi_t glapi;

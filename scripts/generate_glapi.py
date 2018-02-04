@@ -142,10 +142,16 @@ for name, func in func_dict.items():
     
     i += 1
 
+for name, ext in gl.extensions.items():
+    output.write("static const glapi_extension_t ext_%d = {\"%s\"};\n" % (id(func), name))
+
 output.write("static glapi_group_t*const* groups[] = {%s};\n" %
              ", ".join(["&group_%s" % group.name for group in list(group_dict.values())]))
 
 output.write("static glapi_function_t** funcs[] = {%s};\n" %
              ", ".join(["&func_%d" % id(func) for func in list(func_dict.values())]))
 
-output.write("const glapi_t glapi = {%d, groups, %d, funcs};\n" % (len(group_dict), len(func_dict)))
+output.write("static glapi_extension_t** extensions[] = {%s};\n" %
+             ", ".join(["&ext_%d" % id(ext) for func in list(gl.extensions.values())]))
+
+output.write("const glapi_t glapi = {%d, groups, %d, funcs, %d extensions};\n" % (len(group_dict), len(func_dict), len(gl.extensions)))
