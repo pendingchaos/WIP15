@@ -138,9 +138,10 @@ for name, func in func_dict.items():
                  (i,
                   ", ".join(["&arg_%d" % id(arg) for arg in func.params])))
     
-    #TODO: Extensions
-    output.write("static const glapi_requirements_t req_%d = {%s, 0, NULL};\n" %
-                 (next_req_id, ver_mask))
+    exts = [ext_names.index(ext_name) for ext_name in func.exts]
+    output.write("static const size_t req_%d_exts[] = {%s};\n" % (next_req_id, ', '.join([str(v) for v in exts])))
+    output.write("static const glapi_requirements_t req_%d = {%s, %d, req_%d_exts};\n" %
+                 (next_req_id, ver_mask, len(exts), next_req_id))
     
     output.write("static const glapi_function_t func_%d = {&req_%d, \"%s\", %d, args_%d, %s};\n" %
                  (id(func), next_req_id, name, len(func.params), i,

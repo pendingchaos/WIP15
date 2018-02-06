@@ -102,7 +102,7 @@ class Param(object):
         return self.dtype.gen_write_type_code(self.array_count, self.group)
 
 class Func(object):
-    def __init__(self, minver, name, params, rettype=None):
+    def __init__(self, minver, name, params, rettype=None, exts=[]):
         global next_func_id, funcs
         
         self._file = _cur_file
@@ -123,6 +123,7 @@ class Func(object):
             self.func_id = next_func_id
             next_func_id += 1
         self.minver = minver
+        self.exts = []
         self.name = name
         self.params = params
         self.trace_prologue_code = ''
