@@ -1122,15 +1122,15 @@ static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_
     if (req->version == glnone) return true;
     
     switch (ctx->ver) {
-    case 320: return req->version & gl3_2;
-    case 330: return req->version & gl3_3;
-    case 400: return req->version & gl4_0;
-    case 410: return req->version & gl4_1;
-    case 420: return req->version & gl4_2;
-    case 430: return req->version & gl4_3;
-    case 440: return req->version & gl4_4;
-    case 450: return req->version & gl4_5;
-    case 460: return req->version & gl4_6;
+    case 320: if (req->version & gl3_2) return true;
+    case 330: if (req->version & gl3_3) return true;
+    case 400: if (req->version & gl4_0) return true;
+    case 410: if (req->version & gl4_1) return true;
+    case 420: if (req->version & gl4_2) return true;
+    case 430: if (req->version & gl4_3) return true;
+    case 440: if (req->version & gl4_4) return true;
+    case 450: if (req->version & gl4_5) return true;
+    case 460: if (req->version & gl4_6) return true;
     default: return false;
     }
     

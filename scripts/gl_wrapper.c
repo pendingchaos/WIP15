@@ -605,6 +605,7 @@ static void update_drawable_size() {
 }
 
 static config_t* get_current_config() {
+    //TODO: Use the version requested at context creation
     GLint major, minor;
     REALF(glGetIntegerv)(GL_MAJOR_VERSION, &major);
     REALF(glGetIntegerv)(GL_MINOR_VERSION, &minor);
