@@ -22,6 +22,7 @@ class Group(object):
         self.bitmask = bitmask
         self.vals = {}
         self.minvers = {}
+        self.exts = {}
         if self.name in group_dict:
             self.group_id = group_dict[self.name].group_id
             groups.remove(group_dict[self.name])
@@ -31,9 +32,10 @@ class Group(object):
         group_dict[self.name] = self
         groups.append(self)
     
-    def add(self, name, val, minver):
+    def add(self, name, val, minver, exts=[]):
         self.vals[name] = val
         self.minvers[name] = minver
+        self.exts[name] = [v for v in exts]
         return self
 
 def g(*items, **kwargs):

@@ -377,9 +377,15 @@ static bool set_config_value_int(config_t* config, const char* name, int value) 
 
 static bool set_config_value(config_t* config, const char* name, const char* value) {
     int ival = 0;
-    for (const char* c = value; *c; c++) {
-        if (*c<'0' || *c>'9') return false;
-        ival = ival*10 + (*c-'0');
+    if (strcmp(value, "true") == 0) {
+        ival = 1;
+    } else if (strcmp(value, "false") == 0) {
+        ival = 0;
+    } else {
+        for (const char* c = value; *c; c++) {
+            if (*c<'0' || *c>'9') return false;
+            ival = ival*10 + (*c-'0');
+        }
     }
     return set_config_value_int(config, name, ival);
 }
@@ -622,13 +628,14 @@ static trc_replay_config_t create_replay_config() {
     
     for (config_entry_t* entry = src_cfg->entries; entry; entry = entry->next) {
         for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
-            trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+            const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
             if (strcmp(opt->name, entry->name) == 0) {
                 void* dest = (uint8_t*)&cfg + opt->offset;
                 switch (opt->type) {
                 case TrcReplayCfgOpt_CapInt: *(int*)dest = entry->value; break;
                 case TrcReplayCfgOpt_FeatureBool: *(bool*)dest = entry->value; break;
                 case TrcReplayCfgOpt_BugBool: *(bool*)dest = entry->value; break;
+                case TrcReplayCfgOpt_Ext: *(bool*)dest = entry->value; break;
                 }
             }
         }
@@ -655,7 +662,7 @@ static void create_make_current_config_extra(GLXContext ctx) {
     uint32_t opt_count = sizeof(trc_replay_config_options) / sizeof(trc_replay_config_options[0]);
     dw_write_le(&dw, 4, &opt_count, -1);
     for (uint32_t i = 0; i < opt_count; i++) {
-        trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+        const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
         uint32_t len = strlen(opt->name);
         dw_write_le(&dw, 4, &len, -1);
         dw_write(&dw, len, opt->name);
@@ -665,6 +672,7 @@ static void create_make_current_config_extra(GLXContext ctx) {
         case TrcReplayCfgOpt_CapInt: val = *(int*)src; break;
         case TrcReplayCfgOpt_FeatureBool: val = *(bool*)src; break;
         case TrcReplayCfgOpt_BugBool: val = *(bool*)src; break;
+        case TrcReplayCfgOpt_Ext: val = *(bool*)src; break;
         }
         dw_write_le(&dw, 4, &val, -1);
     }

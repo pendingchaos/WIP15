@@ -312,7 +312,8 @@ Group('TextureParameterName').add('GL_DEPTH_STENCIL_TEXTURE_MODE', 0x90EA, (4, 3
                              .add('GL_TEXTURE_SWIZZLE_RGBA', 0x8E46, (3, 3))\
                              .add('GL_TEXTURE_WRAP_S', 0x2802, (1, 0))\
                              .add('GL_TEXTURE_WRAP_T', 0x2803, (1, 0))\
-                             .add('GL_TEXTURE_WRAP_R', 0x8072, (1, 2))
+                             .add('GL_TEXTURE_WRAP_R', 0x8072, (1, 2))\
+                             .add('GL_TEXTURE_MAX_ANISOTROPY', 0x84FE, (4, 6), ['GL_EXT_texture_filter_anisotropic', 'GL_ARB_texture_filter_anisotropic'])
 
 Group('SamplerParameterName').add('GL_TEXTURE_COMPARE_FUNC', 0x884D, (3, 3))\
                              .add('GL_TEXTURE_COMPARE_MODE', 0x884C, (3, 3))\
@@ -439,6 +440,8 @@ Group('TextureSwizzle').add('GL_RED', 0x1903, (3, 3))\
                        .add('GL_ALPHA', 0x1906, (3, 3))\
                        .add('GL_ZERO', 0, (3, 3))\
                        .add('GL_ONE', 1, (3, 3))
+
+group_dict['GetPName'].add('GL_MAX_TEXTURE_MAX_ANISOTROPY', 0x84FF, (4, 6), ['GL_EXT_texture_filter_anisotropic', 'GL_ARB_texture_filter_anisotropic'])
 
 Func((1, 0), 'glTexParameterfv', [P(tGLenum, 'target', None, 'TextureTarget'),
                                   P(tGLenum, 'pname', None, 'TextureParameterName'),

@@ -411,13 +411,14 @@ static void handle_new_context_config(trc_gl_context_rev_t* rev, trace_extra_t* 
                 ERROR2(, "Invalid %s extra: End of data", extra->name);
             
             for (size_t j = 0; j < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); j++) {
-                trc_replay_config_option_t* opt = &trc_replay_config_options[j];
+                const trc_replay_config_option_t* opt = &trc_replay_config_options[j];
                 if (strcmp(opt->name, name)) continue;
                 void* dest = ((uint8_t*)cfg) + opt->offset;
                 switch (opt->type) {
                 case TrcReplayCfgOpt_CapInt: *(int*)dest = value; break;
                 case TrcReplayCfgOpt_FeatureBool: *(bool*)dest = value; break;
                 case TrcReplayCfgOpt_BugBool: *(bool*)dest = value; break;
+                case TrcReplayCfgOpt_Ext: *(bool*)dest = value; break;
                 }
                 goto done;
             }

@@ -1104,10 +1104,21 @@ void trc_add_error(trace_command_t* command, const char* format, ...) {
     trc_add_attachment(command, attach);
 }
 
+static bool extension_enabled(const trc_gl_context_rev_t* ctx, const char* extension) {
+    for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
+        const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+        if (opt->type != TrcReplayCfgOpt_Ext) continue;
+        
+        bool val = *(bool*)(opt->offset+(uint8_t*)&ctx->trace_cfg);
+        if (strcmp(opt->name, extension) == 0) return val;
+    }
+    return false;
+}
+
 static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_requirements_t* req) {
     if (!ctx) return true;
     
-    //TODO: This is usually for glX functions, so test for glX version support?
+    //TODO: Better handle glX functions
     if (req->version == glnone) return true;
     
     switch (ctx->ver) {
@@ -1123,9 +1134,12 @@ static bool requirements_satisfied(const trc_gl_context_rev_t* ctx, const glapi_
     default: return false;
     }
     
-    //TODO: Test for extension support
+    for (size_t i = 0; i < req->extension_count; i++) {
+        const char* ext = glapi.extensions[req->extensions[i]]->name;
+        if (extension_enabled(ctx, ext)) return true;
+    }
     
-    return true;
+    return false;
 }
 
 static uint64_t get_value_element(const trace_value_t* val, size_t index) {

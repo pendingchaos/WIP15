@@ -63,7 +63,7 @@ typedef enum {
 typedef struct {
     glapi_version_mask_t version; //Can be glnone
     size_t extension_count;
-    size_t* extensions; //indices into glapi.extensions
+    const size_t* extensions; //indices into glapi.extensions
 } glapi_requirements_t;
 
 typedef struct {

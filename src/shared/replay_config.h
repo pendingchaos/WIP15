@@ -9,7 +9,8 @@ nvidia_xfb_object_bindings_bug:
 typedef enum trc_replay_config_option_type_t {
     TrcReplayCfgOpt_CapInt,
     TrcReplayCfgOpt_FeatureBool,
-    TrcReplayCfgOpt_BugBool
+    TrcReplayCfgOpt_BugBool,
+    TrcReplayCfgOpt_Ext
 } trc_replay_config_option_type_t;
 
 typedef struct trc_replay_config_option_t {
@@ -38,27 +39,36 @@ CAP_INT(max_ubo_bindings)\
 CAP_INT(max_atomic_counter_buffer_bindings)\
 CAP_INT(max_ssbo_bindings)\
 CAP_INT(max_sample_mask_words)\
+EXT(GL_EXT_texture_filter_anisotropic)\
+EXT(GL_ARB_texture_filter_anisotropic)\
 BUG_BOOL(nvidia_xfb_object_bindings_bug)
 
 typedef struct trc_replay_config_t {
     #define CAP_INT(name) int name;
     #define FEATURE_BOOL(name) bool name;
     #define BUG_BOOL(name) bool name;
+    #define EXT(name) bool ext_##name;
     _
+    #undef EXT
     #undef CAP_INT
     #undef FEATURE_BOOL
     #undef BUG_BOOL
 } trc_replay_config_t;
 
-static trc_replay_config_option_t trc_replay_config_options[] = {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+static const trc_replay_config_option_t trc_replay_config_options[] = {
     #define CAP_INT(name) {#name, TrcReplayCfgOpt_CapInt, offsetof(trc_replay_config_t, name)},
     #define FEATURE_BOOL(name) {#name, TrcReplayCfgOpt_FeatureBool, offsetof(trc_replay_config_t, name)},
     #define BUG_BOOL(name) {#name, TrcReplayCfgOpt_BugBool, offsetof(trc_replay_config_t, name)},
+    #define EXT(name) {#name, TrcReplayCfgOpt_Ext, offsetof(trc_replay_config_t, ext_##name)},
     _
+    #undef EXT
     #undef CAP_INT
     #undef FEATURE_BOOL
     #undef BUG_BOOL
 };
+#pragma GCC diagnostic pop
 
 #undef _
 #endif
@@ -96,6 +106,20 @@ static void init_host_config(void* ctx, trc_replay_config_t* cfg) {
     if (ver >= 420) RC_F(glGetIntegerv)(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &cfg->max_atomic_counter_buffer_bindings);
     if (ver >= 430) RC_F(glGetIntegerv)(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &cfg->max_ssbo_bindings);
     RC_F(glGetIntegerv)(GL_MAX_SAMPLE_MASK_WORDS, &cfg->max_sample_mask_words);
+    
+    //Extensions
+    GLint ext_count;
+    RC_F(glGetIntegerv)(GL_NUM_EXTENSIONS, &ext_count);
+    for (GLint i = 0; i < ext_count; i++) {
+        const char* ext = (const char*)RC_F(glGetStringi)(GL_EXTENSIONS, i);
+        for (size_t j = 0; j < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); j++) {
+            const trc_replay_config_option_t* opt = &trc_replay_config_options[j];
+            if (opt->type==TrcReplayCfgOpt_Ext && strcmp(opt->name, ext)==0) {
+                *(bool*)(opt->offset+(uint8_t*)cfg) = true;
+                break;
+            }
+        }
+    }
     
     cfg->nvidia_xfb_object_bindings_bug = false; //TODO
 }
