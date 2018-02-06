@@ -612,6 +612,17 @@ static void fill_context_value_tree(
     uint ver = rev->ver;
     
     begin_category(state, "Capabilities");
+    
+    begin_category(state, "Extensions");
+    for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
+        const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+        if (opt->type != TrcReplayCfgOpt_Ext) continue;
+        
+        bool val = *(bool*)(opt->offset+(uint8_t*)&rev->trace_cfg);
+        if (val) value(state, opt->name, "");
+    }
+    end_category(state);
+    
     value_ints(state, "GL_MAJOR_VERSION", rev->state_int_GL_MAJOR_VERSION);
     value_ints(state, "GL_MINOR_VERSION", rev->state_int_GL_MINOR_VERSION);
     if (ver >= 400) value_ints(state, "GL_MAX_VERTEX_STREAMS", rev->state_int_GL_MAX_VERTEX_STREAMS);
@@ -648,6 +659,7 @@ static void fill_context_value_tree(
                                rev->state_int_GL_MAX_PATCH_VERTICES);
     value_ints(state, "GL_MAX_SAMPLE_MASK_WORDS",
                rev->state_int_GL_MAX_SAMPLE_MASK_WORDS);
+    
     end_category(state);
 }
 
