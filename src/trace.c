@@ -21,14 +21,26 @@ static struct option options[] = {
     {"output", required_argument, NULL, 'o'},
     {"cwd", required_argument, NULL, 'd'},
     {"compress", required_argument, NULL, 'c'},
-    {"cwdexec", no_argument, NULL, 'e'}
+    {"cwdexec", no_argument, NULL, 'e'},
+    {"help", no_argument, NULL, 'h'}
 };
+
+static void print_usage(char** argv) {
+    fprintf(stderr, "Usage: %s <arguments> <command>\n", argv[0]);
+    fprintf(stderr, "Arguments\n");
+    fprintf(stderr, "    --output=<output>  or -o <output> | Defaults to output.trace\n");
+    fprintf(stderr, "    --config=<config>                 | Defaults to configs/this.config.txt\n");
+    fprintf(stderr, "    --compress=<0-100> or -c <0-100>  | Defaults to 60\n");
+    fprintf(stderr, "    --cwd=<dir>  or -d <dir>          | Defaults to the current working directory\n");
+    fprintf(stderr, "    --cwdexec  or -e                  | Sets the current working directory to that of the traced executable\n");
+    fprintf(stderr, "    --help  or -h                     | Prints this message and exits\n");
+}
 
 //TODO: This also tries to parse options after the command
 static void handle_options(char* self_dir, int argc, char** argv) {
     int option_index = 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "o:c:d:e", options, &option_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "o:c:d:eh", options, &option_index)) != -1) {
         switch (c) {
         case LongOnlyOption_Config:
             free(config);
@@ -52,6 +64,14 @@ static void handle_options(char* self_dir, int argc, char** argv) {
             break;
         case 'e':
             cwdexec = true;
+            break;
+        case 'h':
+            print_usage(argv);
+            exit(EXIT_SUCCESS);
+            break;
+        case '?':
+            print_usage(argv);
+            exit(EXIT_FAILURE);
             break;
         }
     }
@@ -117,13 +137,7 @@ static void run(char* self_dir, int cmdc, char** cmd) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <arguments> <command>\n", argv[0]);
-        fprintf(stderr, "Arguments\n");
-        fprintf(stderr, "    --output=<output>  or -o <output> | Defaults to output.trace\n");
-        fprintf(stderr, "    --config=<config>                 | Defaults to configs/this.config.txt\n");
-        fprintf(stderr, "    --compress=<0-100> or -c <0-100>  | Defaults to 60\n");
-        fprintf(stderr, "    --cwd=<dir>  or -d <dir>          | Defaults to the current working directory\n");
-        fprintf(stderr, "    --cwdexec  or -e                  | Sets the current working directory to that of the traced executable\n");
+        print_usage(argv);
         return EXIT_FAILURE;
     }
     

@@ -158,7 +158,7 @@ bool trace_program(int* exitcode, size_t count, ...) {
         }
         
         execv(new_arguments[0], (char*const*)new_arguments);
-        assert(false);
+        return false;
     } else {
         int wstatus;
         waitpid(pid, &wstatus, 0);
