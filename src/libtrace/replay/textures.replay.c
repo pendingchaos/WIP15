@@ -561,6 +561,8 @@ bool sample_param_double(trc_gl_sample_params_t* params, GLenum param, uint32_t 
         if (val[0]!=GL_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_BORDER && val[0]!=GL_MIRRORED_REPEAT &&
             val[0]!=GL_REPEAT && val[0]!=GL_MIRROR_CLAMP_TO_EDGE && val[0]!=GL_CLAMP_TO_EDGE)
             ERROR2(true, "Invalid wrap mode");
+        if (val[0]==GL_MIRROR_CLAMP_TO_EDGE && gls_get_ver()<440)
+            ERROR2(true, "GL_MIRROR_CLAMP_TO_EDGE is not supported until OpenGL 4.4");
         break;
     case GL_TEXTURE_COMPARE_MODE:
         if (val[0]!=GL_COMPARE_REF_TO_TEXTURE && val[0]!=GL_NONE)

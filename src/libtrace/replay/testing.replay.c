@@ -61,9 +61,9 @@ static bool expect_property_common(GLenum objType, GLuint64 objName, const trc_o
         if (prop->get_func_gl_int)\
             success = (gl_val=prop->get_func_gl_int(p_index, ctx, rev, realobj))==p_val && success;\
         if (prop->get_func_double)\
-            success = (val=prop->get_func_double(p_index, rev))==p_val && success;\
+            success = (val=prop->get_func_double(p_index, rev))-p_val<0.001 && success;\
         if (prop->get_func_gl_double)\
-            success = (gl_val=prop->get_func_gl_double(p_index, ctx, rev, realobj))==p_val && success;\
+            success = (gl_val=prop->get_func_gl_double(p_index, ctx, rev, realobj))-p_val<0.001 && success;\
         has_val = prop->get_func_int || prop->get_func_double;\
         has_gl_val = prop->get_func_gl_int || prop->get_func_gl_double;\
         if (!has_val && !has_gl_val) ERROR("Property is not of a compatible type");\

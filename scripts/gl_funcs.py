@@ -323,7 +323,10 @@ Group('SamplerParameterName').add('GL_TEXTURE_COMPARE_FUNC', 0x884D, (3, 3))\
                              .add('GL_TEXTURE_MAX_LOD', 0x813B, (3, 3))\
                              .add('GL_TEXTURE_WRAP_S', 0x2802, (3, 3))\
                              .add('GL_TEXTURE_WRAP_T', 0x2803, (3, 3))\
-                             .add('GL_TEXTURE_WRAP_R', 0x8072, (3, 3))
+                             .add('GL_TEXTURE_WRAP_R', 0x8072, (3, 3))\
+                             .add('GL_TEXTURE_LOD_BIAS', 0x8501, (3, 3))\
+                             .add('GL_TEXTURE_BORDER_COLOR', 0x1004, (3, 3))\
+                             .add('GL_TEXTURE_MAX_ANISOTROPY', 0x84FE, (4, 6), ['GL_ARB_texture_filter_anisotropic'])
 
 Group('TexImage1DTarget').add('GL_TEXTURE_1D', 0x0DE0, (1, 0))\
                          .add('GL_PROXY_TEXTURE_1D', 0x8063, (1, 1))

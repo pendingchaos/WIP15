@@ -1259,7 +1259,8 @@ static size_t tex_param_count(GLenum param) {
     case GL_TEXTURE_WRAP_S:
     case GL_TEXTURE_WRAP_T:
     case GL_TEXTURE_WRAP_R:
-    case GL_TEXTURE_BASE_LEVEL: return 1;
+    case GL_TEXTURE_BASE_LEVEL:
+    case GL_TEXTURE_MAX_ANISOTROPY: return 1;
     case GL_TEXTURE_SWIZZLE_RGBA:
     case GL_TEXTURE_BORDER_COLOR: return 4;
     default: return 0;

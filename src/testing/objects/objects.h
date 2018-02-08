@@ -84,6 +84,7 @@ REGISTER_PROPERTY_DOUBLE(obj, minver, propname, NULL, (getparam?&get_double_prop
 
 #include "buffer.h"
 #include "program.h"
+#include "sampler.h"
 #include "context.h"
 
 static const testing_property_t* get_object_type_properties(GLenum objType) {
@@ -92,6 +93,8 @@ static const testing_property_t* get_object_type_properties(GLenum objType) {
         return buffer_properties;
     case GL_PROGRAM:
         return program_properties;
+    case GL_SAMPLER:
+        return sampler_properties;
     case 0:
         return context_properties;
     //TODO
