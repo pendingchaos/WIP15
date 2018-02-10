@@ -4,7 +4,7 @@
 
 double conv_from_signed_norm(uint glver, int64_t val, size_t bits) {
     if (glver >= 420) return fmax(val/pow(2.0, bits-1), -1.0);
-    else return (val*2+1) / pow(2.0, bits-1);
+    else return (val*2+1) / (pow(2.0, bits)-1);
 }
 
 double parse_f16(uint16_t val) {
