@@ -2,6 +2,7 @@
 #include "shared/glcorearb.h"
 
 typedef struct test_t {
+    int ver;
     const char* name;
     void (*func)();
     struct test_t* next;
@@ -32,11 +33,12 @@ extern void (*wip15ExpectAttachment)(const GLchar* attachment);
 void _CONCAT4(test_, TEST_SUITE, _, testname)() {\
     _CONCAT2(TEST_SUITE, _setup)();
 
-#define END_TEST(testname)\
+#define END_TEST(testname, ver_)\
     _CONCAT2(TEST_SUITE, _cleanup)();\
 }\
 void __attribute__((constructor)) _CONCAT4(register_test_, TEST_SUITE, _, testname)() {\
     static test_t t;\
+    t.ver = ver_;\
     t.name = _STR(TEST_SUITE) ": " #testname;\
     t.func = _CONCAT4(test_, TEST_SUITE, _, testname);\
     t.next = tests;\

@@ -17,55 +17,55 @@ void buffer_cleanup() {
 
 BEGIN_TEST(default_properties)
     assert_properties(GL_BUFFER, buf, "*", NULL);
-END_TEST(default_properties)
+END_TEST(default_properties, 320)
 
 BEGIN_TEST(glBindBuffer_0)
     //TODO: assert that the buffer is bound
-END_TEST(glBindBuffer_0)
+END_TEST(glBindBuffer_0, 320)
 
 BEGIN_TEST(glBindBuffer_1)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     //TODO: assert that the buffer is not bound
-END_TEST(glBindBuffer_1)
+END_TEST(glBindBuffer_1, 320)
 
 BEGIN_TEST(glBindBuffer_2)
     glBindBuffer(GL_ARRAY_BUFFER, buf+1);
     assert_attachment("Invalid buffer name");
-END_TEST(glBindBuffer_2)
+END_TEST(glBindBuffer_2, 320)
 
 BEGIN_TEST(glBufferData_0)
     glBufferData(GL_ARRAY_BUFFER, 5, NULL, GL_STATIC_DRAW);
     assert_properties(GL_BUFFER, buf, "size", 5, NULL);
-END_TEST(glBufferData_0)
+END_TEST(glBufferData_0, 320)
 
 BEGIN_TEST(glBufferData_1)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     assert_properties(GL_BUFFER, buf, "data", 5, "Hello", NULL);
-END_TEST(glBufferData_1)
+END_TEST(glBufferData_1, 320)
 
 BEGIN_TEST(glBufferData_2)
     glBufferData(GL_ARRAY_BUFFER, -1, "Hello", GL_STATIC_DRAW);
     assert_attachment("Invalid size");
-END_TEST(glBufferData_2)
+END_TEST(glBufferData_2, 320)
 
 BEGIN_TEST(glBufferData_3)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     assert_attachment("No buffer bound to target");
-END_TEST(glBufferData_3)
+END_TEST(glBufferData_3, 320)
 
 BEGIN_TEST(glBufferSubData_0)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 1, 3, "Hel");
     assert_properties(GL_BUFFER, buf, "data", 5, "HHelo", NULL);
-END_TEST(glBufferSubData_0)
+END_TEST(glBufferSubData_0, 320)
 
 BEGIN_TEST(glBufferSubData_1)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBufferSubData(GL_ARRAY_BUFFER, 1, 3, "Hel");
     assert_attachment("No buffer bound to target");
-END_TEST(glBufferSubData_1)
+END_TEST(glBufferSubData_1, 320)
 
 BEGIN_TEST(glBufferSubData_2)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
@@ -85,7 +85,7 @@ BEGIN_TEST(glBufferSubData_2)
     glUnmapBuffer(GL_ARRAY_BUFFER);
     
     //TODO: immutable storage without GL_DYNAMIC_STORAGE_BIT
-END_TEST(glBufferSubData_2)
+END_TEST(glBufferSubData_2, 320)
 
 BEGIN_TEST(glMapBuffer_0)
     glBufferData(GL_ARRAY_BUFFER, 5, NULL, GL_STATIC_DRAW);
@@ -104,7 +104,7 @@ BEGIN_TEST(glMapBuffer_0)
         "map_access", 0,
         "data", 5, "World",
         NULL);
-END_TEST(glMapBuffer_0)
+END_TEST(glMapBuffer_0, 320)
 
 BEGIN_TEST(glMapBuffer_1)
     //TODO: The nvidia driver seems to fail at glMapBuffer with
@@ -114,30 +114,30 @@ BEGIN_TEST(glMapBuffer_1)
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     assert_properties(GL_BUFFER, buf, "mapped", 1, NULL);
     glUnmapBuffer(GL_ARRAY_BUFFER);
-END_TEST(glMapBuffer_1)
+END_TEST(glMapBuffer_1, 320)
 
 BEGIN_TEST(glMapBuffer_2)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     assert_attachment("No buffer bound to target");
-END_TEST(glMapBuffer_2)
+END_TEST(glMapBuffer_2, 320)
 
 BEGIN_TEST(glMapBuffer_3)
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     assert_attachment("Buffer is already mapped");
-END_TEST(glMapBuffer_3)
+END_TEST(glMapBuffer_3, 320)
 
 BEGIN_TEST(glUnmapBuffer_0)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUnmapBuffer(GL_ARRAY_BUFFER);
     assert_attachment("No buffer bound to target");
-END_TEST(glUnmapBuffer_0)
+END_TEST(glUnmapBuffer_0, 320)
 
 BEGIN_TEST(glUnmapBuffer_1)
     glUnmapBuffer(GL_ARRAY_BUFFER);
     assert_attachment("Buffer is not mapped");
-END_TEST(glUnmapBuffer_1)
+END_TEST(glUnmapBuffer_1, 320)
 
 BEGIN_TEST(glMapBufferRange_0)
     glBufferData(GL_ARRAY_BUFFER, 5, NULL, GL_STATIC_DRAW);
@@ -150,7 +150,7 @@ BEGIN_TEST(glMapBufferRange_0)
     memcpy(data, "World", 5);
     glUnmapBuffer(GL_ARRAY_BUFFER);
     assert_properties(GL_BUFFER, buf, "data", 5, "World", NULL);
-END_TEST(glMapBufferRange_0)
+END_TEST(glMapBufferRange_0, 320)
 
 BEGIN_TEST(glMapBufferRange_1)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
@@ -163,13 +163,13 @@ BEGIN_TEST(glMapBufferRange_1)
     memcpy(data, "Hel", 3);
     glUnmapBuffer(GL_ARRAY_BUFFER);
     assert_properties(GL_BUFFER, buf, "data", 5, "HHelo", NULL);
-END_TEST(glMapBufferRange_1)
+END_TEST(glMapBufferRange_1, 320)
 
 BEGIN_TEST(glMapBufferRange_2)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 3, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
     assert_attachment("No buffer bound to target");
-END_TEST(glMapBufferRange_2)
+END_TEST(glMapBufferRange_2, 320)
 
 BEGIN_TEST(glMapBufferRange_3)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
@@ -184,7 +184,7 @@ BEGIN_TEST(glMapBufferRange_3)
     assert_attachment("Invalid range");
     glMapBufferRange(GL_ARRAY_BUFFER, 1, 7, GL_MAP_WRITE_BIT|GL_MAP_READ_BIT);
     assert_attachment("Invalid range");
-END_TEST(glMapBufferRange_3)
+END_TEST(glMapBufferRange_3, 320)
 
 BEGIN_TEST(glMapBufferRange_4)
     glBufferData(GL_ARRAY_BUFFER, 5, "Hello", GL_STATIC_DRAW);
@@ -204,7 +204,7 @@ BEGIN_TEST(glMapBufferRange_4)
     assert_attachment("GL_MAP_FLUSH_EXPLICIT_BIT is set but GL_MAP_WRITE_BIT is not");
     
     //TODO: Test access bits against buffer storage flags
-END_TEST(glMapBufferRange_4)
+END_TEST(glMapBufferRange_4, 320)
 
 BEGIN_TEST(glCopyBufferSubData_0)
     glBufferData(GL_ARRAY_BUFFER, 5, "World", GL_STATIC_DRAW);
@@ -222,7 +222,7 @@ BEGIN_TEST(glCopyBufferSubData_0)
     
     glCopyBufferSubData(GL_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 3, 2);
     assert_properties(GL_BUFFER, buf, "data", 5, "HeHHe", NULL);
-END_TEST(glCopyBufferSubData_0)
+END_TEST(glCopyBufferSubData_0, 320)
 
 BEGIN_TEST(glCopyBufferSubData_1)
     glBufferData(GL_ARRAY_BUFFER, 5, "World", GL_STATIC_DRAW);
@@ -264,4 +264,4 @@ BEGIN_TEST(glCopyBufferSubData_1)
     assert_attachment("Overlapping read and write ranges");
     glCopyBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GL_ARRAY_BUFFER, 0, 2, 3);
     assert_attachment("Overlapping read and write ranges");
-END_TEST(glCopyBufferSubData_1)
+END_TEST(glCopyBufferSubData_1, 320)

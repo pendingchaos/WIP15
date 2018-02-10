@@ -45,7 +45,7 @@ BEGIN_TEST(default_properties)
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 1, 0.0);
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 2, 0.0);
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 3, 0.0);
-END_TEST(default_properties)
+END_TEST(default_properties, 320)
 
 BEGIN_TEST(glSamplerParameter_0)
     glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, 13);
@@ -66,11 +66,17 @@ BEGIN_TEST(glSamplerParameter_0)
     glSamplerParameteri(sampler, GL_TEXTURE_COMPARE_FUNC, 77);
     assert_attachment("Invalid compare function");
     
+    //TODO: Have tests explicitly enable extensions so that this works
+    /*glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, 1.0);
+    assert_attachment("pname not supported with current version and extensions");*/
+    
+    //TODO: With the version < 4.4: check that GL_MIRROR_CLAMP_TO_EDGE fails
+END_TEST(glSamplerParameter_0, 320)
+
+BEGIN_TEST(glSamplerParameter_0_maxaniso)
     glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY, 0.1);
     assert_attachment("Invalid max anisotropy");
-    
-    //With the version < 4.4: check that GL_MIRROR_CLAMP_TO_EDGE fails
-END_TEST(glSamplerParameter_0)
+END_TEST(glSamplerParameter_0_maxaniso, 460)
 
 BEGIN_TEST(glSamplerParameter_1)
     for (int i = 0; i < 6; i++) {
@@ -118,5 +124,5 @@ BEGIN_TEST(glSamplerParameter_1)
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 1, 44.0);
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 2, 33.0);
     wip15ExpectPropertyd(GL_SAMPLER, sampler, "border_color", 3, 22.0);
-END_TEST(glSamplerParameter_1)
+END_TEST(glSamplerParameter_1, 320)
 

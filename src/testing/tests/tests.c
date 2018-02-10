@@ -72,16 +72,37 @@ void assert_attachment(const char* message) {
     wip15ExpectAttachment(message);
 }
 
+static int get_max_version() {
+    int vers[] = {460, 450, 440, 430, 420, 410, 400, 330, 320};
+    for (size_t i = 0; i < sizeof(vers)/sizeof(vers[0]); i++) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, vers[i]/100);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, vers[i]%100/10);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GLContext context = SDL_GL_CreateContext(window);
+        if (context) {
+            SDL_GL_DeleteContext(context);
+            return vers[i];
+        }
+    }
+    
+    return 0;
+}
+
 int main(int argc, char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
     int pos = SDL_WINDOWPOS_UNDEFINED;
     Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
     window = SDL_CreateWindow("", pos, pos, 100, 100, flags);
     
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    int maxver = get_max_version();
+    printf("Maximum supported version: %d.%d\n", maxver/100, maxver%100/10);
+    
     for (test_t* test = tests; test; test=test->next) {
+        if (test->ver > maxver) continue;
+        
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, test->ver/100);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, test->ver%100/10);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         SDL_GLContext context = SDL_GL_CreateContext(window);
         
         SDL_GL_SetSwapInterval(0);
