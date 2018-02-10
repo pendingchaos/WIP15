@@ -38,12 +38,15 @@ int main(int argc, char **argv) {
                                           SDL_WINDOW_SHOWN);
     
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     
     SDL_GLContext context = SDL_GL_CreateContext(window);
     
     glDebugMessageCallback((GLDEBUGPROC)&callback, NULL);
+    
+    GLfloat v;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &v);
     
     //Texture
     GLuint texture;
@@ -73,6 +76,7 @@ int main(int argc, char **argv) {
     glBindTexture(GL_TEXTURE_2D, fb_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 640, 640, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 1.0);
     
     //Sampler
     GLuint sampler;

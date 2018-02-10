@@ -61,10 +61,20 @@ typedef struct config_t {
     config_entry_t* entries;
 } config_t;
 
+typedef struct context_info_t {
+    struct context_info_t* prev;
+    struct context_info_t* next;
+    Display* dpy;
+    GLXContext ctx;
+    int req_major; //<0: no requested major version
+    int req_minor; //<0: no requested minor version
+} context_info_t;
+
 static FILE *trace_file = NULL;
 static void *lib_gl = NULL;
 static config_t configs[OpenGLVersion_Count];
 static trc_replay_config_t current_config; //TODO: Make this thread local
+static context_info_t* context_infos = NULL;
 static GLsizei drawable_width = -1;
 static GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
@@ -575,6 +585,12 @@ void __attribute__ ((destructor)) wip15_gl_deinit() {
     
     for (size_t i = 0; i < OpenGLVersion_Count; i++)
         free_config(&configs[i]);
+    
+    for (context_info_t* cur = context_infos; cur; cur = cur->next) {
+        context_info_t* next = cur->next;
+        free(cur);
+        cur = next;
+    }
 }
 
 void wip15TestFB(const GLchar* name, const GLvoid* color, const GLvoid* depth);
@@ -604,14 +620,63 @@ static void update_drawable_size() {
         wip15DrawableSize(w, h);
 }
 
+static context_info_t* lookup_or_create_context_info(Display* dpy, GLXContext ctx) {
+    for (context_info_t* cur = context_infos; cur; cur = cur->next) {
+        if (cur->dpy==dpy && cur->ctx==ctx) return cur;
+    }
+    
+    context_info_t* info = malloc(sizeof(context_info_t));
+    info->prev = NULL;
+    info->next = context_infos;
+    if (context_infos) context_infos->prev = info;
+    context_infos = info;
+    info->dpy = dpy;
+    info->ctx = ctx;
+    info->req_major = -1;
+    info->req_minor = -1;
+    return info;
+}
+
+static void on_create_context(Display* dpy, GLXContext ctx, int* attribs) {
+    context_info_t* info = lookup_or_create_context_info(dpy, ctx);
+    while (attribs && *attribs) {
+        int attr = *(attribs++);
+        if (attr == GLX_CONTEXT_MAJOR_VERSION_ARB) {
+            info->req_minor = *(attribs++);
+        } else if (attr == GLX_CONTEXT_MINOR_VERSION_ARB) {
+            info->req_minor = *(attribs++);
+        } else {
+            attribs++;
+        }
+    }
+}
+
+static void on_destroy_context(Display* dpy, GLXContext ctx) {
+    context_info_t* info = lookup_or_create_context_info(dpy, ctx);
+    
+    if (info->prev) info->prev->next = info->next;
+    else context_infos = info->next;
+    if (info->next) info->next->prev = info->prev;
+    
+    free(info);
+}
+
 static config_t* get_current_config() {
-    //TODO: Use the version requested at context creation
-    GLint major, minor;
-    REALF(glGetIntegerv)(GL_MAJOR_VERSION, &major);
-    REALF(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+    Display* dpy = REALF(glXGetCurrentDisplay)();
+    GLXContext ctx = REALF(glXGetCurrentContext)();
+    context_info_t* info = lookup_or_create_context_info(dpy, ctx);
+    
+    GLint major=info->req_major, minor=info->req_minor;
+    if (major < 0) REALF(glGetIntegerv)(GL_MAJOR_VERSION, &major);
+    if (minor < 0) REALF(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+    
     opengl_version_t ver;
-    if (!parse_major_minor(major, minor, &ver))
-        ver = OpenGLVersion_Count - 1; //Just use the latest
+    if (!parse_major_minor(major, minor, &ver)) {
+        if (major*100+minor*10 < 320)
+            ver = OpenGLVersion_32;
+        else
+            ver = OpenGLVersion_Count - 1;
+    }
     return &configs[ver];
 }
 

@@ -1286,7 +1286,8 @@ Func(None, 'glXChooseVisual', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(t
 #Func(None, 'glXDestroyWindow', [P(tMutablePointer, 'dpy'), P(tGLXWindow, 'win')])
 #Func(None, 'glXQueryHyperpipeAttribSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'timeSlice'), P(tint, 'attrib'), P(tint, 'size'), P(tMutablePointer, 'returnAttribList')], tint)
 #Func(None, 'glXHyperpipeConfigSGIX', [P(tMutablePointer, 'dpy'), P(tint, 'networkId'), P(tint, 'npipes'), P(tMutablePointer, 'cfg'), P(tMutablePointer, 'hpId')], tint)
-#Func(None, 'glXDestroyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')])
+f = Func(None, 'glXDestroyContext', [P(tMutablePointer, 'dpy'), P(tGLXContext, 'ctx')])
+f.trace_epilogue_code = 'on_destroy_context(dpy, ctx);'
 #Func(None, 'glXGetCurrentDisplayEXT', [], tPointer)
 #Func(None, 'glXCreateContextWithConfigSGIX', [P(tMutablePointer, 'dpy'), P(tGLXFBConfigSGIX, 'config'), P(tint, 'render_type'), P(tGLXContext, 'share_list'), P(tBool, 'direct')], tGLXContext)
 #Func(None, 'glXMakeAssociatedContextCurrentAMD', [P(tGLXContext, 'ctx')], tBool)
@@ -1343,7 +1344,7 @@ Func(None, 'glXGetCurrentDisplay', [], tMutablePointer)
 #Func(None, 'glXResetFrameCountNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen')], tBool)
 #Func(None, 'glXCreateAssociatedContextAttribsAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_context'), P(tPointer, 'attribList')], tGLXContext)
 f = Func(None, 'glXCreateContextAttribsARB', [P(tMutablePointer, 'dpy'), P(tGLXFBConfig, 'config'), P(tGLXContext, 'share_context'), P(tBool, 'direct'), P(tint, 'attrib_list', 'glx_attrib_int_count(attrib_list)')], tGLXContext)
-f.trace_epilogue_code = 'update_drawable_size();'
+f.trace_epilogue_code = 'update_drawable_size(); on_create_context(dpy, result, attrib_list);'
 #Func(None, 'glXDelayBeforeSwapNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLfloat, 'seconds')], tBool)
 #Func(None, 'glXImportContextEXT', [P(tMutablePointer, 'dpy'), P(tGLXContextID, 'contextID')], tGLXContext)
 #Func(None, 'glXSelectEvent', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'draw'), P(tunsignedlong, 'event_mask')])
@@ -1353,7 +1354,7 @@ f.trace_epilogue_code = 'update_drawable_size();'
 glXGetProcAddressFunc(None, 'glXGetProcAddressARB', [P(tString, 'procName')], t__GLXextFuncPtr)
 #Func(None, 'glXEnumerateVideoDevicesNV', [P(tMutablePointer, 'dpy'), P(tint, 'screen'), P(tMutablePointer, 'nelements')], tPointer)
 f = Func(None, 'glXCreateContext', [P(tMutablePointer, 'dpy'), P(tMutablePointer, 'vis'), P(tGLXContext, 'shareList'), P(tBool, 'direct')], tGLXContext)
-f.trace_epilogue_code = 'update_drawable_size();'
+f.trace_epilogue_code = 'update_drawable_size(); on_create_context(dpy, result, NULL);'
 #Func(None, 'glXReleaseTexImageEXT', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tint, 'buffer')])
 #Func(None, 'glXJoinSwapGroupNV', [P(tMutablePointer, 'dpy'), P(tGLXDrawable, 'drawable'), P(tGLuint, 'group')], tBool)
 #Func(None, 'glXCreateAssociatedContextAMD', [P(tunsignedint, 'id'), P(tGLXContext, 'share_list')], tGLXContext)
