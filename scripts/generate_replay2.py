@@ -208,7 +208,6 @@ void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t
     
     GLenum error = GL_NO_ERROR;
     if (trc_get_current_gl_context(ctx->trace, -1) && F(glGetError)) error = F(glGetError)();
-    //TODO: Are all of these needed?
     switch (error) {
     case GL_NO_ERROR:
         break;
@@ -235,9 +234,6 @@ void replay_end_cmd(trc_replay_context_t* ctx, const char* name, trace_command_t
         break;
     case GL_CONTEXT_LOST: //TODO: Handle this
         trc_add_error(cmd, "GL_CONTEXT_LOST");
-        break;
-    case GL_TABLE_TOO_LARGE: //TODO: Get rid of this?
-        trc_add_error(cmd, "GL_TABLE_TOO_LARGE");
         break;
     }
 }

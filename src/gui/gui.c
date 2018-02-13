@@ -602,6 +602,7 @@ int run_gui(const char* trace, int argc, char** argv) {
     
     //It seems best to call open_trace once the gui has started
     //d-bus related problems seem to occur otherwise (probably because of SDL)
+    //TODO: Did this fix it?: https://github.com/spurious/SDL-mirror/commit/be62ae89101bf2be5b7ddedc31716deebfbf2ed9
     gtk_widget_add_tick_callback(
         state.main_window, &tick_callback, (gpointer)trace, NULL);
     

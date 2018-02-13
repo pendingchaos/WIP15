@@ -10,12 +10,6 @@
 
 #include "shared/replay_config.h"
 
-#if __WORDSIZE == 64 //TODO: Why is this needed?
-#elif __WORDSIZE == 32
-#else
-#error "Unsupported word size."
-#endif
-
 #define OP_DECL_FUNC 0
 #define OP_DECL_GROUP 1
 #define OP_CALL 2
