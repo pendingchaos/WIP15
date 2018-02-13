@@ -68,6 +68,8 @@ static void init(object_tab_t* tab) {
     add_to_info_box(tab->info_box, "Internal Format");
     add_multiple_to_info_box(tab->info_box, //For normal textures
         "Width", "Height", "Depth", "Layers", "Mipmap Count", "Buffer", NULL);
+    add_multiple_to_info_box(tab->info_box, //For multisample textures
+        "Samples", "Fixed Sample Locations", NULL);
     add_multiple_to_info_box(tab->info_box, //For buffer textures
         "Buffer", "Offset", "Size", NULL);
     
@@ -239,6 +241,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         set_visible_at_info_box(box, "Depth", false);
         set_visible_at_info_box(box, "Layers", false);
         set_visible_at_info_box(box, "Mipmap Count", false);
+        set_visible_at_info_box(box, "Samples", false);
+        set_visible_at_info_box(box, "Fixed Sample Locations", false);
         set_visible_at_info_box(box, "Buffer", true);
         set_visible_at_info_box(box, "Offset", true);
         set_visible_at_info_box(box, "Size", true);
@@ -258,6 +262,8 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         bool cubemap;
         const char* internal_format;
         get_texture_info(rev, dims, &layers, &mipmaps, &cubemap, &internal_format);
+        bool multisample = rev->type == GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+        multisample = multisample || rev->type==GL_TEXTURE_2D_MULTISAMPLE;
         
         set_at_info_box(box, "Internal Format", "%s", internal_format);
         set_at_info_box(box, "Width", "%zu", dims[0]);
@@ -269,6 +275,12 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         set_at_info_box(box, "Layers", "%zu", layers);
         set_visible_at_info_box(box, "Layers", layers>=0);
         set_at_info_box(box, "Mipmap Count", "%zu", mipmaps);
+        
+        set_visible_at_info_box(box, "Samples", multisample);
+        set_at_info_box(box, "Samples", "%u", rev->samples);
+        set_visible_at_info_box(box, "Fixed Sample Locations", multisample);
+        const char* fsl = rev->fixed_sample_locations ? "True" : "False";
+        set_at_info_box(box, "Fixed Sample Locations", "%s", fsl);
         
         if (data->viewer) {
             gtk_widget_set_visible(data->layer_box, layers!=-1);

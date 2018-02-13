@@ -73,10 +73,8 @@ int main(int argc, char **argv) {
     //Framebuffer texture
     GLuint fb_texture;
     glGenTextures(1, &fb_texture);
-    glBindTexture(GL_TEXTURE_2D, fb_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 640, 640, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 1.0);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, fb_texture);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA, 640, 640, GL_TRUE);
     
     //Sampler
     GLuint sampler;
@@ -88,7 +86,7 @@ int main(int argc, char **argv) {
     GLuint rb;
     glGenRenderbuffers(1, &rb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_STENCIL, 640, 640);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_STENCIL, 640, 640);
     
     //Tex coord buffer
     GLuint tex_coord_buffer;
@@ -117,7 +115,7 @@ int main(int argc, char **argv) {
     
     //Vertex
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-    static const char* vert_source = "#version 130\n"
+    static const char* vert_source = "#version 150 core\n"
                                      "in vec2 texCoord;\n"
                                      "in vec3 position;\n"
                                      "in mat4 mvp;\n"
@@ -131,7 +129,7 @@ int main(int argc, char **argv) {
     
     //Fragment
     GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    static const char* frag_source = "#version 130\n"
+    static const char* frag_source = "#version 150 core\n"
                                      "in vec2 frag_texCoord;\n"
                                      "out vec4 out_color;\n"
                                      "uniform vec3 color;\n"
@@ -153,7 +151,7 @@ int main(int argc, char **argv) {
     
     //Display vertex
     GLuint display_vert = glCreateShader(GL_VERTEX_SHADER);
-    static const char* dpy_vert_source = "#version 130\n"
+    static const char* dpy_vert_source = "#version 150 core\n"
                                          "out vec2 frag_texCoord;\n"
                                          "void main() {\n"
                                          "    gl_Position = vec4(vec2[](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0))[gl_VertexID], 0.0, 1.0);\n"
@@ -164,12 +162,12 @@ int main(int argc, char **argv) {
     
     //Display fragment
     GLuint display_frag = glCreateShader(GL_FRAGMENT_SHADER);
-    static const char* dpy_frag_source = "#version 130\n"
+    static const char* dpy_frag_source = "#version 150 core\n"
                                          "out vec4 out_color;\n"
                                          "in vec2 frag_texCoord;\n"
-                                         "uniform sampler2D tex;\n"
+                                         "uniform sampler2DMS tex;\n"
                                          "void main() {\n"
-                                         "    out_color = texture(tex, frag_texCoord).grba;\n"
+                                         "    out_color = texelFetch(tex, ivec2(gl_FragCoord.xy), 0).grba;\n"
                                          "}\n";
     glShaderSource(display_frag, 1, &dpy_frag_source, NULL);
     glCompileShader(display_frag);
@@ -210,7 +208,7 @@ int main(int argc, char **argv) {
     GLuint fb;
     glGenFramebuffers(1, &fb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb_texture, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fb_texture, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb);
     
     //Sync
@@ -256,8 +254,7 @@ int main(int argc, char **argv) {
         glUseProgram(dpy_prog);
         
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fb_texture);
-        glBindSampler(0, sampler);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, fb_texture);
         glUniform1i(glGetUniformLocation(dpy_prog, "tex"), 0);
         
         glDrawArrays(GL_TRIANGLES, 0, 6);

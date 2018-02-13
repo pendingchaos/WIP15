@@ -1,3 +1,31 @@
+/*#version 150
+void main() {
+    gl_Position.xy = vec2[](
+        vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0))[gl_VertexID];
+    gl_Position.zw = vec2(0.0, 1.0);
+}
+
+
+
+#version 150
+out vec4 result;
+sampler2DMS src;
+uniform int sample;
+void main() {
+    result = texelFetch(src, ivec2(gl_FragCoord.xy), sample);
+}
+
+
+
+#version 150
+out vec4 result;
+sampler2DMSArray src;
+uniform int sample;
+uniform int layer;
+void main() {
+    result = texelFetch(src, ivec3(gl_FragCoord.xy, layer), sample);
+}*/
+
 #include "libtrace/replay/textures.h"
 #include "libtrace/replay/utils.h"
 
@@ -321,6 +349,7 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     if (level<0 || level>ceil_log2(max_size)) ERROR2(false, "Invalid level");
     for (int i = 0; i < dim; i++)
         if (size[i]<0 || size[i]>max_size) ERROR2(false, "Invalid %s", (const char*[]){"width", "height", "depth/layers"}[i]);
+    //TODO: Test against GL_MAX_ARRAY_TEXTURE_LAYERS
     if (sub) {
         size_t img_count = tex_rev->images->size / sizeof(trc_gl_texture_image_t);
         trc_gl_texture_image_t* images = trc_map_data(tex_rev->images, TRC_MAP_READ);
@@ -350,6 +379,30 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     const trc_gl_buffer_rev_t* pu_buf_rev = trc_obj_get_rev(pu_buf, -1);
     if (pu_buf_rev && pu_buf_rev->mapped) ERROR2(false, "GL_PIXEL_UNPACK_BUFFER is mapped");
     //TODO: More validation for GL_PIXEL_UNPACK_BUFFER
+    
+    return true;
+}
+
+static bool tex_image_ms(bool dsa, GLuint tex_or_target, GLsizei samples, GLenum internal_format,
+                         GLsizei width, GLsizei height, GLboolean fixed_sample_locations,
+                         bool layered, GLsizei layers) {
+    const trc_gl_texture_rev_t* tex_rev;
+    if (dsa) tex_rev = get_texture(tex_or_target);
+    else tex_rev = get_bound_tex(tex_or_target);
+    if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
+    
+    int max_size = gls_get_state_int(GL_MAX_TEXTURE_SIZE, 0);
+    if (width<0 || width>max_size) ERROR2(false, "Invalid width");
+    if (height<0 || height>max_size) ERROR2(false, "Invalid width");
+    //TODO: Test against GL_MAX_ARRAY_TEXTURE_LAYERS
+    
+    //TODO: Test sample count against limits
+    
+    trc_gl_texture_rev_t newrev = *tex_rev;
+    newrev.fixed_sample_locations = fixed_sample_locations;
+    newrev.samples = samples;
+    set_texture(&newrev);
     
     return true;
 }
@@ -400,6 +453,58 @@ static void restore_packing_config(GLint temp[9]) {
     F(glBindBuffer)(GL_PIXEL_PACK_BUFFER, temp[8]);
 }
 
+static void get_ms_tex_data(GLuint src_tex, uint level, uint width, uint height, uint depth, uint ifmt, uint format, uint type, void* data) {
+    GLint prev_tex, prev_read_fb, prev_draw_fb;
+    F(glGetIntegerv)(depth?GL_TEXTURE_BINDING_2D_ARRAY:GL_TEXTURE_BINDING_2D, &prev_tex);
+    F(glGetIntegerv)(GL_READ_FRAMEBUFFER_BINDING, &prev_read_fb);
+    F(glGetIntegerv)(GL_DRAW_FRAMEBUFFER_BINDING, &prev_draw_fb);
+    
+    GLuint target = depth ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
+    
+    GLuint dest_tex;
+    F(glGenTextures)(1, &dest_tex);
+    F(glBindTexture)(target, dest_tex);
+    if (depth)
+        F(glTexImage3D)(GL_TEXTURE_2D_ARRAY, level, ifmt, width, height, depth, 0, format, type, NULL);
+    else
+        F(glTexImage2D)(GL_TEXTURE_2D, level, ifmt, width, height, 0, format, type, NULL);
+    
+    GLuint dest_fb, src_fb;
+    F(glGenFramebuffers)(1, &dest_fb);
+    F(glGenFramebuffers)(1, &src_fb);
+    F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, dest_fb);
+    F(glBindFramebuffer)(GL_READ_FRAMEBUFFER, src_fb);
+    
+    GLuint attach = GL_COLOR_ATTACHMENT0;
+    switch (get_internal_format_info(ifmt).base) {
+    case GL_DEPTH_COMPONENT: attach = GL_DEPTH_ATTACHMENT; break;
+    case GL_DEPTH_STENCIL: attach = GL_DEPTH_STENCIL_ATTACHMENT; break;
+    case GL_STENCIL_INDEX: attach = GL_STENCIL_ATTACHMENT; break;
+    }
+    
+    GLbitfield mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+    for (uint i = 0; i < depth; i++) {
+        F(glFramebufferTextureLayer)(GL_DRAW_FRAMEBUFFER, attach, dest_tex, level, i);
+        F(glFramebufferTextureLayer)(GL_READ_FRAMEBUFFER, attach, src_tex, level, i);
+        F(glBlitFramebuffer)(0, 0, width, height, 0, 0, width, height, mask, GL_NEAREST);
+    }
+    if (!depth) {
+        F(glFramebufferTexture)(GL_DRAW_FRAMEBUFFER, attach, dest_tex, level);
+        F(glFramebufferTexture)(GL_READ_FRAMEBUFFER, attach, src_tex, level);
+        F(glBlitFramebuffer)(0, 0, width, height, 0, 0, width, height, mask, GL_NEAREST);
+    }
+    
+    F(glGetTexImage)(target, level, format, type, data);
+    
+    F(glDeleteFramebuffers)(1, &src_fb);
+    F(glDeleteFramebuffers)(1, &dest_fb);
+    F(glDeleteTextures)(1, &dest_tex);
+    
+    F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, prev_draw_fb);
+    F(glBindFramebuffer)(GL_READ_FRAMEBUFFER, prev_read_fb);
+    F(glBindTexture)(target, prev_tex);
+}
+
 void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     GLenum prevget;
     switch (tex->type) {
@@ -412,8 +517,8 @@ void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     case GL_TEXTURE_CUBE_MAP: prevget = GL_TEXTURE_BINDING_CUBE_MAP; break;
     case GL_TEXTURE_CUBE_MAP_ARRAY: prevget = GL_TEXTURE_BINDING_CUBE_MAP; break;
     case GL_TEXTURE_BUFFER: return; //TODO: Error
-    case GL_TEXTURE_2D_MULTISAMPLE: return; //TODO: Handle
-    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return; //TODO: Handle
+    case GL_TEXTURE_2D_MULTISAMPLE: prevget = GL_TEXTURE_BINDING_2D_MULTISAMPLE; break;
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: prevget = GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY; break;
     }
     GLint prev;
     F(glGetIntegerv)(prevget, &prev);
@@ -474,7 +579,13 @@ void update_tex_image(const trc_gl_texture_rev_t* tex, uint level, uint face) {
     
     GLint temp[9];
     save_init_packing_config(temp);
-    F(glGetTexImage)(target, level, format, type, data_buf);
+    if (tex->type == GL_TEXTURE_2D_MULTISAMPLE) {
+        get_ms_tex_data(tex->real, level, width, height, 0, internal_format, format, type, data_buf);
+    } else if (tex->type == GL_TEXTURE_2D_MULTISAMPLE_ARRAY) {
+        get_ms_tex_data(tex->real, level, width, height, depth, internal_format, format, type, data_buf);
+    } else {
+        F(glGetTexImage)(target, level, format, type, data_buf);
+    }
     restore_packing_config(temp);
     
     F(glBindTexture)(tex->type, prev);
@@ -1127,14 +1238,16 @@ glCompressedTexSubImage3D: //GLenum p_target, GLint p_level, GLint p_xoffset, GL
     update_bound_tex_image(p_target, p_level);
 
 glTexImage2DMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLboolean p_fixedsamplelocations
-    real(p_target, p_samples, p_internalformat, p_width, p_height, p_fixedsamplelocations);
-    //TODO
-    //replay_get_tex_params(target);
+    if (tex_image_ms(false, p_target, p_samples, p_internalformat, p_width, p_height, p_fixedsamplelocations, false, 0)) {
+        real(p_target, p_samples, p_internalformat, p_width, p_height, p_fixedsamplelocations);
+        update_bound_tex_image(p_target, 0);
+    }
 
 glTexImage3DMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth, GLboolean p_fixedsamplelocations
-    real(p_target, p_samples, p_internalformat, p_width, p_height, p_depth, p_fixedsamplelocations);
-    //TODO
-    //replay_get_tex_params(target);
+    if (tex_image_ms(false, p_target, p_samples, p_internalformat, p_width, p_height, p_fixedsamplelocations, true, p_depth)) {
+        real(p_target, p_samples, p_internalformat, p_width, p_height, p_depth, p_fixedsamplelocations);
+        update_bound_tex_image(p_target, 0);
+    }
 
 glCopyTexImage1D: //GLenum p_target, GLint p_level, GLenum p_internalformat, GLint p_x, GLint p_y, GLsizei p_width, GLint p_border
     real(p_target, p_level, p_internalformat, p_x, p_y, p_width, p_border);
