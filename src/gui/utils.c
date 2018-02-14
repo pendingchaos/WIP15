@@ -67,19 +67,64 @@ void cat_str(char* buf, const char* src, size_t buf_size) {
 }
 
 void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
-    //TODO: Handle arrays here
-    if (value.group_index < 0 ? false : (trace->group_names[value.group_index][0] != 0)) {
-        const glapi_group_t* group = find_group(trace->group_names[value.group_index]);
-        
-        uint64_t val = (value.type==Type_Boolean) ?
-                        *trc_get_bool(&value) :
-                        *trc_get_uint(&value);
+    if (value.is_array) cat_str(str, "[", n);
+    
+    bool has_group = value.group_index>=0 && trace->group_names[value.group_index][0] != 0;
+    const glapi_group_t* group = has_group ? find_group(trace->group_names[value.group_index]) : NULL;
+    for (size_t i = 0; i < value.count; i++) {
+        if (i > 0) cat_str(str, ", ", n);
         
         if (!group) {
-        } else if (group->bitmask) {
+            switch (value.type) {
+            case Type_Void: {
+                cat_str(str, "void", n);
+                break;
+            }
+            case Type_UInt: {
+                cat_str(str, static_format("%"PRIu64, trc_get_uint(&value)[i]), n);
+                break;
+            }
+            case Type_Int: {
+                cat_str(str, static_format("%"PRId64, trc_get_int(&value)[i]), n);
+                break;
+            }
+            case Type_Double: {
+                cat_str(str, static_format("%g", trc_get_double(&value)[i]), n);
+                break;
+            }
+            case Type_Boolean: {
+                cat_str(str, static_format(trc_get_bool(&value)[i] ? "true" : "false"), n);
+                break;
+            }
+            case Type_Str: {
+                const char* strval = trc_get_str(&value)[i];
+                bool multiline = false;
+                for (const char* c = strval; *c; c++) multiline |= *c == '\n';
+                if (multiline) cat_str(str, "...", n);
+                else cat_str(str, static_format("'%s'", strval), n);
+                break;
+            }
+            case Type_FunctionPtr: {
+                cat_str(str, static_format("<function pointer>"), n);
+                break;
+            }
+            case Type_Ptr: {
+                cat_str(str, static_format("0x%"PRIx64, trc_get_ptr(&value)[i]), n);
+                break;
+            }
+            case Type_Data: {
+                cat_str(str, static_format("<data>"), n);
+                break;
+            }
+            }
+        } else if (group->bitmask) { //Bitmask
+            uint64_t val = (value.type==Type_Boolean) ?
+                            trc_get_bool(&value)[i] :
+                            trc_get_uint(&value)[i];
+            
             bool first = true;
-            for (size_t i = 0; i < group->entry_count; i++) {
-                const glapi_group_entry_t* entry = group->entries[i];
+            for (size_t j = 0; j < group->entry_count; j++) {
+                const glapi_group_entry_t* entry = group->entries[j];
                 if (entry->value & val) {
                     if (!first) cat_str(str, "|", n);
                     cat_str(str, entry->name, n);
@@ -89,66 +134,20 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
             }
             if (val && !first) cat_str(str, "|", n);
             if (val) cat_str(str, static_format("0x"PRIx64"%", val), n);
-            return;
-        } else {
-            for (size_t i = 0; i < group->entry_count; i++) {
-                const glapi_group_entry_t* entry = group->entries[i];
-                
-                if (entry->value == val) {
-                    cat_str(str, entry->name, n);
-                    return;
-                }
+        } else { //Enum
+            uint64_t val = (value.type==Type_Boolean) ?
+                            trc_get_bool(&value)[i] :
+                            trc_get_uint(&value)[i];
+            
+            for (size_t j = 0; j < group->entry_count; j++) {
+                const glapi_group_entry_t* entry = group->entries[j];
+                if (entry->value != val) continue;
+                cat_str(str, entry->name, n);
+                break;
             }
         }
     }
     
-    if (value.is_array) cat_str(str, "[", n);
-    for (size_t i = 0; i < value.count; ++i) {
-        switch (value.type) {
-        case Type_Void: {
-            cat_str(str, "void", n);
-            break;
-        }
-        case Type_UInt: {
-            cat_str(str, static_format("%"PRIu64, trc_get_uint(&value)[i]), n);
-            break;
-        }
-        case Type_Int: {
-            cat_str(str, static_format("%"PRId64, trc_get_int(&value)[i]), n);
-            break;
-        }
-        case Type_Double: {
-            cat_str(str, static_format("%g", trc_get_double(&value)[i]), n);
-            break;
-        }
-        case Type_Boolean: {
-            cat_str(str, static_format(trc_get_bool(&value)[i] ? "true" : "false"), n);
-            break;
-        }
-        case Type_Str: {
-            const char* strval = trc_get_str(&value)[i];
-            bool multiline = false;
-            for (const char* c = strval; *c; c++) multiline |= *c == '\n';
-            if (multiline) cat_str(str, "...", n);
-            else cat_str(str, static_format("'%s'", strval), n);
-            break;
-        }
-        case Type_FunctionPtr: {
-            cat_str(str, static_format("<function pointer>"), n);
-            break;
-        }
-        case Type_Ptr: {
-            cat_str(str, static_format("0x%"PRIx64, trc_get_ptr(&value)[i]), n);
-            break;
-        }
-        case Type_Data: {
-            cat_str(str, static_format("<data>"), n);
-            break;
-        }
-        }
-        
-        if (i != value.count-1) cat_str(str, ", ", n);
-    }
     if (value.is_array) cat_str(str, "]", n);
 }
 
