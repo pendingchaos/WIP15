@@ -456,7 +456,7 @@ static gboolean image_viewer_motion(GtkWidget* widget, GdkEvent* event, image_vi
         }
         
         char markup[256];
-        sprintf(markup, "<span bgcolor='#ffffffff'>%s</span>", current_pixel);
+        sprintf(markup, "<span bgcolor='#ffffffff'>(%d %d) = %s</span>", px, py, current_pixel);
         
         gtk_label_set_markup(viewer->current_pixel, markup);
     } else {
