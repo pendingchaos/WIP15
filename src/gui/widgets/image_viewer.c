@@ -1,4 +1,3 @@
-//TODO: current pixel entry
 #include <epoxy/gl.h>
 #include "image_viewer.h"
 #include "../utils.h"
@@ -7,6 +6,7 @@
 #include <gtksourceview/gtksource.h>
 #endif
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 static uint compile_shader(GLenum type, size_t source_count, const char*const* sources,
@@ -289,7 +289,7 @@ static void update_textures(image_viewer_t* viewer) {
         break;
         cont: ;
     }
-    if (viewer->data) free(data_start);
+    viewer->data_data = data_start;
 }
 
 static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer user_data) {
@@ -310,6 +310,7 @@ static gboolean image_viewer_render(GtkGLArea* area, GdkGLContext* ctx, gpointer
     glUseProgram(program);
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
+    memcpy(viewer->viewport, vp, sizeof(vp));
     
     uint vao;
     glGenVertexArrays(1, &vao);
@@ -374,17 +375,93 @@ static gboolean image_viewer_release(GtkWidget* widget, GdkEvent* event, image_v
 
 static gboolean image_viewer_motion(GtkWidget* widget, GdkEvent* event, image_viewer_t* viewer) {
     gdouble x, y;
-    if (!gdk_event_get_coords(event, &x, &y) || !viewer->dragging) return false;
+    if (!gdk_event_get_coords(event, &x, &y)) return false;
     
-    gdouble dx = x - viewer->drag_start[0];    
-    gdouble dy = y - viewer->drag_start[1];
+    if (viewer->dragging) {
+        gdouble dx = x - viewer->drag_start[0];    
+        gdouble dy = y - viewer->drag_start[1];
+        
+        viewer->view_offset[0] += dx;    
+        viewer->view_offset[1] -= dy;
+        viewer->drag_start[0] = x;
+        viewer->drag_start[1] = y;
+        
+        gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
+    }
     
-    viewer->view_offset[0] += dx;    
-    viewer->view_offset[1] -= dy;
-    viewer->drag_start[0] = x;
-    viewer->drag_start[1] = y;
+    double zoom = gtk_spin_button_get_value(viewer->zoom) / 100.0;
+    bool flip_y = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(viewer->flip_y));
     
-    gtk_widget_queue_draw(GTK_WIDGET(viewer->gl_area));
+    int left = viewer->viewport[2]/2.0 - viewer->image_width/2.0*zoom + viewer->view_offset[0];
+    int bottom = viewer->viewport[3]/2.0 - viewer->image_height/2.0*zoom + viewer->view_offset[1];
+    
+    int px = (x-left) / zoom;
+    int py = (flip_y?y:(viewer->viewport[3]-y-1)-bottom) / zoom; //origin = bottom
+    if (px>=0 && py>=0 && px<viewer->image_width && py<viewer->image_height) {
+        int comp = 0;
+        double vals[4];
+        const uint8_t* data = viewer->data_data + viewer->data_offset;
+        switch (viewer->format) {
+        #define READPIXEL(type, comp_) comp = comp_;\
+        for (int i = 0; i < comp; i++) {\
+            type val;\
+            memcpy(&val, data+(py*viewer->image_width+px)*comp*sizeof(type)+i*sizeof(type), sizeof(type));\
+            vals[i] = val;\
+        }\
+        break;
+        case TrcImageFormat_Red_U32: {READPIXEL(uint32_t, 1)}
+        case TrcImageFormat_RedGreen_U32: {READPIXEL(uint32_t, 2)}
+        case TrcImageFormat_RGB_U32: {READPIXEL(uint32_t, 3)}
+        case TrcImageFormat_RGBA_U32: {READPIXEL(uint32_t, 4)}
+        case TrcImageFormat_Red_I32: {READPIXEL(int32_t, 1)}
+        case TrcImageFormat_RedGreen_I32: {READPIXEL(int32_t, 2)}
+        case TrcImageFormat_RGB_I32: {READPIXEL(int32_t, 3)}
+        case TrcImageFormat_RGBA_I32: {READPIXEL(int32_t, 4)}
+        case TrcImageFormat_Red_F32: {READPIXEL(float, 1)}
+        case TrcImageFormat_RedGreen_F32: {READPIXEL(float, 2)}
+        case TrcImageFormat_RGB_F32: {READPIXEL(float, 3)}
+        case TrcImageFormat_RGBA_F32: {READPIXEL(float, 4)}
+        #undef READPIXEL
+        case TrcImageFormat_SRGB_U8: {
+            comp = 3;
+            for (int i = 0; i < 3; i++)
+                vals[i] = data[(py*viewer->image_width+px)*3+i] / 255.0;
+            break;
+        }
+        case TrcImageFormat_SRGBA_U8:
+        case TrcImageFormat_RGBA_U8: {
+            comp = 3;
+            for (int i = 0; i < 3; i++)
+                vals[i] = data[(py*viewer->image_width+px)*3+i] / 255.0;
+            break;
+        }
+        case TrcImageFormat_F32_U24_U8: {
+            comp = 2;
+            float depth;
+            uint32_t stencil;
+            memcpy(&depth, data+(py*viewer->image_width+px)*(sizeof(float)+4), sizeof(float));
+            memcpy(&stencil, data+(py*viewer->image_width+px)*(sizeof(float)+4)+sizeof(float), sizeof(uint32_t));
+            vals[0] = depth;
+            vals[1] = stencil;
+            break;
+        }
+        }
+        
+        char current_pixel[256] = {0};
+        switch (comp) {
+        case 1: sprintf(current_pixel, "%g", vals[0]); break;
+        case 2: sprintf(current_pixel, "[%g %g]", vals[0], vals[1]); break;
+        case 3: sprintf(current_pixel, "[%g %g %g]", vals[0], vals[1], vals[2]); break;
+        case 4: sprintf(current_pixel, "[%g %g %g %g]", vals[0], vals[1], vals[2], vals[3]); break;
+        }
+        
+        char markup[256];
+        sprintf(markup, "<span bgcolor='#ffffffff'>%s</span>", current_pixel);
+        
+        gtk_label_set_markup(viewer->current_pixel, markup);
+    } else {
+        gtk_label_set_text(viewer->current_pixel, "");
+    }
     
     return false;
 }
@@ -450,7 +527,8 @@ static void write_shader(GtkButton* button, image_viewer_t* viewer) {
 }
 
 static void image_viewer_destroyed(GtkWidget* _, image_viewer_t* viewer) {
-    if (viewer->data) free(viewer->data);
+    free(viewer->data);
+    free(viewer->data_data);
     free(viewer);
 }
 
@@ -458,6 +536,7 @@ image_viewer_t* create_image_viewer() {
     image_viewer_t* viewer = malloc(sizeof(image_viewer_t));
     viewer->data_offset = 0;
     viewer->data = NULL;
+    viewer->data_data = NULL;
     viewer->format = TrcImageFormat_RGBA_F32;
     viewer->image_width = 0;
     viewer->image_height = 0;
@@ -469,6 +548,7 @@ image_viewer_t* create_image_viewer() {
     viewer->program_dirty = true;
     viewer->texture_dirty = true;
     viewer->dragging = false;
+    memset(viewer->viewport, 0, sizeof(viewer->viewport));
     
     viewer->flip_y = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Flip Y"));
     viewer->srgb = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("sRGB"));
@@ -477,8 +557,9 @@ image_viewer_t* create_image_viewer() {
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(viewer->show_border), true);
     viewer->zoom = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0.0, G_MAXDOUBLE, 10));
     gtk_spin_button_set_value(viewer->zoom, 100.0);
-    //viewer->current_pixel = GTK_ENTRY(gtk_entry_new());
-    //gtk_editable_set_editable(GTK_EDITABLE(viewer->current_pixel), false);
+    viewer->current_pixel = GTK_LABEL(gtk_label_new(""));
+    gtk_widget_set_halign(GTK_WIDGET(viewer->current_pixel), GTK_ALIGN_START);
+    gtk_widget_set_valign(GTK_WIDGET(viewer->current_pixel), GTK_ALIGN_START);
     
     GtkWidget* read_button = create_button("Read Shader", &read_shader, viewer);
     GtkWidget* write_button = create_button("Write Shader", &write_shader, viewer);
@@ -487,7 +568,6 @@ image_viewer_t* create_image_viewer() {
         write_button, read_button, GTK_WIDGET(viewer->flip_y),
         GTK_WIDGET(viewer->srgb), GTK_WIDGET(viewer->show_border),
         GTK_WIDGET(viewer->zoom));
-    //gtk_box_pack_start(box, GTK_WIDGET(viewer->current_pixel), true, true, 0);
     
     viewer->gl_area = GTK_GL_AREA(gtk_gl_area_new());
     gtk_gl_area_set_required_version(viewer->gl_area, 3, 2);
@@ -531,9 +611,13 @@ image_viewer_t* create_image_viewer() {
     gtk_source_buffer_set_implicit_trailing_newline(source_buf, false);
     #endif
     
+    GtkOverlay* overlay = GTK_OVERLAY(gtk_overlay_new());
+    gtk_container_add(GTK_CONTAINER(overlay), GTK_WIDGET(viewer->gl_area));
+    gtk_overlay_add_overlay(overlay, GTK_WIDGET(viewer->current_pixel));
+    
     GtkBox* upper_box = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 5));
     gtk_box_pack_start(upper_box, box, false, false, 0);
-    gtk_box_pack_start(upper_box, GTK_WIDGET(viewer->gl_area), true, true, 0);
+    gtk_box_pack_start(upper_box, GTK_WIDGET(overlay), true, true, 0);
     
     GtkWidget* shader_editor_window = create_scrolled_window(GTK_WIDGET(viewer->shader_editor));
     GtkWidget* info_log_window = create_scrolled_window(GTK_WIDGET(viewer->shader_info_log));
@@ -556,8 +640,10 @@ image_viewer_t* create_image_viewer() {
 
 void clear_image_viewer(image_viewer_t* viewer) {
     viewer->data_offset = 0;
-    if (viewer->data) free(viewer->data);
+    free(viewer->data);
+    free(viewer->data_data);
     viewer->data = NULL;
+    viewer->data_data = NULL;
     viewer->format = TrcImageFormat_Red_U32;
     viewer->image_width = 0;
     viewer->image_height = 0;
@@ -570,7 +656,8 @@ void update_image_viewer(image_viewer_t* viewer, size_t offset,
                          trc_chunked_data_t data,
                          int dim[2], trc_image_format_t format) {
     viewer->data_offset = offset;
-    if (viewer->data) free(viewer->data);
+    free(viewer->data);
+    free(viewer->data_data);
     viewer->data = malloc(sizeof(trc_chunked_data_t));
     *viewer->data = data;
     viewer->format = format;

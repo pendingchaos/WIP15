@@ -8,17 +8,19 @@
 typedef struct image_viewer_t {
     size_t data_offset;
     trc_chunked_data_t* data;
+    uint8_t* data_data;
     trc_image_format_t format;
     GtkWidget* widget;
     GtkCheckButton* flip_y;
     GtkCheckButton* srgb;
     GtkCheckButton* show_border;
     GtkSpinButton* zoom;
-    //GtkEntry* current_pixel;
+    GtkLabel* current_pixel;
     GtkGLArea* gl_area;
     GtkTextView* shader_editor;
     GtkTextView* shader_info_log;
     double view_offset[2];
+    int viewport[4];
     int image_width;
     int image_height;
     
