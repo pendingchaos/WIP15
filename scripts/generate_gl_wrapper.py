@@ -16,6 +16,10 @@ gl_c.write('''#include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#ifndef __STDC_NO_THREADS__
+#include <threads.h>
+#endif
+#include <pthread.h>
 #include <inttypes.h>
 
 #include "shared/types.h"

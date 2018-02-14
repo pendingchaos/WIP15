@@ -141,10 +141,10 @@ src/shared/glcorearb.h:
 	cd src/shared; wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/master/api/GL/glcorearb.h
 
 $(BUILD_DIR)libgl.so: $(BUILD_DIR)src/libgl.o $(BUILD_DIR)src/shared/types.o $(BUILD_DIR)src/shared/utils.o
-	$(CC) $^ -o $@ -shared -fPIC -ldl -g $(COMP_LIBS) $(CFLAGS)
+	$(CC) $^ -o $@ -shared -fPIC -ldl -pthread -g $(COMP_LIBS) $(CFLAGS)
 
 $(BUILD_DIR)libtrace.so: $(libtrace_obj)
-	$(CC) $^ -o $@ -shared -fPIC -g -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
+	$(CC) $^ -o $@ -shared -fPIC -g -lepoxy -lGL -ldl `sdl2-config --libs` -pthread $(COMP_LIBS) $(CFLAGS)
 
 $(BUILD_DIR)gui: $(gui_obj) $(BUILD_DIR)libtrace.so $(BUILD_DIR)libgl.so
 	$(CC) -L$(BUILD_DIR) -Wl,-rpath,'$$ORIGIN' -ltrace -lm -lepoxy $(gui_obj) -o $@ -g `pkg-config gtk+-3.0 --libs` $(GTK_SOURCEVIEW_LIBS) -rdynamic $(CFLAGS)

@@ -10,6 +10,10 @@
 
 #include "shared/replay_config.h"
 
+#ifdef __STDC_NO_THREADS__
+#define thread_local __thread
+#endif
+
 #define OP_DECL_FUNC 0
 #define OP_DECL_GROUP 1
 #define OP_CALL 2
@@ -67,10 +71,11 @@ typedef struct context_info_t {
 static FILE *trace_file = NULL;
 static void *lib_gl = NULL;
 static config_t configs[OpenGLVersion_Count];
-static trc_replay_config_t current_config; //TODO: Make this thread local
+static thread_local trc_replay_config_t current_config;
+static pthread_mutex_t context_infos_mutex = PTHREAD_MUTEX_INITIALIZER;
 static context_info_t* context_infos = NULL;
-static GLsizei drawable_width = -1;
-static GLsizei drawable_height = -1;
+static thread_local GLsizei drawable_width = -1;
+static thread_local GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
 static int compression_method = COMPRESSION_AUTO;
 
@@ -615,8 +620,12 @@ static void update_drawable_size() {
 }
 
 static context_info_t* lookup_or_create_context_info(Display* dpy, GLXContext ctx) {
+    pthread_mutex_lock(&context_infos_mutex);
     for (context_info_t* cur = context_infos; cur; cur = cur->next) {
-        if (cur->dpy==dpy && cur->ctx==ctx) return cur;
+        if (cur->dpy==dpy && cur->ctx==ctx) {
+            pthread_mutex_unlock(&context_infos_mutex);
+            return cur;
+        }
     }
     
     context_info_t* info = malloc(sizeof(context_info_t));
@@ -628,6 +637,7 @@ static context_info_t* lookup_or_create_context_info(Display* dpy, GLXContext ct
     info->ctx = ctx;
     info->req_major = -1;
     info->req_minor = -1;
+    pthread_mutex_unlock(&context_infos_mutex);
     return info;
 }
 
@@ -648,9 +658,11 @@ static void on_create_context(Display* dpy, GLXContext ctx, int* attribs) {
 static void on_destroy_context(Display* dpy, GLXContext ctx) {
     context_info_t* info = lookup_or_create_context_info(dpy, ctx);
     
+    pthread_mutex_lock(&context_infos_mutex);
     if (info->prev) info->prev->next = info->next;
     else context_infos = info->next;
     if (info->next) info->next->prev = info->prev;
+    pthread_mutex_unlock(&context_infos_mutex);
     
     free(info);
 }
