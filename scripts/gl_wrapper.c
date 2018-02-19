@@ -79,6 +79,50 @@ static thread_local GLsizei drawable_height = -1;
 static unsigned int compression_level = 0; //0-100
 static int compression_method = COMPRESSION_AUTO;
 
+static void get_major_minor(opengl_version_t ver, int* major, int* minor) {
+    switch (ver) {
+    case OpenGLVersion_32:
+    case OpenGLVersion_33: *major = 3; break;
+    case OpenGLVersion_40:
+    case OpenGLVersion_41:
+    case OpenGLVersion_42:
+    case OpenGLVersion_43:
+    case OpenGLVersion_44:
+    case OpenGLVersion_45:
+    case OpenGLVersion_46: *major = 4; break;
+    case OpenGLVersion_Count: break;
+    }
+    
+    switch (ver) {
+    case OpenGLVersion_32: *minor = 2; break;
+    case OpenGLVersion_33: *minor = 3; break;
+    case OpenGLVersion_40: *minor = 0; break;
+    case OpenGLVersion_41: *minor = 1; break;
+    case OpenGLVersion_42: *minor = 2; break;
+    case OpenGLVersion_43: *minor = 3; break;
+    case OpenGLVersion_44: *minor = 4; break;
+    case OpenGLVersion_45: *minor = 5; break;
+    case OpenGLVersion_46: *minor = 6; break;
+    case OpenGLVersion_Count: break;
+    }
+}
+
+static bool parse_major_minor(int major, int minor, opengl_version_t* ver) {
+    for (size_t i = 0; i < OpenGLVersion_Count; i++) {
+        int major2, minor2;
+        get_major_minor(i, &major2, &minor2);
+        if (major2==major && minor2==minor) {
+            *ver = i;
+            return true;
+        }
+    }
+    if (major*100+minor*10 < 320)
+        *ver = OpenGLVersion_32;
+    else
+        *ver = OpenGLVersion_Count - 1;
+    return false;
+}
+
 static void gl_write_b(uint8_t v) {
     fwrite(&v, 1, 1, trace_file);
 }
@@ -278,11 +322,11 @@ static func_t get_func_real(const char* name) {
 static bool gl_get(GLenum pname, GLdouble* dval, GLint64* ival) {
     switch (pname) {
     #define VALF(expr) \
-        {GLdouble v = (expr); if (dval) *dval = (v); if(ival) *ival = (v); break;}
+        {GLdouble v = (expr); if (dval) *dval = v; if (ival) *ival = v; break;}
     #define VALI(expr) \
-        {GLint64 v = (expr); if (dval) *dval = (v); if(ival) *ival = (v); break;}
+        {GLint64 v = (expr); if (dval) *dval = v; if (ival) *ival = v; break;}
     case GL_MAJOR_VERSION: VALI(current_config.version/100)
-    case GL_MINOR_VERSION: VALI(current_config.version/10)
+    case GL_MINOR_VERSION: VALI((current_config.version%100)/10)
     case GL_MAX_VERTEX_STREAMS: VALI(current_config.max_vertex_streams)
     case GL_MAX_CLIP_DISTANCES: VALI(current_config.max_clip_distances)
     case GL_MAX_DRAW_BUFFERS: VALI(current_config.max_draw_buffers)
@@ -300,6 +344,19 @@ static bool gl_get(GLenum pname, GLdouble* dval, GLint64* ival) {
     case GL_MAX_SAMPLE_MASK_WORDS: VALI(current_config.max_sample_mask_words)
     #undef VALI
     #undef VALF
+    case GL_NUM_EXTENSIONS: {
+        size_t count = 1; //Part of GL_WIP15_dummy hack to get glxinfo to work with minspec.config
+        for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
+            const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+            if (opt->type != TrcReplayCfgOpt_Ext) continue;
+            
+            bool val = *(bool*)(opt->offset + (uint8_t*)&current_config);
+            if (val) count++;
+        }
+        if (dval) *dval = count;
+        if (ival) *ival = count;
+        break;
+    }
     default:
         return false;
     }
@@ -334,6 +391,40 @@ static void glGetInteger64v_impl(GLenum pname, GLint64* data) {
     gl_get(pname, NULL, data);
 }
 
+static const GLubyte* glGetString_impl(GLenum name) {
+    if (name == GL_VERSION) {
+        static const char* vers[OpenGLVersion_Count] =
+            {"3.2", "3.3", "4.0", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6"};
+        opengl_version_t ver;
+        parse_major_minor(current_config.version/100, (current_config.version%100)/10, &ver);
+        return (GLubyte*)vers[ver];
+    }
+    //TODO: Handle GL_SHADING_LANGUAGE_VERSION
+    return (GLubyte*)REALF(glGetString)(name);
+}
+
+static const GLubyte* glGetStringi_impl(GLenum name, GLuint index) {
+    if (name == GL_EXTENSIONS) {
+        for (size_t i = 0; i < sizeof(trc_replay_config_options)/sizeof(trc_replay_config_options[0]); i++) {
+            const trc_replay_config_option_t* opt = &trc_replay_config_options[i];
+            if (opt->type != TrcReplayCfgOpt_Ext) continue;
+            
+            bool val = *(bool*)(opt->offset + (uint8_t*)&current_config);
+            if (val) {
+                if (index == 0) return (GLubyte*)opt->name;
+                index--;
+            }
+        }
+        
+        //Part of GL_WIP15_dummy hack to get glxinfo to work with minspec.config
+        if (index == 0) return (const GLubyte*)"GL_WIP15_dummy";
+        
+        return REALF(glGetStringi)(GL_EXTENSIONS, 1073741824); //Generates GL_INVALID_VALUE
+    } else {
+        return REALF(glGetStringi)(name, index);
+    }
+}
+
 static func_t get_func(func_t* f, const char* name) {
     if (*f) return *f;
     
@@ -345,7 +436,9 @@ static func_t get_func(func_t* f, const char* name) {
         {"glGetDoublev", &glGetDoublev_impl},
         {"glGetFloatv", &glGetFloatv_impl},
         {"glGetIntegerv", &glGetIntegerv_impl},
-        {"glGetInteger64v", &glGetInteger64v_impl}
+        {"glGetInteger64v", &glGetInteger64v_impl},
+        {"glGetString", (func_t)&glGetString_impl},
+        {"glGetStringi", (func_t)&glGetStringi_impl}
     };
     size_t table_size = sizeof(table) / sizeof(table[0]);
     for (size_t i = 0; i < table_size; i++) {
@@ -397,46 +490,6 @@ static bool set_config_value(config_t* config, const char* name, const char* val
         }
     }
     return set_config_value_int(config, name, ival);
-}
-
-static void get_major_minor(opengl_version_t ver, int* major, int* minor) {
-    switch (ver) {
-    case OpenGLVersion_32:
-    case OpenGLVersion_33: *major = 3; break;
-    case OpenGLVersion_40:
-    case OpenGLVersion_41:
-    case OpenGLVersion_42:
-    case OpenGLVersion_43:
-    case OpenGLVersion_44:
-    case OpenGLVersion_45:
-    case OpenGLVersion_46: *major = 4; break;
-    case OpenGLVersion_Count: break;
-    }
-    
-    switch (ver) {
-    case OpenGLVersion_32: *minor = 2; break;
-    case OpenGLVersion_33: *minor = 3; break;
-    case OpenGLVersion_40: *minor = 0; break;
-    case OpenGLVersion_41: *minor = 1; break;
-    case OpenGLVersion_42: *minor = 2; break;
-    case OpenGLVersion_43: *minor = 3; break;
-    case OpenGLVersion_44: *minor = 4; break;
-    case OpenGLVersion_45: *minor = 5; break;
-    case OpenGLVersion_46: *minor = 6; break;
-    case OpenGLVersion_Count: break;
-    }
-}
-
-static bool parse_major_minor(int major, int minor, opengl_version_t* ver) {
-    for (size_t i = 0; i < OpenGLVersion_Count; i++) {
-        int major2, minor2;
-        get_major_minor(i, &major2, &minor2);
-        if (major2==major && minor2==minor) {
-            *ver = i;
-            return true;
-        }
-    }
-    return false;
 }
 
 static bool parse_version(const char* src, opengl_version_t* ver) {
@@ -677,12 +730,7 @@ static config_t* get_current_config() {
     if (minor < 0) REALF(glGetIntegerv)(GL_MINOR_VERSION, &minor);
     
     opengl_version_t ver;
-    if (!parse_major_minor(major, minor, &ver)) {
-        if (major*100+minor*10 < 320)
-            ver = OpenGLVersion_32;
-        else
-            ver = OpenGLVersion_Count - 1;
-    }
+    parse_major_minor(major, minor, &ver);
     return &configs[ver];
 }
 
