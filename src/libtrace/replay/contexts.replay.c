@@ -489,45 +489,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     //But the front buffer is still sometimes black when it should not be.
     /*SDL_GL_SetSwapInterval(0)*/
 
-glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct
-    trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
-    
-    const trc_gl_context_rev_t* shareList = NULL;
-    if (p_shareList) {
-        shareList = trc_get_obj(global_ns, TrcContext, (uint64_t)p_shareList);
-        if (!shareList) ERROR("Invalid share context name");
-    }
-    
-    SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
-    if (shareList) {
-        SDL_GL_MakeCurrent(ctx->window, shareList->real);
-        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-    } else {
-        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0);
-    }
-    
-    SDL_GLContext res = SDL_GL_CreateContext(ctx->window);
-    if (!res) {
-        trc_add_error(cmd, "Unable to create context: %s", SDL_GetError());
-        SDL_GL_MakeCurrent(ctx->window, last_ctx);
-        RETURN;
-    }
-    reload_gl_funcs();
-    
-    trc_gl_context_rev_t rev;
-    rev.real = res;
-    if (shareList) rev.namespace = shareList->namespace;
-    else rev.namespace = trc_create_namespace(ctx->trace);
-    rev.priv_ns = trc_create_namespace(ctx->trace);
-    rev.made_current_before = false;
-    
-    uint64_t fake = trc_get_ptr(&cmd->ret)[0];
-    trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
-    
-    SDL_GL_MakeCurrent(ctx->window, last_ctx);
-    reload_gl_funcs();
-
-glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p_share_context, Bool p_direct, const int* p_attrib_list
+static void create_context(uint64_t share_ctx_name, const int* attribs) {
     int last_major, last_minor, last_flags, last_profile;
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &last_major);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &last_minor);
@@ -537,10 +499,8 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     int major = last_major;
     int minor = last_minor;
     int flags = 0;
-    int profile = 0;
     
-    const int* attribs = p_attrib_list;
-    while (*attribs) {
+    while (attribs && *attribs) {
         int attr = *(attribs++);
         if (attr == GLX_CONTEXT_MAJOR_VERSION_ARB) {
             major = *(attribs++);
@@ -555,11 +515,8 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
                 flags |= SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
         } else if (attr == GLX_CONTEXT_PROFILE_MASK_ARB) {
             int mask = *(attribs++);
-            profile = 0;
-            if (mask & GLX_CONTEXT_CORE_PROFILE_BIT_ARB)
-                profile = SDL_GL_CONTEXT_PROFILE_CORE;
             if (mask & GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB)
-                profile = SDL_GL_CONTEXT_PROFILE_COMPATIBILITY;
+                trc_add_warning(cmd, "Context is supposed to be compatibility profile; don't expect things to work");
         } else {
             trc_add_warning(cmd, "Unnamed attribute: %d", attr);
             attribs++;
@@ -569,14 +526,14 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, flags);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, profile);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
     trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
     
     const trc_gl_context_rev_t* share_ctx = NULL;
-    if (p_share_context) {
-        share_ctx = trc_get_obj(global_ns, TrcContext, (uint64_t)p_share_context);
-        if (!share_ctx) ERROR("Invalid share context name");
+    if (share_ctx_name) {
+        share_ctx = trc_get_obj(global_ns, TrcContext, share_ctx_name);
+        if (!share_ctx) ERROR2(, "Invalid share context name");
     }
     
     SDL_GLContext last_ctx = SDL_GL_GetCurrentContext();
@@ -591,7 +548,7 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     if (!res) {
         trc_add_error(cmd, "Unable to create context: %s", SDL_GetError());
         SDL_GL_MakeCurrent(ctx->window, last_ctx);
-        RETURN;
+        return;
     }
     reload_gl_funcs();
     
@@ -603,7 +560,7 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     rev.made_current_before = false;
     
     uint64_t fake = trc_get_ptr(&cmd->ret)[0];
-    trc_obj_t* cur_ctx = trc_create_named_obj(global_ns, TrcContext, fake, &rev);
+    trc_create_named_obj(global_ns, TrcContext, fake, &rev);
     
     SDL_GL_MakeCurrent(ctx->window, last_ctx);
     reload_gl_funcs();
@@ -612,6 +569,16 @@ glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, last_minor);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, last_flags);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, last_profile);
+}
+
+glXCreateContext: //Display* p_dpy, XVisualInfo* p_vis, GLXContext p_shareList, Bool p_direct
+    create_context((uint64_t)p_shareList, NULL);
+
+glXCreateContextAttribsARB: //Display* p_dpy, GLXFBConfig p_config, GLXContext p_share_context, Bool p_direct, const int* p_attrib_list
+    create_context((uint64_t)p_share_context, p_attrib_list);
+
+glXCreateNewContext: //Display* p_dpy, GLXFBConfig p_config, int p_render_type, GLXContext p_share_list, Bool p_direct
+    create_context((uint64_t)p_share_list, NULL);
 
 glXDestroyContext: //Display* p_dpy, GLXContext p_ctx
     trc_namespace_t* global_ns = &ctx->trace->inspection.global_namespace;
@@ -701,4 +668,10 @@ glXGetCurrentReadDrawable:
     ;
 
 glXQueryExtensionsString: //Display* p_dpy, int p_screen
+    ;
+
+glXQueryServerString: //Display* p_dpy, int p_screen, int p_name
+    ;
+
+glXIsDirect: //Display* p_dpy, GLXContext p_ctx
     ;
