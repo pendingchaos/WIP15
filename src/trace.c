@@ -40,7 +40,7 @@ static void print_usage(char** argv) {
 static void handle_options(char* self_dir, int argc, char** argv) {
     int option_index = 0;
     int c = -1;
-    while ((c=getopt_long(argc, argv, "o:c:d:eh", options, &option_index)) != -1) {
+    while ((c=getopt_long(argc, argv, "+o:c:d:eh", options, &option_index)) != -1) {
         switch (c) {
         case LongOnlyOption_Config:
             free(config);
