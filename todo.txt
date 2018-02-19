@@ -33,6 +33,11 @@ Bugs:
         both in replay and tracing
     drawbuffers are not remapped like with vao attributes
     handle segfaulting processes
+    better handle compatibility contexts
+        error when sharing core and compatibility contexts during replay (and trace?)
+        don't trace a compatibility context's commands
+    during tracing, default to core profile when one is not specified
+    replaying glxtrace crashes gnome-shell?
 
 handle negative array sizes in the tracing code
 
