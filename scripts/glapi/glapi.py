@@ -23,7 +23,7 @@ class Group(object):
         self.vals = {}
         self.minvers = {}
         self.exts = {}
-        if self.name in group_dict:
+        if self.name in group_dict: #TODO: Print a warning (groups are references directly in params, not by name)
             self.group_id = group_dict[self.name].group_id
             groups.remove(group_dict[self.name])
         else:
@@ -36,6 +36,25 @@ class Group(object):
         self.vals[name] = val
         self.minvers[name] = minver
         self.exts[name] = [v for v in exts]
+        return self
+    
+    def remove(self, name):
+        if name in self.vals:
+            del self.vals[name]
+            del self.minvers[name]
+            del self.exts[name]
+        return self
+    
+    def clear(self):
+        self.vals = {}
+        self.minvers = {}
+        self.exts = {}
+        return self
+    
+    def replace(self, other):
+        self.vals = {k:v for k, v in other.vals.iteritems()}
+        self.minvers = {k:v for k, v in other.minvers.iteritems()}
+        self.exts = {k:v for k, v in other.exts.iteritems()}
         return self
 
 def g(*items, **kwargs):
