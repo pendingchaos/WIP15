@@ -133,7 +133,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
                 }
             }
             if (val && !first) cat_str(str, "|", n);
-            if (val) cat_str(str, static_format("0x"PRIx64"%", val), n);
+            if (val) cat_str(str, static_format("0x%"PRIx64, val), n);
         } else { //Enum
             uint64_t val = (value.type==Type_Boolean) ?
                             trc_get_bool(&value)[i] :
@@ -145,7 +145,7 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
                 cat_str(str, entry->name, n);
                 goto found;
             }
-            cat_str(str, static_format("0x"PRIx64"%", val), n);
+            cat_str(str, static_format("0x%"PRIx64, val), n);
             found: ;
         }
     }
