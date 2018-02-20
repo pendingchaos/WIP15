@@ -143,8 +143,10 @@ void format_value(trace_t* trace, char* str, trace_value_t value, size_t n) {
                 const glapi_group_entry_t* entry = group->entries[j];
                 if (entry->value != val) continue;
                 cat_str(str, entry->name, n);
-                break;
+                goto found;
             }
+            cat_str(str, static_format("0x"PRIx64"%", val), n);
+            found: ;
         }
     }
     

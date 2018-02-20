@@ -98,7 +98,7 @@ static bool add_fb_attachment_rb(bool dsa, trc_obj_t* fb, uint attachment, uint 
     attach.has_renderbuffer = true;
     attach.attachment = attachment;
     trc_set_obj_ref(&attach.texture, NULL);
-    trc_set_obj_ref(&attach.renderbuffer, rb->head.obj);
+    trc_set_obj_ref(&attach.renderbuffer, rb?rb->head.obj:NULL);
     return append_fb_attachment(dsa, fb, &attach);
 }
 
