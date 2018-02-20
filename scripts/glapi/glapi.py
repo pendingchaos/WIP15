@@ -23,9 +23,10 @@ class Group(object):
         self.vals = {}
         self.minvers = {}
         self.exts = {}
-        if self.name in group_dict: #TODO: Print a warning (groups are references directly in params, not by name)
+        if self.name in group_dict:
             self.group_id = group_dict[self.name].group_id
             groups.remove(group_dict[self.name])
+            print('Warning: Overwriting group \'%s\'. This is unreliable; use group_dict[\'%s\'].clear()... instead.' % (self.name, self.name))
         else:
             self.group_id = next_group_id
             next_group_id += 1
