@@ -104,7 +104,7 @@ static void update_object_list(object_list_tab_t* tab,
 }
 
 static void row_activated(GtkTreeView* tree_view, GtkTreePath* path,
-                   GtkTreeViewColumn* column, gui_tab_t* gtab) {
+                          GtkTreeViewColumn* column, gui_tab_t* gtab) {
     GtkTreeSelection* sel = gtk_tree_view_get_selection(tree_view);
     GList* selected = gtk_tree_selection_get_selected_rows(sel, NULL);
     

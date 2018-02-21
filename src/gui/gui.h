@@ -57,4 +57,5 @@ void write_preferences();
 gui_tab_t* open_gui_tab(bool closeable, GtkWidget* content);
 void close_tab(gui_tab_t* tab);
 void update_tab(gui_tab_t* tab);
+void goto_revision(int64_t revision);
 #endif

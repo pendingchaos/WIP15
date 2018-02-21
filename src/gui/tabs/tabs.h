@@ -7,4 +7,5 @@
 #include "object.h"
 #include "objectlist.h"
 #include "vertexdata.h"
+#include "attachments.h"
 #endif

@@ -358,6 +358,10 @@ VISIBLE void vertex_data_callback(GObject* obj, gpointer user_data) {
     open_vertex_data_tab();
 }
 
+VISIBLE void attachments_callback(GObject* obj, gpointer user_data) {
+    open_attachments_tab();
+}
+
 static bool get_command_for_revision(uint64_t revision, size_t* frame, size_t* cmd) {
     if (!state.trace) return false;
     
@@ -382,6 +386,25 @@ static bool get_command_for_revision(uint64_t revision, size_t* frame, size_t* c
     }
     
     return false;
+}
+
+void goto_revision(int64_t revision) {
+    GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
+    
+    size_t frame, cmd;
+    if (revision>=0 && get_command_for_revision(revision, &frame, &cmd)) {
+        GtkTreePath* path = gtk_tree_path_new_from_indices(frame, cmd, -1);
+        GtkTreePath* frame_path = gtk_tree_path_new_from_indices(frame, -1);
+        gtk_tree_view_expand_row(tree, frame_path, FALSE);
+        gtk_tree_view_set_cursor(tree, path, NULL, FALSE);
+        gtk_tree_path_free(frame_path);
+        gtk_tree_path_free(path);
+    } else {
+        gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tree));
+        state.revision = -1;
+        state.selected_cmd = NULL;
+        update_gui_for_revision();
+    }
 }
 
 VISIBLE void goto_callback(GObject* obj, gpointer user_data) {
@@ -409,26 +432,8 @@ VISIBLE void goto_callback(GObject* obj, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(dialog)), info_box->widget);
     
     gtk_widget_show_all(GTK_WIDGET(dialog));
-    if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
-        int64_t revision = gtk_spin_button_get_value(revision_button);
-        
-        GtkTreeView* tree = GTK_TREE_VIEW(gtk_builder_get_object(state.builder, "trace_view"));
-        
-        size_t frame, cmd;
-        if (revision>=0 && get_command_for_revision(revision, &frame, &cmd)) {
-            GtkTreePath* path = gtk_tree_path_new_from_indices(frame, cmd, -1);
-            GtkTreePath* frame_path = gtk_tree_path_new_from_indices(frame, -1);
-            gtk_tree_view_expand_row(tree, frame_path, FALSE);
-            gtk_tree_view_set_cursor(tree, path, NULL, FALSE);
-            gtk_tree_path_free(frame_path);
-            gtk_tree_path_free(path);
-        } else {
-            gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(tree));
-            state.revision = -1;
-            state.selected_cmd = NULL;
-            update_gui_for_revision();
-        }
-    }
+    if (gtk_dialog_run(dialog) == GTK_RESPONSE_ACCEPT)
+        goto_revision(gtk_spin_button_get_value(revision_button));
     
     free_info_box(info_box);
     
