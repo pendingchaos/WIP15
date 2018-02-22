@@ -117,7 +117,7 @@ gui_tab_t* open_attachments_tab() {
     gtk_widget_set_halign(GTK_WIDGET(tab->filter_combobox), GTK_ALIGN_FILL);
     add_custom_to_info_box(tab->info_box, NULL, create_scrolled_window(GTK_WIDGET(tab->treeview)));
     
-    gui_tab_t* gtab = open_gui_tab(false, tab->info_box->widget);
+    gui_tab_t* gtab = open_gui_tab(true, tab->info_box->widget);
     gtk_label_set_text(GTK_LABEL(gtab->tab_label), "Attachments");
     
     tab->tab = gtab;
