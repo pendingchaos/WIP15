@@ -97,6 +97,10 @@ void __attribute__((constructor)) wip15_gl_init() {
         compression_method = COMPRESSION_LZ4;
     else if (comp_meth && !strcmp(comp_meth, "zstd"))
         compression_method = COMPRESSION_ZSTD;
+    else if (comp_meth && !strcmp(comp_meth, "none"))
+        compression_method = COMPRESSION_NONE;
+    else if (comp_meth && !strcmp(comp_meth, "auto"))
+        compression_method = COMPRESSION_AUTO;
     
     #ifndef ZSTD_ENABLED
     if (compression_method == COMPRESSION_ZSTD) {

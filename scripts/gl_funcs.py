@@ -207,7 +207,7 @@ group_dict['InternalFormat'].clear().add('GL_DEPTH_COMPONENT', 0x1902, (1, 0))\
                                     .add('GL_RGB', 0x1907, (1, 0))\
                                     .add('GL_RGBA', 0x1908, (1, 0))\
                                     .add('GL_DEPTH_COMPONENT16', 0x81A5, (1, 4))\
-                                    .add('GL_DEPTH_COMPONENT24', 0x81A7, (1, 4))\
+                                    .add('GL_DEPTH_COMPONENT24', 0x81A6, (1, 4))\
                                     .add('GL_DEPTH_COMPONENT32', 0x81A7, (1, 4))\
                                     .add('GL_DEPTH_COMPONENT32F', 0x8CAC, (3, 0))\
                                     .add('GL_DEPTH24_STENCIL8', 0x88F0, (3, 0))\
@@ -534,7 +534,11 @@ group_dict['PixelType'].remove('GL_BITMAP')\
                        .add('GL_UNSIGNED_SHORT_4_4_4_4_REV', 33637, (1, 2))\
                        .add('GL_UNSIGNED_SHORT_1_5_5_5_REV', 33638, (1, 2))\
                        .add('GL_UNSIGNED_INT_8_8_8_8_REV', 33639, (1, 2))\
-                       .add('GL_UNSIGNED_INT_2_10_10_10_REV', 33640, (1, 2))
+                       .add('GL_UNSIGNED_INT_2_10_10_10_REV', 33640, (1, 2))\
+                       .add('GL_UNSIGNED_INT_24_8', 34042, (3, 2))\
+                       .add('GL_UNSIGNED_INT_10F_11F_11F_REV', 35899, (3, 2))\
+                       .add('GL_UNSIGNED_INT_5_9_9_9_REV', 35902, (3, 2))\
+                       .add('GL_FLOAT_32_UNSIGNED_INT_24_8_REV', 36269, (3, 2))
 
 group_dict['EnableCap'].replace(g('GL_BLEND', 'GL_CLIP_DISTANCE0', 'GL_CLIP_DISTANCE1',
     'GL_CLIP_DISTANCE2', 'GL_CLIP_DISTANCE3', 'GL_CLIP_DISTANCE4', 'GL_CLIP_DISTANCE5',
@@ -560,7 +564,7 @@ Func((1, 0), 'glTexImage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(
                               P(tGLint, 'border'), P(tGLenum, 'format', None, PixelFormat2),
                               P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(1), 'pixels')])
 
-Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLint, 'level'),
+f = Func((1, 0), 'glTexImage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLint, 'level'),
                       P(tGLint, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'),
                       P(tGLsizei, 'height'), P(tGLint, 'border'), P(tGLenum, 'format', None, PixelFormat2),
                       P(tGLenum, 'type', None, 'PixelType'), P(tTexImageData(2), 'pixels')])

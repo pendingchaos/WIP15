@@ -711,7 +711,7 @@ void _trc_data_deinit(trace_t* trace) {
         trc_data_t* next = cur->next;
         
         if (cur->storage == TrcDataStorage_Independent)
-            free(get_data_indep(cur));
+            free(get_data_indep(cur)->data);
         free(cur);
         
         cur = next;

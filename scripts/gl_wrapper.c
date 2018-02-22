@@ -827,6 +827,8 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     case GL_BGRA:
         components = 4;
         break;
+    default:
+        assert(false);
     }
     
     size_t final_size = 0;
@@ -837,11 +839,16 @@ static size_t get_texel_size(GLenum format, GLenum type) {
         break;
     case GL_UNSIGNED_SHORT:
     case GL_SHORT:
+    case GL_HALF_FLOAT:
         final_size = components * 2;
         break;
     case GL_UNSIGNED_INT:
     case GL_INT:
     case GL_FLOAT:
+    case GL_UNSIGNED_INT_24_8:
+    case GL_UNSIGNED_INT_10F_11F_11F_REV:
+    case GL_UNSIGNED_INT_5_9_9_9_REV:
+    case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
         final_size = components * 4;
         break;
     case GL_UNSIGNED_BYTE_3_3_2:
@@ -862,6 +869,8 @@ static size_t get_texel_size(GLenum format, GLenum type) {
     case GL_UNSIGNED_INT_2_10_10_10_REV:
         final_size = 4;
         break;
+    default:
+        assert(false);
     }
     
     return final_size;

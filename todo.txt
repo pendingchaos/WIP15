@@ -57,8 +57,6 @@ Various TODOs in the source code.
 
 Dramatically reduce memory usage and size of trace files.
 
-Enabling or disabling state depending on OpenGL version and extensions.
-
 Add support for traces of programs using multiple threads with OpenGL contexts
 
 Reduce memory usage during replaying.
