@@ -75,7 +75,7 @@ static void deinit_attachments_tab(gui_tab_t* gtab) {
 }
 
 static void update_attachments_tab(gui_tab_t* gtab) {
-    update_attachments(gtab->data);
+    //the tab does not change each revision
 }
 
 gui_tab_t* open_attachments_tab() {
@@ -125,7 +125,7 @@ gui_tab_t* open_attachments_tab() {
     gtab->deinit = &deinit_attachments_tab;
     gtab->update = &update_attachments_tab;
     
-    update_tab(gtab);
+    update_attachments(tab);
     
     return gtab;
 }
