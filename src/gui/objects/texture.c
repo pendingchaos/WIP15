@@ -283,14 +283,17 @@ static void update(object_tab_t* tab, const trc_obj_rev_head_t* rev_head, uint64
         set_at_info_box(box, "Fixed Sample Locations", "%s", fsl);
         
         if (data->viewer) {
-            gtk_widget_set_visible(data->layer_box, layers!=-1);
+            gtk_widget_set_visible(data->layer_box, layers>=0||dims[2]>=0);
             gtk_widget_set_visible(data->face_box, cubemap);
             
             gtk_widget_set_sensitive(GTK_WIDGET(data->level), mipmaps>0);
-            gtk_widget_set_sensitive(GTK_WIDGET(data->layer), layers>0);
+            gtk_widget_set_sensitive(GTK_WIDGET(data->layer), layers>0||dims[2]>0);
             
             gtk_spin_button_set_range(data->level, 0.0, fmax(mipmaps-1, 0.0));
-            gtk_spin_button_set_range(data->layer, 0.0, fmax(layers-1, 0.0));
+            if (layers >= 0)
+                gtk_spin_button_set_range(data->layer, 0.0, fmax(layers-1, 0.0));
+            else
+                gtk_spin_button_set_range(data->layer, 0.0, fmax(dims[2]-1, 0.0));
             
             update_image(rev, data);
         }
