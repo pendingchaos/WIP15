@@ -254,6 +254,8 @@ typedef struct trc_gl_texture_rev_t {
     uint base_level;
     uint max_level;
     uint swizzle[4];
+    bool fixed_sample_locations;
+    uint samples;
     //array of trc_gl_texture_image_t
     trc_data_t* images;
     trc_gl_texture_buffer_t buffer;
