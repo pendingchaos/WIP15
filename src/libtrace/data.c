@@ -1,4 +1,5 @@
 #include "libtrace.h"
+#include "shared/utils.h"
 
 #include <stdatomic.h>
 #include <malloc.h>
@@ -30,6 +31,7 @@
 #define MAX_THREADS 1024
 
 typedef struct data_state_t {
+    size_t data_count;
     trc_data_t* first_data;
     pthread_mutex_t first_container_lock;
     trc_data_container_t* first_container;
@@ -500,6 +502,7 @@ static trc_data_t* create_data(trace_t* trace, size_t size, trc_compression_t co
     data_state_t* state = trace->data_state;
     res->next = state->first_data;
     state->first_data = res;
+    state->data_count++;
     
     return res;
 }
@@ -650,16 +653,42 @@ void _trc_data_init(trace_t* trace) {
     
     data_state_t* state = malloc(sizeof(data_state_t));
     state->first_data = NULL;
+    state->data_count = 0;
     state->first_container_lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     state->first_container = NULL;
     trace->data_state = state;
 }
 
-static bool data_belongs_to_trace(data_state_t* state, trc_data_t* data) {
-    if (!data) return false;
+typedef struct data_set_t {
+    size_t size;
+    trc_data_t** data;
+} data_set_t;
+
+static data_set_t build_data_set(data_state_t* state) {
+    data_set_t set;
+    set.size = 1;
+    while (set.size < state->data_count) set.size *= 2;
+    set.data = calloc(set.size, sizeof(trc_data_t*));
+    
+    size_t mask = set.size - 1;
     for (trc_data_t* cur = state->first_data; cur; cur=cur->next) {
-        if (cur == data) return true;
+        size_t index = fnv_hash(sizeof(cur), (uint8_t*)&cur);
+        for (; set.data[index&mask]!=NULL; index++) ;
+        set.data[index&mask] = cur;
     }
+    
+    return set;
+}
+
+static bool data_belongs_to_trace(data_set_t set, trc_data_t* data) {
+    if (!data) return false;
+    
+    size_t index = fnv_hash(sizeof(data), (uint8_t*)&data);
+    size_t mask = set.size - 1;
+    for (; set.data[index&mask]!=NULL; index++) {
+        if (set.data[index&mask] == data) return true;
+    }
+    
     return false;
 }
 
@@ -675,9 +704,11 @@ void _trc_data_deinit(trace_t* trace) {
     data_state_t* state = trace->data_state;
     
     //Check for mapping leaks
+    data_set_t data_set = build_data_set(state);
+    
     for (size_t i = 0; i < MAX_MAPPINGS; i++) {
         data_mapping_t m = mappings[i];
-        if (data_belongs_to_trace(state, m.data)) {
+        if (data_belongs_to_trace(data_set, m.data)) {
             printf("trc_data_t %p was leaked at line %d of the file '%s' (in the function '%s')\n",
                    m.data, m.line, m.file, m.func);
         }
@@ -692,7 +723,7 @@ void _trc_data_deinit(trace_t* trace) {
     for (size_t i = 0; i < queue_size;) {
         size_t index = (i+queue_start) % QUEUE_CAPACITY;
         queue_entry_t e = queue[index];
-        if (data_belongs_to_trace(state, e.data) || container_belongs_to_trace(state, e.container)) {
+        if (data_belongs_to_trace(data_set, e.data) || container_belongs_to_trace(state, e.container)) {
             //Remove entry
             for (size_t j = i; j < queue_size-1; j++)
                 queue[(queue_start+j)%QUEUE_CAPACITY] = queue[(queue_start+j+1)%QUEUE_CAPACITY];
@@ -725,5 +756,6 @@ void _trc_data_deinit(trace_t* trace) {
         cur = next;
     }
     
+    free(data_set.data);
     free(state);
 }

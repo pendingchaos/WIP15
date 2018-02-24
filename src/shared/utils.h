@@ -42,4 +42,6 @@ bool dr_read_le(data_reader_t* reader, ...);
 data_writer_t dw_new(size_t data_size, uint8_t* data, bool resizable);
 bool dw_write(data_writer_t* writer, size_t amount, const void* src);
 bool dw_write_le(data_writer_t* writer, ...);
+
+uint32_t fnv_hash(size_t size, const uint8_t* data);
 #endif

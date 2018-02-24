@@ -249,3 +249,10 @@ bool dw_write_le(data_writer_t* writer, ...) {
     va_end(list);
     return success;
 }
+
+uint32_t fnv_hash(size_t size, const uint8_t* data) {
+    uint32_t hash = 2166136261;
+    for (size_t i = 0; i < size; i++)
+        hash = (hash*16777619) ^ data[i];
+    return hash;
+}
