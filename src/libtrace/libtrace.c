@@ -1405,10 +1405,10 @@ const void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev) {
 void trc_obj_set_rev(trc_obj_t* obj, const void* rev) {
     trc_gl_inspection_t* in = &obj->trace->inspection;
     size_t rev_size = obj->name_table ? sizeof(trc_name_table_rev_t) : obj_sizes[obj->type];
-    for (size_t i = 0; i < obj->revision_count; i++) {
-        trc_obj_rev_head_t* head = obj->revisions[i];
+    if (obj->revision_count > 0) {
+        trc_obj_rev_head_t* head = obj->revisions[obj->revision_count-1];
         if (head->revision == in->cur_revision) {
-            memcpy(obj->revisions[i], rev, rev_size);
+            memcpy(obj->revisions[obj->revision_count-1], rev, rev_size);
             return;
         }
     }
