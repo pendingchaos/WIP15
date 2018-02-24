@@ -1394,3 +1394,30 @@ static size_t tex_param_count(GLenum param) {
     default: return 0;
     }
 }
+
+static size_t get_get_value_count(GLenum param) {
+    switch (param) {
+    case GL_ALIASED_LINE_WIDTH_RANGE: return 2;
+    case GL_BLEND_COLOR: return 4;
+    case GL_COLOR_CLEAR_VALUE: return 4;
+    case GL_COLOR_WRITEMASK: return 4;
+    case GL_COMPRESSED_TEXTURE_FORMATS: {
+        GLint count;
+        F(glGetIntegerv)(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &count);
+        return count;
+    }
+    case GL_DEPTH_RANGE: return 2;
+    case GL_MAX_VIEWPORT_DIMS: return 2;
+    case GL_PROGRAM_BINARY_FORMATS: {
+        GLint count;
+        F(glGetIntegerv)(GL_NUM_PROGRAM_BINARY_FORMATS, &count);
+        return count;
+    } 
+    case GL_POINT_SIZE_RANGE: return 2;
+    case GL_SCISSOR_BOX: return 4;
+    case GL_SMOOTH_LINE_WIDTH_RANGE: return 2; 
+    case GL_VIEWPORT: return 4;
+    case GL_VIEWPORT_BOUNDS_RANGE: return 2;
+    default: return 1;
+    }
+}
