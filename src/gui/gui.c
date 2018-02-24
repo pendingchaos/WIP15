@@ -499,7 +499,7 @@ void read_preferences() {
     s->zlib_enabled = get_key_file_bool(f, "zlib-enabled", true);
     s->zstd_enabled = get_key_file_bool(f, "zstd-enabled", false);
     s->lz4_enabled = get_key_file_bool(f, "lz4-enabled", true);
-    s->zlib_level = get_key_file_int(f, "zlib-level", 9);
+    s->zlib_level = get_key_file_int(f, "zlib-level", 5);
     s->lz4_acceleration = get_key_file_int(f, "lz4-acceleration", 1);
     s->zstd_level = get_key_file_int(f, "zstd-level", 15);
     

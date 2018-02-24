@@ -620,7 +620,7 @@ bool trc_data_init(trc_data_settings_t* settings_) {
     settings.zlib_enabled = true;
     settings.zstd_enabled = false;
     settings.lz4_enabled = true;
-    settings.zlib_level = 9;
+    settings.zlib_level = 5;
     settings.lz4_acceleration = 1;
     settings.zstd_level = 15;
     
