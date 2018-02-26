@@ -501,26 +501,41 @@ static void texturing_state(value_tree_state_t* state, const trc_gl_context_rev_
     value(state, "Active Texture Unit", "%u", rev->active_texture_unit);
     value_bools(state, "GL_TEXTURE_CUBE_MAP_SEAMLESS",
                 rev->enabled_GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    begin_category(state, "Texture Bindings");
-    object_list(state, "GL_TEXTURE_1D", rev->bound_textures_GL_TEXTURE_1D, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_2D", rev->bound_textures_GL_TEXTURE_2D, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_3D", rev->bound_textures_GL_TEXTURE_3D, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_1D_ARRAY",
-               rev->bound_textures_GL_TEXTURE_1D_ARRAY, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_2D_ARRAY",
-                rev->bound_textures_GL_TEXTURE_2D_ARRAY, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_RECTANGLE",
-                rev->bound_textures_GL_TEXTURE_RECTANGLE, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_CUBE_MAP",
-                rev->bound_textures_GL_TEXTURE_CUBE_MAP, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_CUBE_MAP_ARRAY",
-                rev->bound_textures_GL_TEXTURE_CUBE_MAP_ARRAY, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_BUFFER",
-                rev->bound_textures_GL_TEXTURE_BUFFER, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_2D_MULTISAMPLE",
-                rev->bound_textures_GL_TEXTURE_2D_MULTISAMPLE, TrcTexture, revision);
-    object_list(state, "GL_TEXTURE_2D_MULTISAMPLE_ARRAY",
-                rev->bound_textures_GL_TEXTURE_2D_MULTISAMPLE_ARRAY, TrcTexture, revision);
+    
+    begin_category(state, "Texture bindings");
+    
+    #define TARGET_COUNT 11
+    trc_data_t* targets[TARGET_COUNT] = {rev->bound_textures_GL_TEXTURE_1D,
+        rev->bound_textures_GL_TEXTURE_2D, rev->bound_textures_GL_TEXTURE_3D,
+        rev->bound_textures_GL_TEXTURE_1D_ARRAY, rev->bound_textures_GL_TEXTURE_2D_ARRAY,
+        rev->bound_textures_GL_TEXTURE_RECTANGLE, rev->bound_textures_GL_TEXTURE_CUBE_MAP,
+        rev->bound_textures_GL_TEXTURE_CUBE_MAP_ARRAY, rev->bound_textures_GL_TEXTURE_BUFFER,
+        rev->bound_textures_GL_TEXTURE_2D_MULTISAMPLE, rev->bound_textures_GL_TEXTURE_2D_MULTISAMPLE_ARRAY};
+    const char* target_names[TARGET_COUNT] = {"GL_TEXTURE_1D", "GL_TEXTURE_2D",
+        "GL_TEXTURE_3D", "GL_TEXTURE_1D_ARRAY", "GL_TEXTURE_2D_ARRAY",
+        "GL_TEXTURE_RECTANGLE", "GL_TEXTURE_CUBE_MAP", "GL_TEXTURE_CUBE_MAP_ARRAY",
+        "GL_TEXTURE_BUFFER", "GL_TEXTURE_2D_MULTISAMPLE", "GL_TEXTURE_2D_MULTISAMPLE_ARRAY"};
+    trc_obj_ref_t* textures[TARGET_COUNT];
+    size_t counts[TARGET_COUNT];
+    size_t max_count = 0;
+    for (size_t i = 0; i < TARGET_COUNT; i++) {
+        textures[i] = trc_map_data(targets[i], TRC_MAP_READ);
+        counts[i] = targets[i]->size / sizeof(trc_obj_ref_t);
+        if (counts[i] > max_count) max_count = counts[i];
+    }
+    
+    for (size_t i = 0; i < max_count; i++) {
+        begin_category(state, "GL_TEXTURE%zu", i);
+        
+        for (size_t j = 0; j < TARGET_COUNT; j++) {
+            if (i >= counts[j]) continue;
+            value_obj(state, target_names[j], textures[j][i], revision);
+        }
+        
+        end_category(state);
+    }
+    #undef TARGET_COUNT
+    
     end_category(state);
     
     object_list(state, "Sampler Bindings", rev->bound_samplers, TrcSampler, revision);
@@ -556,7 +571,7 @@ static void fill_context_value_tree(
     
     msaa_state(state, rev);
     
-    begin_category(state, "Enabled");
+    begin_category(state, "Enabled"); //TODO: This does not contain all enable states. Rename?
     
     bool* clip_distances = trc_map_data(rev->enabled_GL_CLIP_DISTANCE0, TRC_MAP_READ);
     size_t count = rev->enabled_GL_CLIP_DISTANCE0->size / sizeof(bool);
