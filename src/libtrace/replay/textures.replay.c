@@ -284,6 +284,9 @@ static void gen_textures(size_t count, const GLuint* real, const GLuint* fake, b
     rev.sample_params.wrap_r = wrap_mode;
     rev.sample_params.max_anisotropy = 1.0;
     rev.images = NULL;
+    rev.immutable = false;
+    rev.fixed_sample_locations = false;
+    rev.samples = 0;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->ns, TrcTexture, fake[i], &rev);
@@ -344,6 +347,8 @@ static bool tex_image(bool dsa, GLuint tex_or_target, GLint level, GLint interna
     else tex_rev = get_bound_tex(tex_or_target);
     if (!tex_rev) ERROR2(false, dsa?"Invalid texture name":"No texture bound to target");
     if (!tex_rev->has_object) ERROR2(false, "Texture name has no object");
+    
+    if (tex_rev->immutable) ERROR2(false, "Texture object is an immutable-format texture");
     
     int max_size = gls_get_state_int(GL_MAX_TEXTURE_SIZE, 0);
     if (level<0 || level>ceil_log2(max_size)) ERROR2(false, "Invalid level");
@@ -1327,13 +1332,85 @@ static void generate_texture_mipmaps(bool dsa, GLenum target, const trc_gl_textu
 glGenerateMipmap: //GLenum p_target
     uint unit = gls_get_active_texture_unit(ctx->trace);
     trc_obj_t* tex = gls_get_bound_textures(p_target, unit);
-    if (!tex) ERROR("No texture boundto target");
+    if (!tex) ERROR("No texture bound to target");
     generate_texture_mipmaps(false, p_target, trc_obj_get_rev(tex, -1));
 
 glGenerateTextureMipmap: //GLuint p_texture
     if (!p_texture_rev) ERROR("Invalid texture name");
     if (!p_texture_rev->has_object) ERROR("Texture name has no object");
     generate_texture_mipmaps(true, 0, p_texture_rev);
+
+static const trc_gl_texture_rev_t* tex_storage(bool dsa, uint tex_or_target, GLsizei levels, GLsizei width, GLsizei height, GLsizei depth) {
+    const trc_gl_texture_rev_t* tex_rev;
+    if (dsa) tex_rev = get_texture(tex_or_target);
+    else tex_rev = get_bound_tex(tex_or_target);
+    if (!tex_rev) ERROR2(NULL, dsa?"Invalid texture name":"No texture bound to target");
+    if (!tex_rev->has_object) ERROR2(NULL, "Texture name has no object");
+    trc_obj_t* tex = tex_rev->head.obj;
+    
+    const trc_gl_texture_rev_t* rev = trc_obj_get_rev(tex, -1);
+    GLenum target = rev->type;
+    
+    if (width < 1) ERROR2(NULL, "The width is less than one");
+    if (height < 1) ERROR2(NULL, "The height is less than one");
+    if (depth < 1) ERROR2(NULL, "The depth is less than one");
+    if (levels < 1) ERROR2(NULL, "The level count is less than one");
+    switch (target) {
+    case GL_TEXTURE_1D:
+    case GL_TEXTURE_1D_ARRAY:
+        if (levels > floor_log2(width)+1)
+            ERROR2(NULL, "The level count is greater than floor(log2(width))+1");
+        break;
+    case GL_TEXTURE_2D:
+    case GL_TEXTURE_2D_ARRAY:
+    case GL_TEXTURE_CUBE_MAP:
+    case GL_TEXTURE_CUBE_MAP_ARRAY:
+    case GL_TEXTURE_RECTANGLE:
+        if (levels > floor_log2(width>height?width:height)+1)
+            ERROR2(NULL, "The level count is greater than floor(log2(max(width, height)))+1");
+        break;
+    case GL_TEXTURE_3D: {
+        int max_size = width > height ? width : height;
+        max_size = depth > max_size ? depth : max_size;
+        if (levels > floor_log2(max_size)+1)
+            ERROR2(NULL, "The level count is greater than floor(log2(max(width, height, depth)))+1");
+        break;
+    }
+    }
+    
+    for (uint i = 0; i < levels; i++) {
+        size_t faces = target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+        faces = target == GL_TEXTURE_CUBE_MAP_ARRAY ? 6 : faces;
+        for (uint j = 0; j < faces; j++)
+            update_tex_image(rev, i, j);
+    }
+    
+    return trc_obj_get_rev(tex, -1);
+}
+
+glTexStorage1D: //GLenum p_target, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width
+    if (tex_storage(false, p_target, p_levels, p_width, 1, 1))
+        real(p_target, p_levels, p_internalformat, p_width);
+
+glTexStorage2D: //GLenum p_target, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
+    if (tex_storage(false, p_target, p_levels, p_width, p_height, 1))
+        real(p_target, p_levels, p_internalformat, p_width, p_height);
+
+glTexStorage3D: //GLenum p_target, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth
+    if (tex_storage(false, p_target, p_levels, p_width, p_height, p_depth))
+        real(p_target, p_levels, p_internalformat, p_width, p_height, p_depth);
+
+glTextureStorage1D: //GLuint p_texture, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width
+    const trc_gl_texture_rev_t* rev = tex_storage(true, p_texture, p_levels, p_width, 1, 1);
+    if (rev) real(rev->real, p_levels, p_internalformat, p_width);
+
+glTextureStorage2D: //GLuint p_texture, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
+    const trc_gl_texture_rev_t* rev = tex_storage(true, p_texture, p_levels, p_width, p_height, 1);
+    if (rev) real(rev->real, p_levels, p_internalformat, p_width, p_height);
+
+glTextureStorage3D: //GLuint p_texture, GLsizei p_levels, GLenum p_internalformat, GLsizei p_width, GLsizei p_height, GLsizei p_depth
+    const trc_gl_texture_rev_t* rev = tex_storage(true, p_texture, p_levels, p_width, p_height, p_depth);
+    if (rev) real(rev->real, p_levels, p_internalformat, p_width, p_height, p_depth);
 
 glTexParameterf: //GLenum p_target, GLenum p_pname, GLfloat p_param
     GLdouble double_param = p_param;
