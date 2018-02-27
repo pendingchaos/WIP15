@@ -1391,15 +1391,46 @@ trc_obj_t* trc_create_obj(trace_t* trace, bool name_table, trc_obj_type_t type, 
     return obj;
 }
 
+static trc_obj_rev_head_t** rev_bsearch(trc_obj_rev_head_t** first, trc_obj_rev_head_t** last, uint64_t val) {
+    trc_obj_rev_head_t** middle = first + (last-first)/2;
+    trc_obj_rev_head_t** new_first, **new_last;
+    if (val == (*middle)->revision) {
+        return middle;
+    } else if (val < (*middle)->revision) {
+        //Left
+        new_first = first;
+        new_last = middle - 1;
+        if (new_last < new_first) return middle - 1;
+    } else {
+        //Right
+        new_first = middle + 1;
+        new_last = last;
+        if (new_last < new_first) return middle;
+    }
+    return rev_bsearch(new_first, new_last, val);
+}
+
 const void* trc_obj_get_rev(trc_obj_t* obj, uint64_t rev) {
     if (!obj) return NULL;
-    for (size_t i = obj->revision_count-1; ; i--) {
+    if (obj->revision_count == 0) return NULL;
+    
+    /*for (size_t i = obj->revision_count-1; ; i--) {
         trc_obj_rev_head_t* head = obj->revisions[i];
         if (head->revision <= rev)
             return obj->revisions[i];
         if (i == 0) break;
     }
-    return NULL;
+    return NULL;*/
+    
+    trc_obj_rev_head_t** revisions = (trc_obj_rev_head_t**)obj->revisions;
+    
+    //Fast path
+    if (revisions[obj->revision_count-1]->revision <= rev)
+        return revisions[obj->revision_count-1];
+    
+    trc_obj_rev_head_t** res = rev_bsearch(revisions, revisions+obj->revision_count-1, rev);
+    if (res < revisions) return NULL;
+    return *res;
 }
 
 void trc_obj_set_rev(trc_obj_t* obj, const void* rev) {
