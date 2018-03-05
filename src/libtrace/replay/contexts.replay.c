@@ -82,9 +82,9 @@ void update_fb0_buffers(bool backcolor, bool frontcolor, bool depth, bool stenci
     GLint prevfb;
     store_and_bind_fb(&prevfb, 0);
     GLint depth_size, stencil_size;
-    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_DEPTH,
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                              GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_size);
-    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_STENCIL,
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
                                              GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencil_size);
     if (depth_size == 0) depth = false;
     if (stencil_size == 0) stencil = false;
@@ -445,6 +445,7 @@ glXMakeCurrent: //Display* p_dpy, GLXDrawable p_drawable, GLXContext p_ctx
     
     if (glctx) {
         reload_gl_funcs();
+        
         trc_set_current_gl_context(ctx->trace, trc_lookup_name(global_ns, TrcContext, p_ctx, -1));
         if (!trc_get_context(ctx->trace)->made_current_before) {
             trc_gl_context_rev_t rev = *trc_get_context(ctx->trace);
@@ -496,8 +497,8 @@ static void create_context(uint64_t share_ctx_name, const int* attribs) {
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &last_flags);
     SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &last_profile);
     
-    int major = last_major;
-    int minor = last_minor;
+    int major = 3;
+    int minor = 2;
     int flags = 0;
     
     while (attribs && *attribs) {

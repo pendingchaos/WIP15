@@ -256,6 +256,7 @@ typedef struct trc_gl_texture_rev_t {
     uint swizzle[4];
     bool fixed_sample_locations;
     uint samples;
+    bool immutable;
     //array of trc_gl_texture_image_t
     trc_data_t* images;
     trc_gl_texture_buffer_t buffer;
@@ -292,6 +293,7 @@ typedef struct trc_gl_renderbuffer_rev_t {
     TRC_GL_OBJ_HEAD
     bool has_object;
     bool has_storage;
+    bool multisample;
     uint width;
     uint height;
     uint internal_format;

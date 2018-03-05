@@ -103,7 +103,7 @@ static bool add_fb_attachment_rb(bool dsa, trc_obj_t* fb, uint attachment, uint 
 }
 
 static void update_renderbuffer(const trc_gl_renderbuffer_rev_t* rev, uint width,
-                                uint height, uint internal_format, uint samples) {
+                                uint height, uint internal_format, int samples) {
     GLint bits[6];
     GLint prev;
     F(glGetIntegerv)(GL_RENDERBUFFER_BINDING, &prev);
@@ -120,11 +120,12 @@ static void update_renderbuffer(const trc_gl_renderbuffer_rev_t* rev, uint width
     newrev.width = width;
     newrev.height = height;
     newrev.internal_format = internal_format;
-    newrev.sample_count = samples;
+    newrev.sample_count = samples < 0 ? 1 : samples;
     for (size_t i = 0; i < 4; i++) newrev.rgba_bits[i] = bits[i];
     newrev.depth_bits = bits[4];
     newrev.stencil_bits = bits[5];
     newrev.has_storage = true;
+    newrev.multisample = samples >= 0;
     
     set_renderbuffer(&newrev);
 }
@@ -304,13 +305,13 @@ glRenderbufferStorage: //GLenum p_target, GLenum p_internalformat, GLsizei p_wid
     const trc_gl_renderbuffer_rev_t* rb_rev = trc_obj_get_rev(rb, -1);
     if (renderbuffer_storage(rb_rev, false, p_internalformat, p_width, p_height, 1)) {
         real(p_target, p_internalformat, p_width, p_height);
-        update_renderbuffer(rb_rev, p_width, p_height, p_internalformat, 1);
+        update_renderbuffer(rb_rev, p_width, p_height, p_internalformat, -1);
     }
 
 glNamedRenderbufferStorage: //GLuint p_renderbuffer, GLenum p_internalformat, GLsizei p_width, GLsizei p_height
     if (renderbuffer_storage(p_renderbuffer_rev, false, p_internalformat, p_width, p_height, 1)) {
         real(p_renderbuffer_rev->real, p_internalformat, p_width, p_height);
-        update_renderbuffer(p_renderbuffer_rev, p_width, p_height, p_internalformat, 1);
+        update_renderbuffer(p_renderbuffer_rev, p_width, p_height, p_internalformat, -1);
     }
 
 glRenderbufferStorageMultisample: //GLenum p_target, GLsizei p_samples, GLenum p_internalformat, GLsizei p_width, GLsizei p_height

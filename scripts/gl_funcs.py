@@ -345,6 +345,14 @@ Group('TexImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
                          .add('GL_TEXTURE_CUBE_MAP_NEGATIVE_Z', 0x851A, (1, 3))\
                          .add('GL_PROXY_TEXTURE_CUBE_MAP', 0x851B, (1, 3))
 
+Group('TexStorage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
+                           .add('GL_PROXY_TEXTURE_2D', 0x8064, (1, 1))\
+                           .add('GL_TEXTURE_1D_ARRAY', 0x8C18, (3, 0))\
+                           .add('GL_PROXY_TEXTURE_1D_ARRAY', 0x8C19, (3, 0))\
+                           .add('GL_TEXTURE_RECTANGLE', 0x84F5, (3, 1))\
+                           .add('GL_PROXY_TEXTURE_RECTANGLE', 0x84F7, (3, 1))\
+                           .add('GL_PROXY_TEXTURE_CUBE_MAP', 0x851B, (1, 3))
+
 Group('TexSubImage1DTarget').add('GL_TEXTURE_1D', 0x0DE0, (1, 0))
 
 Group('TexSubImage2DTarget').add('GL_TEXTURE_2D', 0x0DE1, (1, 0))\
@@ -1255,7 +1263,7 @@ Func((4, 5), 'glCompressedTextureSubImage3D', [P(tGLTex, 'texture'), P(tGLint, '
 Func((4, 2), 'glTexStorage1D', [P(tGLenum, 'target', None, 'TexImage1DTarget'), P(tGLsizei, 'levels'),
                                 P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width')])
 
-Func((4, 2), 'glTexStorage2D', [P(tGLenum, 'target', None, 'TexImage2DTarget'), P(tGLsizei, 'levels'),
+Func((4, 2), 'glTexStorage2D', [P(tGLenum, 'target', None, 'TexStorage2DTarget'), P(tGLsizei, 'levels'),
                                 P(tGLenum, 'internalformat', None, 'InternalFormat'), P(tGLsizei, 'width'), P(tGLsizei, 'height')])
 
 Func((4, 2), 'glTexStorage3D', [P(tGLenum, 'target', None, 'TexImage3DTarget'), P(tGLsizei, 'levels'),
