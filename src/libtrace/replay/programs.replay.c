@@ -353,16 +353,9 @@ static trc_data_t* get_program_vertex_attribs(GLuint real_program) {
     while ((res=link_program_extra("replay/program/vertex_attrib", &i, &extra))!=-1) {
         if (res != 0) continue;
         
-        GLint real_loc = F(glGetAttribLocation)(real_program, extra.name);
-        if (real_loc < 0) {
-            trc_add_error(cmd, "Nonexistent or inactive vertex attribute while adding vertex attribute '%s'", extra.name);
-            goto continue_loop;
-        }
-        
         trc_gl_program_vertex_attrib_t attrib;
         attrib.name = trc_create_data(ctx->trace, strlen(extra.name)+1, extra.name, 0);
-        attrib.fake = extra.val;
-        attrib.real = real_loc;
+        attrib.index = extra.val;
         attrib.type = 0xffffffff;
         
         GLint count;
@@ -693,9 +686,35 @@ static void handle_link_program_extras(trc_gl_program_rev_t* rev) {
     }
 }
 
+static void bind_attrib_locations(GLuint real_program) {
+    size_t i = 0;
+    int res;
+    link_program_extra_t extra;
+    while ((res=link_program_extra("replay/program/vertex_attrib", &i, &extra))!=-1) {
+        if (res != 0) continue;
+        F(glBindAttribLocation)(real_program, extra.val, extra.name);
+        free(extra.name);
+    }
+}
+
 glCreateShaderProgramv: //GLenum p_type, GLsizei p_count, const char** p_strings
     if (p_count < 0) ERROR("Count is negative");
-    GLuint real_program = real(p_type, p_count, p_strings);
+    
+    GLuint real_program = F(glCreateProgram)();
+    F(glProgramParameteri)(real_program, GL_PROGRAM_SEPARABLE, GL_TRUE);
+    
+    GLuint temp_shader = F(glCreateShader)(p_type);
+    F(glShaderSource)(temp_shader, p_count, p_strings, NULL);
+    F(glCompileShader)(temp_shader);
+    GLint compile_status = GL_FALSE;
+    F(glGetShaderiv)(temp_shader, GL_COMPILE_STATUS, &compile_status);
+    if (compile_status) {
+        F(glAttachShader)(real_program, temp_shader);
+        bind_attrib_locations(real_program);
+        F(glLinkProgram)(real_program);
+        F(glDetachShader)(real_program, temp_shader);
+    }
+    
     GLuint fake = trc_get_uint(&cmd->ret)[0];
     
     trc_data_t* empty_data = trc_create_data(ctx->trace, 0, NULL, 0);
@@ -724,8 +743,13 @@ glCreateShaderProgramv: //GLenum p_type, GLsizei p_count, const char** p_strings
     F(glGetProgramiv)(rev.real, GL_INFO_LOG_LENGTH, &len);
     rev.info_log = trc_create_data(ctx->trace, len+1, NULL, 0);
     char* info_log = trc_map_data(rev.info_log, TRC_MAP_REPLACE);
-    F(glGetProgramInfoLog)(rev.real, len+1, NULL, info_log);
+    if (compile_status)
+        F(glGetProgramInfoLog)(rev.real, len+1, NULL, info_log);
+    else
+        F(glGetShaderInfoLog)(temp_shader, len+1, NULL, info_log);
     trc_unmap_data(info_log);
+    
+    F(glDeleteShader)(temp_shader);
     
     GLint status;
     F(glGetProgramiv)(rev.real, GL_LINK_STATUS, &status);
@@ -753,6 +777,7 @@ glLinkProgram: //GLuint p_program
     
     trc_gl_program_rev_t rev = *(const trc_gl_program_rev_t*)trc_obj_get_rev(program, -1);
     
+    bind_attrib_locations(rev.real);
     real(rev.real);
     
     GLint len;

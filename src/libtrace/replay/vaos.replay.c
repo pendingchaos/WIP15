@@ -48,10 +48,10 @@ static void get_vertex_attrib(GLuint index, GLenum pname) {
 
 //type in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT, GL_INT]
 //internal in [GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_INT, GL_INT]
-static void vertex_attrib(uint comp, GLenum type, bool array, bool normalized, GLenum internal) {
+static bool vertex_attrib(uint comp, GLenum type, bool array, bool normalized, GLenum internal) {
     uint index = trc_get_uint(&cmd->args[0])[0];
     if (index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
-        ERROR2(, "Invalid vertex attribute index");
+        ERROR2(false, "Invalid vertex attribute index");
     uint i = 0;
     for (; i < comp; i++) {
         double val = 0;
@@ -98,11 +98,24 @@ static void vertex_attrib(uint comp, GLenum type, bool array, bool normalized, G
         gls_set_current_vertex_attrib(index*4+i, 1);
     
     gls_set_current_vertex_attrib_types(index, internal);
+    
+    double vals[4];
+    for (i = 0; i < 4; i++)
+        vals[i] = gls_get_current_vertex_attrib(index*4+i);
+
+    switch (internal) {
+    case GL_FLOAT: F(glVertexAttrib4dv)(index, vals); break;
+    case GL_DOUBLE: F(glVertexAttribL4dv)(index, vals); break;
+    case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(index, vals[0], vals[1], vals[2], vals[3]); break;
+    case GL_INT: F(glVertexAttribI4i)(index, vals[0], vals[1], vals[2], vals[3]); break;
+    }
+    
+    return true;
 }
 
-static void vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean normalized, GLuint val) {
+static bool vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean normalized, GLuint val) {
     if (index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
-        ERROR2(, "Invalid vertex attribute index");
+        ERROR2(false, "Invalid vertex attribute index");
     double res[4];
     switch (type) {
     case GL_INT_2_10_10_10_REV:
@@ -121,6 +134,8 @@ static void vertex_attrib_packed(GLuint index, GLenum type, uint comp, GLboolean
     gls_set_current_vertex_attrib_types(index, GL_FLOAT);
     
     F(glVertexAttrib4dv(index, res));
+    
+    return true;
 }
 
 static trc_gl_vao_buffer_t* map_bindings(trc_gl_vao_rev_t* vao) {
@@ -211,20 +226,20 @@ static bool vertex_attrib_ptr(GLuint index, bool normalized, bool integer,
     return true;
 }
 
-static void bind_vertex_buffer(bool dsa, const trc_gl_vao_rev_t* vao, GLuint index, GLuint buffer, GLintptr offset, GLintptr stride) {
+static bool bind_vertex_buffer(bool dsa, const trc_gl_vao_rev_t* vao, GLuint index, GLuint buffer, GLintptr offset, GLintptr stride) {
     if (!vao)
-        ERROR2(, dsa?"Invalid vertex array object name":"No vertex array object is bound");
-    if (!vao->has_object) ERROR2(, "Vertex array object name has no object");
+        ERROR2(false, dsa?"Invalid vertex array object name":"No vertex array object is bound");
+    if (!vao->has_object) ERROR2(false, "Vertex array object name has no object");
     const trc_gl_buffer_rev_t* buffer_rev = get_buffer(buffer);
-    if (buffer && !buffer_rev) ERROR2(, "Invalid buffer name");
-    if (buffer_rev && !buffer_rev->has_object) ERROR2(, "Buffer name has no object");
+    if (buffer && !buffer_rev) ERROR2(false, "Invalid buffer name");
+    if (buffer_rev && !buffer_rev->has_object) ERROR2(false, "Buffer name has no object");
     
     if (gls_get_ver()>=430 && index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
-        ERROR2(, "Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
-    if (offset < 0) ERROR2(, "Invalid offset");
-    if (stride < 0) ERROR2(, "Invalid stride");
+        ERROR2(false, "Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
+    if (offset < 0) ERROR2(false, "Invalid offset");
+    if (stride < 0) ERROR2(false, "Invalid stride");
     if (gls_get_ver()>=440 && stride>gls_get_state_int(GL_MAX_VERTEX_ATTRIB_STRIDE, 0))
-        ERROR2(, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE");
+        ERROR2(false, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE");
     
     trc_gl_vao_rev_t rev = *vao;
     
@@ -239,26 +254,28 @@ static void bind_vertex_buffer(bool dsa, const trc_gl_vao_rev_t* vao, GLuint ind
         newrev.has_object = true;
         set_buffer(&newrev);
     }
+    
+    return true;
 }
 
-static void bind_vertex_buffers(bool dsa, const trc_gl_vao_rev_t* vao, GLuint first, GLsizei count, const GLuint* buffers,
+static bool bind_vertex_buffers(bool dsa, const trc_gl_vao_rev_t* vao, GLuint first, GLsizei count, const GLuint* buffers,
                                 const trc_gl_buffer_rev_t** buffer_revs, const GLintptr* offsets, const GLsizei* strides) {
     if (!vao)
-        ERROR2(, dsa?"Invalid vertex array object name":"No vertex array object is bound");
-    if (!vao->has_object) ERROR2(, "Vertex array object name has no object");
+        ERROR2(false, dsa?"Invalid vertex array object name":"No vertex array object is bound");
+    if (!vao->has_object) ERROR2(false, "Vertex array object name has no object");
     
     if (first+count>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0) || count<0)
-        ERROR2(, "Invalid range");
+        ERROR2(false, "Invalid range");
     
     for (GLsizei i = 0; i < count; i++) {
-        if (offsets[i] < 0) ERROR2(, "Invalid offset at index %d", i);
-        if (strides[i] < 0) ERROR2(, "Invalid stride at index %d", i);
+        if (offsets[i] < 0) ERROR2(false, "Invalid offset at index %d", i);
+        if (strides[i] < 0) ERROR2(false, "Invalid stride at index %d", i);
         if (strides[i]>gls_get_state_int(GL_MAX_VERTEX_ATTRIB_STRIDE, 0))
-            ERROR2(, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE at index %d", i);
+            ERROR2(false, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE at index %d", i);
         if (buffers[i] && !buffer_revs[i])
-            ERROR2(, "Invalid buffer name at index %d", i);
+            ERROR2(false, "Invalid buffer name at index %d", i);
         if (buffers[i] && !buffer_revs[i]->has_object)
-            ERROR2(, "Buffer name has no object at index %d", i);
+            ERROR2(false, "Buffer name has no object at index %d", i);
     }
     
     trc_gl_vao_rev_t rev = *vao;
@@ -276,16 +293,20 @@ static void bind_vertex_buffers(bool dsa, const trc_gl_vao_rev_t* vao, GLuint fi
         trc_set_obj_ref(&bindings[first+i].buffer, buffer_rev?buffer_rev->head.obj:NULL);
     }
     trc_unmap_data(bindings);
+    
+    return true;
 }
 
-static void set_attrib_enabled(trc_obj_t* vao, GLuint index, bool enabled) {
+static bool set_attrib_enabled(trc_obj_t* vao, GLuint index, bool enabled) {
     if (index >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
-        ERROR2(, "Index is greater than GL_MAX_VERTEX_ATTRIBS");
+        ERROR2(false, "Index is greater than GL_MAX_VERTEX_ATTRIBS");
     
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(vao, -1);
     trc_gl_vao_attrib_t* attribs = map_attribs(&rev);
     attribs[index].enabled = enabled;
     trc_unmap_data(attribs);
+    
+    return true;
 }
 
 glGenVertexArrays: //GLsizei p_n, GLuint* p_arrays
@@ -322,14 +343,17 @@ glBindVertexArray: //GLuint p_array
         set_vao(&newrev);
     }
     gls_set_bound_vao(rev?rev->head.obj:NULL);
+    real(rev?rev->real:0);
 
 glVertexAttribPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLboolean p_normalized, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    vertex_attrib_ptr(p_index, p_normalized, false, p_size, p_type, p_pointer, p_stride);
+    if (vertex_attrib_ptr(p_index, p_normalized, false, p_size, p_type, p_pointer, p_stride))
+        real(p_index, p_size, p_type, p_normalized, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
 
 glVertexAttribIPointer: //GLuint p_index, GLint p_size, GLenum p_type, GLsizei p_stride, const void* p_pointer
     //if (p_pointer > UINTPTR_MAX) //TODO
-    vertex_attrib_ptr(p_index, false, true, p_size, p_type, p_pointer, p_stride);
+    if (vertex_attrib_ptr(p_index, false, true, p_size, p_type, p_pointer, p_stride))
+        real(p_index, p_size, p_type, p_stride, (const GLvoid*)(uintptr_t)p_pointer);
 
 glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
     if (!gls_get_bound_vao())
@@ -343,6 +367,8 @@ glVertexAttribDivisor: //GLuint p_index, GLuint p_divisor
     trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
     buffers[p_index].divisor = p_divisor;
     trc_unmap_data(buffers);
+    
+    real(p_index, p_divisor);
 
 glVertexBindingDivisor: //GLuint p_bindingindex, GLuint p_divisor
     if (!gls_get_bound_vao())
@@ -354,6 +380,8 @@ glVertexBindingDivisor: //GLuint p_bindingindex, GLuint p_divisor
     trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
     buffers[p_bindingindex].divisor = p_divisor;
     trc_unmap_data(buffers);
+    
+    real(p_bindingindex, p_divisor);
 
 glVertexArrayBindingDivisor: //GLuint p_vaobj, GLuint p_bindingindex, GLuint p_divisor
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
@@ -365,8 +393,10 @@ glVertexArrayBindingDivisor: //GLuint p_vaobj, GLuint p_bindingindex, GLuint p_d
     trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
     buffers[p_bindingindex].divisor = p_divisor;
     trc_unmap_data(buffers);
+    
+    real(p_vaobj_rev->real, p_bindingindex, p_divisor);
 
-glVertexArrayAttribBinding: //GLuint p_vaobj, GLuint p_attribindex GLuint p_bindingindex
+glVertexArrayAttribBinding: //GLuint p_vaobj, GLuint p_attribindex, GLuint p_bindingindex
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
     if (p_attribindex >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
@@ -378,8 +408,10 @@ glVertexArrayAttribBinding: //GLuint p_vaobj, GLuint p_attribindex GLuint p_bind
     trc_gl_vao_attrib_t* attribs = map_attribs(&rev);
     attribs[p_attribindex].buffer_index = p_bindingindex;
     trc_unmap_data(attribs);
+    
+    real(p_vaobj_rev->real, p_attribindex, p_bindingindex);
 
-glVertexAttribBinding: //GLuint p_attribindex GLuint p_bindingindex
+glVertexAttribBinding: //GLuint p_attribindex, GLuint p_bindingindex
     if (!gls_get_bound_vao()) ERROR("No vertex array object is bound");
     if (p_attribindex >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
         ERROR("Attribute index is greater than GL_MAX_VERTEX_ATTRIBS");
@@ -390,58 +422,78 @@ glVertexAttribBinding: //GLuint p_attribindex GLuint p_bindingindex
     trc_gl_vao_attrib_t* attribs = map_attribs(&rev);
     attribs[p_attribindex].buffer_index = p_bindingindex;
     trc_unmap_data(attribs);
+    
+    real(p_attribindex, p_bindingindex);
 
 glVertexArrayAttribFormat: //GLuint p_vaobj, GLuint p_attribindex, GLint p_size, GLenum p_type, GLboolean p_normalized, GLuint p_relativeoffset
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    vertex_attrib_format(p_vaobj_rev->head.obj, p_attribindex, p_normalized, false, p_size, p_type, p_relativeoffset, -1);
+    if (vertex_attrib_format(p_vaobj_rev->head.obj, p_attribindex, p_normalized, false, p_size, p_type, p_relativeoffset, -1))
+        real(p_vaobj_rev->real, p_attribindex, p_size, p_type, p_normalized, p_relativeoffset);
 
 glVertexArrayAttribIFormat: //GLuint p_vaobj, GLuint p_attribindex, GLint p_size, GLenum p_type, GLuint p_relativeoffset
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    vertex_attrib_format(p_vaobj_rev->head.obj, p_attribindex, false, true, p_size, p_type, p_relativeoffset, -1);
+    if (vertex_attrib_format(p_vaobj_rev->head.obj, p_attribindex, false, true, p_size, p_type, p_relativeoffset, -1))
+        real(p_vaobj_rev->real, p_attribindex, p_size, p_type, p_relativeoffset);
 
 glVertexAttribFormat: //GLuint p_attribindex, GLint p_size, GLenum p_type, GLboolean p_normalized, GLuint p_relativeoffset
-    if (!gls_get_bound_vao()) ERROR2(, "No vertex array object is bound");
-    vertex_attrib_format(gls_get_bound_vao(), p_attribindex, p_normalized, false, p_size, p_type, p_relativeoffset, -1);
+    if (!gls_get_bound_vao()) ERROR("No vertex array object is bound");
+    if (vertex_attrib_format(gls_get_bound_vao(), p_attribindex, p_normalized, false, p_size, p_type, p_relativeoffset, -1))
+        real(p_attribindex, p_size, p_type, p_normalized, p_relativeoffset);
 
-glVertexAttribIFormat: //GLuint p_vaobj, GLuint p_attribindex, GLint p_size, GLenum p_type, GLuint p_relativeoffset
-    if (!gls_get_bound_vao()) ERROR2(, "No vertex array object is bound");
-    vertex_attrib_format(gls_get_bound_vao(), p_attribindex, false, true, p_size, p_type, p_relativeoffset, -1);
+glVertexAttribIFormat: //GLuint p_attribindex, GLint p_size, GLenum p_type, GLuint p_relativeoffset
+    if (!gls_get_bound_vao()) ERROR("No vertex array object is bound");
+    if (vertex_attrib_format(gls_get_bound_vao(), p_attribindex, false, true, p_size, p_type, p_relativeoffset, -1))
+        real(p_attribindex, p_size, p_type, p_relativeoffset);
 
 glEnableVertexAttribArray: //GLuint p_index
     if (!gls_get_bound_vao())
         ERROR("No vertex array object is bound");
-    set_attrib_enabled(gls_get_bound_vao(), p_index, true);
+    if (set_attrib_enabled(gls_get_bound_vao(), p_index, true))
+        real(p_index);
 
 glDisableVertexAttribArray: //GLuint p_index
     if (!gls_get_bound_vao())
         ERROR("No vertex array object is bound");
-    set_attrib_enabled(gls_get_bound_vao(), p_index, false);
+    if (set_attrib_enabled(gls_get_bound_vao(), p_index, false))
+        real(p_index);
 
 glEnableVertexArrayAttrib: //GLuint p_vaobj, GLuint p_index
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    set_attrib_enabled(p_vaobj_rev->head.obj, p_index, true);
+    if (set_attrib_enabled(p_vaobj_rev->head.obj, p_index, true))
+        real(p_vaobj_rev->real, p_index);
 
 glDisableVertexArrayAttrib: //GLuint p_vaobj, GLuint p_index
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
     if (!p_vaobj_rev->has_object) ERROR("Vertex array object name has no object");
-    set_attrib_enabled(p_vaobj_rev->head.obj, p_index, false);
+    if (set_attrib_enabled(p_vaobj_rev->head.obj, p_index, false))
+        real(p_vaobj_rev->real, p_index);
 
 glBindVertexBuffer: //GLuint p_bindingindex, GLuint p_buffer, GLintptr p_offset, GLintptr p_stride
     const trc_gl_vao_rev_t* vao = (const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
-    bind_vertex_buffer(false, vao, p_bindingindex, p_buffer, p_offset, p_stride);
+    if (bind_vertex_buffer(false, vao, p_bindingindex, p_buffer, p_offset, p_stride))
+        real(p_bindingindex, p_buffer?p_buffer_rev->real:0, p_offset, p_stride);
 
-glVertexArrayVertexBuffer: //GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride
-    bind_vertex_buffer(true, p_vaobj_rev, p_bindingindex, p_buffer, p_offset, p_stride);
+glVertexArrayVertexBuffer: //GLuint vaobj, GLuint p_bindingindex, GLuint p_buffer, GLintptr p_offset, GLsizei p_stride
+    if (bind_vertex_buffer(true, p_vaobj_rev, p_bindingindex, p_buffer, p_offset, p_stride))
+        real(p_vaobj_rev->real, p_bindingindex, p_buffer?p_buffer_rev->real:0, p_offset, p_stride);
 
-glBindVertexBuffers: //GLuint first, GLsizei count, const GLuint* buffers, const GLintptr* offsets, const GLsizei* strides
+glBindVertexBuffers: //GLuint p_first, GLsizei p_count, const GLuint* p_buffers, const GLintptr* p_offsets, const GLsizei* p_strides
     const trc_gl_vao_rev_t* vao = (const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
-    bind_vertex_buffers(false, vao, p_first, p_count, p_buffers, p_buffers_rev, p_offsets, p_strides);
+    if (bind_vertex_buffers(false, vao, p_first, p_count, p_buffers, p_buffers_rev, p_offsets, p_strides)) {
+        GLuint* bufs = replay_alloc(p_count*sizeof(GLuint));
+        for (GLuint i = 0; i < p_count; i++) bufs[i] = p_buffers[i] ? p_buffers_rev[i]->real : 0;
+        real(p_first, p_count, bufs, p_offsets, p_strides);
+    }
 
 glVertexArrayVertexBuffers: //GLuint vaobj, GLuint first, GLsizei count, const GLuint* buffers, const GLintptr* offsets, const GLsizei* strides
-    bind_vertex_buffers(true, p_vaobj_rev, p_first, p_count, p_buffers, p_buffers_rev, p_offsets, p_strides);
+    if (bind_vertex_buffers(true, p_vaobj_rev, p_first, p_count, p_buffers, p_buffers_rev, p_offsets, p_strides)) {
+        GLuint* bufs = replay_alloc(p_count*sizeof(GLuint));
+        for (GLuint i = 0; i < p_count; i++) bufs[i] = p_buffers[i] ? p_buffers_rev[i]->real : 0;
+        real(p_vaobj, p_first, p_count, bufs, p_offsets, p_strides);
+    }
 
 glVertexArrayElementBuffer: //GLuint p_vaobj, GLuint p_buffer
     if (!p_vaobj_rev) ERROR("Invalid vertex array object name");
@@ -453,6 +505,8 @@ glVertexArrayElementBuffer: //GLuint p_vaobj, GLuint p_buffer
     trc_gl_vao_rev_t rev = *p_vaobj_rev;
     trc_set_obj_ref(&rev.element_buffer, p_buffer_rev?p_buffer_rev->head.obj:NULL);
     set_vao(&rev);
+    
+    real(p_vaobj_rev->real, p_buffer?p_buffer_rev->real:0);
 
 glVertexAttrib1f: //GLuint p_index, GLfloat p_v0
     vertex_attrib(1, GL_FLOAT, false, false, GL_FLOAT);

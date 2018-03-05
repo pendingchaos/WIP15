@@ -369,9 +369,6 @@ map array char state_ascii_string
 //    GL_RENDERER
 //    GL_VERSION
 //    GL_SHADING_LANGUAGE_VERSION
-
-//Used for draw calls
-uint draw_vao
 '''
 
 class Property(object):

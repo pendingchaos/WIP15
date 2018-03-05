@@ -352,11 +352,6 @@ static void init_context() {
     memset(sample_mask_value, 0xff, cfg.max_sample_mask_words*sizeof(int));
     gls_state_int_init(GL_SAMPLE_MASK_VALUE, cfg.max_sample_mask_words, sample_mask_value);
     
-    uint draw_vao;
-    F(glGenVertexArrays)(1, &draw_vao);
-    F(glBindVertexArray)(draw_vao);
-    gls_set_draw_vao(draw_vao);
-    
     rev = *trc_get_context(trace);
     create_context_buffers(&rev);
     trc_set_context(ctx->trace, &rev);

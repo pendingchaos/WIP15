@@ -118,7 +118,6 @@ static bool begin_draw(GLenum primitive, uint flags) {
     if (!vao) ERROR2(false, "No vertex array object bound");
     trc_obj_t* vertex_program_obj = get_active_program_for_stage(GL_VERTEX_SHADER);
     if (!vertex_program_obj) ERROR2(false, "No vertex program active");
-    const trc_gl_program_rev_t* vertex_program = trc_obj_get_rev(vertex_program_obj, -1);
     
     //Validate samplers
     trc_obj_t* programs[5] = {vertex_program_obj, NULL, NULL, NULL, NULL};
@@ -160,9 +159,6 @@ static bool begin_draw(GLenum primitive, uint flags) {
             ERROR2(false, "Buffer bound at the current VAO's GL_ELEMENT_ARRAY_BUFFER is mapped");
     }
     
-    GLint last_buf;
-    F(glGetIntegerv)(GL_ARRAY_BUFFER_BINDING, &last_buf);
-    
     trc_gl_vao_attrib_t* vao_attribs = trc_map_data(vao->attribs, TRC_MAP_READ);
     trc_gl_vao_buffer_t* vao_buffers = trc_map_data(vao->buffers, TRC_MAP_READ);
     
@@ -176,63 +172,8 @@ static bool begin_draw(GLenum primitive, uint flags) {
         }
     }
     
-    uint glver = gls_get_ver();
-    
-    size_t prog_vertex_attrib_count = vertex_program->vertex_attribs->size;
-    prog_vertex_attrib_count /= sizeof(trc_gl_program_vertex_attrib_t);
-    const trc_gl_program_vertex_attrib_t* prog_vertex_attribs =
-        trc_map_data(vertex_program->vertex_attribs, TRC_MAP_READ);
-    for (size_t i = 0; i < vao->attribs->size/sizeof(trc_gl_vao_attrib_t); i++) {
-        GLint real_loc = -1;
-        for (size_t j = 0; j < prog_vertex_attrib_count; j++) {
-            int rel_loc = i - prog_vertex_attribs[j].fake;
-            if (rel_loc>=0 && rel_loc<prog_vertex_attribs[j].locations_used) {
-                real_loc = prog_vertex_attribs[j].real + rel_loc;
-                break;
-            }
-        }
-        if (real_loc < 0) continue;
-        
-        trc_gl_vao_attrib_t* a = &vao_attribs[i];
-        if (!a->enabled) {
-            F(glDisableVertexAttribArray)(real_loc);
-            double* cur_vertex_attrib = trc_map_data(state->current_vertex_attrib, TRC_MAP_READ);
-            uint* types = trc_map_data(state->current_vertex_attrib_types, TRC_MAP_READ);
-            double* vals = &cur_vertex_attrib[i*4];
-            switch (types[i]) {
-            case GL_FLOAT: F(glVertexAttrib4dv)(real_loc, vals); break;
-            case GL_DOUBLE: F(glVertexAttribL4dv)(real_loc, vals); break;
-            case GL_UNSIGNED_INT: F(glVertexAttribI4ui)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
-            case GL_INT: F(glVertexAttribI4i)(real_loc, vals[0], vals[1], vals[2], vals[3]); break;
-            }
-            trc_unmap_data(types);
-            trc_unmap_data(cur_vertex_attrib);
-            continue;
-        }
-        
-        trc_gl_vao_buffer_t* b = &vao_buffers[a->buffer_index];
-        
-        F(glEnableVertexAttribArray)(real_loc);
-        
-        GLuint real_buf = b->buffer.obj ? ((trc_gl_buffer_rev_t*)trc_obj_get_rev(b->buffer.obj, -1))->real : 0;
-        F(glBindBuffer)(GL_ARRAY_BUFFER, real_buf);
-        
-        if (a->integer) {
-            F(glVertexAttribIPointer)(real_loc, a->size, a->type, b->stride,
-                                      (const void*)(uintptr_t)a->offset+b->offset);
-        } else {
-            F(glVertexAttribPointer)(real_loc, a->size, a->type, a->normalized, b->stride,
-                                     (const void*)(uintptr_t)a->offset+b->offset);
-        }
-        
-        if (glver > 330)
-            F(glVertexAttribDivisor)(real_loc, b->divisor);
-    }
     trc_unmap_data(vao_buffers);
     trc_unmap_data(vao_attribs);
-    trc_unmap_data(prog_vertex_attribs);
-    
-    F(glBindBuffer)(GL_ARRAY_BUFFER, last_buf);
     
     return true;
 }

@@ -373,8 +373,7 @@ typedef struct trc_gl_program_vertex_attrib_t {
     trc_data_t* name;
     uint type;
     uint locations_used; //the number of columns for matrices, otherwise 1
-    uint real;
-    uint fake;
+    uint index;
 } trc_gl_program_vertex_attrib_t;
 
 typedef struct trc_gl_program_rev_t {

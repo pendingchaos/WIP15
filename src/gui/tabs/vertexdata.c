@@ -56,7 +56,7 @@ const char* format_column_title(int attrib, size_t attrib_count,
     size_t index = 0;
     int rel_loc;
     for (; index < attrib_count; index++) {
-        rel_loc = attribs[index].fake - attrib;
+        rel_loc = attribs[index].index - attrib;
         if (rel_loc>=0 && rel_loc<attribs[index].locations_used)
             goto found;
     }

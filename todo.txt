@@ -65,4 +65,3 @@ Reduce memory usage during replaying.
     Reduce amount of memory needed to store state
 
 cleanup objects after replay
-    don't forget trc_gl_context_rev_t::draw_vao
