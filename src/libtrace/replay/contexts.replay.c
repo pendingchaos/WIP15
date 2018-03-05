@@ -81,13 +81,13 @@ void update_fb0_buffers(bool backcolor, bool frontcolor, bool depth, bool stenci
     
     GLint prevfb;
     store_and_bind_fb(&prevfb, 0);
-    GLint depth_size, stencil_size;
-    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                             GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_size);
-    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
-                                             GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE, &stencil_size);
-    if (depth_size == 0) depth = false;
-    if (stencil_size == 0) stencil = false;
+    GLint depth_type, stencil_type;
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_DEPTH,
+                                             GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &depth_type);
+    F(glGetFramebufferAttachmentParameteriv)(GL_DRAW_FRAMEBUFFER, GL_STENCIL,
+                                             GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &stencil_type);
+    if (depth_type == GL_NONE) depth = false;
+    if (stencil_type == GL_NONE) stencil = false;
     F(glBindFramebuffer)(GL_DRAW_FRAMEBUFFER, prevfb);
     
     GLint prev[11];
