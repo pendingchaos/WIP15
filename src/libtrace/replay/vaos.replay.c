@@ -135,24 +135,24 @@ static trc_gl_vao_attrib_t* map_attribs(trc_gl_vao_rev_t* vao) {
     return trc_map_data(vao->attribs, TRC_MAP_MODIFY);
 }
 
-static void vertex_attrib_format(trc_obj_t* vao, GLuint index, bool normalized, bool integer,
+static bool vertex_attrib_format(trc_obj_t* vao, GLuint index, bool normalized, bool integer,
                                  GLint size, GLenum type, GLuint offset, GLint binding) {
     if (index >= gls_get_state_int(GL_MAX_VERTEX_ATTRIBS, 0))
-        ERROR2(, "Index is greater than GL_MAX_VERTEX_ATTRIBS");
+        ERROR2(false, "Index is greater than GL_MAX_VERTEX_ATTRIBS");
     if (not_one_of(size, 1, 2, 3, 4, -1) && (integer?true:size!=GL_BGRA))
-        ERROR2(, "Invalid size");
+        ERROR2(false, "Invalid size");
     if (size==GL_BGRA && not_one_of(type, GL_UNSIGNED_BYTE, GL_INT_2_10_10_10_REV, GL_UNSIGNED_INT_2_10_10_10_REV, -1))
-        ERROR2(, "Invalid size and type combination");
+        ERROR2(false, "Invalid size and type combination");
     if (type==GL_INT_2_10_10_10_REV && size!=4 && size!=GL_BGRA)
-        ERROR2(, "Invalid size and type combination");
+        ERROR2(false, "Invalid size and type combination");
     if (type==GL_UNSIGNED_INT_2_10_10_10_REV && size!=4 && size!=GL_BGRA)
-        ERROR2(, "Invalid size and type combination");
+        ERROR2(false, "Invalid size and type combination");
     if (type==GL_UNSIGNED_INT_10F_11F_11F_REV && size!=3)
-        ERROR2(, "Invalid size and type combination");
+        ERROR2(false, "Invalid size and type combination");
     if (size==GL_BGRA && !normalized)
-        ERROR2(, "Attributes of size GL_BGRA must be normalized");
+        ERROR2(false, "Attributes of size GL_BGRA must be normalized");
     if (gls_get_ver()>=430 && offset>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, 0))
-        ERROR2(, "The relative offset is greater than GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET");
+        ERROR2(false, "The relative offset is greater than GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET");
     
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(vao, -1);
     
@@ -164,20 +164,23 @@ static void vertex_attrib_format(trc_obj_t* vao, GLuint index, bool normalized, 
     attribs[index].type = type;
     if (binding >= 0) attribs[index].buffer_index = binding;
     trc_unmap_data(attribs);
+    
+    return true;
 }
 
-static void vertex_attrib_ptr(GLuint index, bool normalized, bool integer,
+static bool vertex_attrib_ptr(GLuint index, bool normalized, bool integer,
                               GLint size, GLenum type, uint64_t pointer, GLsizei stride) {
     if (!gls_get_bound_vao())
-        ERROR2(, "No vertex array object is bound");
+        ERROR2(false, "No vertex array object is bound");
     if (gls_get_ver()>=430 && index>=gls_get_state_int(GL_MAX_VERTEX_ATTRIB_BINDINGS, 0))
-        ERROR2(, "Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
+        ERROR2(false, "Index is greater than GL_MAX_VERTEX_ATTRIB_BINDINGS");
     if (!gls_get_bound_buffer(GL_ARRAY_BUFFER) && pointer)
-        ERROR2(, "No buffer bound when pointer is not NULL");
+        ERROR2(false, "No buffer bound when pointer is not NULL");
     if (gls_get_ver()>=440 && stride>gls_get_state_int(GL_MAX_VERTEX_ATTRIB_STRIDE, 0))
-        ERROR2(, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE");
+        ERROR2(false, "Stride is greater than GL_MAX_VERTEX_ATTRIB_STRIDE");
     
-    vertex_attrib_format(gls_get_bound_vao(), index, normalized, integer, size, type, 0, index);
+    if (!vertex_attrib_format(gls_get_bound_vao(), index, normalized, integer, size, type, 0, index))
+        return false;
     
     trc_gl_vao_rev_t rev = *(const trc_gl_vao_rev_t*)trc_obj_get_rev(gls_get_bound_vao(), -1);
     trc_gl_vao_buffer_t* buffers = map_bindings(&rev);
@@ -204,6 +207,8 @@ static void vertex_attrib_ptr(GLuint index, bool normalized, bool integer,
     }
     trc_set_obj_ref(&buffers[index].buffer, gls_get_bound_buffer(GL_ARRAY_BUFFER));
     trc_unmap_data(buffers);
+    
+    return true;
 }
 
 static void bind_vertex_buffer(bool dsa, const trc_gl_vao_rev_t* vao, GLuint index, GLuint buffer, GLintptr offset, GLintptr stride) {
