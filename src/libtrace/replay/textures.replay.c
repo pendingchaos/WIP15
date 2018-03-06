@@ -1007,17 +1007,20 @@ static const char* _validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t*
     return NULL;
 }
 
+//TODO: Improve caching
 const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
     const trc_gl_texture_rev_t* rev = trc_obj_get_rev(tex_obj, -1);
-    if (rev->complete_status != -1)
+    if (rev->complete_status!=-1 && !sampler_obj)
         return rev->complete_status ? NULL : rev->incompleteness_reason;
     
     const char* res = _validate_texture_completeness(tex_obj, sampler_obj);
     
-    trc_gl_texture_rev_t newrev = *rev;
-    newrev.complete_status = res ? 0 : 1;
-    newrev.incompleteness_reason = res;
-    set_texture(&newrev);
+    if (!sampler_obj) {
+        trc_gl_texture_rev_t newrev = *rev;
+        newrev.complete_status = res ? 0 : 1;
+        newrev.incompleteness_reason = res;
+        set_texture(&newrev);
+    }
     
     return res;
 }
