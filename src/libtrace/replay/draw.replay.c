@@ -272,7 +272,27 @@ static void end_draw() {
     if (stencil) mask |= GL_STENCIL_BUFFER_BIT;
     update_buffers(gls_get_draw_framebuffer(), mask, true);
     
-    //TODO: Update shader storage buffers, images and atomic counters
+    //TODO: Update images
+    
+    //TODO: Only update buffers that could have been written to
+    
+    //Update shader storage buffers
+    size_t ssbo_count = gls_get_bound_buffer_indexed_size(GL_SHADER_STORAGE_BUFFER);
+    for (size_t i = 0; i < ssbo_count; i++) {
+        trc_gl_buffer_binding_point_t binding =
+            gls_get_bound_buffer_indexed(GL_SHADER_STORAGE_BUFFER, i);
+        if (!binding.buf.obj) continue;
+        update_buffer_from_gl(binding.buf.obj, binding.offset, binding.size);
+    }
+    
+    //Update atomic counter buffers
+    size_t acbo_count = gls_get_bound_buffer_indexed_size(GL_ATOMIC_COUNTER_BUFFER);
+    for (size_t i = 0; i < acbo_count; i++) {
+        trc_gl_buffer_binding_point_t binding =
+            gls_get_bound_buffer_indexed(GL_ATOMIC_COUNTER_BUFFER, i);
+        if (!binding.buf.obj) continue;
+        update_buffer_from_gl(binding.buf.obj, binding.offset, binding.size);
+    }
     
     //Update transform feedback buffers
     size_t xfb_buffer_count = gls_get_bound_buffer_indexed_size(GL_TRANSFORM_FEEDBACK_BUFFER);

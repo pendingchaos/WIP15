@@ -1008,7 +1008,7 @@ static const char* _validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t*
 }
 
 const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
-    trc_gl_texture_rev_t* rev = trc_obj_get_rev(tex_obj, -1);
+    const trc_gl_texture_rev_t* rev = trc_obj_get_rev(tex_obj, -1);
     if (rev->complete_status != -1)
         return rev->complete_status ? NULL : rev->incompleteness_reason;
     
