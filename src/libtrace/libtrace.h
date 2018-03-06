@@ -260,6 +260,8 @@ typedef struct trc_gl_texture_rev_t {
     //array of trc_gl_texture_image_t
     trc_data_t* images;
     trc_gl_texture_buffer_t buffer;
+    int complete_status; //-1=unknown, 0=incomplete, 1=complete
+    const char* incompleteness_reason;
 } trc_gl_texture_rev_t;
 
 typedef struct trc_gl_query_rev_t {

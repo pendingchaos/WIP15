@@ -287,6 +287,8 @@ static void gen_textures(size_t count, const GLuint* real, const GLuint* fake, b
     rev.immutable = false;
     rev.fixed_sample_locations = false;
     rev.samples = 0;
+    rev.complete_status = -1;
+    rev.incompleteness_reason = NULL;
     for (size_t i = 0; i < count; ++i) {
         rev.real = real[i];
         trc_create_named_obj(ctx->ns, TrcTexture, fake[i], &rev);
@@ -328,6 +330,8 @@ static void set_texture_image(const trc_gl_texture_rev_t* rev, uint level, uint 
     
     size_t size = img_count * sizeof(trc_gl_texture_image_t);
     newrev.images = trc_create_data_no_copy(ctx->trace, size, newimages, 0);
+    
+    newrev.complete_status = -1;
     
     set_texture(&newrev);
 }
@@ -633,6 +637,7 @@ static bool tex_buffer(GLuint tex_or_target, bool dsa, GLenum internalformat,
     newrev.buffer.offset = offset;
     //TODO: Write -1 when size<0? (to handle when the buffer's size changes)
     newrev.buffer.size = buffer ? (size<0?buffer_rev->data.size:size) : 0;
+    newrev.complete_status = -1;
     set_texture(&newrev);
     
     return true;
@@ -827,6 +832,7 @@ static bool texture_param_double(bool dsa, GLuint tex_or_target, GLenum param,
         break;
     }
     
+    newrev.complete_status = -1;
     set_texture(&newrev);
     
     return false;
@@ -933,8 +939,7 @@ static const char* validate_cube_completeness(const trc_gl_texture_rev_t* tex, s
     return NULL;
 }
 
-//TODO: The results of this function could be cached
-const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
+static const char* _validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
     const trc_gl_texture_rev_t* tex = trc_obj_get_rev(tex_obj, -1);
     trc_gl_sample_params_t sample_params = tex->sample_params;
     if (sampler_obj) {
@@ -1000,6 +1005,21 @@ const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler
     trc_unmap_data(images);
     
     return NULL;
+}
+
+const char* validate_texture_completeness(trc_obj_t* tex_obj, trc_obj_t* sampler_obj) {
+    trc_gl_texture_rev_t* rev = trc_obj_get_rev(tex_obj, -1);
+    if (rev->complete_status != -1)
+        return rev->complete_status ? NULL : rev->incompleteness_reason;
+    
+    const char* res = _validate_texture_completeness(tex_obj, sampler_obj);
+    
+    trc_gl_texture_rev_t newrev = *rev;
+    newrev.complete_status = res ? 0 : 1;
+    newrev.incompleteness_reason = res;
+    set_texture(&newrev);
+    
+    return res;
 }
 
 static bool is_proxy_target(GLenum target) {
